@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "androidpublisher:v3"
 const apiName = "androidpublisher"
@@ -114,7 +117,21 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Applications = NewApplicationsService(s)
+	s.Apprecovery = NewApprecoveryService(s)
+	s.Edits = NewEditsService(s)
+	s.Externaltransactions = NewExternaltransactionsService(s)
+	s.Generatedapks = NewGeneratedapksService(s)
+	s.Grants = NewGrantsService(s)
+	s.Inappproducts = NewInappproductsService(s)
+	s.Internalappsharingartifacts = NewInternalappsharingartifactsService(s)
+	s.Monetization = NewMonetizationService(s)
+	s.Orders = NewOrdersService(s)
+	s.Purchases = NewPurchasesService(s)
+	s.Reviews = NewReviewsService(s)
+	s.Systemapks = NewSystemapksService(s)
+	s.Users = NewUsersService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,26 +150,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Applications = NewApplicationsService(s)
-	s.Apprecovery = NewApprecoveryService(s)
-	s.Edits = NewEditsService(s)
-	s.Externaltransactions = NewExternaltransactionsService(s)
-	s.Generatedapks = NewGeneratedapksService(s)
-	s.Grants = NewGrantsService(s)
-	s.Inappproducts = NewInappproductsService(s)
-	s.Internalappsharingartifacts = NewInternalappsharingartifactsService(s)
-	s.Monetization = NewMonetizationService(s)
-	s.Orders = NewOrdersService(s)
-	s.Purchases = NewPurchasesService(s)
-	s.Reviews = NewReviewsService(s)
-	s.Systemapks = NewSystemapksService(s)
-	s.Users = NewUsersService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -572,9 +575,9 @@ type Abi struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Abi) MarshalJSON() ([]byte, error) {
+func (s Abi) MarshalJSON() ([]byte, error) {
 	type NoMethod Abi
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AbiTargeting: Targeting based on Abi.
@@ -597,9 +600,9 @@ type AbiTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AbiTargeting) MarshalJSON() ([]byte, error) {
+func (s AbiTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod AbiTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AcquisitionTargetingRule: Represents a targeting rule of the form: User
@@ -621,9 +624,9 @@ type AcquisitionTargetingRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AcquisitionTargetingRule) MarshalJSON() ([]byte, error) {
+func (s AcquisitionTargetingRule) MarshalJSON() ([]byte, error) {
 	type NoMethod AcquisitionTargetingRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ActivateBasePlanRequest: Request message for ActivateBasePlan.
@@ -662,9 +665,9 @@ type ActivateBasePlanRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActivateBasePlanRequest) MarshalJSON() ([]byte, error) {
+func (s ActivateBasePlanRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ActivateBasePlanRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ActivateSubscriptionOfferRequest: Request message for
@@ -705,9 +708,9 @@ type ActivateSubscriptionOfferRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActivateSubscriptionOfferRequest) MarshalJSON() ([]byte, error) {
+func (s ActivateSubscriptionOfferRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ActivateSubscriptionOfferRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddTargetingRequest: Request message for AddTargeting.
@@ -728,9 +731,9 @@ type AddTargetingRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddTargetingRequest) MarshalJSON() ([]byte, error) {
+func (s AddTargetingRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddTargetingRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddTargetingResponse: Response message for AddTargeting.
@@ -756,9 +759,9 @@ type AllUsers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllUsers) MarshalJSON() ([]byte, error) {
+func (s AllUsers) MarshalJSON() ([]byte, error) {
 	type NoMethod AllUsers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidSdks: Android api level targeting data for app recovery action
@@ -781,9 +784,9 @@ type AndroidSdks struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidSdks) MarshalJSON() ([]byte, error) {
+func (s AndroidSdks) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidSdks
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Apk: Information about an APK. The resource for ApksService.
@@ -808,9 +811,9 @@ type Apk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Apk) MarshalJSON() ([]byte, error) {
+func (s Apk) MarshalJSON() ([]byte, error) {
 	type NoMethod Apk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApkBinary: Represents the binary payload of an APK.
@@ -834,9 +837,9 @@ type ApkBinary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApkBinary) MarshalJSON() ([]byte, error) {
+func (s ApkBinary) MarshalJSON() ([]byte, error) {
 	type NoMethod ApkBinary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApkDescription: Description of the created apks.
@@ -868,9 +871,9 @@ type ApkDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApkDescription) MarshalJSON() ([]byte, error) {
+func (s ApkDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod ApkDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApkSet: A set of apks representing a module.
@@ -892,9 +895,9 @@ type ApkSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApkSet) MarshalJSON() ([]byte, error) {
+func (s ApkSet) MarshalJSON() ([]byte, error) {
 	type NoMethod ApkSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApkTargeting: Represents a set of apk-level targetings.
@@ -925,9 +928,9 @@ type ApkTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApkTargeting) MarshalJSON() ([]byte, error) {
+func (s ApkTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod ApkTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApksAddExternallyHostedRequest: Request to create a new externally hosted
@@ -949,9 +952,9 @@ type ApksAddExternallyHostedRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApksAddExternallyHostedRequest) MarshalJSON() ([]byte, error) {
+func (s ApksAddExternallyHostedRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ApksAddExternallyHostedRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApksAddExternallyHostedResponse: Response for creating a new externally
@@ -976,9 +979,9 @@ type ApksAddExternallyHostedResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApksAddExternallyHostedResponse) MarshalJSON() ([]byte, error) {
+func (s ApksAddExternallyHostedResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ApksAddExternallyHostedResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApksListResponse: Response listing all APKs.
@@ -1003,9 +1006,9 @@ type ApksListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApksListResponse) MarshalJSON() ([]byte, error) {
+func (s ApksListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ApksListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppDetails: The app details. The resource for DetailsService.
@@ -1034,9 +1037,9 @@ type AppDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppDetails) MarshalJSON() ([]byte, error) {
+func (s AppDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AppDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppEdit: An app edit. The resource for EditsService.
@@ -1063,9 +1066,9 @@ type AppEdit struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppEdit) MarshalJSON() ([]byte, error) {
+func (s AppEdit) MarshalJSON() ([]byte, error) {
 	type NoMethod AppEdit
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppRecoveryAction: Information about an app recovery action.
@@ -1123,9 +1126,9 @@ type AppRecoveryAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppRecoveryAction) MarshalJSON() ([]byte, error) {
+func (s AppRecoveryAction) MarshalJSON() ([]byte, error) {
 	type NoMethod AppRecoveryAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppVersionList: Data format for a list of app versions.
@@ -1145,9 +1148,9 @@ type AppVersionList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppVersionList) MarshalJSON() ([]byte, error) {
+func (s AppVersionList) MarshalJSON() ([]byte, error) {
 	type NoMethod AppVersionList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppVersionRange: Data format for a continuous range of app versions.
@@ -1169,9 +1172,9 @@ type AppVersionRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppVersionRange) MarshalJSON() ([]byte, error) {
+func (s AppVersionRange) MarshalJSON() ([]byte, error) {
 	type NoMethod AppVersionRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ArchiveSubscriptionRequest: Deprecated: subscription archiving is not
@@ -1208,9 +1211,9 @@ type AssetModuleMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetModuleMetadata) MarshalJSON() ([]byte, error) {
+func (s AssetModuleMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetModuleMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetSliceSet: Set of asset slices belonging to a single asset module.
@@ -1232,26 +1235,29 @@ type AssetSliceSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetSliceSet) MarshalJSON() ([]byte, error) {
+func (s AssetSliceSet) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetSliceSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutoRenewingBasePlanType: Represents a base plan that automatically renews
 // at the end of its subscription period.
 type AutoRenewingBasePlanType struct {
 	// AccountHoldDuration: Optional. Account hold period of the subscription,
-	// specified in ISO 8601 format. Acceptable values must be in DAYS and in the
-	// range P0D (zero days) to P30D (30 days). If not specified, the default value
-	// is P30D (30 days).
+	// specified in ISO 8601 format. Acceptable values must be in days and between
+	// P0D and P60D. If not specified, the default value is P30D. The sum of
+	// gracePeriodDuration and accountHoldDuration must be between P30D and P60D
+	// days, inclusive.
 	AccountHoldDuration string `json:"accountHoldDuration,omitempty"`
-	// BillingPeriodDuration: Required. Subscription period, specified in ISO 8601
-	// format. For a list of acceptable billing periods, refer to the help center.
+	// BillingPeriodDuration: Required. Immutable. Subscription period, specified
+	// in ISO 8601 format. For a list of acceptable billing periods, refer to the
+	// help center. The duration is immutable after the base plan is created.
 	BillingPeriodDuration string `json:"billingPeriodDuration,omitempty"`
 	// GracePeriodDuration: Grace period of the subscription, specified in ISO 8601
-	// format. Acceptable values are P0D (zero days), P3D (3 days), P7D (7 days),
-	// P14D (14 days), and P30D (30 days). If not specified, a default value will
-	// be used based on the recurring period duration.
+	// format. Acceptable values must be in days and between P0D and the lesser of
+	// 30D and base plan billing period. If not specified, a default value will be
+	// used based on the billing period. The sum of gracePeriodDuration and
+	// accountHoldDuration must be between P30D and P60D days, inclusive.
 	GracePeriodDuration string `json:"gracePeriodDuration,omitempty"`
 	// LegacyCompatible: Whether the renewing base plan is backward compatible. The
 	// backward compatible base plan is returned by the Google Play Billing Library
@@ -1300,9 +1306,9 @@ type AutoRenewingBasePlanType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoRenewingBasePlanType) MarshalJSON() ([]byte, error) {
+func (s AutoRenewingBasePlanType) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoRenewingBasePlanType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutoRenewingPlan: Information related to an auto renewing plan.
@@ -1316,6 +1322,8 @@ type AutoRenewingPlan struct {
 	// PriceChangeDetails: The information of the last price change for the item
 	// since subscription signup.
 	PriceChangeDetails *SubscriptionItemPriceChangeDetails `json:"priceChangeDetails,omitempty"`
+	// RecurringPrice: The current recurring price of the auto renewing plan.
+	RecurringPrice *Money `json:"recurringPrice,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AutoRenewEnabled") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1329,9 +1337,9 @@ type AutoRenewingPlan struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoRenewingPlan) MarshalJSON() ([]byte, error) {
+func (s AutoRenewingPlan) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoRenewingPlan
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BasePlan: A single base plan for a subscription.
@@ -1386,9 +1394,9 @@ type BasePlan struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BasePlan) MarshalJSON() ([]byte, error) {
+func (s BasePlan) MarshalJSON() ([]byte, error) {
 	type NoMethod BasePlan
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetSubscriptionOffersRequest: Request message for
@@ -1410,9 +1418,9 @@ type BatchGetSubscriptionOffersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetSubscriptionOffersRequest) MarshalJSON() ([]byte, error) {
+func (s BatchGetSubscriptionOffersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetSubscriptionOffersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetSubscriptionOffersResponse: Response message for
@@ -1435,9 +1443,9 @@ type BatchGetSubscriptionOffersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetSubscriptionOffersResponse) MarshalJSON() ([]byte, error) {
+func (s BatchGetSubscriptionOffersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetSubscriptionOffersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetSubscriptionsResponse: Response message for BatchGetSubscriptions
@@ -1462,9 +1470,9 @@ type BatchGetSubscriptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetSubscriptionsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchGetSubscriptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetSubscriptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchMigrateBasePlanPricesRequest: Request message for
@@ -1486,9 +1494,9 @@ type BatchMigrateBasePlanPricesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchMigrateBasePlanPricesRequest) MarshalJSON() ([]byte, error) {
+func (s BatchMigrateBasePlanPricesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchMigrateBasePlanPricesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchMigrateBasePlanPricesResponse: Response message for
@@ -1513,9 +1521,9 @@ type BatchMigrateBasePlanPricesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchMigrateBasePlanPricesResponse) MarshalJSON() ([]byte, error) {
+func (s BatchMigrateBasePlanPricesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchMigrateBasePlanPricesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateBasePlanStatesRequest: Request message for
@@ -1537,9 +1545,9 @@ type BatchUpdateBasePlanStatesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateBasePlanStatesRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateBasePlanStatesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateBasePlanStatesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateBasePlanStatesResponse: Response message for
@@ -1564,9 +1572,9 @@ type BatchUpdateBasePlanStatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateBasePlanStatesResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateBasePlanStatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateBasePlanStatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateSubscriptionOfferStatesRequest: Request message for
@@ -1588,9 +1596,9 @@ type BatchUpdateSubscriptionOfferStatesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateSubscriptionOfferStatesRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateSubscriptionOfferStatesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateSubscriptionOfferStatesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateSubscriptionOfferStatesResponse: Response message for
@@ -1614,9 +1622,9 @@ type BatchUpdateSubscriptionOfferStatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateSubscriptionOfferStatesResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateSubscriptionOfferStatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateSubscriptionOfferStatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateSubscriptionOffersRequest: Request message for
@@ -1638,9 +1646,9 @@ type BatchUpdateSubscriptionOffersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateSubscriptionOffersRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateSubscriptionOffersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateSubscriptionOffersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateSubscriptionOffersResponse: Response message for
@@ -1664,9 +1672,9 @@ type BatchUpdateSubscriptionOffersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateSubscriptionOffersResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateSubscriptionOffersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateSubscriptionOffersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateSubscriptionsRequest: Request message for
@@ -1688,9 +1696,9 @@ type BatchUpdateSubscriptionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateSubscriptionsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateSubscriptionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateSubscriptionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateSubscriptionsResponse: Response message for
@@ -1714,9 +1722,9 @@ type BatchUpdateSubscriptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateSubscriptionsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateSubscriptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateSubscriptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Bundle: Information about an app bundle. The resource for BundlesService.
@@ -1746,9 +1754,9 @@ type Bundle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Bundle) MarshalJSON() ([]byte, error) {
+func (s Bundle) MarshalJSON() ([]byte, error) {
 	type NoMethod Bundle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BundlesListResponse: Response listing all app bundles.
@@ -1773,9 +1781,9 @@ type BundlesListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BundlesListResponse) MarshalJSON() ([]byte, error) {
+func (s BundlesListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BundlesListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelAppRecoveryRequest: Request message for CancelAppRecovery.
@@ -1819,9 +1827,9 @@ type CancelSurveyResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CancelSurveyResult) MarshalJSON() ([]byte, error) {
+func (s CancelSurveyResult) MarshalJSON() ([]byte, error) {
 	type NoMethod CancelSurveyResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CanceledStateContext: Information specific to a subscription in the
@@ -1850,9 +1858,9 @@ type CanceledStateContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CanceledStateContext) MarshalJSON() ([]byte, error) {
+func (s CanceledStateContext) MarshalJSON() ([]byte, error) {
 	type NoMethod CanceledStateContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Comment: An entry of conversation between user and developer.
@@ -1874,9 +1882,9 @@ type Comment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Comment) MarshalJSON() ([]byte, error) {
+func (s Comment) MarshalJSON() ([]byte, error) {
 	type NoMethod Comment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConvertRegionPricesRequest: Request message for ConvertRegionPrices.
@@ -1896,9 +1904,9 @@ type ConvertRegionPricesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConvertRegionPricesRequest) MarshalJSON() ([]byte, error) {
+func (s ConvertRegionPricesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ConvertRegionPricesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConvertRegionPricesResponse: Response message for ConvertRegionPrices.
@@ -1908,6 +1916,8 @@ type ConvertRegionPricesResponse struct {
 	ConvertedOtherRegionsPrice *ConvertedOtherRegionsPrice `json:"convertedOtherRegionsPrice,omitempty"`
 	// ConvertedRegionPrices: Map from region code to converted region price.
 	ConvertedRegionPrices map[string]ConvertedRegionPrice `json:"convertedRegionPrices,omitempty"`
+	// RegionVersion: The region version at which the prices were generated.
+	RegionVersion *RegionsVersion `json:"regionVersion,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -1924,9 +1934,9 @@ type ConvertRegionPricesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConvertRegionPricesResponse) MarshalJSON() ([]byte, error) {
+func (s ConvertRegionPricesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ConvertRegionPricesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConvertedOtherRegionsPrice: Converted other regions prices.
@@ -1950,9 +1960,9 @@ type ConvertedOtherRegionsPrice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConvertedOtherRegionsPrice) MarshalJSON() ([]byte, error) {
+func (s ConvertedOtherRegionsPrice) MarshalJSON() ([]byte, error) {
 	type NoMethod ConvertedOtherRegionsPrice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConvertedRegionPrice: A converted region price.
@@ -1976,9 +1986,9 @@ type ConvertedRegionPrice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConvertedRegionPrice) MarshalJSON() ([]byte, error) {
+func (s ConvertedRegionPrice) MarshalJSON() ([]byte, error) {
 	type NoMethod ConvertedRegionPrice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CountryTargeting: Country targeting specification.
@@ -2002,9 +2012,9 @@ type CountryTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CountryTargeting) MarshalJSON() ([]byte, error) {
+func (s CountryTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod CountryTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateDraftAppRecoveryRequest: Request message for CreateDraftAppRecovery.
@@ -2029,9 +2039,9 @@ type CreateDraftAppRecoveryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateDraftAppRecoveryRequest) MarshalJSON() ([]byte, error) {
+func (s CreateDraftAppRecoveryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateDraftAppRecoveryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeactivateBasePlanRequest: Request message for DeactivateBasePlan.
@@ -2071,9 +2081,9 @@ type DeactivateBasePlanRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeactivateBasePlanRequest) MarshalJSON() ([]byte, error) {
+func (s DeactivateBasePlanRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DeactivateBasePlanRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeactivateSubscriptionOfferRequest: Request message for
@@ -2115,9 +2125,9 @@ type DeactivateSubscriptionOfferRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeactivateSubscriptionOfferRequest) MarshalJSON() ([]byte, error) {
+func (s DeactivateSubscriptionOfferRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DeactivateSubscriptionOfferRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeferredItemReplacement: Information related to deferred item replacement.
@@ -2137,9 +2147,9 @@ type DeferredItemReplacement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeferredItemReplacement) MarshalJSON() ([]byte, error) {
+func (s DeferredItemReplacement) MarshalJSON() ([]byte, error) {
 	type NoMethod DeferredItemReplacement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeobfuscationFile: Represents a deobfuscation file.
@@ -2164,9 +2174,9 @@ type DeobfuscationFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeobfuscationFile) MarshalJSON() ([]byte, error) {
+func (s DeobfuscationFile) MarshalJSON() ([]byte, error) {
 	type NoMethod DeobfuscationFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeobfuscationFilesUploadResponse: Responses for the upload.
@@ -2189,9 +2199,9 @@ type DeobfuscationFilesUploadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeobfuscationFilesUploadResponse) MarshalJSON() ([]byte, error) {
+func (s DeobfuscationFilesUploadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DeobfuscationFilesUploadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeployAppRecoveryRequest: Request message for DeployAppRecovery.
@@ -2224,9 +2234,9 @@ type DeveloperComment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeveloperComment) MarshalJSON() ([]byte, error) {
+func (s DeveloperComment) MarshalJSON() ([]byte, error) {
 	type NoMethod DeveloperComment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeveloperInitiatedCancellation: Information specific to cancellations
@@ -2254,9 +2264,9 @@ type DeviceFeature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceFeature) MarshalJSON() ([]byte, error) {
+func (s DeviceFeature) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceFeature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceFeatureTargeting: Targeting for a device feature.
@@ -2276,9 +2286,9 @@ type DeviceFeatureTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceFeatureTargeting) MarshalJSON() ([]byte, error) {
+func (s DeviceFeatureTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceFeatureTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceGroup: A group of devices. A group is defined by a set of device
@@ -2303,9 +2313,9 @@ type DeviceGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceGroup) MarshalJSON() ([]byte, error) {
+func (s DeviceGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceId: Identifier of a device.
@@ -2327,9 +2337,9 @@ type DeviceId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceId) MarshalJSON() ([]byte, error) {
+func (s DeviceId) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceMetadata: Characteristics of the user's device.
@@ -2370,9 +2380,9 @@ type DeviceMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceMetadata) MarshalJSON() ([]byte, error) {
+func (s DeviceMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceRam: Conditions about a device's RAM capabilities.
@@ -2394,9 +2404,9 @@ type DeviceRam struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceRam) MarshalJSON() ([]byte, error) {
+func (s DeviceRam) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceRam
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceSelector: Selector for a device group. A selector consists of a set of
@@ -2420,6 +2430,9 @@ type DeviceSelector struct {
 	// RequiredSystemFeatures: A device needs to have all these system features to
 	// be included by the selector.
 	RequiredSystemFeatures []*SystemFeature `json:"requiredSystemFeatures,omitempty"`
+	// SystemOnChips: Optional. The SoCs included by this selector. Only works for
+	// Android S+ devices.
+	SystemOnChips []*SystemOnChip `json:"systemOnChips,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DeviceRam") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -2433,9 +2446,9 @@ type DeviceSelector struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceSelector) MarshalJSON() ([]byte, error) {
+func (s DeviceSelector) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceSelector
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceSpec: The device spec used to generate a system APK.
@@ -2462,9 +2475,9 @@ type DeviceSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceSpec) MarshalJSON() ([]byte, error) {
+func (s DeviceSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceTier: A single device tier. Devices matching any of the device groups
@@ -2496,9 +2509,9 @@ type DeviceTier struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceTier) MarshalJSON() ([]byte, error) {
+func (s DeviceTier) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceTier
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceTierConfig: Configuration describing device targeting criteria for the
@@ -2528,9 +2541,9 @@ type DeviceTierConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceTierConfig) MarshalJSON() ([]byte, error) {
+func (s DeviceTierConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceTierConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceTierSet: A set of device tiers. A tier set determines what variation
@@ -2554,9 +2567,9 @@ type DeviceTierSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceTierSet) MarshalJSON() ([]byte, error) {
+func (s DeviceTierSet) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceTierSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExpansionFile: An expansion file. The resource for ExpansionFilesService.
@@ -2584,9 +2597,9 @@ type ExpansionFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExpansionFile) MarshalJSON() ([]byte, error) {
+func (s ExpansionFile) MarshalJSON() ([]byte, error) {
 	type NoMethod ExpansionFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExpansionFilesUploadResponse: Response for uploading an expansion file.
@@ -2609,9 +2622,9 @@ type ExpansionFilesUploadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExpansionFilesUploadResponse) MarshalJSON() ([]byte, error) {
+func (s ExpansionFilesUploadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ExpansionFilesUploadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExternalAccountIdentifiers: User account identifier in the third-party
@@ -2647,9 +2660,9 @@ type ExternalAccountIdentifiers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExternalAccountIdentifiers) MarshalJSON() ([]byte, error) {
+func (s ExternalAccountIdentifiers) MarshalJSON() ([]byte, error) {
 	type NoMethod ExternalAccountIdentifiers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExternalSubscription: Details of an external subscription.
@@ -2675,9 +2688,9 @@ type ExternalSubscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExternalSubscription) MarshalJSON() ([]byte, error) {
+func (s ExternalSubscription) MarshalJSON() ([]byte, error) {
 	type NoMethod ExternalSubscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExternalTransaction: The details of an external transaction.
@@ -2717,6 +2730,15 @@ type ExternalTransaction struct {
 	// TestPurchase: Output only. If set, this transaction was a test purchase.
 	// Google will not charge for a test transaction.
 	TestPurchase *ExternalTransactionTestPurchase `json:"testPurchase,omitempty"`
+	// TransactionProgramCode: Optional. The transaction program code, used to help
+	// determine service fee for eligible apps participating in partner programs.
+	// Developers participating in the Play Media Experience Program
+	// (https://play.google.com/console/about/programs/mediaprogram/) must provide
+	// the program code when reporting alternative billing transactions. If you are
+	// an eligible developer, please contact your BDM for more information on how
+	// to set this field. Note: this field can not be used for external offers
+	// transactions.
+	TransactionProgramCode int64 `json:"transactionProgramCode,omitempty"`
 	// TransactionState: Output only. The current state of the transaction.
 	//
 	// Possible values:
@@ -2745,9 +2767,9 @@ type ExternalTransaction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExternalTransaction) MarshalJSON() ([]byte, error) {
+func (s ExternalTransaction) MarshalJSON() ([]byte, error) {
 	type NoMethod ExternalTransaction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExternalTransactionAddress: User's address for the external transaction.
@@ -2779,9 +2801,9 @@ type ExternalTransactionAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExternalTransactionAddress) MarshalJSON() ([]byte, error) {
+func (s ExternalTransactionAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod ExternalTransactionAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExternalTransactionTestPurchase: Represents a transaction performed using a
@@ -2842,9 +2864,9 @@ type ExternallyHostedApk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExternallyHostedApk) MarshalJSON() ([]byte, error) {
+func (s ExternallyHostedApk) MarshalJSON() ([]byte, error) {
 	type NoMethod ExternallyHostedApk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FullRefund: A full refund of the remaining amount of a transaction.
@@ -2871,9 +2893,9 @@ type GeneratedApksListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeneratedApksListResponse) MarshalJSON() ([]byte, error) {
+func (s GeneratedApksListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GeneratedApksListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeneratedApksPerSigningKey: Download metadata for split, standalone and
@@ -2915,9 +2937,9 @@ type GeneratedApksPerSigningKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeneratedApksPerSigningKey) MarshalJSON() ([]byte, error) {
+func (s GeneratedApksPerSigningKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GeneratedApksPerSigningKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeneratedAssetPackSlice: Download metadata for an asset pack slice.
@@ -2944,9 +2966,9 @@ type GeneratedAssetPackSlice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeneratedAssetPackSlice) MarshalJSON() ([]byte, error) {
+func (s GeneratedAssetPackSlice) MarshalJSON() ([]byte, error) {
 	type NoMethod GeneratedAssetPackSlice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeneratedRecoveryApk: Download metadata for an app recovery module.
@@ -2987,9 +3009,9 @@ type GeneratedRecoveryApk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeneratedRecoveryApk) MarshalJSON() ([]byte, error) {
+func (s GeneratedRecoveryApk) MarshalJSON() ([]byte, error) {
 	type NoMethod GeneratedRecoveryApk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeneratedSplitApk: Download metadata for a split APK.
@@ -3016,9 +3038,9 @@ type GeneratedSplitApk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeneratedSplitApk) MarshalJSON() ([]byte, error) {
+func (s GeneratedSplitApk) MarshalJSON() ([]byte, error) {
 	type NoMethod GeneratedSplitApk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeneratedStandaloneApk: Download metadata for a standalone APK.
@@ -3041,9 +3063,9 @@ type GeneratedStandaloneApk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeneratedStandaloneApk) MarshalJSON() ([]byte, error) {
+func (s GeneratedStandaloneApk) MarshalJSON() ([]byte, error) {
 	type NoMethod GeneratedStandaloneApk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeneratedUniversalApk: Download metadata for a universal APK.
@@ -3064,9 +3086,9 @@ type GeneratedUniversalApk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeneratedUniversalApk) MarshalJSON() ([]byte, error) {
+func (s GeneratedUniversalApk) MarshalJSON() ([]byte, error) {
 	type NoMethod GeneratedUniversalApk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetSubscriptionOfferRequest: Request message for GetSubscriptionOffer.
@@ -3092,9 +3114,9 @@ type GetSubscriptionOfferRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetSubscriptionOfferRequest) MarshalJSON() ([]byte, error) {
+func (s GetSubscriptionOfferRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetSubscriptionOfferRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Grant: An access grant resource.
@@ -3146,9 +3168,9 @@ type Grant struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Grant) MarshalJSON() ([]byte, error) {
+func (s Grant) MarshalJSON() ([]byte, error) {
 	type NoMethod Grant
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Image: An uploaded image. The resource for ImagesService.
@@ -3174,9 +3196,9 @@ type Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Image) MarshalJSON() ([]byte, error) {
+func (s Image) MarshalJSON() ([]byte, error) {
 	type NoMethod Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImagesDeleteAllResponse: Response for deleting all images.
@@ -3199,9 +3221,9 @@ type ImagesDeleteAllResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImagesDeleteAllResponse) MarshalJSON() ([]byte, error) {
+func (s ImagesDeleteAllResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImagesDeleteAllResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImagesListResponse: Response listing all images.
@@ -3224,9 +3246,9 @@ type ImagesListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImagesListResponse) MarshalJSON() ([]byte, error) {
+func (s ImagesListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImagesListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImagesUploadResponse: Response for uploading an image.
@@ -3249,9 +3271,9 @@ type ImagesUploadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImagesUploadResponse) MarshalJSON() ([]byte, error) {
+func (s ImagesUploadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImagesUploadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InAppProduct: An in-app product. The resource for InappproductsService.
@@ -3322,9 +3344,9 @@ type InAppProduct struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InAppProduct) MarshalJSON() ([]byte, error) {
+func (s InAppProduct) MarshalJSON() ([]byte, error) {
 	type NoMethod InAppProduct
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InAppProductListing: Store listing of a single in-app product.
@@ -3348,9 +3370,9 @@ type InAppProductListing struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InAppProductListing) MarshalJSON() ([]byte, error) {
+func (s InAppProductListing) MarshalJSON() ([]byte, error) {
 	type NoMethod InAppProductListing
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InappproductsBatchDeleteRequest: Request to delete multiple in-app products.
@@ -3372,9 +3394,9 @@ type InappproductsBatchDeleteRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InappproductsBatchDeleteRequest) MarshalJSON() ([]byte, error) {
+func (s InappproductsBatchDeleteRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InappproductsBatchDeleteRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InappproductsBatchGetResponse: Response message for BatchGetSubscriptions
@@ -3399,9 +3421,9 @@ type InappproductsBatchGetResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InappproductsBatchGetResponse) MarshalJSON() ([]byte, error) {
+func (s InappproductsBatchGetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod InappproductsBatchGetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InappproductsBatchUpdateRequest: Request to update or insert one or more
@@ -3424,9 +3446,9 @@ type InappproductsBatchUpdateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InappproductsBatchUpdateRequest) MarshalJSON() ([]byte, error) {
+func (s InappproductsBatchUpdateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InappproductsBatchUpdateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InappproductsBatchUpdateResponse: Response for a batch in-app product
@@ -3450,9 +3472,9 @@ type InappproductsBatchUpdateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InappproductsBatchUpdateResponse) MarshalJSON() ([]byte, error) {
+func (s InappproductsBatchUpdateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod InappproductsBatchUpdateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InappproductsDeleteRequest: Request to delete an in-app product.
@@ -3487,9 +3509,9 @@ type InappproductsDeleteRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InappproductsDeleteRequest) MarshalJSON() ([]byte, error) {
+func (s InappproductsDeleteRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InappproductsDeleteRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InappproductsListResponse: Response listing all in-app products.
@@ -3520,9 +3542,9 @@ type InappproductsListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InappproductsListResponse) MarshalJSON() ([]byte, error) {
+func (s InappproductsListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod InappproductsListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InappproductsUpdateRequest: Request to update an in-app product.
@@ -3567,9 +3589,9 @@ type InappproductsUpdateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InappproductsUpdateRequest) MarshalJSON() ([]byte, error) {
+func (s InappproductsUpdateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InappproductsUpdateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstallmentPlan: Information to a installment plan.
@@ -3601,29 +3623,32 @@ type InstallmentPlan struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstallmentPlan) MarshalJSON() ([]byte, error) {
+func (s InstallmentPlan) MarshalJSON() ([]byte, error) {
 	type NoMethod InstallmentPlan
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstallmentsBasePlanType: Represents an installments base plan where a user
 // commits to a specified number of payments.
 type InstallmentsBasePlanType struct {
 	// AccountHoldDuration: Optional. Account hold period of the subscription,
-	// specified exclusively in days and in ISO 8601 format. Acceptable values are
-	// P0D (zero days) to P30D (30days). If not specified, the default value is
-	// P30D (30 days).
+	// specified in ISO 8601 format. Acceptable values must be in days and between
+	// P0D and P60D. If not specified, the default value is P30D. The sum of
+	// gracePeriodDuration and accountHoldDuration must be between P30D and P60D
+	// days, inclusive.
 	AccountHoldDuration string `json:"accountHoldDuration,omitempty"`
-	// BillingPeriodDuration: Required. Subscription period, specified in ISO 8601
-	// format. For a list of acceptable billing periods, refer to the help center.
+	// BillingPeriodDuration: Required. Immutable. Subscription period, specified
+	// in ISO 8601 format. For a list of acceptable billing periods, refer to the
+	// help center. The duration is immutable after the base plan is created.
 	BillingPeriodDuration string `json:"billingPeriodDuration,omitempty"`
-	// CommittedPaymentsCount: Required. The number of payments the user is
-	// committed to.
+	// CommittedPaymentsCount: Required. Immutable. The number of payments the user
+	// is committed to. It is immutable after the base plan is created.
 	CommittedPaymentsCount int64 `json:"committedPaymentsCount,omitempty"`
 	// GracePeriodDuration: Grace period of the subscription, specified in ISO 8601
-	// format. Acceptable values are P0D (zero days), P3D (3 days), P7D (7 days),
-	// P14D (14 days), and P30D (30 days). If not specified, a default value will
-	// be used based on the recurring period duration.
+	// format. Acceptable values must be in days and between P0D and the lesser of
+	// 30D and base plan billing period. If not specified, a default value will be
+	// used based on the billing period. The sum of gracePeriodDuration and
+	// accountHoldDuration must be between P30D and P60D days, inclusive.
 	GracePeriodDuration string `json:"gracePeriodDuration,omitempty"`
 	// ProrationMode: The proration mode for the base plan determines what happens
 	// when a user switches to this plan from another base plan. If unspecified,
@@ -3638,8 +3663,9 @@ type InstallmentsBasePlanType struct {
 	// period of their existing subscription will be used to extend the duration of
 	// the new billing plan.
 	ProrationMode string `json:"prorationMode,omitempty"`
-	// RenewalType: Required. Installments base plan renewal type. Determines the
-	// behavior at the end of the initial commitment.
+	// RenewalType: Required. Immutable. Installments base plan renewal type.
+	// Determines the behavior at the end of the initial commitment. The renewal
+	// type is immutable after the base plan is created.
 	//
 	// Possible values:
 	//   "RENEWAL_TYPE_UNSPECIFIED" - Unspecified state.
@@ -3670,9 +3696,9 @@ type InstallmentsBasePlanType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstallmentsBasePlanType) MarshalJSON() ([]byte, error) {
+func (s InstallmentsBasePlanType) MarshalJSON() ([]byte, error) {
 	type NoMethod InstallmentsBasePlanType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InternalAppSharingArtifact: An artifact resource which gets created when
@@ -3704,9 +3730,9 @@ type InternalAppSharingArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InternalAppSharingArtifact) MarshalJSON() ([]byte, error) {
+func (s InternalAppSharingArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod InternalAppSharingArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntroductoryPriceInfo: Contains the introductory price information for a
@@ -3742,9 +3768,9 @@ type IntroductoryPriceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntroductoryPriceInfo) MarshalJSON() ([]byte, error) {
+func (s IntroductoryPriceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod IntroductoryPriceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LanguageTargeting: Targeting based on language.
@@ -3766,9 +3792,9 @@ type LanguageTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LanguageTargeting) MarshalJSON() ([]byte, error) {
+func (s LanguageTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod LanguageTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAppRecoveriesResponse: Response message for ListAppRecoveries. --
@@ -3793,9 +3819,9 @@ type ListAppRecoveriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAppRecoveriesResponse) MarshalJSON() ([]byte, error) {
+func (s ListAppRecoveriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAppRecoveriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDeviceTierConfigsResponse: Response listing existing device tier
@@ -3822,9 +3848,9 @@ type ListDeviceTierConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDeviceTierConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDeviceTierConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDeviceTierConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSubscriptionOffersResponse: Response message for ListSubscriptionOffers.
@@ -3850,9 +3876,9 @@ type ListSubscriptionOffersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSubscriptionOffersResponse) MarshalJSON() ([]byte, error) {
+func (s ListSubscriptionOffersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSubscriptionOffersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSubscriptionsResponse: Response message for ListSubscriptions.
@@ -3878,9 +3904,9 @@ type ListSubscriptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSubscriptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSubscriptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSubscriptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUsersResponse: A response containing one or more users with access to an
@@ -3908,9 +3934,9 @@ type ListUsersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUsersResponse) MarshalJSON() ([]byte, error) {
+func (s ListUsersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUsersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Listing: A localized store listing. The resource for ListingsService.
@@ -3942,9 +3968,9 @@ type Listing struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Listing) MarshalJSON() ([]byte, error) {
+func (s Listing) MarshalJSON() ([]byte, error) {
 	type NoMethod Listing
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListingsListResponse: Response listing all localized listings.
@@ -3969,9 +3995,9 @@ type ListingsListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListingsListResponse) MarshalJSON() ([]byte, error) {
+func (s ListingsListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListingsListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LocalizedText: Localized text in given language.
@@ -3994,9 +4020,9 @@ type LocalizedText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LocalizedText) MarshalJSON() ([]byte, error) {
+func (s LocalizedText) MarshalJSON() ([]byte, error) {
 	type NoMethod LocalizedText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManagedProductTaxAndComplianceSettings: Details about taxation and legal
@@ -4033,9 +4059,9 @@ type ManagedProductTaxAndComplianceSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedProductTaxAndComplianceSettings) MarshalJSON() ([]byte, error) {
+func (s ManagedProductTaxAndComplianceSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedProductTaxAndComplianceSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MigrateBasePlanPricesRequest: Request message for MigrateBasePlanPrices.
@@ -4080,9 +4106,9 @@ type MigrateBasePlanPricesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MigrateBasePlanPricesRequest) MarshalJSON() ([]byte, error) {
+func (s MigrateBasePlanPricesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MigrateBasePlanPricesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MigrateBasePlanPricesResponse: Response message for MigrateBasePlanPrices.
@@ -4132,9 +4158,9 @@ type ModuleMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModuleMetadata) MarshalJSON() ([]byte, error) {
+func (s ModuleMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ModuleMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModuleTargeting: Targeting on the module level.
@@ -4158,9 +4184,9 @@ type ModuleTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModuleTargeting) MarshalJSON() ([]byte, error) {
+func (s ModuleTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod ModuleTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Money: Represents an amount of money with its currency type.
@@ -4189,12 +4215,12 @@ type Money struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Money) MarshalJSON() ([]byte, error) {
+func (s Money) MarshalJSON() ([]byte, error) {
 	type NoMethod Money
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// MultiAbi: Represents a list of apis.
+// MultiAbi: Represents a list of ABIs.
 type MultiAbi struct {
 	// Abi: A list of targeted ABIs, as represented by the Android Platform
 	Abi []*Abi `json:"abi,omitempty"`
@@ -4211,9 +4237,9 @@ type MultiAbi struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiAbi) MarshalJSON() ([]byte, error) {
+func (s MultiAbi) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiAbi
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultiAbiTargeting: Targeting based on multiple abis.
@@ -4236,9 +4262,9 @@ type MultiAbiTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiAbiTargeting) MarshalJSON() ([]byte, error) {
+func (s MultiAbiTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiAbiTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OfferDetails: Offer details information related to a purchase line item.
@@ -4263,13 +4289,12 @@ type OfferDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OfferDetails) MarshalJSON() ([]byte, error) {
+func (s OfferDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod OfferDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// OfferTag: Represents a custom tag specified for base plans and subscription
-// offers.
+// OfferTag: Represents a custom tag specified for a product offer.
 type OfferTag struct {
 	// Tag: Must conform with RFC-1034. That is, this string can only contain
 	// lower-case letters (a-z), numbers (0-9), and hyphens (-), and be at most 20
@@ -4288,9 +4313,13 @@ type OfferTag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OfferTag) MarshalJSON() ([]byte, error) {
+func (s OfferTag) MarshalJSON() ([]byte, error) {
 	type NoMethod OfferTag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OneTimeCode: A single use promotion code.
+type OneTimeCode struct {
 }
 
 // OneTimeExternalTransaction: Represents a one-time transaction.
@@ -4311,9 +4340,9 @@ type OneTimeExternalTransaction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OneTimeExternalTransaction) MarshalJSON() ([]byte, error) {
+func (s OneTimeExternalTransaction) MarshalJSON() ([]byte, error) {
 	type NoMethod OneTimeExternalTransaction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OtherRecurringProduct: Details of a recurring external transaction product
@@ -4347,9 +4376,9 @@ type OtherRegionsBasePlanConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OtherRegionsBasePlanConfig) MarshalJSON() ([]byte, error) {
+func (s OtherRegionsBasePlanConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod OtherRegionsBasePlanConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OtherRegionsSubscriptionOfferConfig: Configuration for any new locations
@@ -4374,9 +4403,9 @@ type OtherRegionsSubscriptionOfferConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OtherRegionsSubscriptionOfferConfig) MarshalJSON() ([]byte, error) {
+func (s OtherRegionsSubscriptionOfferConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod OtherRegionsSubscriptionOfferConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OtherRegionsSubscriptionOfferPhaseConfig: Configuration for any new
@@ -4419,9 +4448,9 @@ type OtherRegionsSubscriptionOfferPhaseConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OtherRegionsSubscriptionOfferPhaseConfig) MarshalJSON() ([]byte, error) {
+func (s OtherRegionsSubscriptionOfferPhaseConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod OtherRegionsSubscriptionOfferPhaseConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *OtherRegionsSubscriptionOfferPhaseConfig) UnmarshalJSON(data []byte) error {
@@ -4466,9 +4495,9 @@ type OtherRegionsSubscriptionOfferPhasePrices struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OtherRegionsSubscriptionOfferPhasePrices) MarshalJSON() ([]byte, error) {
+func (s OtherRegionsSubscriptionOfferPhasePrices) MarshalJSON() ([]byte, error) {
 	type NoMethod OtherRegionsSubscriptionOfferPhasePrices
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PageInfo: Information about the current page. List operations that supports
@@ -4496,9 +4525,9 @@ type PageInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PageInfo) MarshalJSON() ([]byte, error) {
+func (s PageInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod PageInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartialRefund: A partial refund of a transaction.
@@ -4523,9 +4552,9 @@ type PartialRefund struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartialRefund) MarshalJSON() ([]byte, error) {
+func (s PartialRefund) MarshalJSON() ([]byte, error) {
 	type NoMethod PartialRefund
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PausedStateContext: Information specific to a subscription in paused state.
@@ -4546,9 +4575,9 @@ type PausedStateContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PausedStateContext) MarshalJSON() ([]byte, error) {
+func (s PausedStateContext) MarshalJSON() ([]byte, error) {
 	type NoMethod PausedStateContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PendingCancellation: This is an indicator of whether there is a pending
@@ -4560,8 +4589,9 @@ type PendingCancellation struct {
 // PrepaidBasePlanType: Represents a base plan that does not automatically
 // renew at the end of the base plan, and must be manually renewed by the user.
 type PrepaidBasePlanType struct {
-	// BillingPeriodDuration: Required. Subscription period, specified in ISO 8601
-	// format. For a list of acceptable billing periods, refer to the help center.
+	// BillingPeriodDuration: Required. Immutable. Subscription period, specified
+	// in ISO 8601 format. For a list of acceptable billing periods, refer to the
+	// help center. The duration is immutable after the base plan is created.
 	BillingPeriodDuration string `json:"billingPeriodDuration,omitempty"`
 	// TimeExtension: Whether users should be able to extend this prepaid base plan
 	// in Google Play surfaces. Defaults to TIME_EXTENSION_ACTIVE if not specified.
@@ -4586,9 +4616,9 @@ type PrepaidBasePlanType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrepaidBasePlanType) MarshalJSON() ([]byte, error) {
+func (s PrepaidBasePlanType) MarshalJSON() ([]byte, error) {
 	type NoMethod PrepaidBasePlanType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrepaidPlan: Information related to a prepaid plan.
@@ -4610,9 +4640,9 @@ type PrepaidPlan struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrepaidPlan) MarshalJSON() ([]byte, error) {
+func (s PrepaidPlan) MarshalJSON() ([]byte, error) {
 	type NoMethod PrepaidPlan
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Price: Definition of a price, i.e. currency and units.
@@ -4636,9 +4666,9 @@ type Price struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Price) MarshalJSON() ([]byte, error) {
+func (s Price) MarshalJSON() ([]byte, error) {
 	type NoMethod Price
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProductPurchase: A ProductPurchase resource indicates the status of a user's
@@ -4713,9 +4743,9 @@ type ProductPurchase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProductPurchase) MarshalJSON() ([]byte, error) {
+func (s ProductPurchase) MarshalJSON() ([]byte, error) {
 	type NoMethod ProductPurchase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProductPurchasesAcknowledgeRequest: Request for the
@@ -4736,9 +4766,9 @@ type ProductPurchasesAcknowledgeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProductPurchasesAcknowledgeRequest) MarshalJSON() ([]byte, error) {
+func (s ProductPurchasesAcknowledgeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ProductPurchasesAcknowledgeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RecurringExternalTransaction: Represents a transaction that is part of a
@@ -4784,9 +4814,9 @@ type RecurringExternalTransaction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecurringExternalTransaction) MarshalJSON() ([]byte, error) {
+func (s RecurringExternalTransaction) MarshalJSON() ([]byte, error) {
 	type NoMethod RecurringExternalTransaction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RefundExternalTransactionRequest: A request to refund an existing external
@@ -4811,9 +4841,9 @@ type RefundExternalTransactionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RefundExternalTransactionRequest) MarshalJSON() ([]byte, error) {
+func (s RefundExternalTransactionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RefundExternalTransactionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RegionalBasePlanConfig: Configuration for a base plan specific to a region.
@@ -4843,32 +4873,33 @@ type RegionalBasePlanConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegionalBasePlanConfig) MarshalJSON() ([]byte, error) {
+func (s RegionalBasePlanConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RegionalBasePlanConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// RegionalPriceMigrationConfig: Configuration for a price migration.
+// RegionalPriceMigrationConfig: Configuration for migration of a legacy price
+// cohort.
 type RegionalPriceMigrationConfig struct {
-	// OldestAllowedPriceVersionTime: Required. The cutoff time for historical
-	// prices that subscribers can remain paying. Subscribers on prices which were
-	// available at this cutoff time or later will stay on their existing price.
-	// Subscribers on older prices will be migrated to the currently-offered price.
-	// The migrated subscribers will receive a notification that they will be
-	// paying a different price. Subscribers who do not agree to the new price will
-	// have their subscription ended at the next renewal.
+	// OldestAllowedPriceVersionTime: Required. Subscribers in all legacy price
+	// cohorts before this time will be migrated to the current price. Subscribers
+	// in any newer price cohorts are unaffected. Affected subscribers will receive
+	// one or more notifications from Google Play about the price change. Price
+	// decreases occur at the subscriber's next billing date. Price increases occur
+	// at the subscriber's next billing date following a notification period that
+	// varies by region and price increase type.
 	OldestAllowedPriceVersionTime string `json:"oldestAllowedPriceVersionTime,omitempty"`
-	// PriceIncreaseType: Optional. The behavior the caller wants users to see when
-	// there is a price increase during migration. If left unset, the behavior
-	// defaults to PRICE_INCREASE_TYPE_OPT_IN. Note that the first opt-out price
-	// increase migration for each app must be initiated in Play Console.
+	// PriceIncreaseType: Optional. The requested type of price increase
 	//
 	// Possible values:
 	//   "PRICE_INCREASE_TYPE_UNSPECIFIED" - Unspecified state.
-	//   "PRICE_INCREASE_TYPE_OPT_IN" - Price increase will be presented to users
-	// on an opt-in basis.
-	//   "PRICE_INCREASE_TYPE_OPT_OUT" - Price increase will be presented to users
-	// on an opt-out basis.
+	//   "PRICE_INCREASE_TYPE_OPT_IN" - Subscribers must accept the price increase
+	// or their subscription is canceled.
+	//   "PRICE_INCREASE_TYPE_OPT_OUT" - Subscribers are notified but do not have
+	// to accept the price increase. Opt-out price increases not meeting regional,
+	// frequency, and amount limits will proceed as opt-in price increase. The
+	// first opt-out price increase for each app must be initiated in the Google
+	// Play Console.
 	PriceIncreaseType string `json:"priceIncreaseType,omitempty"`
 	// RegionCode: Required. Region code this configuration applies to, as defined
 	// by ISO 3166-2, e.g. "US".
@@ -4886,9 +4917,9 @@ type RegionalPriceMigrationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegionalPriceMigrationConfig) MarshalJSON() ([]byte, error) {
+func (s RegionalPriceMigrationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RegionalPriceMigrationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RegionalSubscriptionOfferConfig: Configuration for a subscription offer in a
@@ -4915,9 +4946,9 @@ type RegionalSubscriptionOfferConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegionalSubscriptionOfferConfig) MarshalJSON() ([]byte, error) {
+func (s RegionalSubscriptionOfferConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RegionalSubscriptionOfferConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RegionalSubscriptionOfferPhaseConfig: Configuration for a single phase of a
@@ -4960,9 +4991,9 @@ type RegionalSubscriptionOfferPhaseConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegionalSubscriptionOfferPhaseConfig) MarshalJSON() ([]byte, error) {
+func (s RegionalSubscriptionOfferPhaseConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RegionalSubscriptionOfferPhaseConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *RegionalSubscriptionOfferPhaseConfig) UnmarshalJSON(data []byte) error {
@@ -5040,9 +5071,9 @@ type RegionalTaxRateInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegionalTaxRateInfo) MarshalJSON() ([]byte, error) {
+func (s RegionalTaxRateInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RegionalTaxRateInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Regions: Region targeting data for app recovery action targeting.
@@ -5065,9 +5096,9 @@ type Regions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Regions) MarshalJSON() ([]byte, error) {
+func (s Regions) MarshalJSON() ([]byte, error) {
 	type NoMethod Regions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RegionsVersion: The version of the available regions being used for the
@@ -5096,9 +5127,9 @@ type RegionsVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegionsVersion) MarshalJSON() ([]byte, error) {
+func (s RegionsVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod RegionsVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoteInAppUpdate: Object representation for Remote in-app update action
@@ -5120,9 +5151,9 @@ type RemoteInAppUpdate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoteInAppUpdate) MarshalJSON() ([]byte, error) {
+func (s RemoteInAppUpdate) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoteInAppUpdate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoteInAppUpdateData: Data related to Remote In-App Update action such as
@@ -5144,9 +5175,9 @@ type RemoteInAppUpdateData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoteInAppUpdateData) MarshalJSON() ([]byte, error) {
+func (s RemoteInAppUpdateData) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoteInAppUpdateData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoteInAppUpdateDataPerBundle: Data related to the recovery action at
@@ -5172,9 +5203,9 @@ type RemoteInAppUpdateDataPerBundle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoteInAppUpdateDataPerBundle) MarshalJSON() ([]byte, error) {
+func (s RemoteInAppUpdateDataPerBundle) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoteInAppUpdateDataPerBundle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplacementCancellation: Information specific to cancellations caused by
@@ -5202,9 +5233,9 @@ type RestrictedPaymentCountries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestrictedPaymentCountries) MarshalJSON() ([]byte, error) {
+func (s RestrictedPaymentCountries) MarshalJSON() ([]byte, error) {
 	type NoMethod RestrictedPaymentCountries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Review: An Android app review.
@@ -5231,9 +5262,9 @@ type Review struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Review) MarshalJSON() ([]byte, error) {
+func (s Review) MarshalJSON() ([]byte, error) {
 	type NoMethod Review
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReviewReplyResult: The result of replying/updating a reply to review.
@@ -5255,9 +5286,9 @@ type ReviewReplyResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReviewReplyResult) MarshalJSON() ([]byte, error) {
+func (s ReviewReplyResult) MarshalJSON() ([]byte, error) {
 	type NoMethod ReviewReplyResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReviewsListResponse: Response listing reviews.
@@ -5285,9 +5316,9 @@ type ReviewsListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReviewsListResponse) MarshalJSON() ([]byte, error) {
+func (s ReviewsListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReviewsListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReviewsReplyRequest: Request to reply to review or update existing reply.
@@ -5308,9 +5339,9 @@ type ReviewsReplyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReviewsReplyRequest) MarshalJSON() ([]byte, error) {
+func (s ReviewsReplyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReviewsReplyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReviewsReplyResponse: Response on status of replying to a review.
@@ -5333,34 +5364,42 @@ type ReviewsReplyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReviewsReplyResponse) MarshalJSON() ([]byte, error) {
+func (s ReviewsReplyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReviewsReplyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevocationContext: Revocation context of the
 // purchases.subscriptionsv2.revoke API.
 type RevocationContext struct {
+	// FullRefund: Optional. Used when users should be refunded the full amount of
+	// the latest order of the subscription.
+	FullRefund *RevocationContextFullRefund `json:"fullRefund,omitempty"`
 	// ProratedRefund: Optional. Used when users should be refunded a prorated
 	// amount they paid for their subscription based on the amount of time
 	// remaining in a subscription.
 	ProratedRefund *RevocationContextProratedRefund `json:"proratedRefund,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "ProratedRefund") to
+	// ForceSendFields is a list of field names (e.g. "FullRefund") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ProratedRefund") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "FullRefund") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *RevocationContext) MarshalJSON() ([]byte, error) {
+func (s RevocationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod RevocationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RevocationContextFullRefund: Used to determine if the refund type in the
+// RevocationContext is a full refund.
+type RevocationContextFullRefund struct {
 }
 
 // RevocationContextProratedRefund: Used to determine if the refund type in the
@@ -5387,9 +5426,9 @@ type RevokeSubscriptionPurchaseRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevokeSubscriptionPurchaseRequest) MarshalJSON() ([]byte, error) {
+func (s RevokeSubscriptionPurchaseRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RevokeSubscriptionPurchaseRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevokeSubscriptionPurchaseResponse: Response for the
@@ -5420,9 +5459,9 @@ type SafetyLabelsUpdateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SafetyLabelsUpdateRequest) MarshalJSON() ([]byte, error) {
+func (s SafetyLabelsUpdateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SafetyLabelsUpdateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SafetyLabelsUpdateResponse: Response for SafetyLabelsUpdate rpc.
@@ -5461,9 +5500,9 @@ type ScreenDensity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScreenDensity) MarshalJSON() ([]byte, error) {
+func (s ScreenDensity) MarshalJSON() ([]byte, error) {
 	type NoMethod ScreenDensity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScreenDensityTargeting: Targeting based on screen density.
@@ -5486,9 +5525,9 @@ type ScreenDensityTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScreenDensityTargeting) MarshalJSON() ([]byte, error) {
+func (s ScreenDensityTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod ScreenDensityTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SdkVersion: Represents an sdk version.
@@ -5508,9 +5547,9 @@ type SdkVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SdkVersion) MarshalJSON() ([]byte, error) {
+func (s SdkVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod SdkVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SdkVersionTargeting: Targeting based on sdk version.
@@ -5533,9 +5572,33 @@ type SdkVersionTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SdkVersionTargeting) MarshalJSON() ([]byte, error) {
+func (s SdkVersionTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod SdkVersionTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SignupPromotion: The promotion applied on this item when purchased.
+type SignupPromotion struct {
+	// OneTimeCode: A one-time code was applied.
+	OneTimeCode *OneTimeCode `json:"oneTimeCode,omitempty"`
+	// VanityCode: A vanity code was applied.
+	VanityCode *VanityCode `json:"vanityCode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "OneTimeCode") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "OneTimeCode") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SignupPromotion) MarshalJSON() ([]byte, error) {
+	type NoMethod SignupPromotion
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SplitApkMetadata: Holds data specific to Split APKs.
@@ -5557,9 +5620,9 @@ type SplitApkMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SplitApkMetadata) MarshalJSON() ([]byte, error) {
+func (s SplitApkMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod SplitApkMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SplitApkVariant: Variant is a group of APKs that covers a part of the device
@@ -5588,9 +5651,9 @@ type SplitApkVariant struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SplitApkVariant) MarshalJSON() ([]byte, error) {
+func (s SplitApkVariant) MarshalJSON() ([]byte, error) {
 	type NoMethod SplitApkVariant
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StandaloneApkMetadata: Holds data specific to Standalone APKs.
@@ -5610,9 +5673,9 @@ type StandaloneApkMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StandaloneApkMetadata) MarshalJSON() ([]byte, error) {
+func (s StandaloneApkMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod StandaloneApkMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscribeWithGoogleInfo: Information associated with purchases made with
@@ -5644,9 +5707,9 @@ type SubscribeWithGoogleInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscribeWithGoogleInfo) MarshalJSON() ([]byte, error) {
+func (s SubscribeWithGoogleInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscribeWithGoogleInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Subscription: A single subscription for an app.
@@ -5688,9 +5751,9 @@ type Subscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Subscription) MarshalJSON() ([]byte, error) {
+func (s Subscription) MarshalJSON() ([]byte, error) {
 	type NoMethod Subscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionCancelSurveyResult: Information provided by the user when they
@@ -5716,9 +5779,9 @@ type SubscriptionCancelSurveyResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionCancelSurveyResult) MarshalJSON() ([]byte, error) {
+func (s SubscriptionCancelSurveyResult) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionCancelSurveyResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionDeferralInfo: A SubscriptionDeferralInfo contains the data
@@ -5745,9 +5808,9 @@ type SubscriptionDeferralInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionDeferralInfo) MarshalJSON() ([]byte, error) {
+func (s SubscriptionDeferralInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionDeferralInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionItemPriceChangeDetails: Price change related information of a
@@ -5795,9 +5858,9 @@ type SubscriptionItemPriceChangeDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionItemPriceChangeDetails) MarshalJSON() ([]byte, error) {
+func (s SubscriptionItemPriceChangeDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionItemPriceChangeDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionListing: The consumer-visible metadata of a subscription.
@@ -5828,9 +5891,9 @@ type SubscriptionListing struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionListing) MarshalJSON() ([]byte, error) {
+func (s SubscriptionListing) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionListing
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionOffer: A single, temporary offer
@@ -5851,9 +5914,8 @@ type SubscriptionOffer struct {
 	// subscription belongs to.
 	PackageName string `json:"packageName,omitempty"`
 	// Phases: Required. The phases of this subscription offer. Must contain at
-	// least one entry, and may contain at most five. Users will always receive all
-	// these phases in the specified order. Phases may not be added, removed, or
-	// reordered after initial creation.
+	// least one and at most two entries. Users will always receive all these
+	// phases in the specified order.
 	Phases []*SubscriptionOfferPhase `json:"phases,omitempty"`
 	// ProductId: Required. Immutable. The ID of the parent subscription this offer
 	// belongs to.
@@ -5895,9 +5957,9 @@ type SubscriptionOffer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionOffer) MarshalJSON() ([]byte, error) {
+func (s SubscriptionOffer) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionOffer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionOfferPhase: A single phase of a subscription offer.
@@ -5929,9 +5991,9 @@ type SubscriptionOfferPhase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionOfferPhase) MarshalJSON() ([]byte, error) {
+func (s SubscriptionOfferPhase) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionOfferPhase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionOfferTargeting: Defines the rule a user needs to satisfy to
@@ -5954,9 +6016,9 @@ type SubscriptionOfferTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionOfferTargeting) MarshalJSON() ([]byte, error) {
+func (s SubscriptionOfferTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionOfferTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionPriceChange: Contains the price change information for a
@@ -5988,9 +6050,9 @@ type SubscriptionPriceChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionPriceChange) MarshalJSON() ([]byte, error) {
+func (s SubscriptionPriceChange) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionPriceChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionPurchase: A SubscriptionPurchase resource indicates the status
@@ -6135,9 +6197,9 @@ type SubscriptionPurchase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionPurchase) MarshalJSON() ([]byte, error) {
+func (s SubscriptionPurchase) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionPurchase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionPurchaseLineItem: Item-level info for a subscription purchase.
@@ -6155,6 +6217,9 @@ type SubscriptionPurchaseLineItem struct {
 	PrepaidPlan *PrepaidPlan `json:"prepaidPlan,omitempty"`
 	// ProductId: The purchased product ID (for example, 'monthly001').
 	ProductId string `json:"productId,omitempty"`
+	// SignupPromotion: Promotion details about this item. Only set if a promotion
+	// was applied during signup.
+	SignupPromotion *SignupPromotion `json:"signupPromotion,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AutoRenewingPlan") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -6168,9 +6233,9 @@ type SubscriptionPurchaseLineItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionPurchaseLineItem) MarshalJSON() ([]byte, error) {
+func (s SubscriptionPurchaseLineItem) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionPurchaseLineItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionPurchaseV2: Indicates the status of a user's subscription
@@ -6270,9 +6335,9 @@ type SubscriptionPurchaseV2 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionPurchaseV2) MarshalJSON() ([]byte, error) {
+func (s SubscriptionPurchaseV2) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionPurchaseV2
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionPurchasesAcknowledgeRequest: Request for the
@@ -6293,9 +6358,9 @@ type SubscriptionPurchasesAcknowledgeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionPurchasesAcknowledgeRequest) MarshalJSON() ([]byte, error) {
+func (s SubscriptionPurchasesAcknowledgeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionPurchasesAcknowledgeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionPurchasesDeferRequest: Request for the
@@ -6317,9 +6382,9 @@ type SubscriptionPurchasesDeferRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionPurchasesDeferRequest) MarshalJSON() ([]byte, error) {
+func (s SubscriptionPurchasesDeferRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionPurchasesDeferRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionPurchasesDeferResponse: Response for the
@@ -6344,9 +6409,9 @@ type SubscriptionPurchasesDeferResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionPurchasesDeferResponse) MarshalJSON() ([]byte, error) {
+func (s SubscriptionPurchasesDeferResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionPurchasesDeferResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscriptionTaxAndComplianceSettings: Details about taxation, Google Play
@@ -6383,9 +6448,9 @@ type SubscriptionTaxAndComplianceSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscriptionTaxAndComplianceSettings) MarshalJSON() ([]byte, error) {
+func (s SubscriptionTaxAndComplianceSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscriptionTaxAndComplianceSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SystemApkOptions: Options for system APKs.
@@ -6411,9 +6476,9 @@ type SystemApkOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SystemApkOptions) MarshalJSON() ([]byte, error) {
+func (s SystemApkOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod SystemApkOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SystemApksListResponse: Response to list previously created system APK
@@ -6437,9 +6502,9 @@ type SystemApksListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SystemApksListResponse) MarshalJSON() ([]byte, error) {
+func (s SystemApksListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SystemApksListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SystemFeature: Representation of a system feature.
@@ -6459,14 +6524,44 @@ type SystemFeature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SystemFeature) MarshalJSON() ([]byte, error) {
+func (s SystemFeature) MarshalJSON() ([]byte, error) {
 	type NoMethod SystemFeature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SystemInitiatedCancellation: Information specific to cancellations initiated
 // by Google system.
 type SystemInitiatedCancellation struct {
+}
+
+// SystemOnChip: Representation of a System-on-Chip (SoC) of an Android device.
+// Can be used to target S+ devices.
+type SystemOnChip struct {
+	// Manufacturer: Required. The designer of the SoC, eg. "Google" Value of build
+	// property "ro.soc.manufacturer"
+	// https://developer.android.com/reference/android/os/Build#SOC_MANUFACTURER
+	// Required.
+	Manufacturer string `json:"manufacturer,omitempty"`
+	// Model: Required. The model of the SoC, eg. "Tensor" Value of build property
+	// "ro.soc.model"
+	// https://developer.android.com/reference/android/os/Build#SOC_MODEL Required.
+	Model string `json:"model,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Manufacturer") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Manufacturer") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SystemOnChip) MarshalJSON() ([]byte, error) {
+	type NoMethod SystemOnChip
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Targeting: Targeting details for a recovery action such as regions, android
@@ -6495,9 +6590,9 @@ type Targeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Targeting) MarshalJSON() ([]byte, error) {
+func (s Targeting) MarshalJSON() ([]byte, error) {
 	type NoMethod Targeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetingInfo: Targeting information about the generated apks.
@@ -6521,9 +6616,9 @@ type TargetingInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetingInfo) MarshalJSON() ([]byte, error) {
+func (s TargetingInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetingInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetingRuleScope: Defines the scope of subscriptions which a targeting
@@ -6553,9 +6648,9 @@ type TargetingRuleScope struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetingRuleScope) MarshalJSON() ([]byte, error) {
+func (s TargetingRuleScope) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetingRuleScope
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetingRuleScopeAnySubscriptionInApp: Represents the targeting rule scope
@@ -6591,9 +6686,9 @@ type TargetingUpdate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetingUpdate) MarshalJSON() ([]byte, error) {
+func (s TargetingUpdate) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetingUpdate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestPurchase: Whether this subscription purchase is a test purchase.
@@ -6622,9 +6717,9 @@ type Testers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Testers) MarshalJSON() ([]byte, error) {
+func (s Testers) MarshalJSON() ([]byte, error) {
 	type NoMethod Testers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextureCompressionFormat: Represents texture compression format.
@@ -6657,9 +6752,9 @@ type TextureCompressionFormat struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextureCompressionFormat) MarshalJSON() ([]byte, error) {
+func (s TextureCompressionFormat) MarshalJSON() ([]byte, error) {
 	type NoMethod TextureCompressionFormat
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextureCompressionFormatTargeting: Targeting by a texture compression
@@ -6683,9 +6778,9 @@ type TextureCompressionFormatTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextureCompressionFormatTargeting) MarshalJSON() ([]byte, error) {
+func (s TextureCompressionFormatTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod TextureCompressionFormatTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Timestamp: A Timestamp represents a point in time independent of any time
@@ -6711,9 +6806,9 @@ type Timestamp struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Timestamp) MarshalJSON() ([]byte, error) {
+func (s Timestamp) MarshalJSON() ([]byte, error) {
 	type NoMethod Timestamp
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TokenPagination: Pagination information returned by a List operation when
@@ -6743,9 +6838,9 @@ type TokenPagination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TokenPagination) MarshalJSON() ([]byte, error) {
+func (s TokenPagination) MarshalJSON() ([]byte, error) {
 	type NoMethod TokenPagination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Track: A track configuration. The resource for TracksService.
@@ -6774,9 +6869,9 @@ type Track struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Track) MarshalJSON() ([]byte, error) {
+func (s Track) MarshalJSON() ([]byte, error) {
 	type NoMethod Track
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TrackConfig: Configurations of the new track.
@@ -6817,9 +6912,9 @@ type TrackConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TrackConfig) MarshalJSON() ([]byte, error) {
+func (s TrackConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TrackConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TrackCountryAvailability: Resource for per-track country availability
@@ -6855,9 +6950,9 @@ type TrackCountryAvailability struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TrackCountryAvailability) MarshalJSON() ([]byte, error) {
+func (s TrackCountryAvailability) MarshalJSON() ([]byte, error) {
 	type NoMethod TrackCountryAvailability
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TrackRelease: A release within a track.
@@ -6908,9 +7003,9 @@ type TrackRelease struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TrackRelease) MarshalJSON() ([]byte, error) {
+func (s TrackRelease) MarshalJSON() ([]byte, error) {
 	type NoMethod TrackRelease
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *TrackRelease) UnmarshalJSON(data []byte) error {
@@ -6945,9 +7040,9 @@ type TrackTargetedCountry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TrackTargetedCountry) MarshalJSON() ([]byte, error) {
+func (s TrackTargetedCountry) MarshalJSON() ([]byte, error) {
 	type NoMethod TrackTargetedCountry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TracksListResponse: Response listing all tracks.
@@ -6972,9 +7067,9 @@ type TracksListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TracksListResponse) MarshalJSON() ([]byte, error) {
+func (s TracksListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TracksListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateBasePlanStateRequest: Request message to update the state of a
@@ -7000,9 +7095,9 @@ type UpdateBasePlanStateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateBasePlanStateRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateBasePlanStateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateBasePlanStateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateSubscriptionOfferRequest: Request message for UpdateSubscriptionOffer.
@@ -7044,9 +7139,9 @@ type UpdateSubscriptionOfferRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateSubscriptionOfferRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateSubscriptionOfferRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateSubscriptionOfferRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateSubscriptionOfferStateRequest: Request message to update the state of
@@ -7074,9 +7169,9 @@ type UpdateSubscriptionOfferStateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateSubscriptionOfferStateRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateSubscriptionOfferStateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateSubscriptionOfferStateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateSubscriptionRequest: Request message for UpdateSubscription.
@@ -7118,9 +7213,9 @@ type UpdateSubscriptionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateSubscriptionRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateSubscriptionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateSubscriptionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpgradeTargetingRule: Represents a targeting rule of the form: User
@@ -7151,9 +7246,9 @@ type UpgradeTargetingRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpgradeTargetingRule) MarshalJSON() ([]byte, error) {
+func (s UpgradeTargetingRule) MarshalJSON() ([]byte, error) {
 	type NoMethod UpgradeTargetingRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // User: A user resource.
@@ -7239,9 +7334,9 @@ type User struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *User) MarshalJSON() ([]byte, error) {
+func (s User) MarshalJSON() ([]byte, error) {
 	type NoMethod User
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserComment: User entry from conversation between user and developer.
@@ -7292,9 +7387,9 @@ type UserComment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserComment) MarshalJSON() ([]byte, error) {
+func (s UserComment) MarshalJSON() ([]byte, error) {
 	type NoMethod UserComment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserCountriesTargeting: Describes an inclusive/exclusive list of country
@@ -7317,9 +7412,9 @@ type UserCountriesTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserCountriesTargeting) MarshalJSON() ([]byte, error) {
+func (s UserCountriesTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod UserCountriesTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserCountrySet: A set of user countries. A country set determines what
@@ -7344,9 +7439,9 @@ type UserCountrySet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserCountrySet) MarshalJSON() ([]byte, error) {
+func (s UserCountrySet) MarshalJSON() ([]byte, error) {
 	type NoMethod UserCountrySet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserInitiatedCancellation: Information specific to cancellations initiated
@@ -7372,9 +7467,9 @@ type UserInitiatedCancellation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserInitiatedCancellation) MarshalJSON() ([]byte, error) {
+func (s UserInitiatedCancellation) MarshalJSON() ([]byte, error) {
 	type NoMethod UserInitiatedCancellation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UsesPermission: A permission used by this APK.
@@ -7397,9 +7492,31 @@ type UsesPermission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsesPermission) MarshalJSON() ([]byte, error) {
+func (s UsesPermission) MarshalJSON() ([]byte, error) {
 	type NoMethod UsesPermission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// VanityCode: A multiple use, predefined promotion code.
+type VanityCode struct {
+	// PromotionCode: The promotion code.
+	PromotionCode string `json:"promotionCode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PromotionCode") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PromotionCode") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s VanityCode) MarshalJSON() ([]byte, error) {
+	type NoMethod VanityCode
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Variant: APK that is suitable for inclusion in a system image. The resource
@@ -7427,9 +7544,9 @@ type Variant struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Variant) MarshalJSON() ([]byte, error) {
+func (s Variant) MarshalJSON() ([]byte, error) {
 	type NoMethod Variant
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VariantTargeting: Targeting on the level of variants.
@@ -7458,9 +7575,9 @@ type VariantTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VariantTargeting) MarshalJSON() ([]byte, error) {
+func (s VariantTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod VariantTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoidedPurchase: A VoidedPurchase resource indicates a purchase that was
@@ -7507,9 +7624,9 @@ type VoidedPurchase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoidedPurchase) MarshalJSON() ([]byte, error) {
+func (s VoidedPurchase) MarshalJSON() ([]byte, error) {
 	type NoMethod VoidedPurchase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoidedPurchasesListResponse: Response for the voidedpurchases.list API.
@@ -7535,9 +7652,9 @@ type VoidedPurchasesListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoidedPurchasesListResponse) MarshalJSON() ([]byte, error) {
+func (s VoidedPurchasesListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod VoidedPurchasesListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ApplicationsDataSafetyCall struct {
@@ -7584,8 +7701,7 @@ func (c *ApplicationsDataSafetyCall) Header() http.Header {
 
 func (c *ApplicationsDataSafetyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.safetylabelsupdaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.safetylabelsupdaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7601,6 +7717,7 @@ func (c *ApplicationsDataSafetyCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.applications.dataSafety", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7636,9 +7753,11 @@ func (c *ApplicationsDataSafetyCall) Do(opts ...googleapi.CallOption) (*SafetyLa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.applications.dataSafety", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7694,8 +7813,7 @@ func (c *ApplicationsDeviceTierConfigsCreateCall) Header() http.Header {
 
 func (c *ApplicationsDeviceTierConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.devicetierconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.devicetierconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -7711,6 +7829,7 @@ func (c *ApplicationsDeviceTierConfigsCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.applications.deviceTierConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7746,9 +7865,11 @@ func (c *ApplicationsDeviceTierConfigsCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.applications.deviceTierConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7809,12 +7930,11 @@ func (c *ApplicationsDeviceTierConfigsGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/deviceTierConfigs/{deviceTierConfigId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7823,6 +7943,7 @@ func (c *ApplicationsDeviceTierConfigsGetCall) doRequest(alt string) (*http.Resp
 		"packageName":        c.packageName,
 		"deviceTierConfigId": strconv.FormatInt(c.deviceTierConfigId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.applications.deviceTierConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7858,9 +7979,11 @@ func (c *ApplicationsDeviceTierConfigsGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.applications.deviceTierConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7937,12 +8060,11 @@ func (c *ApplicationsDeviceTierConfigsListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/deviceTierConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7950,6 +8072,7 @@ func (c *ApplicationsDeviceTierConfigsListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.applications.deviceTierConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7985,9 +8108,11 @@ func (c *ApplicationsDeviceTierConfigsListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.applications.deviceTierConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8062,8 +8187,7 @@ func (c *ApprecoveryAddTargetingCall) Header() http.Header {
 
 func (c *ApprecoveryAddTargetingCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addtargetingrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addtargetingrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8080,6 +8204,7 @@ func (c *ApprecoveryAddTargetingCall) doRequest(alt string) (*http.Response, err
 		"packageName":   c.packageName,
 		"appRecoveryId": strconv.FormatInt(c.appRecoveryId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.addTargeting", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8115,114 +8240,11 @@ func (c *ApprecoveryAddTargetingCall) Do(opts ...googleapi.CallOption) (*AddTarg
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type ApprecoveryAppRecoveriesCall struct {
-	s           *Service
-	packageName string
-	urlParams_  gensupport.URLParams
-	ctx_        context.Context
-	header_     http.Header
-}
-
-// AppRecoveries: List all app recovery action resources associated with a
-// particular package name and app version.
-//
-//   - packageName: Package name of the app for which list of recovery actions is
-//     requested.
-func (r *ApprecoveryService) AppRecoveries(packageName string) *ApprecoveryAppRecoveriesCall {
-	c := &ApprecoveryAppRecoveriesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.packageName = packageName
-	return c
-}
-
-// VersionCode sets the optional parameter "versionCode": Required. Version
-// code targeted by the list of recovery actions.
-func (c *ApprecoveryAppRecoveriesCall) VersionCode(versionCode int64) *ApprecoveryAppRecoveriesCall {
-	c.urlParams_.Set("versionCode", fmt.Sprint(versionCode))
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *ApprecoveryAppRecoveriesCall) Fields(s ...googleapi.Field) *ApprecoveryAppRecoveriesCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *ApprecoveryAppRecoveriesCall) Context(ctx context.Context) *ApprecoveryAppRecoveriesCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *ApprecoveryAppRecoveriesCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ApprecoveryAppRecoveriesCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/appRecoveries")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	b, err := gensupport.DecodeResponseBytes(target, res)
 	if err != nil {
 		return nil, err
 	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"packageName": c.packageName,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "androidpublisher.apprecovery.appRecoveries" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *ListAppRecoveriesResponse.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *ApprecoveryAppRecoveriesCall) Do(opts ...googleapi.CallOption) (*ListAppRecoveriesResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &ListAppRecoveriesResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.addTargeting", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8275,8 +8297,7 @@ func (c *ApprecoveryCancelCall) Header() http.Header {
 
 func (c *ApprecoveryCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelapprecoveryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelapprecoveryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8293,6 +8314,7 @@ func (c *ApprecoveryCancelCall) doRequest(alt string) (*http.Response, error) {
 		"packageName":   c.packageName,
 		"appRecoveryId": strconv.FormatInt(c.appRecoveryId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8328,9 +8350,11 @@ func (c *ApprecoveryCancelCall) Do(opts ...googleapi.CallOption) (*CancelAppReco
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8380,8 +8404,7 @@ func (c *ApprecoveryCreateCall) Header() http.Header {
 
 func (c *ApprecoveryCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createdraftapprecoveryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createdraftapprecoveryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8397,6 +8420,7 @@ func (c *ApprecoveryCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8432,9 +8456,11 @@ func (c *ApprecoveryCreateCall) Do(opts ...googleapi.CallOption) (*AppRecoveryAc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8488,8 +8514,7 @@ func (c *ApprecoveryDeployCall) Header() http.Header {
 
 func (c *ApprecoveryDeployCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deployapprecoveryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deployapprecoveryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8506,6 +8531,7 @@ func (c *ApprecoveryDeployCall) doRequest(alt string) (*http.Response, error) {
 		"packageName":   c.packageName,
 		"appRecoveryId": strconv.FormatInt(c.appRecoveryId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.deploy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8541,9 +8567,130 @@ func (c *ApprecoveryDeployCall) Do(opts ...googleapi.CallOption) (*DeployAppReco
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.deploy", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ApprecoveryListCall struct {
+	s            *Service
+	packageName  string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: List all app recovery action resources associated with a particular
+// package name and app version.
+//
+//   - packageName: Package name of the app for which list of recovery actions is
+//     requested.
+func (r *ApprecoveryService) List(packageName string) *ApprecoveryListCall {
+	c := &ApprecoveryListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.packageName = packageName
+	return c
+}
+
+// VersionCode sets the optional parameter "versionCode": Required. Version
+// code targeted by the list of recovery actions.
+func (c *ApprecoveryListCall) VersionCode(versionCode int64) *ApprecoveryListCall {
+	c.urlParams_.Set("versionCode", fmt.Sprint(versionCode))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ApprecoveryListCall) Fields(s ...googleapi.Field) *ApprecoveryListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ApprecoveryListCall) IfNoneMatch(entityTag string) *ApprecoveryListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ApprecoveryListCall) Context(ctx context.Context) *ApprecoveryListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ApprecoveryListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ApprecoveryListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/appRecoveries")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"packageName": c.packageName,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "androidpublisher.apprecovery.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListAppRecoveriesResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ApprecoveryListCall) Do(opts ...googleapi.CallOption) (*ListAppRecoveriesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListAppRecoveriesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.apprecovery.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8568,10 +8715,10 @@ func (r *EditsService) Commit(packageName string, editId string) *EditsCommitCal
 }
 
 // ChangesNotSentForReview sets the optional parameter
-// "changesNotSentForReview": Indicates that the changes in this edit will not
-// be reviewed until they are explicitly sent for review from the Google Play
-// Console UI. These changes will be added to any other changes that are not
-// yet sent for review.
+// "changesNotSentForReview": When a rejection happens, the parameter will make
+// sure that the changes in this edit won't be reviewed until they are
+// explicitly sent for review from within the Google Play Console UI. These
+// changes will be added to any other changes that are not yet sent for review.
 func (c *EditsCommitCall) ChangesNotSentForReview(changesNotSentForReview bool) *EditsCommitCall {
 	c.urlParams_.Set("changesNotSentForReview", fmt.Sprint(changesNotSentForReview))
 	return c
@@ -8602,12 +8749,11 @@ func (c *EditsCommitCall) Header() http.Header {
 
 func (c *EditsCommitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}:commit")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8616,6 +8762,7 @@ func (c *EditsCommitCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.commit", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8650,9 +8797,11 @@ func (c *EditsCommitCall) Do(opts ...googleapi.CallOption) (*AppEdit, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.commit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8701,12 +8850,11 @@ func (c *EditsDeleteCall) Header() http.Header {
 
 func (c *EditsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8715,6 +8863,7 @@ func (c *EditsDeleteCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8729,6 +8878,7 @@ func (c *EditsDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -8789,12 +8939,11 @@ func (c *EditsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8803,6 +8952,7 @@ func (c *EditsGetCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8837,9 +8987,11 @@ func (c *EditsGetCall) Do(opts ...googleapi.CallOption) (*AppEdit, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8887,8 +9039,7 @@ func (c *EditsInsertCall) Header() http.Header {
 
 func (c *EditsInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.appedit)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.appedit)
 	if err != nil {
 		return nil, err
 	}
@@ -8904,6 +9055,7 @@ func (c *EditsInsertCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8938,9 +9090,11 @@ func (c *EditsInsertCall) Do(opts ...googleapi.CallOption) (*AppEdit, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8989,12 +9143,11 @@ func (c *EditsValidateCall) Header() http.Header {
 
 func (c *EditsValidateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}:validate")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9003,6 +9156,7 @@ func (c *EditsValidateCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.validate", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9037,9 +9191,11 @@ func (c *EditsValidateCall) Do(opts ...googleapi.CallOption) (*AppEdit, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.validate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9093,8 +9249,7 @@ func (c *EditsApksAddexternallyhostedCall) Header() http.Header {
 
 func (c *EditsApksAddexternallyhostedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.apksaddexternallyhostedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.apksaddexternallyhostedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9111,6 +9266,7 @@ func (c *EditsApksAddexternallyhostedCall) doRequest(alt string) (*http.Response
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.apks.addexternallyhosted", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9146,9 +9302,11 @@ func (c *EditsApksAddexternallyhostedCall) Do(opts ...googleapi.CallOption) (*Ap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.apks.addexternallyhosted", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9209,12 +9367,11 @@ func (c *EditsApksListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/apks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9223,6 +9380,7 @@ func (c *EditsApksListCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.apks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9258,9 +9416,11 @@ func (c *EditsApksListCall) Do(opts ...googleapi.CallOption) (*ApksListResponse,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.apks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9347,8 +9507,7 @@ func (c *EditsApksUploadCall) Header() http.Header {
 }
 
 func (c *EditsApksUploadCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/apks")
@@ -9356,14 +9515,10 @@ func (c *EditsApksUploadCall) doRequest(alt string) (*http.Response, error) {
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/androidpublisher/v3/applications/{packageName}/edits/{editId}/apks")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, nil)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -9373,6 +9528,7 @@ func (c *EditsApksUploadCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.apks.upload", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9424,9 +9580,11 @@ func (c *EditsApksUploadCall) Do(opts ...googleapi.CallOption) (*Apk, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.apks.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9487,12 +9645,11 @@ func (c *EditsBundlesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/bundles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9501,6 +9658,7 @@ func (c *EditsBundlesListCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.bundles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9536,9 +9694,11 @@ func (c *EditsBundlesListCall) Do(opts ...googleapi.CallOption) (*BundlesListRes
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.bundles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9569,9 +9729,8 @@ func (r *EditsBundlesService) Upload(packageName string, editId string) *EditsBu
 }
 
 // AckBundleInstallationWarning sets the optional parameter
-// "ackBundleInstallationWarning": Must be set to true if the app bundle
-// installation may trigger a warning on user devices (for example, if
-// installation size may be over a threshold, typically 100 MB).
+// "ackBundleInstallationWarning": Deprecated. The installation warning has
+// been removed, it's not necessary to set this field anymore.
 func (c *EditsBundlesUploadCall) AckBundleInstallationWarning(ackBundleInstallationWarning bool) *EditsBundlesUploadCall {
 	c.urlParams_.Set("ackBundleInstallationWarning", fmt.Sprint(ackBundleInstallationWarning))
 	return c
@@ -9647,8 +9806,7 @@ func (c *EditsBundlesUploadCall) Header() http.Header {
 }
 
 func (c *EditsBundlesUploadCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/bundles")
@@ -9656,14 +9814,10 @@ func (c *EditsBundlesUploadCall) doRequest(alt string) (*http.Response, error) {
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/androidpublisher/v3/applications/{packageName}/edits/{editId}/bundles")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, nil)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -9673,6 +9827,7 @@ func (c *EditsBundlesUploadCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.bundles.upload", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9724,9 +9879,11 @@ func (c *EditsBundlesUploadCall) Do(opts ...googleapi.CallOption) (*Bundle, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.bundles.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9790,12 +9947,11 @@ func (c *EditsCountryavailabilityGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/countryAvailability/{track}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9805,6 +9961,7 @@ func (c *EditsCountryavailabilityGetCall) doRequest(alt string) (*http.Response,
 		"editId":      c.editId,
 		"track":       c.track,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.countryavailability.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9840,9 +9997,11 @@ func (c *EditsCountryavailabilityGetCall) Do(opts ...googleapi.CallOption) (*Tra
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.countryavailability.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9936,8 +10095,7 @@ func (c *EditsDeobfuscationfilesUploadCall) Header() http.Header {
 }
 
 func (c *EditsDeobfuscationfilesUploadCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/apks/{apkVersionCode}/deobfuscationFiles/{deobfuscationFileType}")
@@ -9945,14 +10103,10 @@ func (c *EditsDeobfuscationfilesUploadCall) doRequest(alt string) (*http.Respons
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/androidpublisher/v3/applications/{packageName}/edits/{editId}/apks/{apkVersionCode}/deobfuscationFiles/{deobfuscationFileType}")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, nil)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -9964,6 +10118,7 @@ func (c *EditsDeobfuscationfilesUploadCall) doRequest(alt string) (*http.Respons
 		"apkVersionCode":        strconv.FormatInt(c.apkVersionCode, 10),
 		"deobfuscationFileType": c.deobfuscationFileType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.deobfuscationfiles.upload", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10016,9 +10171,11 @@ func (c *EditsDeobfuscationfilesUploadCall) Do(opts ...googleapi.CallOption) (*D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.deobfuscationfiles.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10079,12 +10236,11 @@ func (c *EditsDetailsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/details")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10093,6 +10249,7 @@ func (c *EditsDetailsGetCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.details.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10127,9 +10284,11 @@ func (c *EditsDetailsGetCall) Do(opts ...googleapi.CallOption) (*AppDetails, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.details.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10180,8 +10339,7 @@ func (c *EditsDetailsPatchCall) Header() http.Header {
 
 func (c *EditsDetailsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.appdetails)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.appdetails)
 	if err != nil {
 		return nil, err
 	}
@@ -10198,6 +10356,7 @@ func (c *EditsDetailsPatchCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.details.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10232,9 +10391,11 @@ func (c *EditsDetailsPatchCall) Do(opts ...googleapi.CallOption) (*AppDetails, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.details.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10285,8 +10446,7 @@ func (c *EditsDetailsUpdateCall) Header() http.Header {
 
 func (c *EditsDetailsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.appdetails)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.appdetails)
 	if err != nil {
 		return nil, err
 	}
@@ -10303,6 +10463,7 @@ func (c *EditsDetailsUpdateCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.details.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10337,9 +10498,11 @@ func (c *EditsDetailsUpdateCall) Do(opts ...googleapi.CallOption) (*AppDetails, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.details.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10408,12 +10571,11 @@ func (c *EditsExpansionfilesGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/apks/{apkVersionCode}/expansionFiles/{expansionFileType}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10424,6 +10586,7 @@ func (c *EditsExpansionfilesGetCall) doRequest(alt string) (*http.Response, erro
 		"apkVersionCode":    strconv.FormatInt(c.apkVersionCode, 10),
 		"expansionFileType": c.expansionFileType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.expansionfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10458,9 +10621,11 @@ func (c *EditsExpansionfilesGetCall) Do(opts ...googleapi.CallOption) (*Expansio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.expansionfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10520,8 +10685,7 @@ func (c *EditsExpansionfilesPatchCall) Header() http.Header {
 
 func (c *EditsExpansionfilesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.expansionfile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.expansionfile)
 	if err != nil {
 		return nil, err
 	}
@@ -10540,6 +10704,7 @@ func (c *EditsExpansionfilesPatchCall) doRequest(alt string) (*http.Response, er
 		"apkVersionCode":    strconv.FormatInt(c.apkVersionCode, 10),
 		"expansionFileType": c.expansionFileType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.expansionfiles.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10574,9 +10739,11 @@ func (c *EditsExpansionfilesPatchCall) Do(opts ...googleapi.CallOption) (*Expans
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.expansionfiles.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10636,8 +10803,7 @@ func (c *EditsExpansionfilesUpdateCall) Header() http.Header {
 
 func (c *EditsExpansionfilesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.expansionfile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.expansionfile)
 	if err != nil {
 		return nil, err
 	}
@@ -10656,6 +10822,7 @@ func (c *EditsExpansionfilesUpdateCall) doRequest(alt string) (*http.Response, e
 		"apkVersionCode":    strconv.FormatInt(c.apkVersionCode, 10),
 		"expansionFileType": c.expansionFileType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.expansionfiles.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10690,9 +10857,11 @@ func (c *EditsExpansionfilesUpdateCall) Do(opts ...googleapi.CallOption) (*Expan
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.expansionfiles.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10787,8 +10956,7 @@ func (c *EditsExpansionfilesUploadCall) Header() http.Header {
 }
 
 func (c *EditsExpansionfilesUploadCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/apks/{apkVersionCode}/expansionFiles/{expansionFileType}")
@@ -10796,14 +10964,10 @@ func (c *EditsExpansionfilesUploadCall) doRequest(alt string) (*http.Response, e
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/androidpublisher/v3/applications/{packageName}/edits/{editId}/apks/{apkVersionCode}/expansionFiles/{expansionFileType}")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, nil)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -10815,6 +10979,7 @@ func (c *EditsExpansionfilesUploadCall) doRequest(alt string) (*http.Response, e
 		"apkVersionCode":    strconv.FormatInt(c.apkVersionCode, 10),
 		"expansionFileType": c.expansionFileType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.expansionfiles.upload", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10867,9 +11032,11 @@ func (c *EditsExpansionfilesUploadCall) Do(opts ...googleapi.CallOption) (*Expan
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.expansionfiles.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10929,12 +11096,11 @@ func (c *EditsImagesDeleteCall) Header() http.Header {
 
 func (c *EditsImagesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/listings/{language}/{imageType}/{imageId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10946,6 +11112,7 @@ func (c *EditsImagesDeleteCall) doRequest(alt string) (*http.Response, error) {
 		"imageType":   c.imageType,
 		"imageId":     c.imageId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.images.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10960,6 +11127,7 @@ func (c *EditsImagesDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.images.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -11018,12 +11186,11 @@ func (c *EditsImagesDeleteallCall) Header() http.Header {
 
 func (c *EditsImagesDeleteallCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/listings/{language}/{imageType}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11034,6 +11201,7 @@ func (c *EditsImagesDeleteallCall) doRequest(alt string) (*http.Response, error)
 		"language":    c.language,
 		"imageType":   c.imageType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.images.deleteall", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11069,9 +11237,11 @@ func (c *EditsImagesDeleteallCall) Do(opts ...googleapi.CallOption) (*ImagesDele
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.images.deleteall", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11141,12 +11311,11 @@ func (c *EditsImagesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/listings/{language}/{imageType}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11157,6 +11326,7 @@ func (c *EditsImagesListCall) doRequest(alt string) (*http.Response, error) {
 		"language":    c.language,
 		"imageType":   c.imageType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.images.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11192,9 +11362,11 @@ func (c *EditsImagesListCall) Do(opts ...googleapi.CallOption) (*ImagesListRespo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.images.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11290,8 +11462,7 @@ func (c *EditsImagesUploadCall) Header() http.Header {
 }
 
 func (c *EditsImagesUploadCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/listings/{language}/{imageType}")
@@ -11299,14 +11470,10 @@ func (c *EditsImagesUploadCall) doRequest(alt string) (*http.Response, error) {
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/androidpublisher/v3/applications/{packageName}/edits/{editId}/listings/{language}/{imageType}")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, nil)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -11318,6 +11485,7 @@ func (c *EditsImagesUploadCall) doRequest(alt string) (*http.Response, error) {
 		"language":    c.language,
 		"imageType":   c.imageType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.images.upload", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11370,9 +11538,11 @@ func (c *EditsImagesUploadCall) Do(opts ...googleapi.CallOption) (*ImagesUploadR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.images.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11425,12 +11595,11 @@ func (c *EditsListingsDeleteCall) Header() http.Header {
 
 func (c *EditsListingsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/listings/{language}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11440,6 +11609,7 @@ func (c *EditsListingsDeleteCall) doRequest(alt string) (*http.Response, error) 
 		"editId":      c.editId,
 		"language":    c.language,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11454,6 +11624,7 @@ func (c *EditsListingsDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -11502,12 +11673,11 @@ func (c *EditsListingsDeleteallCall) Header() http.Header {
 
 func (c *EditsListingsDeleteallCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/listings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11516,6 +11686,7 @@ func (c *EditsListingsDeleteallCall) doRequest(alt string) (*http.Response, erro
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.deleteall", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11530,6 +11701,7 @@ func (c *EditsListingsDeleteallCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.deleteall", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -11594,12 +11766,11 @@ func (c *EditsListingsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/listings/{language}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11609,6 +11780,7 @@ func (c *EditsListingsGetCall) doRequest(alt string) (*http.Response, error) {
 		"editId":      c.editId,
 		"language":    c.language,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11643,9 +11815,11 @@ func (c *EditsListingsGetCall) Do(opts ...googleapi.CallOption) (*Listing, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11706,12 +11880,11 @@ func (c *EditsListingsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/listings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11720,6 +11893,7 @@ func (c *EditsListingsListCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11755,9 +11929,11 @@ func (c *EditsListingsListCall) Do(opts ...googleapi.CallOption) (*ListingsListR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11812,8 +11988,7 @@ func (c *EditsListingsPatchCall) Header() http.Header {
 
 func (c *EditsListingsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.listing)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.listing)
 	if err != nil {
 		return nil, err
 	}
@@ -11831,6 +12006,7 @@ func (c *EditsListingsPatchCall) doRequest(alt string) (*http.Response, error) {
 		"editId":      c.editId,
 		"language":    c.language,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11865,9 +12041,11 @@ func (c *EditsListingsPatchCall) Do(opts ...googleapi.CallOption) (*Listing, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11922,8 +12100,7 @@ func (c *EditsListingsUpdateCall) Header() http.Header {
 
 func (c *EditsListingsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.listing)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.listing)
 	if err != nil {
 		return nil, err
 	}
@@ -11941,6 +12118,7 @@ func (c *EditsListingsUpdateCall) doRequest(alt string) (*http.Response, error) 
 		"editId":      c.editId,
 		"language":    c.language,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11975,9 +12153,11 @@ func (c *EditsListingsUpdateCall) Do(opts ...googleapi.CallOption) (*Listing, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.listings.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12041,12 +12221,11 @@ func (c *EditsTestersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/testers/{track}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12056,6 +12235,7 @@ func (c *EditsTestersGetCall) doRequest(alt string) (*http.Response, error) {
 		"editId":      c.editId,
 		"track":       c.track,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.testers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12090,9 +12270,11 @@ func (c *EditsTestersGetCall) Do(opts ...googleapi.CallOption) (*Testers, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.testers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12146,8 +12328,7 @@ func (c *EditsTestersPatchCall) Header() http.Header {
 
 func (c *EditsTestersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testers)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testers)
 	if err != nil {
 		return nil, err
 	}
@@ -12165,6 +12346,7 @@ func (c *EditsTestersPatchCall) doRequest(alt string) (*http.Response, error) {
 		"editId":      c.editId,
 		"track":       c.track,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.testers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12199,9 +12381,11 @@ func (c *EditsTestersPatchCall) Do(opts ...googleapi.CallOption) (*Testers, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.testers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12256,8 +12440,7 @@ func (c *EditsTestersUpdateCall) Header() http.Header {
 
 func (c *EditsTestersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testers)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testers)
 	if err != nil {
 		return nil, err
 	}
@@ -12275,6 +12458,7 @@ func (c *EditsTestersUpdateCall) doRequest(alt string) (*http.Response, error) {
 		"editId":      c.editId,
 		"track":       c.track,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.testers.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12309,9 +12493,11 @@ func (c *EditsTestersUpdateCall) Do(opts ...googleapi.CallOption) (*Testers, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.testers.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12362,8 +12548,7 @@ func (c *EditsTracksCreateCall) Header() http.Header {
 
 func (c *EditsTracksCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.trackconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.trackconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -12380,6 +12565,7 @@ func (c *EditsTracksCreateCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12414,9 +12600,11 @@ func (c *EditsTracksCreateCall) Do(opts ...googleapi.CallOption) (*Track, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12481,12 +12669,11 @@ func (c *EditsTracksGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/tracks/{track}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12496,6 +12683,7 @@ func (c *EditsTracksGetCall) doRequest(alt string) (*http.Response, error) {
 		"editId":      c.editId,
 		"track":       c.track,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12530,9 +12718,11 @@ func (c *EditsTracksGetCall) Do(opts ...googleapi.CallOption) (*Track, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12593,12 +12783,11 @@ func (c *EditsTracksListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/edits/{editId}/tracks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12607,6 +12796,7 @@ func (c *EditsTracksListCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"editId":      c.editId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12642,9 +12832,11 @@ func (c *EditsTracksListCall) Do(opts ...googleapi.CallOption) (*TracksListRespo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12699,8 +12891,7 @@ func (c *EditsTracksPatchCall) Header() http.Header {
 
 func (c *EditsTracksPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.track2)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.track2)
 	if err != nil {
 		return nil, err
 	}
@@ -12718,6 +12909,7 @@ func (c *EditsTracksPatchCall) doRequest(alt string) (*http.Response, error) {
 		"editId":      c.editId,
 		"track":       c.track,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12752,9 +12944,11 @@ func (c *EditsTracksPatchCall) Do(opts ...googleapi.CallOption) (*Track, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12809,8 +13003,7 @@ func (c *EditsTracksUpdateCall) Header() http.Header {
 
 func (c *EditsTracksUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.track2)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.track2)
 	if err != nil {
 		return nil, err
 	}
@@ -12828,6 +13021,7 @@ func (c *EditsTracksUpdateCall) doRequest(alt string) (*http.Response, error) {
 		"editId":      c.editId,
 		"track":       c.track,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12862,9 +13056,11 @@ func (c *EditsTracksUpdateCall) Do(opts ...googleapi.CallOption) (*Track, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.edits.tracks.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12924,8 +13120,7 @@ func (c *ExternaltransactionsCreateexternaltransactionCall) Header() http.Header
 
 func (c *ExternaltransactionsCreateexternaltransactionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.externaltransaction)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.externaltransaction)
 	if err != nil {
 		return nil, err
 	}
@@ -12941,6 +13136,7 @@ func (c *ExternaltransactionsCreateexternaltransactionCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.externaltransactions.createexternaltransaction", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12976,9 +13172,11 @@ func (c *ExternaltransactionsCreateexternaltransactionCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.externaltransactions.createexternaltransaction", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13037,12 +13235,11 @@ func (c *ExternaltransactionsGetexternaltransactionCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13050,6 +13247,7 @@ func (c *ExternaltransactionsGetexternaltransactionCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.externaltransactions.getexternaltransaction", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13085,9 +13283,11 @@ func (c *ExternaltransactionsGetexternaltransactionCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.externaltransactions.getexternaltransaction", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13137,8 +13337,7 @@ func (c *ExternaltransactionsRefundexternaltransactionCall) Header() http.Header
 
 func (c *ExternaltransactionsRefundexternaltransactionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.refundexternaltransactionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.refundexternaltransactionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13154,6 +13353,7 @@ func (c *ExternaltransactionsRefundexternaltransactionCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.externaltransactions.refundexternaltransaction", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13189,9 +13389,11 @@ func (c *ExternaltransactionsRefundexternaltransactionCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.externaltransactions.refundexternaltransaction", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13256,12 +13458,11 @@ func (c *GeneratedapksDownloadCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/generatedApks/{versionCode}/downloads/{downloadId}:download")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13271,6 +13472,7 @@ func (c *GeneratedapksDownloadCall) doRequest(alt string) (*http.Response, error
 		"versionCode": strconv.FormatInt(c.versionCode, 10),
 		"downloadId":  c.downloadId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.generatedapks.download", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13301,6 +13503,7 @@ func (c *GeneratedapksDownloadCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.generatedapks.download", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -13362,12 +13565,11 @@ func (c *GeneratedapksListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/generatedApks/{versionCode}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13376,6 +13578,7 @@ func (c *GeneratedapksListCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"versionCode": strconv.FormatInt(c.versionCode, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.generatedapks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13411,9 +13614,11 @@ func (c *GeneratedapksListCall) Do(opts ...googleapi.CallOption) (*GeneratedApks
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.generatedapks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13462,8 +13667,7 @@ func (c *GrantsCreateCall) Header() http.Header {
 
 func (c *GrantsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.grant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.grant)
 	if err != nil {
 		return nil, err
 	}
@@ -13479,6 +13683,7 @@ func (c *GrantsCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.grants.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13513,9 +13718,11 @@ func (c *GrantsCreateCall) Do(opts ...googleapi.CallOption) (*Grant, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.grants.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13563,12 +13770,11 @@ func (c *GrantsDeleteCall) Header() http.Header {
 
 func (c *GrantsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13576,6 +13782,7 @@ func (c *GrantsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.grants.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13590,6 +13797,7 @@ func (c *GrantsDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.grants.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -13647,8 +13855,7 @@ func (c *GrantsPatchCall) Header() http.Header {
 
 func (c *GrantsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.grant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.grant)
 	if err != nil {
 		return nil, err
 	}
@@ -13664,6 +13871,7 @@ func (c *GrantsPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.grants.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13698,9 +13906,11 @@ func (c *GrantsPatchCall) Do(opts ...googleapi.CallOption) (*Grant, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.grants.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13754,8 +13964,7 @@ func (c *InappproductsBatchDeleteCall) Header() http.Header {
 
 func (c *InappproductsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inappproductsbatchdeleterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inappproductsbatchdeleterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13771,6 +13980,7 @@ func (c *InappproductsBatchDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13785,6 +13995,7 @@ func (c *InappproductsBatchDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.batchDelete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -13853,12 +14064,11 @@ func (c *InappproductsBatchGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/inappproducts:batchGet")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13866,6 +14076,7 @@ func (c *InappproductsBatchGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.batchGet", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13901,9 +14112,11 @@ func (c *InappproductsBatchGetCall) Do(opts ...googleapi.CallOption) (*Inappprod
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13957,8 +14170,7 @@ func (c *InappproductsBatchUpdateCall) Header() http.Header {
 
 func (c *InappproductsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inappproductsbatchupdaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inappproductsbatchupdaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13974,6 +14186,7 @@ func (c *InappproductsBatchUpdateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14009,9 +14222,11 @@ func (c *InappproductsBatchUpdateCall) Do(opts ...googleapi.CallOption) (*Inappp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14088,12 +14303,11 @@ func (c *InappproductsDeleteCall) Header() http.Header {
 
 func (c *InappproductsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/inappproducts/{sku}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14102,6 +14316,7 @@ func (c *InappproductsDeleteCall) doRequest(alt string) (*http.Response, error) 
 		"packageName": c.packageName,
 		"sku":         c.skuid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14116,6 +14331,7 @@ func (c *InappproductsDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -14180,12 +14396,11 @@ func (c *InappproductsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/inappproducts/{sku}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14194,6 +14409,7 @@ func (c *InappproductsGetCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"sku":         c.skuid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14228,9 +14444,11 @@ func (c *InappproductsGetCall) Do(opts ...googleapi.CallOption) (*InAppProduct, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14292,8 +14510,7 @@ func (c *InappproductsInsertCall) Header() http.Header {
 
 func (c *InappproductsInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inappproduct)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inappproduct)
 	if err != nil {
 		return nil, err
 	}
@@ -14309,6 +14526,7 @@ func (c *InappproductsInsertCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14343,9 +14561,11 @@ func (c *InappproductsInsertCall) Do(opts ...googleapi.CallOption) (*InAppProduc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14431,12 +14651,11 @@ func (c *InappproductsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/inappproducts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14444,6 +14663,7 @@ func (c *InappproductsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14479,9 +14699,11 @@ func (c *InappproductsListCall) Do(opts ...googleapi.CallOption) (*Inappproducts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14569,8 +14791,7 @@ func (c *InappproductsPatchCall) Header() http.Header {
 
 func (c *InappproductsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inappproduct)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inappproduct)
 	if err != nil {
 		return nil, err
 	}
@@ -14587,6 +14808,7 @@ func (c *InappproductsPatchCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"sku":         c.skuid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14621,9 +14843,11 @@ func (c *InappproductsPatchCall) Do(opts ...googleapi.CallOption) (*InAppProduct
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14720,8 +14944,7 @@ func (c *InappproductsUpdateCall) Header() http.Header {
 
 func (c *InappproductsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inappproduct)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inappproduct)
 	if err != nil {
 		return nil, err
 	}
@@ -14738,6 +14961,7 @@ func (c *InappproductsUpdateCall) doRequest(alt string) (*http.Response, error) 
 		"packageName": c.packageName,
 		"sku":         c.skuid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14772,9 +14996,11 @@ func (c *InappproductsUpdateCall) Do(opts ...googleapi.CallOption) (*InAppProduc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.inappproducts.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14863,8 +15089,7 @@ func (c *InternalappsharingartifactsUploadapkCall) Header() http.Header {
 }
 
 func (c *InternalappsharingartifactsUploadapkCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/internalappsharing/{packageName}/artifacts/apk")
@@ -14872,14 +15097,10 @@ func (c *InternalappsharingartifactsUploadapkCall) doRequest(alt string) (*http.
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/androidpublisher/v3/applications/internalappsharing/{packageName}/artifacts/apk")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, nil)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -14888,6 +15109,7 @@ func (c *InternalappsharingartifactsUploadapkCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.internalappsharingartifacts.uploadapk", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14940,9 +15162,11 @@ func (c *InternalappsharingartifactsUploadapkCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.internalappsharingartifacts.uploadapk", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15031,8 +15255,7 @@ func (c *InternalappsharingartifactsUploadbundleCall) Header() http.Header {
 }
 
 func (c *InternalappsharingartifactsUploadbundleCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/internalappsharing/{packageName}/artifacts/bundle")
@@ -15040,14 +15263,10 @@ func (c *InternalappsharingartifactsUploadbundleCall) doRequest(alt string) (*ht
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/androidpublisher/v3/applications/internalappsharing/{packageName}/artifacts/bundle")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, nil)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -15056,6 +15275,7 @@ func (c *InternalappsharingartifactsUploadbundleCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.internalappsharingartifacts.uploadbundle", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15108,9 +15328,11 @@ func (c *InternalappsharingartifactsUploadbundleCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.internalappsharingartifacts.uploadbundle", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15160,8 +15382,7 @@ func (c *MonetizationConvertRegionPricesCall) Header() http.Header {
 
 func (c *MonetizationConvertRegionPricesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.convertregionpricesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.convertregionpricesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15177,6 +15398,7 @@ func (c *MonetizationConvertRegionPricesCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.convertRegionPrices", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15212,9 +15434,11 @@ func (c *MonetizationConvertRegionPricesCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.convertRegionPrices", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15266,8 +15490,7 @@ func (c *MonetizationSubscriptionsArchiveCall) Header() http.Header {
 
 func (c *MonetizationSubscriptionsArchiveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.archivesubscriptionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.archivesubscriptionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15284,6 +15507,7 @@ func (c *MonetizationSubscriptionsArchiveCall) doRequest(alt string) (*http.Resp
 		"packageName": c.packageName,
 		"productId":   c.productId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.archive", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15318,9 +15542,11 @@ func (c *MonetizationSubscriptionsArchiveCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.archive", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15387,12 +15613,11 @@ func (c *MonetizationSubscriptionsBatchGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/subscriptions:batchGet")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15400,6 +15625,7 @@ func (c *MonetizationSubscriptionsBatchGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.batchGet", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15435,9 +15661,11 @@ func (c *MonetizationSubscriptionsBatchGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15490,8 +15718,7 @@ func (c *MonetizationSubscriptionsBatchUpdateCall) Header() http.Header {
 
 func (c *MonetizationSubscriptionsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdatesubscriptionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdatesubscriptionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15507,6 +15734,7 @@ func (c *MonetizationSubscriptionsBatchUpdateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15542,9 +15770,11 @@ func (c *MonetizationSubscriptionsBatchUpdateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15618,8 +15848,7 @@ func (c *MonetizationSubscriptionsCreateCall) Header() http.Header {
 
 func (c *MonetizationSubscriptionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscription)
 	if err != nil {
 		return nil, err
 	}
@@ -15635,6 +15864,7 @@ func (c *MonetizationSubscriptionsCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15669,9 +15899,11 @@ func (c *MonetizationSubscriptionsCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15722,12 +15954,11 @@ func (c *MonetizationSubscriptionsDeleteCall) Header() http.Header {
 
 func (c *MonetizationSubscriptionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/subscriptions/{productId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15736,6 +15967,7 @@ func (c *MonetizationSubscriptionsDeleteCall) doRequest(alt string) (*http.Respo
 		"packageName": c.packageName,
 		"productId":   c.productId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15750,6 +15982,7 @@ func (c *MonetizationSubscriptionsDeleteCall) Do(opts ...googleapi.CallOption) e
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -15810,12 +16043,11 @@ func (c *MonetizationSubscriptionsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/subscriptions/{productId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15824,6 +16056,7 @@ func (c *MonetizationSubscriptionsGetCall) doRequest(alt string) (*http.Response
 		"packageName": c.packageName,
 		"productId":   c.productId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15858,9 +16091,11 @@ func (c *MonetizationSubscriptionsGetCall) Do(opts ...googleapi.CallOption) (*Su
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15944,12 +16179,11 @@ func (c *MonetizationSubscriptionsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/subscriptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15957,6 +16191,7 @@ func (c *MonetizationSubscriptionsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15992,9 +16227,11 @@ func (c *MonetizationSubscriptionsListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16125,8 +16362,7 @@ func (c *MonetizationSubscriptionsPatchCall) Header() http.Header {
 
 func (c *MonetizationSubscriptionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscription)
 	if err != nil {
 		return nil, err
 	}
@@ -16143,6 +16379,7 @@ func (c *MonetizationSubscriptionsPatchCall) doRequest(alt string) (*http.Respon
 		"packageName": c.packageName,
 		"productId":   c.productId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16177,9 +16414,11 @@ func (c *MonetizationSubscriptionsPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16234,8 +16473,7 @@ func (c *MonetizationSubscriptionsBasePlansActivateCall) Header() http.Header {
 
 func (c *MonetizationSubscriptionsBasePlansActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.activatebaseplanrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.activatebaseplanrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16253,6 +16491,7 @@ func (c *MonetizationSubscriptionsBasePlansActivateCall) doRequest(alt string) (
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16287,9 +16526,11 @@ func (c *MonetizationSubscriptionsBasePlansActivateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16347,8 +16588,7 @@ func (c *MonetizationSubscriptionsBasePlansBatchMigratePricesCall) Header() http
 
 func (c *MonetizationSubscriptionsBasePlansBatchMigratePricesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchmigratebaseplanpricesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchmigratebaseplanpricesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16365,6 +16605,7 @@ func (c *MonetizationSubscriptionsBasePlansBatchMigratePricesCall) doRequest(alt
 		"packageName": c.packageName,
 		"productId":   c.productId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.batchMigratePrices", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16400,9 +16641,11 @@ func (c *MonetizationSubscriptionsBasePlansBatchMigratePricesCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.batchMigratePrices", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16458,8 +16701,7 @@ func (c *MonetizationSubscriptionsBasePlansBatchUpdateStatesCall) Header() http.
 
 func (c *MonetizationSubscriptionsBasePlansBatchUpdateStatesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdatebaseplanstatesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdatebaseplanstatesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16476,6 +16718,7 @@ func (c *MonetizationSubscriptionsBasePlansBatchUpdateStatesCall) doRequest(alt 
 		"packageName": c.packageName,
 		"productId":   c.productId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.batchUpdateStates", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16511,9 +16754,11 @@ func (c *MonetizationSubscriptionsBasePlansBatchUpdateStatesCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.batchUpdateStates", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16569,8 +16814,7 @@ func (c *MonetizationSubscriptionsBasePlansDeactivateCall) Header() http.Header 
 
 func (c *MonetizationSubscriptionsBasePlansDeactivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deactivatebaseplanrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deactivatebaseplanrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16588,6 +16832,7 @@ func (c *MonetizationSubscriptionsBasePlansDeactivateCall) doRequest(alt string)
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.deactivate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16622,9 +16867,11 @@ func (c *MonetizationSubscriptionsBasePlansDeactivateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.deactivate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16677,12 +16924,11 @@ func (c *MonetizationSubscriptionsBasePlansDeleteCall) Header() http.Header {
 
 func (c *MonetizationSubscriptionsBasePlansDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/subscriptions/{productId}/basePlans/{basePlanId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16692,6 +16938,7 @@ func (c *MonetizationSubscriptionsBasePlansDeleteCall) doRequest(alt string) (*h
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16706,6 +16953,7 @@ func (c *MonetizationSubscriptionsBasePlansDeleteCall) Do(opts ...googleapi.Call
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -16720,12 +16968,9 @@ type MonetizationSubscriptionsBasePlansMigratePricesCall struct {
 	header_                      http.Header
 }
 
-// MigratePrices: Migrates subscribers who are receiving an historical
-// subscription price to the currently-offered price for the specified region.
-// Requests will cause price change notifications to be sent to users who are
-// currently receiving an historical price older than the supplied timestamp.
-// Subscribers who do not agree to the new price will have their subscription
-// ended at the next renewal.
+// MigratePrices: Migrates subscribers from one or more legacy price cohorts to
+// the current price. Requests result in Google Play notifying affected
+// subscribers. Only up to 250 simultaneous legacy price cohorts are supported.
 //
 //   - basePlanId: The unique base plan ID of the base plan to update prices on.
 //   - packageName: Package name of the parent app. Must be equal to the
@@ -16766,8 +17011,7 @@ func (c *MonetizationSubscriptionsBasePlansMigratePricesCall) Header() http.Head
 
 func (c *MonetizationSubscriptionsBasePlansMigratePricesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.migratebaseplanpricesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.migratebaseplanpricesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16785,6 +17029,7 @@ func (c *MonetizationSubscriptionsBasePlansMigratePricesCall) doRequest(alt stri
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.migratePrices", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16820,9 +17065,11 @@ func (c *MonetizationSubscriptionsBasePlansMigratePricesCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.migratePrices", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16880,8 +17127,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersActivateCall) Header() http.Hea
 
 func (c *MonetizationSubscriptionsBasePlansOffersActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.activatesubscriptionofferrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.activatesubscriptionofferrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16900,6 +17146,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersActivateCall) doRequest(alt str
 		"basePlanId":  c.basePlanId,
 		"offerId":     c.offerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16935,9 +17182,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersActivateCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16996,8 +17245,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchGetCall) Header() http.Hea
 
 func (c *MonetizationSubscriptionsBasePlansOffersBatchGetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchgetsubscriptionoffersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchgetsubscriptionoffersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17015,6 +17263,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchGetCall) doRequest(alt str
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.batchGet", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17050,9 +17299,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchGetCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17115,8 +17366,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchUpdateCall) Header() http.
 
 func (c *MonetizationSubscriptionsBasePlansOffersBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdatesubscriptionoffersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdatesubscriptionoffersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17134,6 +17384,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchUpdateCall) doRequest(alt 
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17169,9 +17420,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchUpdateCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17234,8 +17487,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchUpdateStatesCall) Header()
 
 func (c *MonetizationSubscriptionsBasePlansOffersBatchUpdateStatesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdatesubscriptionofferstatesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdatesubscriptionofferstatesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17253,6 +17505,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchUpdateStatesCall) doReques
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.batchUpdateStates", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17288,9 +17541,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersBatchUpdateStatesCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.batchUpdateStates", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17375,8 +17630,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersCreateCall) Header() http.Heade
 
 func (c *MonetizationSubscriptionsBasePlansOffersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscriptionoffer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscriptionoffer)
 	if err != nil {
 		return nil, err
 	}
@@ -17394,6 +17648,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersCreateCall) doRequest(alt strin
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17429,9 +17684,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersCreateCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17490,8 +17747,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersDeactivateCall) Header() http.H
 
 func (c *MonetizationSubscriptionsBasePlansOffersDeactivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deactivatesubscriptionofferrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deactivatesubscriptionofferrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17510,6 +17766,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersDeactivateCall) doRequest(alt s
 		"basePlanId":  c.basePlanId,
 		"offerId":     c.offerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.deactivate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17545,9 +17802,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersDeactivateCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.deactivate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17603,12 +17862,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersDeleteCall) Header() http.Heade
 
 func (c *MonetizationSubscriptionsBasePlansOffersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/subscriptions/{productId}/basePlans/{basePlanId}/offers/{offerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17619,6 +17877,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersDeleteCall) doRequest(alt strin
 		"basePlanId":  c.basePlanId,
 		"offerId":     c.offerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17633,6 +17892,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersDeleteCall) Do(opts ...googleap
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -17699,12 +17959,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersGetCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/subscriptions/{productId}/basePlans/{basePlanId}/offers/{offerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17715,6 +17974,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersGetCall) doRequest(alt string) 
 		"basePlanId":  c.basePlanId,
 		"offerId":     c.offerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17750,9 +18010,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersGetCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17838,12 +18100,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/subscriptions/{productId}/basePlans/{basePlanId}/offers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17853,6 +18114,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersListCall) doRequest(alt string)
 		"productId":   c.productId,
 		"basePlanId":  c.basePlanId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17888,9 +18150,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18027,8 +18291,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersPatchCall) Header() http.Header
 
 func (c *MonetizationSubscriptionsBasePlansOffersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscriptionoffer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscriptionoffer)
 	if err != nil {
 		return nil, err
 	}
@@ -18047,6 +18310,7 @@ func (c *MonetizationSubscriptionsBasePlansOffersPatchCall) doRequest(alt string
 		"basePlanId":  c.basePlanId,
 		"offerId":     c.offerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18082,9 +18346,11 @@ func (c *MonetizationSubscriptionsBasePlansOffersPatchCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.monetization.subscriptions.basePlans.offers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18146,12 +18412,11 @@ func (c *OrdersRefundCall) Header() http.Header {
 
 func (c *OrdersRefundCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/orders/{orderId}:refund")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18160,6 +18425,7 @@ func (c *OrdersRefundCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"orderId":     c.orderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.orders.refund", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18174,6 +18440,7 @@ func (c *OrdersRefundCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.orders.refund", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -18229,8 +18496,7 @@ func (c *PurchasesProductsAcknowledgeCall) Header() http.Header {
 
 func (c *PurchasesProductsAcknowledgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.productpurchasesacknowledgerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.productpurchasesacknowledgerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18248,6 +18514,7 @@ func (c *PurchasesProductsAcknowledgeCall) doRequest(alt string) (*http.Response
 		"productId":   c.productId,
 		"token":       c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.products.acknowledge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18262,6 +18529,7 @@ func (c *PurchasesProductsAcknowledgeCall) Do(opts ...googleapi.CallOption) erro
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.products.acknowledge", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -18315,12 +18583,11 @@ func (c *PurchasesProductsConsumeCall) Header() http.Header {
 
 func (c *PurchasesProductsConsumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/purchases/products/{productId}/tokens/{token}:consume")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18330,6 +18597,7 @@ func (c *PurchasesProductsConsumeCall) doRequest(alt string) (*http.Response, er
 		"productId":   c.productId,
 		"token":       c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.products.consume", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18344,6 +18612,7 @@ func (c *PurchasesProductsConsumeCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.products.consume", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -18409,12 +18678,11 @@ func (c *PurchasesProductsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/purchases/products/{productId}/tokens/{token}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18424,6 +18692,7 @@ func (c *PurchasesProductsGetCall) doRequest(alt string) (*http.Response, error)
 		"productId":   c.productId,
 		"token":       c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.products.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18459,9 +18728,11 @@ func (c *PurchasesProductsGetCall) Do(opts ...googleapi.CallOption) (*ProductPur
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.products.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18517,8 +18788,7 @@ func (c *PurchasesSubscriptionsAcknowledgeCall) Header() http.Header {
 
 func (c *PurchasesSubscriptionsAcknowledgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscriptionpurchasesacknowledgerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscriptionpurchasesacknowledgerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18536,6 +18806,7 @@ func (c *PurchasesSubscriptionsAcknowledgeCall) doRequest(alt string) (*http.Res
 		"subscriptionId": c.subscriptionId,
 		"token":          c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.acknowledge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18550,6 +18821,7 @@ func (c *PurchasesSubscriptionsAcknowledgeCall) Do(opts ...googleapi.CallOption)
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.acknowledge", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -18604,12 +18876,11 @@ func (c *PurchasesSubscriptionsCancelCall) Header() http.Header {
 
 func (c *PurchasesSubscriptionsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/purchases/subscriptions/{subscriptionId}/tokens/{token}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18619,6 +18890,7 @@ func (c *PurchasesSubscriptionsCancelCall) doRequest(alt string) (*http.Response
 		"subscriptionId": c.subscriptionId,
 		"token":          c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18633,6 +18905,7 @@ func (c *PurchasesSubscriptionsCancelCall) Do(opts ...googleapi.CallOption) erro
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.cancel", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -18689,8 +18962,7 @@ func (c *PurchasesSubscriptionsDeferCall) Header() http.Header {
 
 func (c *PurchasesSubscriptionsDeferCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscriptionpurchasesdeferrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscriptionpurchasesdeferrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18708,6 +18980,7 @@ func (c *PurchasesSubscriptionsDeferCall) doRequest(alt string) (*http.Response,
 		"subscriptionId": c.subscriptionId,
 		"token":          c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.defer", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18743,9 +19016,11 @@ func (c *PurchasesSubscriptionsDeferCall) Do(opts ...googleapi.CallOption) (*Sub
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.defer", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18812,12 +19087,11 @@ func (c *PurchasesSubscriptionsGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/purchases/subscriptions/{subscriptionId}/tokens/{token}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18827,6 +19101,7 @@ func (c *PurchasesSubscriptionsGetCall) doRequest(alt string) (*http.Response, e
 		"subscriptionId": c.subscriptionId,
 		"token":          c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18862,9 +19137,11 @@ func (c *PurchasesSubscriptionsGetCall) Do(opts ...googleapi.CallOption) (*Subsc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18920,12 +19197,11 @@ func (c *PurchasesSubscriptionsRefundCall) Header() http.Header {
 
 func (c *PurchasesSubscriptionsRefundCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/purchases/subscriptions/{subscriptionId}/tokens/{token}:refund")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18935,6 +19211,7 @@ func (c *PurchasesSubscriptionsRefundCall) doRequest(alt string) (*http.Response
 		"subscriptionId": c.subscriptionId,
 		"token":          c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.refund", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18949,6 +19226,7 @@ func (c *PurchasesSubscriptionsRefundCall) Do(opts ...googleapi.CallOption) erro
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.refund", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -19004,12 +19282,11 @@ func (c *PurchasesSubscriptionsRevokeCall) Header() http.Header {
 
 func (c *PurchasesSubscriptionsRevokeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/purchases/subscriptions/{subscriptionId}/tokens/{token}:revoke")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19019,6 +19296,7 @@ func (c *PurchasesSubscriptionsRevokeCall) doRequest(alt string) (*http.Response
 		"subscriptionId": c.subscriptionId,
 		"token":          c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.revoke", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19033,6 +19311,7 @@ func (c *PurchasesSubscriptionsRevokeCall) Do(opts ...googleapi.CallOption) erro
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptions.revoke", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -19095,12 +19374,11 @@ func (c *PurchasesSubscriptionsv2GetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/purchases/subscriptionsv2/tokens/{token}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19109,6 +19387,7 @@ func (c *PurchasesSubscriptionsv2GetCall) doRequest(alt string) (*http.Response,
 		"packageName": c.packageName,
 		"token":       c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptionsv2.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19144,9 +19423,11 @@ func (c *PurchasesSubscriptionsv2GetCall) Do(opts ...googleapi.CallOption) (*Sub
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptionsv2.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19199,8 +19480,7 @@ func (c *PurchasesSubscriptionsv2RevokeCall) Header() http.Header {
 
 func (c *PurchasesSubscriptionsv2RevokeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.revokesubscriptionpurchaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.revokesubscriptionpurchaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -19217,6 +19497,7 @@ func (c *PurchasesSubscriptionsv2RevokeCall) doRequest(alt string) (*http.Respon
 		"packageName": c.packageName,
 		"token":       c.token,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptionsv2.revoke", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19252,9 +19533,11 @@ func (c *PurchasesSubscriptionsv2RevokeCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.subscriptionsv2.revoke", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19386,12 +19669,11 @@ func (c *PurchasesVoidedpurchasesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/purchases/voidedpurchases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19399,6 +19681,7 @@ func (c *PurchasesVoidedpurchasesListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.purchases.voidedpurchases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19434,9 +19717,11 @@ func (c *PurchasesVoidedpurchasesListCall) Do(opts ...googleapi.CallOption) (*Vo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.purchases.voidedpurchases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19504,12 +19789,11 @@ func (c *ReviewsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/reviews/{reviewId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19518,6 +19802,7 @@ func (c *ReviewsGetCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"reviewId":    c.reviewId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.reviews.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19552,9 +19837,11 @@ func (c *ReviewsGetCall) Do(opts ...googleapi.CallOption) (*Review, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.reviews.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19640,12 +19927,11 @@ func (c *ReviewsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/reviews")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19653,6 +19939,7 @@ func (c *ReviewsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"packageName": c.packageName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.reviews.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19688,9 +19975,11 @@ func (c *ReviewsListCall) Do(opts ...googleapi.CallOption) (*ReviewsListResponse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.reviews.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19741,8 +20030,7 @@ func (c *ReviewsReplyCall) Header() http.Header {
 
 func (c *ReviewsReplyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reviewsreplyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reviewsreplyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -19759,6 +20047,7 @@ func (c *ReviewsReplyCall) doRequest(alt string) (*http.Response, error) {
 		"packageName": c.packageName,
 		"reviewId":    c.reviewId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.reviews.reply", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19794,9 +20083,11 @@ func (c *ReviewsReplyCall) Do(opts ...googleapi.CallOption) (*ReviewsReplyRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.reviews.reply", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19848,8 +20139,7 @@ func (c *SystemapksVariantsCreateCall) Header() http.Header {
 
 func (c *SystemapksVariantsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.variant)
 	if err != nil {
 		return nil, err
 	}
@@ -19866,6 +20156,7 @@ func (c *SystemapksVariantsCreateCall) doRequest(alt string) (*http.Response, er
 		"packageName": c.packageName,
 		"versionCode": strconv.FormatInt(c.versionCode, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.systemapks.variants.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19900,9 +20191,11 @@ func (c *SystemapksVariantsCreateCall) Do(opts ...googleapi.CallOption) (*Varian
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.systemapks.variants.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19967,12 +20260,11 @@ func (c *SystemapksVariantsDownloadCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/systemApks/{versionCode}/variants/{variantId}:download")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19982,6 +20274,7 @@ func (c *SystemapksVariantsDownloadCall) doRequest(alt string) (*http.Response, 
 		"versionCode": strconv.FormatInt(c.versionCode, 10),
 		"variantId":   strconv.FormatInt(c.variantId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.systemapks.variants.download", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20012,6 +20305,7 @@ func (c *SystemapksVariantsDownloadCall) Do(opts ...googleapi.CallOption) error 
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.systemapks.variants.download", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -20075,12 +20369,11 @@ func (c *SystemapksVariantsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/systemApks/{versionCode}/variants/{variantId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20090,6 +20383,7 @@ func (c *SystemapksVariantsGetCall) doRequest(alt string) (*http.Response, error
 		"versionCode": strconv.FormatInt(c.versionCode, 10),
 		"variantId":   strconv.FormatInt(c.variantId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.systemapks.variants.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20124,9 +20418,11 @@ func (c *SystemapksVariantsGetCall) Do(opts ...googleapi.CallOption) (*Variant, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.systemapks.variants.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20187,12 +20483,11 @@ func (c *SystemapksVariantsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/applications/{packageName}/systemApks/{versionCode}/variants")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20201,6 +20496,7 @@ func (c *SystemapksVariantsListCall) doRequest(alt string) (*http.Response, erro
 		"packageName": c.packageName,
 		"versionCode": strconv.FormatInt(c.versionCode, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.systemapks.variants.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20236,9 +20532,11 @@ func (c *SystemapksVariantsListCall) Do(opts ...googleapi.CallOption) (*SystemAp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.systemapks.variants.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20287,8 +20585,7 @@ func (c *UsersCreateCall) Header() http.Header {
 
 func (c *UsersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.user)
 	if err != nil {
 		return nil, err
 	}
@@ -20304,6 +20601,7 @@ func (c *UsersCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.users.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20338,9 +20636,11 @@ func (c *UsersCreateCall) Do(opts ...googleapi.CallOption) (*User, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.users.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20387,12 +20687,11 @@ func (c *UsersDeleteCall) Header() http.Header {
 
 func (c *UsersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20400,6 +20699,7 @@ func (c *UsersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.users.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20414,6 +20714,7 @@ func (c *UsersDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.users.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -20486,12 +20787,11 @@ func (c *UsersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "androidpublisher/v3/{+parent}/users")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20499,6 +20799,7 @@ func (c *UsersListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.users.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20534,9 +20835,11 @@ func (c *UsersListCall) Do(opts ...googleapi.CallOption) (*ListUsersResponse, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.users.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20613,8 +20916,7 @@ func (c *UsersPatchCall) Header() http.Header {
 
 func (c *UsersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.user)
 	if err != nil {
 		return nil, err
 	}
@@ -20630,6 +20932,7 @@ func (c *UsersPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidpublisher.users.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20664,8 +20967,10 @@ func (c *UsersPatchCall) Do(opts ...googleapi.CallOption) (*User, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidpublisher.users.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

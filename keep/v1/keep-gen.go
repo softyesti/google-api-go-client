@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "keep:v1"
 const apiName = "keep"
@@ -123,7 +126,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Media = NewMediaService(s)
+	s.Notes = NewNotesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -142,14 +147,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Media = NewMediaService(s)
-	s.Notes = NewNotesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -218,9 +221,9 @@ type Attachment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Attachment) MarshalJSON() ([]byte, error) {
+func (s Attachment) MarshalJSON() ([]byte, error) {
 	type NoMethod Attachment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchCreatePermissionsRequest: The request to add one or more permissions on
@@ -242,9 +245,9 @@ type BatchCreatePermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchCreatePermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchCreatePermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchCreatePermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchCreatePermissionsResponse: The response for creating permissions on a
@@ -268,9 +271,9 @@ type BatchCreatePermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchCreatePermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchCreatePermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchCreatePermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeletePermissionsRequest: The request to remove one or more permissions
@@ -295,9 +298,9 @@ type BatchDeletePermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeletePermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchDeletePermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeletePermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreatePermissionRequest: The request to add a single permission on the note.
@@ -321,9 +324,9 @@ type CreatePermissionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreatePermissionRequest) MarshalJSON() ([]byte, error) {
+func (s CreatePermissionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreatePermissionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -356,9 +359,9 @@ type Group struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Group) MarshalJSON() ([]byte, error) {
+func (s Group) MarshalJSON() ([]byte, error) {
 	type NoMethod Group
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListContent: The list of items for a single list note.
@@ -379,9 +382,9 @@ type ListContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListContent) MarshalJSON() ([]byte, error) {
+func (s ListContent) MarshalJSON() ([]byte, error) {
 	type NoMethod ListContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListItem: A single list item in a note's list.
@@ -406,9 +409,9 @@ type ListItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListItem) MarshalJSON() ([]byte, error) {
+func (s ListItem) MarshalJSON() ([]byte, error) {
 	type NoMethod ListItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListNotesResponse: The response when listing a page of notes.
@@ -433,9 +436,9 @@ type ListNotesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListNotesResponse) MarshalJSON() ([]byte, error) {
+func (s ListNotesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListNotesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Note: A single note.
@@ -479,9 +482,9 @@ type Note struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Note) MarshalJSON() ([]byte, error) {
+func (s Note) MarshalJSON() ([]byte, error) {
 	type NoMethod Note
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Permission: A single permission on the note. Associates a `member` with a
@@ -527,9 +530,9 @@ type Permission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Permission) MarshalJSON() ([]byte, error) {
+func (s Permission) MarshalJSON() ([]byte, error) {
 	type NoMethod Permission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Section: The content of the note.
@@ -552,9 +555,9 @@ type Section struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Section) MarshalJSON() ([]byte, error) {
+func (s Section) MarshalJSON() ([]byte, error) {
 	type NoMethod Section
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextContent: The block of text for a single text section or list item.
@@ -575,9 +578,9 @@ type TextContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextContent) MarshalJSON() ([]byte, error) {
+func (s TextContent) MarshalJSON() ([]byte, error) {
 	type NoMethod TextContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // User: Describes a single user.
@@ -597,9 +600,9 @@ type User struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *User) MarshalJSON() ([]byte, error) {
+func (s User) MarshalJSON() ([]byte, error) {
 	type NoMethod User
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type MediaDownloadCall struct {
@@ -667,12 +670,11 @@ func (c *MediaDownloadCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -680,6 +682,7 @@ func (c *MediaDownloadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "keep.media.download", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -730,9 +733,11 @@ func (c *MediaDownloadCall) Do(opts ...googleapi.CallOption) (*Attachment, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "keep.media.download", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -776,8 +781,7 @@ func (c *NotesCreateCall) Header() http.Header {
 
 func (c *NotesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.note)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.note)
 	if err != nil {
 		return nil, err
 	}
@@ -790,6 +794,7 @@ func (c *NotesCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "keep.notes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -824,9 +829,11 @@ func (c *NotesCreateCall) Do(opts ...googleapi.CallOption) (*Note, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "keep.notes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -874,12 +881,11 @@ func (c *NotesDeleteCall) Header() http.Header {
 
 func (c *NotesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -887,6 +893,7 @@ func (c *NotesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "keep.notes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -921,9 +928,11 @@ func (c *NotesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "keep.notes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -981,12 +990,11 @@ func (c *NotesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -994,6 +1002,7 @@ func (c *NotesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "keep.notes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1028,9 +1037,11 @@ func (c *NotesGetCall) Do(opts ...googleapi.CallOption) (*Note, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "keep.notes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1115,16 +1126,16 @@ func (c *NotesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/notes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "keep.notes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1160,9 +1171,11 @@ func (c *NotesListCall) Do(opts ...googleapi.CallOption) (*ListNotesResponse, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "keep.notes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1235,8 +1248,7 @@ func (c *NotesPermissionsBatchCreateCall) Header() http.Header {
 
 func (c *NotesPermissionsBatchCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchcreatepermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchcreatepermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1252,6 +1264,7 @@ func (c *NotesPermissionsBatchCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "keep.notes.permissions.batchCreate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1287,9 +1300,11 @@ func (c *NotesPermissionsBatchCreateCall) Do(opts ...googleapi.CallOption) (*Bat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "keep.notes.permissions.batchCreate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1344,8 +1359,7 @@ func (c *NotesPermissionsBatchDeleteCall) Header() http.Header {
 
 func (c *NotesPermissionsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchdeletepermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchdeletepermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1361,6 +1375,7 @@ func (c *NotesPermissionsBatchDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "keep.notes.permissions.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1395,8 +1410,10 @@ func (c *NotesPermissionsBatchDeleteCall) Do(opts ...googleapi.CallOption) (*Emp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "keep.notes.permissions.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

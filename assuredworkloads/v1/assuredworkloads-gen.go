@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "assuredworkloads:v1"
 const apiName = "assuredworkloads"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Organizations = NewOrganizationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Organizations = NewOrganizationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -245,9 +248,9 @@ type GoogleCloudAssuredworkloadsV1AcknowledgeViolationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1AcknowledgeViolationRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1AcknowledgeViolationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1AcknowledgeViolationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1AcknowledgeViolationResponse: Response for
@@ -280,9 +283,9 @@ type GoogleCloudAssuredworkloadsV1AnalyzeWorkloadMoveResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1AnalyzeWorkloadMoveResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1AnalyzeWorkloadMoveResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1AnalyzeWorkloadMoveResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1AssetMoveAnalysis: Represents move analysis
@@ -311,9 +314,9 @@ type GoogleCloudAssuredworkloadsV1AssetMoveAnalysis struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1AssetMoveAnalysis) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1AssetMoveAnalysis) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1AssetMoveAnalysis
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata: Operation
@@ -330,35 +333,32 @@ type GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata struct {
 	//   "FEDRAMP_MODERATE" - FedRAMP Moderate data protection controls
 	//   "US_REGIONAL_ACCESS" - Assured Workloads For US Regions data protection
 	// controls
-	//   "REGIONAL_CONTROLS_PREMIUM_US" - Assured Workloads For US Regions data
-	// protection controls
-	//   "HIPAA" - Health Insurance Portability and Accountability Act controls
-	//   "HITRUST" - Health Information Trust Alliance controls
+	//   "HIPAA" - [DEPRECATED] Health Insurance Portability and Accountability Act
+	// controls
+	//   "HITRUST" - [DEPRECATED] Health Information Trust Alliance controls
 	//   "EU_REGIONS_AND_SUPPORT" - Assured Workloads For EU Regions and Support
 	// controls
-	//   "REGIONAL_CONTROLS_PREMIUM_EU" - Assured Workloads For EU Regions and
-	// Support controls
 	//   "CA_REGIONS_AND_SUPPORT" - Assured Workloads For Canada Regions and
-	// Support controls
-	//   "REGIONAL_CONTROLS_PREMIUM_CA" - Assured Workloads For Canada Regions and
 	// Support controls
 	//   "ITAR" - International Traffic in Arms Regulations
 	//   "AU_REGIONS_AND_US_SUPPORT" - Assured Workloads for Australia Regions and
 	// Support controls
-	//   "REGIONAL_CONTROLS_PREMIUM_AU" - Assured Workloads for Australia Regions
-	// and Support controls
 	//   "ASSURED_WORKLOADS_FOR_PARTNERS" - Assured Workloads for Partners;
 	//   "ISR_REGIONS" - Assured Workloads for Israel Regions
-	//   "REGIONAL_CONTROLS_PREMIUM_ISR" - Assured Workloads for Israel
 	//   "ISR_REGIONS_AND_SUPPORT" - Assured Workloads for Israel Regions
 	//   "CA_PROTECTED_B" - Assured Workloads for Canada Protected B regime
 	//   "IL5" - Information protection as per DoD IL5 requirements.
 	//   "IL2" - Information protection as per DoD IL2 requirements.
 	//   "JP_REGIONS_AND_SUPPORT" - Assured Workloads for Japan Regions
-	//   "REGIONAL_CONTROLS_PREMIUM_JP" - Assured Workloads for Japan Regions
-	//   "KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS" - KSA R5 Controls.
-	//   "REGIONAL_CONTROLS" - Assured Workloads for Regional Controls/Free Regions
-	//   "FREE_REGIONS" - Assured Workloads for Regional Controls/Free Regions
+	//   "KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS" - Assured Workloads
+	// Sovereign Controls KSA
+	//   "REGIONAL_CONTROLS" - Assured Workloads for Regional Controls
+	//   "HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS" - Healthcare and Life Science
+	// Controls
+	//   "HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS_US_SUPPORT" - Healthcare and Life
+	// Science Controls with US Support
+	//   "IRS_1075" - Internal Revenue Service 1075 controls
+	//   "CANADA_CONTROLLED_GOODS" - Canada Controlled Goods
 	ComplianceRegime string `json:"complianceRegime,omitempty"`
 	// CreateTime: Optional. Time when the operation was created.
 	CreateTime string `json:"createTime,omitempty"`
@@ -379,9 +379,9 @@ type GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1EnableResourceMonitoringResponse: Response for
@@ -414,9 +414,9 @@ type GoogleCloudAssuredworkloadsV1ListViolationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1ListViolationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1ListViolationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1ListViolationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1ListWorkloadsResponse: Response of
@@ -442,9 +442,9 @@ type GoogleCloudAssuredworkloadsV1ListWorkloadsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1ListWorkloadsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1ListWorkloadsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1ListWorkloadsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1MoveAnalysisGroup: Represents a logical group
@@ -470,9 +470,9 @@ type GoogleCloudAssuredworkloadsV1MoveAnalysisGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1MoveAnalysisGroup) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1MoveAnalysisGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1MoveAnalysisGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1MoveAnalysisResult: Represents the successful
@@ -497,9 +497,9 @@ type GoogleCloudAssuredworkloadsV1MoveAnalysisResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1MoveAnalysisResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1MoveAnalysisResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1MoveAnalysisResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1MoveImpact: Represents the impact of moving the
@@ -520,9 +520,9 @@ type GoogleCloudAssuredworkloadsV1MoveImpact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1MoveImpact) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1MoveImpact) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1MoveImpact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1MutatePartnerPermissionsRequest: Request for
@@ -549,9 +549,9 @@ type GoogleCloudAssuredworkloadsV1MutatePartnerPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1MutatePartnerPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1MutatePartnerPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1MutatePartnerPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest: Request for
@@ -587,9 +587,9 @@ type GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesResponse: Response for
@@ -693,9 +693,9 @@ type GoogleCloudAssuredworkloadsV1Violation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1Violation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1Violation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1Violation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1ViolationExceptionContext: Violation exception
@@ -722,9 +722,9 @@ type GoogleCloudAssuredworkloadsV1ViolationExceptionContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1ViolationExceptionContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1ViolationExceptionContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1ViolationExceptionContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1ViolationRemediation: Represents remediation
@@ -767,9 +767,9 @@ type GoogleCloudAssuredworkloadsV1ViolationRemediation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1ViolationRemediation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1ViolationRemediation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1ViolationRemediation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1ViolationRemediationInstructions: Instructions
@@ -794,9 +794,9 @@ type GoogleCloudAssuredworkloadsV1ViolationRemediationInstructions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1ViolationRemediationInstructions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1ViolationRemediationInstructions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1ViolationRemediationInstructions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsConsole:
@@ -821,9 +821,9 @@ type GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsConsole struct
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsConsole) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsConsole) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsConsole
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsGcloud:
@@ -848,9 +848,9 @@ type GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsGcloud struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsGcloud) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsGcloud) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1ViolationRemediationInstructionsGcloud
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1Workload: A Workload object for managing highly
@@ -875,35 +875,32 @@ type GoogleCloudAssuredworkloadsV1Workload struct {
 	//   "FEDRAMP_MODERATE" - FedRAMP Moderate data protection controls
 	//   "US_REGIONAL_ACCESS" - Assured Workloads For US Regions data protection
 	// controls
-	//   "REGIONAL_CONTROLS_PREMIUM_US" - Assured Workloads For US Regions data
-	// protection controls
-	//   "HIPAA" - Health Insurance Portability and Accountability Act controls
-	//   "HITRUST" - Health Information Trust Alliance controls
+	//   "HIPAA" - [DEPRECATED] Health Insurance Portability and Accountability Act
+	// controls
+	//   "HITRUST" - [DEPRECATED] Health Information Trust Alliance controls
 	//   "EU_REGIONS_AND_SUPPORT" - Assured Workloads For EU Regions and Support
 	// controls
-	//   "REGIONAL_CONTROLS_PREMIUM_EU" - Assured Workloads For EU Regions and
-	// Support controls
 	//   "CA_REGIONS_AND_SUPPORT" - Assured Workloads For Canada Regions and
-	// Support controls
-	//   "REGIONAL_CONTROLS_PREMIUM_CA" - Assured Workloads For Canada Regions and
 	// Support controls
 	//   "ITAR" - International Traffic in Arms Regulations
 	//   "AU_REGIONS_AND_US_SUPPORT" - Assured Workloads for Australia Regions and
 	// Support controls
-	//   "REGIONAL_CONTROLS_PREMIUM_AU" - Assured Workloads for Australia Regions
-	// and Support controls
 	//   "ASSURED_WORKLOADS_FOR_PARTNERS" - Assured Workloads for Partners;
 	//   "ISR_REGIONS" - Assured Workloads for Israel Regions
-	//   "REGIONAL_CONTROLS_PREMIUM_ISR" - Assured Workloads for Israel
 	//   "ISR_REGIONS_AND_SUPPORT" - Assured Workloads for Israel Regions
 	//   "CA_PROTECTED_B" - Assured Workloads for Canada Protected B regime
 	//   "IL5" - Information protection as per DoD IL5 requirements.
 	//   "IL2" - Information protection as per DoD IL2 requirements.
 	//   "JP_REGIONS_AND_SUPPORT" - Assured Workloads for Japan Regions
-	//   "REGIONAL_CONTROLS_PREMIUM_JP" - Assured Workloads for Japan Regions
-	//   "KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS" - KSA R5 Controls.
-	//   "REGIONAL_CONTROLS" - Assured Workloads for Regional Controls/Free Regions
-	//   "FREE_REGIONS" - Assured Workloads for Regional Controls/Free Regions
+	//   "KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS" - Assured Workloads
+	// Sovereign Controls KSA
+	//   "REGIONAL_CONTROLS" - Assured Workloads for Regional Controls
+	//   "HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS" - Healthcare and Life Science
+	// Controls
+	//   "HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS_US_SUPPORT" - Healthcare and Life
+	// Science Controls with US Support
+	//   "IRS_1075" - Internal Revenue Service 1075 controls
+	//   "CANADA_CONTROLLED_GOODS" - Canada Controlled Goods
 	ComplianceRegime string `json:"complianceRegime,omitempty"`
 	// ComplianceStatus: Output only. Count of active Violations in the Workload.
 	ComplianceStatus *GoogleCloudAssuredworkloadsV1WorkloadComplianceStatus `json:"complianceStatus,omitempty"`
@@ -958,10 +955,21 @@ type GoogleCloudAssuredworkloadsV1Workload struct {
 	//   "SOVEREIGN_CONTROLS_BY_SIA_MINSAIT" - Enum representing SIA_MINSAIT
 	// (Indra) partner.
 	//   "SOVEREIGN_CONTROLS_BY_PSN" - Enum representing PSN (TIM) partner.
+	//   "SOVEREIGN_CONTROLS_BY_CNTXT" - Enum representing CNTXT (Kingdom of Saudi
+	// Arabia) partner.
+	//   "SOVEREIGN_CONTROLS_BY_CNTXT_NO_EKM" - Enum representing CNTXT (Kingdom of
+	// Saudi Arabia) partner offering without EKM.
 	Partner string `json:"partner,omitempty"`
 	// PartnerPermissions: Optional. Permissions granted to the AW Partner SA
 	// account for the customer workload
 	PartnerPermissions *GoogleCloudAssuredworkloadsV1WorkloadPartnerPermissions `json:"partnerPermissions,omitempty"`
+	// PartnerServicesBillingAccount: Optional. Billing account necessary for
+	// purchasing services from Sovereign Partners. This field is required for
+	// creating SIA/PSN/CNTXT partner workloads. The caller should have
+	// 'billing.resourceAssociations.create' IAM permission on this
+	// billing-account. The format of this string is
+	// billingAccounts/AAAAAA-BBBBBB-CCCCCC
+	PartnerServicesBillingAccount string `json:"partnerServicesBillingAccount,omitempty"`
 	// ProvisionedResourcesParent: Input only. The parent resource for the
 	// resources managed by this Assured Workload. May be either empty or a folder
 	// resource which is a child of the Workload parent. If not specified all
@@ -993,6 +1001,8 @@ type GoogleCloudAssuredworkloadsV1Workload struct {
 	// the createWorkload call will not be honored. This will always be true while
 	// creating the workload.
 	ViolationNotificationsEnabled bool `json:"violationNotificationsEnabled,omitempty"`
+	// WorkloadOptions: Optional. Options to be set for the given created workload.
+	WorkloadOptions *GoogleCloudAssuredworkloadsV1WorkloadWorkloadOptions `json:"workloadOptions,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -1009,9 +1019,9 @@ type GoogleCloudAssuredworkloadsV1Workload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1Workload) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1Workload) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1Workload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1WorkloadComplianceStatus: Represents the
@@ -1044,9 +1054,9 @@ type GoogleCloudAssuredworkloadsV1WorkloadComplianceStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1WorkloadComplianceStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1WorkloadComplianceStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1WorkloadComplianceStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1WorkloadEkmProvisioningResponse: External key
@@ -1076,8 +1086,8 @@ type GoogleCloudAssuredworkloadsV1WorkloadEkmProvisioningResponse struct {
 	//   "MISSING_EKM_CONNECTION_ADMIN_PERMISSION" - Iam permission
 	// cloudkms.ekmConnectionsAdmin wasn't applied.
 	EkmProvisioningErrorMapping string `json:"ekmProvisioningErrorMapping,omitempty"`
-	// EkmProvisioningState: Indicates Ekm enrollment Provisioning of a given
-	// workload.
+	// EkmProvisioningState: Output only. Indicates Ekm enrollment Provisioning of
+	// a given workload.
 	//
 	// Possible values:
 	//   "EKM_PROVISIONING_STATE_UNSPECIFIED" - Default State for Ekm Provisioning
@@ -1098,9 +1108,9 @@ type GoogleCloudAssuredworkloadsV1WorkloadEkmProvisioningResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1WorkloadEkmProvisioningResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1WorkloadEkmProvisioningResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1WorkloadEkmProvisioningResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1WorkloadKMSSettings: Settings specific to the
@@ -1127,44 +1137,49 @@ type GoogleCloudAssuredworkloadsV1WorkloadKMSSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1WorkloadKMSSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1WorkloadKMSSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1WorkloadKMSSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1WorkloadPartnerPermissions: Permissions granted
 // to the AW Partner SA account for the customer workload
 type GoogleCloudAssuredworkloadsV1WorkloadPartnerPermissions struct {
+	// AccessTransparencyLogsSupportCaseViewer: Optional. Allow partner to view
+	// support case details for an AXT log
+	AccessTransparencyLogsSupportCaseViewer bool `json:"accessTransparencyLogsSupportCaseViewer,omitempty"`
 	// AssuredWorkloadsMonitoring: Optional. Allow partner to view violation
 	// alerts.
 	AssuredWorkloadsMonitoring bool `json:"assuredWorkloadsMonitoring,omitempty"`
-	// DataLogsViewer: Allow the partner to view inspectability logs and monitoring
-	// violations.
+	// DataLogsViewer: Optional. Allow the partner to view inspectability logs and
+	// monitoring violations.
 	DataLogsViewer bool `json:"dataLogsViewer,omitempty"`
 	// ServiceAccessApprover: Optional. Allow partner to view access approval logs.
 	ServiceAccessApprover bool `json:"serviceAccessApprover,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "AssuredWorkloadsMonitoring")
-	// to unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g.
+	// "AccessTransparencyLogsSupportCaseViewer") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AssuredWorkloadsMonitoring") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	// NullFields is a list of field names (e.g.
+	// "AccessTransparencyLogsSupportCaseViewer") to include in API requests with
+	// the JSON null value. By default, fields with empty values are omitted from
+	// API requests. See https://pkg.go.dev/google.golang.org/api#hdr-NullFields
+	// for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1WorkloadPartnerPermissions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1WorkloadPartnerPermissions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1WorkloadPartnerPermissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1WorkloadResourceInfo: Represent the resources
 // that are children of this Workload.
 type GoogleCloudAssuredworkloadsV1WorkloadResourceInfo struct {
-	// ResourceId: Resource identifier. For a project this represents
+	// ResourceId: Output only. Resource identifier. For a project this represents
 	// project_number.
 	ResourceId int64 `json:"resourceId,omitempty,string"`
 	// ResourceType: Indicates the type of resource.
@@ -1191,9 +1206,9 @@ type GoogleCloudAssuredworkloadsV1WorkloadResourceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1WorkloadResourceInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1WorkloadResourceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1WorkloadResourceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1WorkloadResourceSettings: Represent the custom
@@ -1233,9 +1248,9 @@ type GoogleCloudAssuredworkloadsV1WorkloadResourceSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1WorkloadResourceSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1WorkloadResourceSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1WorkloadResourceSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse: Signed Access
@@ -1254,7 +1269,8 @@ type GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse struct {
 	//   "ERROR_SETUP_CHECK_FAILED" - Returned when exception was encountered
 	// during evaluation of other criteria.
 	SetupErrors []string `json:"setupErrors,omitempty"`
-	// SetupStatus: Indicates SAA enrollment status of a given workload.
+	// SetupStatus: Output only. Indicates SAA enrollment status of a given
+	// workload.
 	//
 	// Possible values:
 	//   "SETUP_STATE_UNSPECIFIED" - Unspecified.
@@ -1274,9 +1290,37 @@ type GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudAssuredworkloadsV1WorkloadWorkloadOptions: Options to be set for
+// the given created workload.
+type GoogleCloudAssuredworkloadsV1WorkloadWorkloadOptions struct {
+	// KajEnrollmentType: Optional. Specifies type of KAJ Enrollment if provided.
+	//
+	// Possible values:
+	//   "KAJ_ENROLLMENT_TYPE_UNSPECIFIED" - KAJ Enrollment type is unspecified
+	//   "KEY_ACCESS_TRANSPARENCY_OFF" - KAT sets External, Hardware, and Software
+	// key feature logging only to TRUE.
+	KajEnrollmentType string `json:"kajEnrollmentType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "KajEnrollmentType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "KajEnrollmentType") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudAssuredworkloadsV1WorkloadWorkloadOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudAssuredworkloadsV1WorkloadWorkloadOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningListOperationsResponse: The response message for
@@ -1303,9 +1347,9 @@ type GoogleLongrunningListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -1350,9 +1394,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -1394,9 +1438,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OrganizationsLocationsOperationsGetCall struct {
@@ -1455,12 +1499,11 @@ func (c *OrganizationsLocationsOperationsGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1468,6 +1511,7 @@ func (c *OrganizationsLocationsOperationsGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1503,9 +1547,11 @@ func (c *OrganizationsLocationsOperationsGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1584,12 +1630,11 @@ func (c *OrganizationsLocationsOperationsListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1597,6 +1642,7 @@ func (c *OrganizationsLocationsOperationsListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1632,9 +1678,11 @@ func (c *OrganizationsLocationsOperationsListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1754,12 +1802,11 @@ func (c *OrganizationsLocationsWorkloadsAnalyzeWorkloadMoveCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+target}:analyzeWorkloadMove")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1767,6 +1814,7 @@ func (c *OrganizationsLocationsWorkloadsAnalyzeWorkloadMoveCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"target": c.target,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.analyzeWorkloadMove", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1802,9 +1850,11 @@ func (c *OrganizationsLocationsWorkloadsAnalyzeWorkloadMoveCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.analyzeWorkloadMove", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1884,8 +1934,7 @@ func (c *OrganizationsLocationsWorkloadsCreateCall) Header() http.Header {
 
 func (c *OrganizationsLocationsWorkloadsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudassuredworkloadsv1workload)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudassuredworkloadsv1workload)
 	if err != nil {
 		return nil, err
 	}
@@ -1901,6 +1950,7 @@ func (c *OrganizationsLocationsWorkloadsCreateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1936,9 +1986,11 @@ func (c *OrganizationsLocationsWorkloadsCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1996,12 +2048,11 @@ func (c *OrganizationsLocationsWorkloadsDeleteCall) Header() http.Header {
 
 func (c *OrganizationsLocationsWorkloadsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2009,6 +2060,7 @@ func (c *OrganizationsLocationsWorkloadsDeleteCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2044,9 +2096,11 @@ func (c *OrganizationsLocationsWorkloadsDeleteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2094,12 +2148,11 @@ func (c *OrganizationsLocationsWorkloadsEnableResourceMonitoringCall) Header() h
 
 func (c *OrganizationsLocationsWorkloadsEnableResourceMonitoringCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:enableResourceMonitoring")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2107,6 +2160,7 @@ func (c *OrganizationsLocationsWorkloadsEnableResourceMonitoringCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.enableResourceMonitoring", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2142,9 +2196,11 @@ func (c *OrganizationsLocationsWorkloadsEnableResourceMonitoringCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.enableResourceMonitoring", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2206,12 +2262,11 @@ func (c *OrganizationsLocationsWorkloadsGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2219,6 +2274,7 @@ func (c *OrganizationsLocationsWorkloadsGetCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2254,9 +2310,11 @@ func (c *OrganizationsLocationsWorkloadsGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2337,12 +2395,11 @@ func (c *OrganizationsLocationsWorkloadsListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/workloads")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2350,6 +2407,7 @@ func (c *OrganizationsLocationsWorkloadsListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2385,9 +2443,11 @@ func (c *OrganizationsLocationsWorkloadsListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2459,8 +2519,7 @@ func (c *OrganizationsLocationsWorkloadsMutatePartnerPermissionsCall) Header() h
 
 func (c *OrganizationsLocationsWorkloadsMutatePartnerPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudassuredworkloadsv1mutatepartnerpermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudassuredworkloadsv1mutatepartnerpermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2476,6 +2535,7 @@ func (c *OrganizationsLocationsWorkloadsMutatePartnerPermissionsCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.mutatePartnerPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2511,9 +2571,11 @@ func (c *OrganizationsLocationsWorkloadsMutatePartnerPermissionsCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.mutatePartnerPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2572,8 +2634,7 @@ func (c *OrganizationsLocationsWorkloadsPatchCall) Header() http.Header {
 
 func (c *OrganizationsLocationsWorkloadsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudassuredworkloadsv1workload)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudassuredworkloadsv1workload)
 	if err != nil {
 		return nil, err
 	}
@@ -2589,6 +2650,7 @@ func (c *OrganizationsLocationsWorkloadsPatchCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2624,9 +2686,11 @@ func (c *OrganizationsLocationsWorkloadsPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2683,8 +2747,7 @@ func (c *OrganizationsLocationsWorkloadsRestrictAllowedResourcesCall) Header() h
 
 func (c *OrganizationsLocationsWorkloadsRestrictAllowedResourcesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudassuredworkloadsv1restrictallowedresourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudassuredworkloadsv1restrictallowedresourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2700,6 +2763,7 @@ func (c *OrganizationsLocationsWorkloadsRestrictAllowedResourcesCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.restrictAllowedResources", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2735,9 +2799,11 @@ func (c *OrganizationsLocationsWorkloadsRestrictAllowedResourcesCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.restrictAllowedResources", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2791,8 +2857,7 @@ func (c *OrganizationsLocationsWorkloadsViolationsAcknowledgeCall) Header() http
 
 func (c *OrganizationsLocationsWorkloadsViolationsAcknowledgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudassuredworkloadsv1acknowledgeviolationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudassuredworkloadsv1acknowledgeviolationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2808,6 +2873,7 @@ func (c *OrganizationsLocationsWorkloadsViolationsAcknowledgeCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.violations.acknowledge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2843,9 +2909,11 @@ func (c *OrganizationsLocationsWorkloadsViolationsAcknowledgeCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.violations.acknowledge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2906,12 +2974,11 @@ func (c *OrganizationsLocationsWorkloadsViolationsGetCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2919,6 +2986,7 @@ func (c *OrganizationsLocationsWorkloadsViolationsGetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.violations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2954,9 +3022,11 @@ func (c *OrganizationsLocationsWorkloadsViolationsGetCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.violations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3053,12 +3123,11 @@ func (c *OrganizationsLocationsWorkloadsViolationsListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/violations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3066,6 +3135,7 @@ func (c *OrganizationsLocationsWorkloadsViolationsListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.violations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3101,9 +3171,11 @@ func (c *OrganizationsLocationsWorkloadsViolationsListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "assuredworkloads.organizations.locations.workloads.violations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

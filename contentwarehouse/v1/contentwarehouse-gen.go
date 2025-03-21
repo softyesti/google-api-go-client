@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "contentwarehouse:v1"
 const apiName = "contentwarehouse"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -299,9 +302,9 @@ type CloudAiPlatformTenantresourceCloudSqlInstanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceCloudSqlInstanceConfig) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceCloudSqlInstanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceCloudSqlInstanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceGcsBucketConfig: The identity to configure a
@@ -340,9 +343,9 @@ type CloudAiPlatformTenantresourceGcsBucketConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceGcsBucketConfig) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceGcsBucketConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceGcsBucketConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceIamPolicyBinding: The dynamic IAM bindings to
@@ -387,9 +390,9 @@ type CloudAiPlatformTenantresourceIamPolicyBinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceIamPolicyBinding) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceIamPolicyBinding) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceIamPolicyBinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceInfraSpannerConfig: The configuration for a
@@ -430,9 +433,9 @@ type CloudAiPlatformTenantresourceInfraSpannerConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceInfraSpannerConfig) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceInfraSpannerConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceInfraSpannerConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceInfraSpannerConfigCreateDatabaseOptions: The
@@ -463,9 +466,9 @@ type CloudAiPlatformTenantresourceInfraSpannerConfigCreateDatabaseOptions struct
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceInfraSpannerConfigCreateDatabaseOptions) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceInfraSpannerConfigCreateDatabaseOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceInfraSpannerConfigCreateDatabaseOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceServiceAccountIdentity: The identity to
@@ -493,9 +496,9 @@ type CloudAiPlatformTenantresourceServiceAccountIdentity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceServiceAccountIdentity) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceServiceAccountIdentity) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceServiceAccountIdentity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceTenantProjectConfig: The identity to configure
@@ -529,9 +532,9 @@ type CloudAiPlatformTenantresourceTenantProjectConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceTenantProjectConfig) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceTenantProjectConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceTenantProjectConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceTenantProjectResource: The tenant project and
@@ -577,9 +580,9 @@ type CloudAiPlatformTenantresourceTenantProjectResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceTenantProjectResource) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceTenantProjectResource) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceTenantProjectResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceTenantResource: A collection of tenant
@@ -604,9 +607,9 @@ type CloudAiPlatformTenantresourceTenantResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceTenantResource) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceTenantResource) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceTenantResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudAiPlatformTenantresourceTenantServiceAccountIdentity: The identity of
@@ -631,9 +634,9 @@ type CloudAiPlatformTenantresourceTenantServiceAccountIdentity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudAiPlatformTenantresourceTenantServiceAccountIdentity) MarshalJSON() ([]byte, error) {
+func (s CloudAiPlatformTenantresourceTenantServiceAccountIdentity) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudAiPlatformTenantresourceTenantServiceAccountIdentity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleApiServiceconsumermanagementV1BillingConfig: Describes the billing
@@ -655,9 +658,9 @@ type GoogleApiServiceconsumermanagementV1BillingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleApiServiceconsumermanagementV1BillingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleApiServiceconsumermanagementV1BillingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleApiServiceconsumermanagementV1BillingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleApiServiceconsumermanagementV1PolicyBinding: Translates to IAM Policy
@@ -683,9 +686,9 @@ type GoogleApiServiceconsumermanagementV1PolicyBinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleApiServiceconsumermanagementV1PolicyBinding) MarshalJSON() ([]byte, error) {
+func (s GoogleApiServiceconsumermanagementV1PolicyBinding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleApiServiceconsumermanagementV1PolicyBinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1AccessControlAction: Represents the action
@@ -719,9 +722,9 @@ type GoogleCloudContentwarehouseV1AccessControlAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1AccessControlAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1AccessControlAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1AccessControlAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1Action: Represents the action triggered by Rule
@@ -756,9 +759,9 @@ type GoogleCloudContentwarehouseV1Action struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1Action) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1Action) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1Action
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ActionExecutorOutput: Represents the output of
@@ -779,9 +782,9 @@ type GoogleCloudContentwarehouseV1ActionExecutorOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ActionExecutorOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ActionExecutorOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ActionExecutorOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ActionOutput: Represents the result of
@@ -813,9 +816,9 @@ type GoogleCloudContentwarehouseV1ActionOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ActionOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ActionOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ActionOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1AddToFolderAction: Represents the action
@@ -838,9 +841,9 @@ type GoogleCloudContentwarehouseV1AddToFolderAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1AddToFolderAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1AddToFolderAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1AddToFolderAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1CloudAIDocumentOption: Request Option for
@@ -867,9 +870,9 @@ type GoogleCloudContentwarehouseV1CloudAIDocumentOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1CloudAIDocumentOption) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1CloudAIDocumentOption) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1CloudAIDocumentOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1CreateDocumentLinkRequest: Request message for
@@ -894,9 +897,9 @@ type GoogleCloudContentwarehouseV1CreateDocumentLinkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1CreateDocumentLinkRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1CreateDocumentLinkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1CreateDocumentLinkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1CreateDocumentMetadata: Metadata object for
@@ -938,9 +941,9 @@ type GoogleCloudContentwarehouseV1CreateDocumentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1CreateDocumentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1CreateDocumentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1CreateDocumentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1CreateDocumentResponse: Response message for
@@ -973,9 +976,9 @@ type GoogleCloudContentwarehouseV1CreateDocumentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1CreateDocumentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1CreateDocumentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1CreateDocumentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1CustomWeightsMetadata: To support the custom
@@ -997,9 +1000,9 @@ type GoogleCloudContentwarehouseV1CustomWeightsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1CustomWeightsMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1CustomWeightsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1CustomWeightsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DataUpdateAction: Represents the action
@@ -1023,9 +1026,9 @@ type GoogleCloudContentwarehouseV1DataUpdateAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DataUpdateAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DataUpdateAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DataUpdateAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DataValidationAction: Represents the action
@@ -1049,9 +1052,9 @@ type GoogleCloudContentwarehouseV1DataValidationAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DataValidationAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DataValidationAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DataValidationAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DateTimeArray: DateTime values.
@@ -1072,9 +1075,9 @@ type GoogleCloudContentwarehouseV1DateTimeArray struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DateTimeArray) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DateTimeArray) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DateTimeArray
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DateTimeTypeOptions: Configurations for a date
@@ -1101,9 +1104,9 @@ type GoogleCloudContentwarehouseV1DeleteDocumentAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DeleteDocumentAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DeleteDocumentAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DeleteDocumentAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DeleteDocumentLinkRequest: Request message for
@@ -1125,9 +1128,9 @@ type GoogleCloudContentwarehouseV1DeleteDocumentLinkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DeleteDocumentLinkRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DeleteDocumentLinkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DeleteDocumentLinkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DeleteDocumentRequest: Request message for
@@ -1149,9 +1152,9 @@ type GoogleCloudContentwarehouseV1DeleteDocumentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DeleteDocumentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DeleteDocumentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DeleteDocumentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1Document: Defines the structure for content
@@ -1246,9 +1249,9 @@ type GoogleCloudContentwarehouseV1Document struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1Document) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1Document) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1Document
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DocumentLink: A document-link between source
@@ -1296,9 +1299,9 @@ type GoogleCloudContentwarehouseV1DocumentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DocumentLink) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DocumentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DocumentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudContentwarehouseV1DocumentQuery struct {
@@ -1409,9 +1412,9 @@ type GoogleCloudContentwarehouseV1DocumentQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DocumentQuery) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DocumentQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DocumentQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DocumentReference: References to the documents.
@@ -1450,9 +1453,9 @@ type GoogleCloudContentwarehouseV1DocumentReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DocumentReference) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DocumentReference) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DocumentReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1DocumentSchema: A document schema used to
@@ -1492,9 +1495,9 @@ type GoogleCloudContentwarehouseV1DocumentSchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1DocumentSchema) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1DocumentSchema) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1DocumentSchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1EnumArray: Enum values.
@@ -1514,9 +1517,9 @@ type GoogleCloudContentwarehouseV1EnumArray struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1EnumArray) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1EnumArray) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1EnumArray
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1EnumTypeOptions: Configurations for an
@@ -1541,9 +1544,9 @@ type GoogleCloudContentwarehouseV1EnumTypeOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1EnumTypeOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1EnumTypeOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1EnumTypeOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1EnumValue: Represents the string value of the
@@ -1565,9 +1568,9 @@ type GoogleCloudContentwarehouseV1EnumValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1EnumValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1EnumValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1EnumValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ExportToCdwPipeline: The configuration of
@@ -1603,9 +1606,9 @@ type GoogleCloudContentwarehouseV1ExportToCdwPipeline struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ExportToCdwPipeline) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ExportToCdwPipeline) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ExportToCdwPipeline
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudContentwarehouseV1ExportToCdwPipeline) UnmarshalJSON(data []byte) error {
@@ -1644,9 +1647,9 @@ type GoogleCloudContentwarehouseV1FetchAclRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1FetchAclRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1FetchAclRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1FetchAclRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1FetchAclResponse: Response message for
@@ -1673,9 +1676,9 @@ type GoogleCloudContentwarehouseV1FetchAclResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1FetchAclResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1FetchAclResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1FetchAclResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1FileTypeFilter: Filter for the specific types
@@ -1704,9 +1707,9 @@ type GoogleCloudContentwarehouseV1FileTypeFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1FileTypeFilter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1FileTypeFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1FileTypeFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1FloatArray: Float values.
@@ -1726,9 +1729,9 @@ type GoogleCloudContentwarehouseV1FloatArray struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1FloatArray) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1FloatArray) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1FloatArray
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudContentwarehouseV1FloatArray) UnmarshalJSON(data []byte) error {
@@ -1788,9 +1791,9 @@ type GoogleCloudContentwarehouseV1GcsIngestPipeline struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1GcsIngestPipeline) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1GcsIngestPipeline) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1GcsIngestPipeline
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1GcsIngestWithDocAiProcessorsPipeline: The
@@ -1832,9 +1835,9 @@ type GoogleCloudContentwarehouseV1GcsIngestWithDocAiProcessorsPipeline struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1GcsIngestWithDocAiProcessorsPipeline) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1GcsIngestWithDocAiProcessorsPipeline) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1GcsIngestWithDocAiProcessorsPipeline
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1GetDocumentRequest: Request message for
@@ -1856,9 +1859,9 @@ type GoogleCloudContentwarehouseV1GetDocumentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1GetDocumentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1GetDocumentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1GetDocumentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1HistogramQuery: The histogram request.
@@ -1889,9 +1892,9 @@ type GoogleCloudContentwarehouseV1HistogramQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1HistogramQuery) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1HistogramQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1HistogramQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudContentwarehouseV1HistogramQueryPropertyNameFilter struct {
@@ -1930,9 +1933,9 @@ type GoogleCloudContentwarehouseV1HistogramQueryPropertyNameFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1HistogramQueryPropertyNameFilter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1HistogramQueryPropertyNameFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1HistogramQueryPropertyNameFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1HistogramQueryResult: Histogram result that
@@ -1957,9 +1960,9 @@ type GoogleCloudContentwarehouseV1HistogramQueryResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1HistogramQueryResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1HistogramQueryResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1HistogramQueryResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1IngestPipelineConfig: The ingestion pipeline
@@ -2010,9 +2013,9 @@ type GoogleCloudContentwarehouseV1IngestPipelineConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1IngestPipelineConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1IngestPipelineConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1IngestPipelineConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1InitializeProjectRequest: Request message for
@@ -2071,9 +2074,9 @@ type GoogleCloudContentwarehouseV1InitializeProjectRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1InitializeProjectRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1InitializeProjectRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1InitializeProjectRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1InitializeProjectResponse: Response message for
@@ -2103,9 +2106,9 @@ type GoogleCloudContentwarehouseV1InitializeProjectResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1InitializeProjectResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1InitializeProjectResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1InitializeProjectResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1IntegerArray: Integer values.
@@ -2125,9 +2128,9 @@ type GoogleCloudContentwarehouseV1IntegerArray struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1IntegerArray) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1IntegerArray) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1IntegerArray
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1IntegerTypeOptions: Configurations for an
@@ -2155,9 +2158,9 @@ type GoogleCloudContentwarehouseV1InvalidRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1InvalidRule) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1InvalidRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1InvalidRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ListDocumentSchemasResponse: Response message
@@ -2184,9 +2187,9 @@ type GoogleCloudContentwarehouseV1ListDocumentSchemasResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ListDocumentSchemasResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ListDocumentSchemasResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ListDocumentSchemasResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ListLinkedSourcesRequest: Response message for
@@ -2218,9 +2221,9 @@ type GoogleCloudContentwarehouseV1ListLinkedSourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ListLinkedSourcesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ListLinkedSourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ListLinkedSourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ListLinkedSourcesResponse: Response message for
@@ -2247,9 +2250,9 @@ type GoogleCloudContentwarehouseV1ListLinkedSourcesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ListLinkedSourcesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ListLinkedSourcesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ListLinkedSourcesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ListLinkedTargetsRequest: Request message for
@@ -2271,9 +2274,9 @@ type GoogleCloudContentwarehouseV1ListLinkedTargetsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ListLinkedTargetsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ListLinkedTargetsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ListLinkedTargetsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ListLinkedTargetsResponse: Response message for
@@ -2300,9 +2303,9 @@ type GoogleCloudContentwarehouseV1ListLinkedTargetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ListLinkedTargetsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ListLinkedTargetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ListLinkedTargetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ListRuleSetsResponse: Response message for
@@ -2329,9 +2332,9 @@ type GoogleCloudContentwarehouseV1ListRuleSetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ListRuleSetsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ListRuleSetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ListRuleSetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ListSynonymSetsResponse: Response message for
@@ -2358,9 +2361,9 @@ type GoogleCloudContentwarehouseV1ListSynonymSetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ListSynonymSetsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ListSynonymSetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ListSynonymSetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1LockDocumentRequest: Request message for
@@ -2383,9 +2386,9 @@ type GoogleCloudContentwarehouseV1LockDocumentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1LockDocumentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1LockDocumentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1LockDocumentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1MapProperty: Map property value. Represents a
@@ -2407,9 +2410,9 @@ type GoogleCloudContentwarehouseV1MapProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1MapProperty) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1MapProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1MapProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1MapTypeOptions: Configurations for a Map
@@ -2448,9 +2451,9 @@ type GoogleCloudContentwarehouseV1MergeFieldsOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1MergeFieldsOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1MergeFieldsOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1MergeFieldsOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ProcessWithDocAiPipeline: The configuration of
@@ -2481,9 +2484,9 @@ type GoogleCloudContentwarehouseV1ProcessWithDocAiPipeline struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ProcessWithDocAiPipeline) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ProcessWithDocAiPipeline) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ProcessWithDocAiPipeline
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ProcessorInfo: The DocAI processor information.
@@ -2514,9 +2517,9 @@ type GoogleCloudContentwarehouseV1ProcessorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ProcessorInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ProcessorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ProcessorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ProjectStatus: Status of a project, including
@@ -2580,9 +2583,9 @@ type GoogleCloudContentwarehouseV1ProjectStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ProjectStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ProjectStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ProjectStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1Property: Property of a document.
@@ -2621,9 +2624,9 @@ type GoogleCloudContentwarehouseV1Property struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1Property) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1Property) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1Property
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1PropertyArray: Property values.
@@ -2643,9 +2646,9 @@ type GoogleCloudContentwarehouseV1PropertyArray struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1PropertyArray) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1PropertyArray) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1PropertyArray
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1PropertyDefinition: Defines the metadata for a
@@ -2719,9 +2722,9 @@ type GoogleCloudContentwarehouseV1PropertyDefinition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1PropertyDefinition) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1PropertyDefinition) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1PropertyDefinition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1PropertyDefinitionSchemaSource: The schema
@@ -2744,9 +2747,9 @@ type GoogleCloudContentwarehouseV1PropertyDefinitionSchemaSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1PropertyDefinitionSchemaSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1PropertyDefinitionSchemaSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1PropertyDefinitionSchemaSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudContentwarehouseV1PropertyFilter struct {
@@ -2794,9 +2797,9 @@ type GoogleCloudContentwarehouseV1PropertyFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1PropertyFilter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1PropertyFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1PropertyFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1PropertyTypeOptions: Configurations for a
@@ -2817,9 +2820,9 @@ type GoogleCloudContentwarehouseV1PropertyTypeOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1PropertyTypeOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1PropertyTypeOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1PropertyTypeOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1PublishAction: Represents the action
@@ -2843,9 +2846,9 @@ type GoogleCloudContentwarehouseV1PublishAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1PublishAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1PublishAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1PublishAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1QAResult: Additional result info for the
@@ -2870,9 +2873,9 @@ type GoogleCloudContentwarehouseV1QAResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1QAResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1QAResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1QAResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudContentwarehouseV1QAResult) UnmarshalJSON(data []byte) error {
@@ -2910,9 +2913,9 @@ type GoogleCloudContentwarehouseV1QAResultHighlight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1QAResultHighlight) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1QAResultHighlight) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1QAResultHighlight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RemoveFromFolderAction: Represents the action
@@ -2936,9 +2939,9 @@ type GoogleCloudContentwarehouseV1RemoveFromFolderAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RemoveFromFolderAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RemoveFromFolderAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RemoveFromFolderAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RequestMetadata: Meta information is used to
@@ -2959,9 +2962,9 @@ type GoogleCloudContentwarehouseV1RequestMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RequestMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RequestMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RequestMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1ResponseMetadata: Additional information
@@ -2983,9 +2986,9 @@ type GoogleCloudContentwarehouseV1ResponseMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1ResponseMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1ResponseMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1ResponseMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1Rule: Represents the rule for a content
@@ -3024,9 +3027,9 @@ type GoogleCloudContentwarehouseV1Rule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1Rule) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1Rule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1Rule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RuleActionsPair: Represents a rule and outputs
@@ -3050,9 +3053,9 @@ type GoogleCloudContentwarehouseV1RuleActionsPair struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RuleActionsPair) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RuleActionsPair) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RuleActionsPair
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RuleEngineOutput: Records the output of Rule
@@ -3080,9 +3083,9 @@ type GoogleCloudContentwarehouseV1RuleEngineOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RuleEngineOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RuleEngineOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RuleEngineOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RuleEvaluatorOutput: Represents the output of
@@ -3110,9 +3113,9 @@ type GoogleCloudContentwarehouseV1RuleEvaluatorOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RuleEvaluatorOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RuleEvaluatorOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RuleEvaluatorOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RuleSet: Represents a set of rules from a
@@ -3144,9 +3147,9 @@ type GoogleCloudContentwarehouseV1RuleSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RuleSet) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RuleSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RuleSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RunPipelineMetadata: Metadata message of
@@ -3182,9 +3185,9 @@ type GoogleCloudContentwarehouseV1RunPipelineMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RunPipelineMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RunPipelineMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RunPipelineMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RunPipelineMetadataExportToCdwPipelineMetadata:
@@ -3210,9 +3213,9 @@ type GoogleCloudContentwarehouseV1RunPipelineMetadataExportToCdwPipelineMetadata
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RunPipelineMetadataExportToCdwPipelineMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RunPipelineMetadataExportToCdwPipelineMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RunPipelineMetadataExportToCdwPipelineMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RunPipelineMetadataGcsIngestPipelineMetadata:
@@ -3234,9 +3237,9 @@ type GoogleCloudContentwarehouseV1RunPipelineMetadataGcsIngestPipelineMetadata s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RunPipelineMetadataGcsIngestPipelineMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RunPipelineMetadataGcsIngestPipelineMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RunPipelineMetadataGcsIngestPipelineMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RunPipelineMetadataIndividualDocumentStatus:
@@ -3259,9 +3262,9 @@ type GoogleCloudContentwarehouseV1RunPipelineMetadataIndividualDocumentStatus st
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RunPipelineMetadataIndividualDocumentStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RunPipelineMetadataIndividualDocumentStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RunPipelineMetadataIndividualDocumentStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RunPipelineMetadataProcessWithDocAiPipelineMetad
@@ -3285,9 +3288,9 @@ type GoogleCloudContentwarehouseV1RunPipelineMetadataProcessWithDocAiPipelineMet
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RunPipelineMetadataProcessWithDocAiPipelineMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RunPipelineMetadataProcessWithDocAiPipelineMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RunPipelineMetadataProcessWithDocAiPipelineMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1RunPipelineRequest: Request message for
@@ -3321,9 +3324,9 @@ type GoogleCloudContentwarehouseV1RunPipelineRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1RunPipelineRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1RunPipelineRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1RunPipelineRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1SearchDocumentsRequest: Request message for
@@ -3417,9 +3420,9 @@ type GoogleCloudContentwarehouseV1SearchDocumentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1SearchDocumentsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1SearchDocumentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1SearchDocumentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1SearchDocumentsResponse: Response message for
@@ -3463,9 +3466,9 @@ type GoogleCloudContentwarehouseV1SearchDocumentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1SearchDocumentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1SearchDocumentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1SearchDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1SearchDocumentsResponseMatchingDocument:
@@ -3502,9 +3505,9 @@ type GoogleCloudContentwarehouseV1SearchDocumentsResponseMatchingDocument struct
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1SearchDocumentsResponseMatchingDocument) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1SearchDocumentsResponseMatchingDocument) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1SearchDocumentsResponseMatchingDocument
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1SetAclRequest: Request message for
@@ -3542,9 +3545,9 @@ type GoogleCloudContentwarehouseV1SetAclRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1SetAclRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1SetAclRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1SetAclRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1SetAclResponse: Response message for
@@ -3571,9 +3574,9 @@ type GoogleCloudContentwarehouseV1SetAclResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1SetAclResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1SetAclResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1SetAclResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1SynonymSet: Represents a list of synonyms for a
@@ -3607,9 +3610,9 @@ type GoogleCloudContentwarehouseV1SynonymSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1SynonymSet) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1SynonymSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1SynonymSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1SynonymSetSynonym: Represents a list of words
@@ -3630,9 +3633,9 @@ type GoogleCloudContentwarehouseV1SynonymSetSynonym struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1SynonymSetSynonym) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1SynonymSetSynonym) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1SynonymSetSynonym
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1TextArray: String/text values.
@@ -3652,9 +3655,9 @@ type GoogleCloudContentwarehouseV1TextArray struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1TextArray) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1TextArray) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1TextArray
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1TextTypeOptions: Configurations for a text
@@ -3688,9 +3691,9 @@ type GoogleCloudContentwarehouseV1TimeFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1TimeFilter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1TimeFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1TimeFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1TimestampArray: Timestamp values.
@@ -3710,9 +3713,9 @@ type GoogleCloudContentwarehouseV1TimestampArray struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1TimestampArray) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1TimestampArray) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1TimestampArray
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1TimestampTypeOptions: Configurations for a
@@ -3741,9 +3744,9 @@ type GoogleCloudContentwarehouseV1TimestampValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1TimestampValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1TimestampValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1TimestampValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1UpdateDocumentMetadata: Metadata object for
@@ -3779,9 +3782,9 @@ type GoogleCloudContentwarehouseV1UpdateDocumentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1UpdateDocumentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1UpdateDocumentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1UpdateDocumentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1UpdateDocumentResponse: Response message for
@@ -3812,9 +3815,9 @@ type GoogleCloudContentwarehouseV1UpdateDocumentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1UpdateDocumentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1UpdateDocumentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1UpdateDocumentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1UpdateDocumentSchemaRequest: Request message
@@ -3835,9 +3838,9 @@ type GoogleCloudContentwarehouseV1UpdateDocumentSchemaRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1UpdateDocumentSchemaRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1UpdateDocumentSchemaRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1UpdateDocumentSchemaRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1UpdateOptions: Options for Update operations.
@@ -3879,9 +3882,9 @@ type GoogleCloudContentwarehouseV1UpdateOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1UpdateOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1UpdateOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1UpdateOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1UpdateRuleSetRequest: Request message for
@@ -3902,9 +3905,9 @@ type GoogleCloudContentwarehouseV1UpdateRuleSetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1UpdateRuleSetRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1UpdateRuleSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1UpdateRuleSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1UserInfo: The user information.
@@ -3930,9 +3933,9 @@ type GoogleCloudContentwarehouseV1UserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1UserInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1UserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1UserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1Value: `Value` represents a dynamically typed
@@ -3967,9 +3970,9 @@ type GoogleCloudContentwarehouseV1Value struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1Value) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1Value) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1Value
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudContentwarehouseV1Value) UnmarshalJSON(data []byte) error {
@@ -4006,9 +4009,9 @@ type GoogleCloudContentwarehouseV1WeightedSchemaProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1WeightedSchemaProperty) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1WeightedSchemaProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1WeightedSchemaProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1beta1CreateDocumentMetadata: Metadata object
@@ -4043,9 +4046,9 @@ type GoogleCloudContentwarehouseV1beta1InitializeProjectResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudContentwarehouseV1beta1InitializeProjectResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudContentwarehouseV1beta1InitializeProjectResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudContentwarehouseV1beta1InitializeProjectResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudContentwarehouseV1beta1UpdateDocumentMetadata: Metadata object
@@ -4086,9 +4089,9 @@ type GoogleCloudDocumentaiV1Barcode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1Barcode) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1Barcode) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1Barcode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1BoundingPoly: A bounding polygon for the detected
@@ -4111,9 +4114,9 @@ type GoogleCloudDocumentaiV1BoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1BoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1BoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1BoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1Document: Document represents the canonical document
@@ -4121,10 +4124,14 @@ func (s *GoogleCloudDocumentaiV1BoundingPoly) MarshalJSON() ([]byte, error) {
 // into documents and allows for collaboration between users and Document AI to
 // iterate and optimize for quality.
 type GoogleCloudDocumentaiV1Document struct {
+	// ChunkedDocument: Document chunked based on chunking config.
+	ChunkedDocument *GoogleCloudDocumentaiV1DocumentChunkedDocument `json:"chunkedDocument,omitempty"`
 	// Content: Optional. Inline document content, represented as a stream of
 	// bytes. Note: As with all `bytes` fields, protobuffers use a pure binary
 	// representation, whereas JSON representations use base64.
 	Content string `json:"content,omitempty"`
+	// DocumentLayout: Parsed layout of the document.
+	DocumentLayout *GoogleCloudDocumentaiV1DocumentDocumentLayout `json:"documentLayout,omitempty"`
 	// Entities: A list of entities detected on Document.text. For document shards,
 	// entities in this list may cross shard boundaries.
 	Entities []*GoogleCloudDocumentaiV1DocumentEntity `json:"entities,omitempty"`
@@ -4156,22 +4163,390 @@ type GoogleCloudDocumentaiV1Document struct {
 	// information, refer to Google Cloud Storage Request URIs
 	// (https://cloud.google.com/storage/docs/reference-uris).
 	Uri string `json:"uri,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Content") to unconditionally
+	// ForceSendFields is a list of field names (e.g. "ChunkedDocument") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ChunkedDocument") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1Document) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1Document
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentChunkedDocument: Represents the chunks that
+// the document is divided into.
+type GoogleCloudDocumentaiV1DocumentChunkedDocument struct {
+	// Chunks: List of chunks.
+	Chunks []*GoogleCloudDocumentaiV1DocumentChunkedDocumentChunk `json:"chunks,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Chunks") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Content") to include in API
+	// NullFields is a list of field names (e.g. "Chunks") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1Document) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDocumentaiV1Document
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+func (s GoogleCloudDocumentaiV1DocumentChunkedDocument) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentChunkedDocument
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentChunkedDocumentChunk: Represents a chunk.
+type GoogleCloudDocumentaiV1DocumentChunkedDocumentChunk struct {
+	// ChunkId: ID of the chunk.
+	ChunkId string `json:"chunkId,omitempty"`
+	// Content: Text content of the chunk.
+	Content string `json:"content,omitempty"`
+	// PageFooters: Page footers associated with the chunk.
+	PageFooters []*GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageFooter `json:"pageFooters,omitempty"`
+	// PageHeaders: Page headers associated with the chunk.
+	PageHeaders []*GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageHeader `json:"pageHeaders,omitempty"`
+	// PageSpan: Page span of the chunk.
+	PageSpan *GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan `json:"pageSpan,omitempty"`
+	// SourceBlockIds: Unused.
+	SourceBlockIds []string `json:"sourceBlockIds,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ChunkId") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ChunkId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentChunkedDocumentChunk) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentChunkedDocumentChunk
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageFooter:
+// Represents the page footer associated with the chunk.
+type GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageFooter struct {
+	// PageSpan: Page span of the footer.
+	PageSpan *GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan `json:"pageSpan,omitempty"`
+	// Text: Footer in text format.
+	Text string `json:"text,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PageSpan") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PageSpan") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageFooter) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageFooter
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageHeader:
+// Represents the page header associated with the chunk.
+type GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageHeader struct {
+	// PageSpan: Page span of the header.
+	PageSpan *GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan `json:"pageSpan,omitempty"`
+	// Text: Header in text format.
+	Text string `json:"text,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PageSpan") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PageSpan") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageHeader) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageHeader
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan: Represents
+// where the chunk starts and ends in the document.
+type GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan struct {
+	// PageEnd: Page where chunk ends in the document.
+	PageEnd int64 `json:"pageEnd,omitempty"`
+	// PageStart: Page where chunk starts in the document.
+	PageStart int64 `json:"pageStart,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PageEnd") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PageEnd") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayout: Represents the parsed layout
+// of a document as a collection of blocks that the document is divided into.
+type GoogleCloudDocumentaiV1DocumentDocumentLayout struct {
+	// Blocks: List of blocks in the document.
+	Blocks []*GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock `json:"blocks,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Blocks") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Blocks") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayout) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayout
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock: Represents
+// a block. A block could be one of the various types (text, table, list)
+// supported.
+type GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock struct {
+	// BlockId: ID of the block.
+	BlockId string `json:"blockId,omitempty"`
+	// ListBlock: Block consisting of list content/structure.
+	ListBlock *GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListBlock `json:"listBlock,omitempty"`
+	// PageSpan: Page span of the block.
+	PageSpan *GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutPageSpan `json:"pageSpan,omitempty"`
+	// TableBlock: Block consisting of table content/structure.
+	TableBlock *GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableBlock `json:"tableBlock,omitempty"`
+	// TextBlock: Block consisting of text content.
+	TextBlock *GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTextBlock `json:"textBlock,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BlockId") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BlockId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListBlo
+// ck: Represents a list type block.
+type GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListBlock struct {
+	// ListEntries: List entries that constitute a list block.
+	ListEntries []*GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListEntry `json:"listEntries,omitempty"`
+	// Type: Type of the list_entries (if exist). Available options are `ordered`
+	// and `unordered`.
+	Type string `json:"type,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ListEntries") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ListEntries") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListBlock) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListBlock
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListEnt
+// ry: Represents an entry in the list.
+type GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListEntry struct {
+	// Blocks: A list entry is a list of blocks. Repeated blocks support further
+	// hierarchies and nested blocks.
+	Blocks []*GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock `json:"blocks,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Blocks") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Blocks") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListEntry) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListEntry
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutPageSpa
+// n: Represents where the block starts and ends in the document.
+type GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutPageSpan struct {
+	// PageEnd: Page where block ends in the document.
+	PageEnd int64 `json:"pageEnd,omitempty"`
+	// PageStart: Page where block starts in the document.
+	PageStart int64 `json:"pageStart,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PageEnd") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PageEnd") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutPageSpan) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutPageSpan
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableBl
+// ock: Represents a table type block.
+type GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableBlock struct {
+	// BodyRows: Body rows containing main table content.
+	BodyRows []*GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRow `json:"bodyRows,omitempty"`
+	// Caption: Table caption/title.
+	Caption string `json:"caption,omitempty"`
+	// HeaderRows: Header rows at the top of the table.
+	HeaderRows []*GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRow `json:"headerRows,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BodyRows") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BodyRows") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableBlock) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableBlock
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableCe
+// ll: Represents a cell in a table row.
+type GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableCell struct {
+	// Blocks: A table cell is a list of blocks. Repeated blocks support further
+	// hierarchies and nested blocks.
+	Blocks []*GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock `json:"blocks,omitempty"`
+	// ColSpan: How many columns this cell spans.
+	ColSpan int64 `json:"colSpan,omitempty"`
+	// RowSpan: How many rows this cell spans.
+	RowSpan int64 `json:"rowSpan,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Blocks") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Blocks") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableCell) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableCell
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRo
+// w: Represents a row in a table.
+type GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRow struct {
+	// Cells: A table row is a list of table cells.
+	Cells []*GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableCell `json:"cells,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Cells") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Cells") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRow) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRow
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTextBlo
+// ck: Represents a text type block.
+type GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTextBlock struct {
+	// Blocks: A text block could further have child blocks. Repeated blocks
+	// support further hierarchies and nested blocks.
+	Blocks []*GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock `json:"blocks,omitempty"`
+	// Text: Text content stored in the block.
+	Text string `json:"text,omitempty"`
+	// Type: Type of the text in the block. Available options are: `paragraph`,
+	// `subtitle`, `heading-1`, `heading-2`, `heading-3`, `heading-4`, `heading-5`,
+	// `header`, `footer`.
+	Type string `json:"type,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Blocks") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Blocks") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTextBlock) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTextBlock
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentEntity: An entity that could be a phrase in
@@ -4222,9 +4597,9 @@ type GoogleCloudDocumentaiV1DocumentEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentEntity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentEntity) UnmarshalJSON(data []byte) error {
@@ -4285,9 +4660,9 @@ type GoogleCloudDocumentaiV1DocumentEntityNormalizedValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentEntityNormalizedValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentEntityNormalizedValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentEntityNormalizedValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentEntityNormalizedValue) UnmarshalJSON(data []byte) error {
@@ -4326,9 +4701,9 @@ type GoogleCloudDocumentaiV1DocumentEntityRelation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentEntityRelation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentEntityRelation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentEntityRelation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPage: A page in a Document.
@@ -4389,9 +4764,9 @@ type GoogleCloudDocumentaiV1DocumentPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageAnchor: Referencing the visual context of
@@ -4414,9 +4789,9 @@ type GoogleCloudDocumentaiV1DocumentPageAnchor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageAnchor) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageAnchor) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageAnchor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageAnchorPageRef: Represents a weak
@@ -4462,9 +4837,9 @@ type GoogleCloudDocumentaiV1DocumentPageAnchorPageRef struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageAnchorPageRef) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageAnchorPageRef) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageAnchorPageRef
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentPageAnchorPageRef) UnmarshalJSON(data []byte) error {
@@ -4503,9 +4878,9 @@ type GoogleCloudDocumentaiV1DocumentPageBlock struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageBlock) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageBlock) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageBlock
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageDetectedBarcode: A detected barcode.
@@ -4527,9 +4902,9 @@ type GoogleCloudDocumentaiV1DocumentPageDetectedBarcode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageDetectedBarcode) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageDetectedBarcode) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageDetectedBarcode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageDetectedLanguage: Detected language for a
@@ -4554,9 +4929,9 @@ type GoogleCloudDocumentaiV1DocumentPageDetectedLanguage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageDetectedLanguage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageDetectedLanguage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageDetectedLanguage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentPageDetectedLanguage) UnmarshalJSON(data []byte) error {
@@ -4594,9 +4969,9 @@ type GoogleCloudDocumentaiV1DocumentPageDimension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageDimension) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageDimension) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageDimension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentPageDimension) UnmarshalJSON(data []byte) error {
@@ -4656,9 +5031,9 @@ type GoogleCloudDocumentaiV1DocumentPageFormField struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageFormField) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageFormField) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageFormField
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageImage: Rendered image contents for this
@@ -4687,9 +5062,9 @@ type GoogleCloudDocumentaiV1DocumentPageImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageImageQualityScores: Image quality scores
@@ -4713,9 +5088,9 @@ type GoogleCloudDocumentaiV1DocumentPageImageQualityScores struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageImageQualityScores) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageImageQualityScores) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageImageQualityScores
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentPageImageQualityScores) UnmarshalJSON(data []byte) error {
@@ -4757,9 +5132,9 @@ type GoogleCloudDocumentaiV1DocumentPageImageQualityScoresDetectedDefect struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageImageQualityScoresDetectedDefect) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageImageQualityScoresDetectedDefect) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageImageQualityScoresDetectedDefect
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentPageImageQualityScoresDetectedDefect) UnmarshalJSON(data []byte) error {
@@ -4812,9 +5187,9 @@ type GoogleCloudDocumentaiV1DocumentPageLayout struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageLayout) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageLayout) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageLayout
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentPageLayout) UnmarshalJSON(data []byte) error {
@@ -4854,9 +5229,9 @@ type GoogleCloudDocumentaiV1DocumentPageLine struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageLine) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageLine) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageLine
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageMatrix: Representation for transformation
@@ -4887,9 +5262,9 @@ type GoogleCloudDocumentaiV1DocumentPageMatrix struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageMatrix) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageMatrix) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageMatrix
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageParagraph: A collection of lines that a
@@ -4914,9 +5289,9 @@ type GoogleCloudDocumentaiV1DocumentPageParagraph struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageParagraph) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageParagraph) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageParagraph
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageSymbol: A detected symbol.
@@ -4938,9 +5313,9 @@ type GoogleCloudDocumentaiV1DocumentPageSymbol struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageSymbol) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageSymbol) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageSymbol
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageTable: A table representation similar to
@@ -4969,9 +5344,9 @@ type GoogleCloudDocumentaiV1DocumentPageTable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageTable) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageTable) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageTable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageTableTableCell: A cell representation
@@ -4998,9 +5373,9 @@ type GoogleCloudDocumentaiV1DocumentPageTableTableCell struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageTableTableCell) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageTableTableCell) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageTableTableCell
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageTableTableRow: A row of table cells.
@@ -5020,9 +5395,9 @@ type GoogleCloudDocumentaiV1DocumentPageTableTableRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageTableTableRow) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageTableTableRow) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageTableTableRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageToken: A detected token.
@@ -5050,9 +5425,9 @@ type GoogleCloudDocumentaiV1DocumentPageToken struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageToken) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageToken) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageToken
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageTokenDetectedBreak: Detected break at the
@@ -5080,9 +5455,9 @@ type GoogleCloudDocumentaiV1DocumentPageTokenDetectedBreak struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageTokenDetectedBreak) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageTokenDetectedBreak) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageTokenDetectedBreak
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentPageTokenStyleInfo: Font and other text style
@@ -5138,9 +5513,9 @@ type GoogleCloudDocumentaiV1DocumentPageTokenStyleInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageTokenStyleInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageTokenStyleInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageTokenStyleInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentPageTokenStyleInfo) UnmarshalJSON(data []byte) error {
@@ -5181,9 +5556,9 @@ type GoogleCloudDocumentaiV1DocumentPageVisualElement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentPageVisualElement) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentPageVisualElement) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentPageVisualElement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentProvenance: Structure to identify provenance
@@ -5227,9 +5602,9 @@ type GoogleCloudDocumentaiV1DocumentProvenance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentProvenance) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentProvenance) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentProvenance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentProvenanceParent: The parent element the
@@ -5256,9 +5631,9 @@ type GoogleCloudDocumentaiV1DocumentProvenanceParent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentProvenanceParent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentProvenanceParent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentProvenanceParent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentRevision: Contains past or forward revisions
@@ -5299,9 +5674,9 @@ type GoogleCloudDocumentaiV1DocumentRevision struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentRevision) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentRevision) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentRevision
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentRevisionHumanReview: Human Review information
@@ -5325,9 +5700,9 @@ type GoogleCloudDocumentaiV1DocumentRevisionHumanReview struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentRevisionHumanReview) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentRevisionHumanReview) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentRevisionHumanReview
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentShardInfo: For a large document, sharding may
@@ -5354,9 +5729,9 @@ type GoogleCloudDocumentaiV1DocumentShardInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentShardInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentShardInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentShardInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentStyle: Annotation for common text style
@@ -5398,9 +5773,9 @@ type GoogleCloudDocumentaiV1DocumentStyle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentStyle) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentStyle) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentStyle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentStyleFontSize: Font size with unit.
@@ -5423,9 +5798,9 @@ type GoogleCloudDocumentaiV1DocumentStyleFontSize struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentStyleFontSize) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentStyleFontSize) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentStyleFontSize
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1DocumentStyleFontSize) UnmarshalJSON(data []byte) error {
@@ -5463,9 +5838,9 @@ type GoogleCloudDocumentaiV1DocumentTextAnchor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentTextAnchor) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentTextAnchor) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentTextAnchor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentTextAnchorTextSegment: A text segment in the
@@ -5490,9 +5865,9 @@ type GoogleCloudDocumentaiV1DocumentTextAnchorTextSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentTextAnchorTextSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentTextAnchorTextSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentTextAnchorTextSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1DocumentTextChange: This message is used for text
@@ -5521,9 +5896,9 @@ type GoogleCloudDocumentaiV1DocumentTextChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1DocumentTextChange) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1DocumentTextChange) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1DocumentTextChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDocumentaiV1NormalizedVertex: A vertex represents a 2D point in
@@ -5547,9 +5922,9 @@ type GoogleCloudDocumentaiV1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDocumentaiV1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -5588,9 +5963,9 @@ type GoogleCloudDocumentaiV1Vertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDocumentaiV1Vertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDocumentaiV1Vertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDocumentaiV1Vertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1AuditConfig: Specifies the audit configuration for a service. The
@@ -5629,9 +6004,9 @@ type GoogleIamV1AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1AuditConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1AuditLogConfig: Provides the configuration for logging a type of
@@ -5664,9 +6039,9 @@ type GoogleIamV1AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1Binding: Associates `members`, or principals, with a `role`.
@@ -5763,9 +6138,9 @@ type GoogleIamV1Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1Binding) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1Policy: An Identity and Access Management (IAM) policy, which
@@ -5852,9 +6227,9 @@ type GoogleIamV1Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1Policy) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -5899,9 +6274,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -5943,9 +6318,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeColor: Represents a color in the RGBA color space. This
@@ -6026,9 +6401,9 @@ type GoogleTypeColor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeColor) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeColor) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeColor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleTypeColor) UnmarshalJSON(data []byte) error {
@@ -6084,9 +6459,9 @@ type GoogleTypeDate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDateTime: Represents civil time (or occasionally physical time).
@@ -6147,9 +6522,9 @@ type GoogleTypeDateTime struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDateTime) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDateTime) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDateTime
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeExpr: Represents a textual expression in the Common Expression
@@ -6195,9 +6570,9 @@ type GoogleTypeExpr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeExpr) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeExpr) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeExpr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeInterval: Represents a time interval, encoded as a Timestamp start
@@ -6226,9 +6601,9 @@ type GoogleTypeInterval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeInterval) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeInterval) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeInterval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeMoney: Represents an amount of money with its currency type.
@@ -6257,47 +6632,48 @@ type GoogleTypeMoney struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeMoney) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeMoney) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeMoney
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GoogleTypePostalAddress: Represents a postal address, e.g. for postal
+// GoogleTypePostalAddress: Represents a postal address. For example for postal
 // delivery or payments addresses. Given a postal address, a postal service can
 // deliver items to a premise, P.O. Box or similar. It is not intended to model
 // geographical locations (roads, towns, mountains). In typical usage an
-// address would be created via user input or from importing existing data,
+// address would be created by user input or from importing existing data,
 // depending on the type of process. Advice on address input / editing: - Use
 // an internationalization-ready address widget such as
 // https://github.com/google/libaddressinput) - Users should not be presented
 // with UI elements for input or editing of fields outside countries where that
-// field is used. For more guidance on how to use this schema, please see:
+// field is used. For more guidance on how to use this schema, see:
 // https://support.google.com/business/answer/6397478
 type GoogleTypePostalAddress struct {
 	// AddressLines: Unstructured address lines describing the lower levels of an
 	// address. Because values in address_lines do not have type information and
-	// may sometimes contain multiple values in a single field (e.g. "Austin, TX"),
-	// it is important that the line order is clear. The order of address lines
-	// should be "envelope order" for the country/region of the address. In places
-	// where this can vary (e.g. Japan), address_language is used to make it
-	// explicit (e.g. "ja" for large-to-small ordering and "ja-Latn" or "en" for
-	// small-to-large). This way, the most specific line of an address can be
-	// selected based on the language. The minimum permitted structural
-	// representation of an address consists of a region_code with all remaining
-	// information placed in the address_lines. It would be possible to format such
-	// an address very approximately without geocoding, but no semantic reasoning
-	// could be made about any of the address components until it was at least
-	// partially resolved. Creating an address only containing a region_code and
-	// address_lines, and then geocoding is the recommended way to handle
+	// may sometimes contain multiple values in a single field (For example
+	// "Austin, TX"), it is important that the line order is clear. The order of
+	// address lines should be "envelope order" for the country/region of the
+	// address. In places where this can vary (For example Japan), address_language
+	// is used to make it explicit (For example "ja" for large-to-small ordering
+	// and "ja-Latn" or "en" for small-to-large). This way, the most specific line
+	// of an address can be selected based on the language. The minimum permitted
+	// structural representation of an address consists of a region_code with all
+	// remaining information placed in the address_lines. It would be possible to
+	// format such an address very approximately without geocoding, but no semantic
+	// reasoning could be made about any of the address components until it was at
+	// least partially resolved. Creating an address only containing a region_code
+	// and address_lines, and then geocoding is the recommended way to handle
 	// completely unstructured addresses (as opposed to guessing which parts of the
 	// address should be localities or administrative areas).
 	AddressLines []string `json:"addressLines,omitempty"`
 	// AdministrativeArea: Optional. Highest administrative subdivision which is
 	// used for postal addresses of a country or region. For example, this can be a
 	// state, a province, an oblast, or a prefecture. Specifically, for Spain this
-	// is the province and not the autonomous community (e.g. "Barcelona" and not
-	// "Catalonia"). Many countries don't use an administrative area in postal
-	// addresses. E.g. in Switzerland this should be left unpopulated.
+	// is the province and not the autonomous community (For example "Barcelona"
+	// and not "Catalonia"). Many countries don't use an administrative area in
+	// postal addresses. For example in Switzerland this should be left
+	// unpopulated.
 	AdministrativeArea string `json:"administrativeArea,omitempty"`
 	// LanguageCode: Optional. BCP-47 language code of the contents of this address
 	// (if known). This is often the UI language of the input form or is expected
@@ -6317,7 +6693,7 @@ type GoogleTypePostalAddress struct {
 	Organization string `json:"organization,omitempty"`
 	// PostalCode: Optional. Postal code of the address. Not all countries use or
 	// require postal codes to be present, but where they are used, they may
-	// trigger additional validation with other parts of the address (e.g.
+	// trigger additional validation with other parts of the address (For example
 	// state/zip validation in the U.S.A.).
 	PostalCode string `json:"postalCode,omitempty"`
 	// Recipients: Optional. The recipient at the address. This field may, under
@@ -6336,9 +6712,10 @@ type GoogleTypePostalAddress struct {
 	Revision int64 `json:"revision,omitempty"`
 	// SortingCode: Optional. Additional, country-specific, sorting code. This is
 	// not used in most regions. Where it is used, the value is either a string
-	// like "CEDEX", optionally followed by a number (e.g. "CEDEX 7"), or just a
-	// number alone, representing the "sector code" (Jamaica), "delivery area
-	// indicator" (Malawi) or "post office indicator" (e.g. Côte d'Ivoire).
+	// like "CEDEX", optionally followed by a number (For example "CEDEX 7"), or
+	// just a number alone, representing the "sector code" (Jamaica), "delivery
+	// area indicator" (Malawi) or "post office indicator" (For example Côte
+	// d'Ivoire).
 	SortingCode string `json:"sortingCode,omitempty"`
 	// Sublocality: Optional. Sublocality of the address. For example, this can be
 	// neighborhoods, boroughs, districts.
@@ -6356,17 +6733,18 @@ type GoogleTypePostalAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypePostalAddress) MarshalJSON() ([]byte, error) {
+func (s GoogleTypePostalAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypePostalAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeTimeZone: Represents a time zone from the IANA Time Zone Database
 // (https://www.iana.org/time-zones).
 type GoogleTypeTimeZone struct {
-	// Id: IANA Time Zone Database time zone, e.g. "America/New_York".
+	// Id: IANA Time Zone Database time zone. For example "America/New_York".
 	Id string `json:"id,omitempty"`
-	// Version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+	// Version: Optional. IANA Time Zone Database version number. For example
+	// "2019a".
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -6381,9 +6759,9 @@ type GoogleTypeTimeZone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeTimeZone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsFetchAclCall struct {
@@ -6437,8 +6815,7 @@ func (c *ProjectsFetchAclCall) Header() http.Header {
 
 func (c *ProjectsFetchAclCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1fetchaclrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1fetchaclrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6454,6 +6831,7 @@ func (c *ProjectsFetchAclCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.fetchAcl", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6489,9 +6867,11 @@ func (c *ProjectsFetchAclCall) Do(opts ...googleapi.CallOption) (*GoogleCloudCon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.fetchAcl", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6545,8 +6925,7 @@ func (c *ProjectsSetAclCall) Header() http.Header {
 
 func (c *ProjectsSetAclCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1setaclrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1setaclrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6562,6 +6941,7 @@ func (c *ProjectsSetAclCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.setAcl", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6597,9 +6977,11 @@ func (c *ProjectsSetAclCall) Do(opts ...googleapi.CallOption) (*GoogleCloudConte
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.setAcl", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6658,12 +7040,11 @@ func (c *ProjectsLocationsGetStatusCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+location}:getStatus")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6671,6 +7052,7 @@ func (c *ProjectsLocationsGetStatusCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"location": c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.getStatus", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6706,9 +7088,11 @@ func (c *ProjectsLocationsGetStatusCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.getStatus", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6758,8 +7142,7 @@ func (c *ProjectsLocationsInitializeCall) Header() http.Header {
 
 func (c *ProjectsLocationsInitializeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1initializeprojectrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1initializeprojectrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6775,6 +7158,7 @@ func (c *ProjectsLocationsInitializeCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"location": c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.initialize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6810,9 +7194,11 @@ func (c *ProjectsLocationsInitializeCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.initialize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6861,8 +7247,7 @@ func (c *ProjectsLocationsRunPipelineCall) Header() http.Header {
 
 func (c *ProjectsLocationsRunPipelineCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1runpipelinerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1runpipelinerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6878,6 +7263,7 @@ func (c *ProjectsLocationsRunPipelineCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.runPipeline", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6913,9 +7299,11 @@ func (c *ProjectsLocationsRunPipelineCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.runPipeline", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6963,8 +7351,7 @@ func (c *ProjectsLocationsDocumentSchemasCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentSchemasCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1documentschema)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1documentschema)
 	if err != nil {
 		return nil, err
 	}
@@ -6980,6 +7367,7 @@ func (c *ProjectsLocationsDocumentSchemasCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7015,9 +7403,11 @@ func (c *ProjectsLocationsDocumentSchemasCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7065,12 +7455,11 @@ func (c *ProjectsLocationsDocumentSchemasDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentSchemasDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7078,6 +7467,7 @@ func (c *ProjectsLocationsDocumentSchemasDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7113,9 +7503,11 @@ func (c *ProjectsLocationsDocumentSchemasDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7174,12 +7566,11 @@ func (c *ProjectsLocationsDocumentSchemasGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7187,6 +7578,7 @@ func (c *ProjectsLocationsDocumentSchemasGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7222,9 +7614,11 @@ func (c *ProjectsLocationsDocumentSchemasGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7301,12 +7695,11 @@ func (c *ProjectsLocationsDocumentSchemasListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/documentSchemas")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7314,6 +7707,7 @@ func (c *ProjectsLocationsDocumentSchemasListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7349,9 +7743,11 @@ func (c *ProjectsLocationsDocumentSchemasListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7427,8 +7823,7 @@ func (c *ProjectsLocationsDocumentSchemasPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentSchemasPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1updatedocumentschemarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1updatedocumentschemarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7444,6 +7839,7 @@ func (c *ProjectsLocationsDocumentSchemasPatchCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7479,9 +7875,11 @@ func (c *ProjectsLocationsDocumentSchemasPatchCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documentSchemas.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7530,8 +7928,7 @@ func (c *ProjectsLocationsDocumentsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1createdocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1createdocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7547,6 +7944,7 @@ func (c *ProjectsLocationsDocumentsCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7582,9 +7980,11 @@ func (c *ProjectsLocationsDocumentsCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7636,8 +8036,7 @@ func (c *ProjectsLocationsDocumentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1deletedocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1deletedocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7653,6 +8052,7 @@ func (c *ProjectsLocationsDocumentsDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.delete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7688,9 +8088,11 @@ func (c *ProjectsLocationsDocumentsDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7745,8 +8147,7 @@ func (c *ProjectsLocationsDocumentsFetchAclCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsFetchAclCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1fetchaclrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1fetchaclrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7762,6 +8163,7 @@ func (c *ProjectsLocationsDocumentsFetchAclCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.fetchAcl", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7797,9 +8199,11 @@ func (c *ProjectsLocationsDocumentsFetchAclCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.fetchAcl", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7850,8 +8254,7 @@ func (c *ProjectsLocationsDocumentsGetCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsGetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1getdocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1getdocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7867,6 +8270,7 @@ func (c *ProjectsLocationsDocumentsGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.get", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7902,9 +8306,11 @@ func (c *ProjectsLocationsDocumentsGetCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7955,8 +8361,7 @@ func (c *ProjectsLocationsDocumentsLinkedSourcesCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsLinkedSourcesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1listlinkedsourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1listlinkedsourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7972,6 +8377,7 @@ func (c *ProjectsLocationsDocumentsLinkedSourcesCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.linkedSources", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8009,9 +8415,11 @@ func (c *ProjectsLocationsDocumentsLinkedSourcesCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.linkedSources", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8083,8 +8491,7 @@ func (c *ProjectsLocationsDocumentsLinkedTargetsCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsLinkedTargetsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1listlinkedtargetsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1listlinkedtargetsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8100,6 +8507,7 @@ func (c *ProjectsLocationsDocumentsLinkedTargetsCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.linkedTargets", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8137,9 +8545,11 @@ func (c *ProjectsLocationsDocumentsLinkedTargetsCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.linkedTargets", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8188,8 +8598,7 @@ func (c *ProjectsLocationsDocumentsLockCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsLockCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1lockdocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1lockdocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8205,6 +8614,7 @@ func (c *ProjectsLocationsDocumentsLockCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.lock", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8240,9 +8650,11 @@ func (c *ProjectsLocationsDocumentsLockCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.lock", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8294,8 +8706,7 @@ func (c *ProjectsLocationsDocumentsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1updatedocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1updatedocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8311,6 +8722,7 @@ func (c *ProjectsLocationsDocumentsPatchCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8346,9 +8758,11 @@ func (c *ProjectsLocationsDocumentsPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8399,8 +8813,7 @@ func (c *ProjectsLocationsDocumentsSearchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsSearchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1searchdocumentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1searchdocumentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8416,6 +8829,7 @@ func (c *ProjectsLocationsDocumentsSearchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.search", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8451,9 +8865,11 @@ func (c *ProjectsLocationsDocumentsSearchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8528,8 +8944,7 @@ func (c *ProjectsLocationsDocumentsSetAclCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsSetAclCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1setaclrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1setaclrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8545,6 +8960,7 @@ func (c *ProjectsLocationsDocumentsSetAclCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.setAcl", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8580,9 +8996,11 @@ func (c *ProjectsLocationsDocumentsSetAclCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.setAcl", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8633,8 +9051,7 @@ func (c *ProjectsLocationsDocumentsDocumentLinksCreateCall) Header() http.Header
 
 func (c *ProjectsLocationsDocumentsDocumentLinksCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1createdocumentlinkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1createdocumentlinkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8650,6 +9067,7 @@ func (c *ProjectsLocationsDocumentsDocumentLinksCreateCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.documentLinks.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8685,9 +9103,11 @@ func (c *ProjectsLocationsDocumentsDocumentLinksCreateCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.documentLinks.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8737,8 +9157,7 @@ func (c *ProjectsLocationsDocumentsDocumentLinksDeleteCall) Header() http.Header
 
 func (c *ProjectsLocationsDocumentsDocumentLinksDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1deletedocumentlinkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1deletedocumentlinkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8754,6 +9173,7 @@ func (c *ProjectsLocationsDocumentsDocumentLinksDeleteCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.documentLinks.delete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8789,9 +9209,11 @@ func (c *ProjectsLocationsDocumentsDocumentLinksDeleteCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.documentLinks.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8843,8 +9265,7 @@ func (c *ProjectsLocationsDocumentsReferenceIdDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsReferenceIdDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1deletedocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1deletedocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8860,6 +9281,7 @@ func (c *ProjectsLocationsDocumentsReferenceIdDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.referenceId.delete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8895,9 +9317,11 @@ func (c *ProjectsLocationsDocumentsReferenceIdDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.referenceId.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8948,8 +9372,7 @@ func (c *ProjectsLocationsDocumentsReferenceIdGetCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsReferenceIdGetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1getdocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1getdocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8965,6 +9388,7 @@ func (c *ProjectsLocationsDocumentsReferenceIdGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.referenceId.get", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9000,9 +9424,11 @@ func (c *ProjectsLocationsDocumentsReferenceIdGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.referenceId.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9054,8 +9480,7 @@ func (c *ProjectsLocationsDocumentsReferenceIdPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDocumentsReferenceIdPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1updatedocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1updatedocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9071,6 +9496,7 @@ func (c *ProjectsLocationsDocumentsReferenceIdPatchCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.referenceId.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9106,9 +9532,11 @@ func (c *ProjectsLocationsDocumentsReferenceIdPatchCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.documents.referenceId.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9168,12 +9596,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9181,6 +9608,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9216,9 +9644,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9267,8 +9697,7 @@ func (c *ProjectsLocationsRuleSetsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsRuleSetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1ruleset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1ruleset)
 	if err != nil {
 		return nil, err
 	}
@@ -9284,6 +9713,7 @@ func (c *ProjectsLocationsRuleSetsCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9319,9 +9749,11 @@ func (c *ProjectsLocationsRuleSetsCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9368,12 +9800,11 @@ func (c *ProjectsLocationsRuleSetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsRuleSetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9381,6 +9812,7 @@ func (c *ProjectsLocationsRuleSetsDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9416,9 +9848,11 @@ func (c *ProjectsLocationsRuleSetsDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9477,12 +9911,11 @@ func (c *ProjectsLocationsRuleSetsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9490,6 +9923,7 @@ func (c *ProjectsLocationsRuleSetsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9525,9 +9959,11 @@ func (c *ProjectsLocationsRuleSetsGetCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9604,12 +10040,11 @@ func (c *ProjectsLocationsRuleSetsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/ruleSets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9617,6 +10052,7 @@ func (c *ProjectsLocationsRuleSetsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9652,9 +10088,11 @@ func (c *ProjectsLocationsRuleSetsListCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9725,8 +10163,7 @@ func (c *ProjectsLocationsRuleSetsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsRuleSetsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1updaterulesetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1updaterulesetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9742,6 +10179,7 @@ func (c *ProjectsLocationsRuleSetsPatchCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9777,9 +10215,11 @@ func (c *ProjectsLocationsRuleSetsPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.ruleSets.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9829,8 +10269,7 @@ func (c *ProjectsLocationsSynonymSetsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsSynonymSetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1synonymset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1synonymset)
 	if err != nil {
 		return nil, err
 	}
@@ -9846,6 +10285,7 @@ func (c *ProjectsLocationsSynonymSetsCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9881,9 +10321,11 @@ func (c *ProjectsLocationsSynonymSetsCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9931,12 +10373,11 @@ func (c *ProjectsLocationsSynonymSetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsSynonymSetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9944,6 +10385,7 @@ func (c *ProjectsLocationsSynonymSetsDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9979,9 +10421,11 @@ func (c *ProjectsLocationsSynonymSetsDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10041,12 +10485,11 @@ func (c *ProjectsLocationsSynonymSetsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10054,6 +10497,7 @@ func (c *ProjectsLocationsSynonymSetsGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10089,9 +10533,11 @@ func (c *ProjectsLocationsSynonymSetsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10168,12 +10614,11 @@ func (c *ProjectsLocationsSynonymSetsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/synonymSets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10181,6 +10626,7 @@ func (c *ProjectsLocationsSynonymSetsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10216,9 +10662,11 @@ func (c *ProjectsLocationsSynonymSetsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10289,8 +10737,7 @@ func (c *ProjectsLocationsSynonymSetsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsSynonymSetsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudcontentwarehousev1synonymset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudcontentwarehousev1synonymset)
 	if err != nil {
 		return nil, err
 	}
@@ -10306,6 +10753,7 @@ func (c *ProjectsLocationsSynonymSetsPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10341,8 +10789,10 @@ func (c *ProjectsLocationsSynonymSetsPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "contentwarehouse.projects.locations.synonymSets.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

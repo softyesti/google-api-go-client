@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "pubsub:v1"
 const apiName = "pubsub"
@@ -126,7 +129,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -265,14 +268,48 @@ type AcknowledgeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AcknowledgeRequest) MarshalJSON() ([]byte, error) {
+func (s AcknowledgeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AcknowledgeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AnalyticsHubSubscriptionInfo: Information about an associated Analytics Hub
+// subscription
+// (https://cloud.google.com/bigquery/docs/analytics-hub-manage-subscriptions).
+type AnalyticsHubSubscriptionInfo struct {
+	// Listing: Optional. The name of the associated Analytics Hub listing
+	// resource. Pattern:
+	// "projects/{project}/locations/{location}/dataExchanges/{data_exchange}/listin
+	// gs/{listing}"
+	Listing string `json:"listing,omitempty"`
+	// Subscription: Optional. The name of the associated Analytics Hub
+	// subscription resource. Pattern:
+	// "projects/{project}/locations/{location}/subscriptions/{subscription}"
+	Subscription string `json:"subscription,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Listing") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Listing") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AnalyticsHubSubscriptionInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod AnalyticsHubSubscriptionInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AvroConfig: Configuration for writing message data in Avro format. Message
 // payloads and metadata will be written to files as an Avro binary.
 type AvroConfig struct {
+	// UseTopicSchema: Optional. When true, the output Cloud Storage file will be
+	// serialized using the topic schema, if it exists.
+	UseTopicSchema bool `json:"useTopicSchema,omitempty"`
 	// WriteMetadata: Optional. When true, write the subscription name, message_id,
 	// publish_time, attributes, and ordering_key as additional fields in the
 	// output. The subscription name, message_id, and publish_time fields are put
@@ -280,22 +317,28 @@ type AvroConfig struct {
 	// example, an ordering_key, if present) are added as entries in the attributes
 	// map.
 	WriteMetadata bool `json:"writeMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "WriteMetadata") to
+	// ForceSendFields is a list of field names (e.g. "UseTopicSchema") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "WriteMetadata") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "UseTopicSchema") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *AvroConfig) MarshalJSON() ([]byte, error) {
+func (s AvroConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AvroConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AvroFormat: Configuration for reading Cloud Storage data in Avro binary
+// format. The bytes of each object will be set to the `data` field of a
+// Pub/Sub message.
+type AvroFormat struct {
 }
 
 // AwsKinesis: Ingestion settings for Amazon Kinesis Data Streams.
@@ -349,9 +392,115 @@ type AwsKinesis struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AwsKinesis) MarshalJSON() ([]byte, error) {
+func (s AwsKinesis) MarshalJSON() ([]byte, error) {
 	type NoMethod AwsKinesis
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AwsMsk: Ingestion settings for Amazon MSK.
+type AwsMsk struct {
+	// AwsRoleArn: Required. AWS role ARN to be used for Federated Identity
+	// authentication with Amazon MSK. Check the Pub/Sub docs for how to set up
+	// this role and the required permissions that need to be attached to it.
+	AwsRoleArn string `json:"awsRoleArn,omitempty"`
+	// ClusterArn: Required. The Amazon Resource Name (ARN) that uniquely
+	// identifies the cluster.
+	ClusterArn string `json:"clusterArn,omitempty"`
+	// GcpServiceAccount: Required. The GCP service account to be used for
+	// Federated Identity authentication with Amazon MSK (via a
+	// `AssumeRoleWithWebIdentity` call for the provided role). The `aws_role_arn`
+	// must be set up with `accounts.google.com:sub` equals to this service account
+	// number.
+	GcpServiceAccount string `json:"gcpServiceAccount,omitempty"`
+	// State: Output only. An output-only field that indicates the state of the
+	// Amazon MSK ingestion source.
+	//
+	// Possible values:
+	//   "STATE_UNSPECIFIED" - Default value. This value is unused.
+	//   "ACTIVE" - Ingestion is active.
+	//   "MSK_PERMISSION_DENIED" - Permission denied encountered while consuming
+	// data from Amazon MSK.
+	//   "PUBLISH_PERMISSION_DENIED" - Permission denied encountered while
+	// publishing to the topic.
+	//   "CLUSTER_NOT_FOUND" - The provided MSK cluster wasn't found.
+	//   "TOPIC_NOT_FOUND" - The provided topic wasn't found.
+	State string `json:"state,omitempty"`
+	// Topic: Required. The name of the topic in the Amazon MSK cluster that
+	// Pub/Sub will import from.
+	Topic string `json:"topic,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AwsRoleArn") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AwsRoleArn") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AwsMsk) MarshalJSON() ([]byte, error) {
+	type NoMethod AwsMsk
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AzureEventHubs: Ingestion settings for Azure Event Hubs.
+type AzureEventHubs struct {
+	// ClientId: Optional. The client id of the Azure application that is being
+	// used to authenticate Pub/Sub.
+	ClientId string `json:"clientId,omitempty"`
+	// EventHub: Optional. The name of the Event Hub.
+	EventHub string `json:"eventHub,omitempty"`
+	// GcpServiceAccount: Optional. The GCP service account to be used for
+	// Federated Identity authentication.
+	GcpServiceAccount string `json:"gcpServiceAccount,omitempty"`
+	// Namespace: Optional. The name of the Event Hubs namespace.
+	Namespace string `json:"namespace,omitempty"`
+	// ResourceGroup: Optional. Name of the resource group within the azure
+	// subscription.
+	ResourceGroup string `json:"resourceGroup,omitempty"`
+	// State: Output only. An output-only field that indicates the state of the
+	// Event Hubs ingestion source.
+	//
+	// Possible values:
+	//   "STATE_UNSPECIFIED" - Default value. This value is unused.
+	//   "ACTIVE" - Ingestion is active.
+	//   "EVENT_HUBS_PERMISSION_DENIED" - Permission denied encountered while
+	// consuming data from Event Hubs. This can happen when `client_id`, or
+	// `tenant_id` are invalid. Or the right permissions haven't been granted.
+	//   "PUBLISH_PERMISSION_DENIED" - Permission denied encountered while
+	// publishing to the topic.
+	//   "NAMESPACE_NOT_FOUND" - The provided Event Hubs namespace couldn't be
+	// found.
+	//   "EVENT_HUB_NOT_FOUND" - The provided Event Hub couldn't be found.
+	//   "SUBSCRIPTION_NOT_FOUND" - The provided Event Hubs subscription couldn't
+	// be found.
+	//   "RESOURCE_GROUP_NOT_FOUND" - The provided Event Hubs resource group
+	// couldn't be found.
+	State string `json:"state,omitempty"`
+	// SubscriptionId: Optional. The Azure subscription id.
+	SubscriptionId string `json:"subscriptionId,omitempty"`
+	// TenantId: Optional. The tenant id of the Azure application that is being
+	// used to authenticate Pub/Sub.
+	TenantId string `json:"tenantId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ClientId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ClientId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AzureEventHubs) MarshalJSON() ([]byte, error) {
+	type NoMethod AzureEventHubs
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BigQueryConfig: Configuration for a BigQuery subscription.
@@ -420,9 +569,9 @@ type BigQueryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BigQueryConfig) MarshalJSON() ([]byte, error) {
+func (s BigQueryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod BigQueryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -519,9 +668,71 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CloudStorage: Ingestion settings for Cloud Storage.
+type CloudStorage struct {
+	// AvroFormat: Optional. Data from Cloud Storage will be interpreted in Avro
+	// format.
+	AvroFormat *AvroFormat `json:"avroFormat,omitempty"`
+	// Bucket: Optional. Cloud Storage bucket. The bucket name must be without any
+	// prefix like "gs://". See the [bucket naming requirements]
+	// (https://cloud.google.com/storage/docs/buckets#naming).
+	Bucket string `json:"bucket,omitempty"`
+	// MatchGlob: Optional. Glob pattern used to match objects that will be
+	// ingested. If unset, all objects will be ingested. See the supported patterns
+	// (https://cloud.google.com/storage/docs/json_api/v1/objects/list#list-objects-and-prefixes-using-glob).
+	MatchGlob string `json:"matchGlob,omitempty"`
+	// MinimumObjectCreateTime: Optional. Only objects with a larger or equal
+	// creation timestamp will be ingested.
+	MinimumObjectCreateTime string `json:"minimumObjectCreateTime,omitempty"`
+	// PubsubAvroFormat: Optional. It will be assumed data from Cloud Storage was
+	// written via Cloud Storage subscriptions
+	// (https://cloud.google.com/pubsub/docs/cloudstorage).
+	PubsubAvroFormat *PubSubAvroFormat `json:"pubsubAvroFormat,omitempty"`
+	// State: Output only. An output-only field that indicates the state of the
+	// Cloud Storage ingestion source.
+	//
+	// Possible values:
+	//   "STATE_UNSPECIFIED" - Default value. This value is unused.
+	//   "ACTIVE" - Ingestion is active.
+	//   "CLOUD_STORAGE_PERMISSION_DENIED" - Permission denied encountered while
+	// calling the Cloud Storage API. This can happen if the Pub/Sub SA has not
+	// been granted the [appropriate
+	// permissions](https://cloud.google.com/storage/docs/access-control/iam-permiss
+	// ions): - storage.objects.list: to list the objects in a bucket. -
+	// storage.objects.get: to read the objects in a bucket. - storage.buckets.get:
+	// to verify the bucket exists.
+	//   "PUBLISH_PERMISSION_DENIED" - Permission denied encountered while
+	// publishing to the topic. This can happen if the Pub/Sub SA has not been
+	// granted the [appropriate publish
+	// permissions](https://cloud.google.com/pubsub/docs/access-control#pubsub.publi
+	// sher)
+	//   "BUCKET_NOT_FOUND" - The provided Cloud Storage bucket doesn't exist.
+	//   "TOO_MANY_OBJECTS" - The Cloud Storage bucket has too many objects,
+	// ingestion will be paused.
+	State string `json:"state,omitempty"`
+	// TextFormat: Optional. Data from Cloud Storage will be interpreted as text.
+	TextFormat *TextFormat `json:"textFormat,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AvroFormat") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AvroFormat") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CloudStorage) MarshalJSON() ([]byte, error) {
+	type NoMethod CloudStorage
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudStorageConfig: Configuration for a Cloud Storage subscription.
@@ -553,8 +764,11 @@ type CloudStorageConfig struct {
 	MaxBytes int64 `json:"maxBytes,omitempty,string"`
 	// MaxDuration: Optional. The maximum duration that can elapse before a new
 	// Cloud Storage file is created. Min 1 minute, max 10 minutes, default 5
-	// minutes. May not exceed the subscription's acknowledgement deadline.
+	// minutes. May not exceed the subscription's acknowledgment deadline.
 	MaxDuration string `json:"maxDuration,omitempty"`
+	// MaxMessages: Optional. The maximum number of messages that can be written to
+	// a Cloud Storage file before a new file is created. Min 1000 messages.
+	MaxMessages int64 `json:"maxMessages,omitempty,string"`
 	// ServiceAccountEmail: Optional. The service account to use to write to Cloud
 	// Storage. The subscription creator or updater that specifies this field must
 	// have `iam.serviceAccounts.actAs` permission on the service account. If not
@@ -594,9 +808,9 @@ type CloudStorageConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudStorageConfig) MarshalJSON() ([]byte, error) {
+func (s CloudStorageConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudStorageConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitSchemaRequest: Request for CommitSchema method.
@@ -616,9 +830,59 @@ type CommitSchemaRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitSchemaRequest) MarshalJSON() ([]byte, error) {
+func (s CommitSchemaRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitSchemaRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ConfluentCloud: Ingestion settings for Confluent Cloud.
+type ConfluentCloud struct {
+	// BootstrapServer: Required. The address of the bootstrap server. The format
+	// is url:port.
+	BootstrapServer string `json:"bootstrapServer,omitempty"`
+	// ClusterId: Required. The id of the cluster.
+	ClusterId string `json:"clusterId,omitempty"`
+	// GcpServiceAccount: Required. The GCP service account to be used for
+	// Federated Identity authentication with `identity_pool_id`.
+	GcpServiceAccount string `json:"gcpServiceAccount,omitempty"`
+	// IdentityPoolId: Required. The id of the identity pool to be used for
+	// Federated Identity authentication with Confluent Cloud. See
+	// https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/identity-providers/oauth/identity-pools.html#add-oauth-identity-pools.
+	IdentityPoolId string `json:"identityPoolId,omitempty"`
+	// State: Output only. An output-only field that indicates the state of the
+	// Confluent Cloud ingestion source.
+	//
+	// Possible values:
+	//   "STATE_UNSPECIFIED" - Default value. This value is unused.
+	//   "ACTIVE" - Ingestion is active.
+	//   "CONFLUENT_CLOUD_PERMISSION_DENIED" - Permission denied encountered while
+	// consuming data from Confluent Cloud.
+	//   "PUBLISH_PERMISSION_DENIED" - Permission denied encountered while
+	// publishing to the topic.
+	//   "UNREACHABLE_BOOTSTRAP_SERVER" - The provided bootstrap server address is
+	// unreachable.
+	//   "CLUSTER_NOT_FOUND" - The provided cluster wasn't found.
+	//   "TOPIC_NOT_FOUND" - The provided topic wasn't found.
+	State string `json:"state,omitempty"`
+	// Topic: Required. The name of the topic in the Confluent Cloud cluster that
+	// Pub/Sub will import from.
+	Topic string `json:"topic,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BootstrapServer") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BootstrapServer") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ConfluentCloud) MarshalJSON() ([]byte, error) {
+	type NoMethod ConfluentCloud
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateSnapshotRequest: Request for the `CreateSnapshot` method.
@@ -648,9 +912,9 @@ type CreateSnapshotRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateSnapshotRequest) MarshalJSON() ([]byte, error) {
+func (s CreateSnapshotRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateSnapshotRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeadLetterPolicy: Dead lettering is done on a best effort basis. The same
@@ -671,7 +935,7 @@ type DeadLetterPolicy struct {
 	// MaxDeliveryAttempts: Optional. The maximum number of delivery attempts for
 	// any message. The value must be between 5 and 100. The number of delivery
 	// attempts is defined as 1 + (the sum of number of NACKs and number of times
-	// the acknowledgement deadline has been exceeded for the message). A NACK is
+	// the acknowledgment deadline has been exceeded for the message). A NACK is
 	// any call to ModifyAckDeadline with a 0 deadline. Note that client libraries
 	// may automatically extend ack_deadlines. This field will be honored on a best
 	// effort basis. If this parameter is 0, a default value of 5 is used.
@@ -689,9 +953,9 @@ type DeadLetterPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeadLetterPolicy) MarshalJSON() ([]byte, error) {
+func (s DeadLetterPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod DeadLetterPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetachSubscriptionResponse: Response for the DetachSubscription method.
@@ -733,9 +997,9 @@ type ExpirationPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExpirationPolicy) MarshalJSON() ([]byte, error) {
+func (s ExpirationPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod ExpirationPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -781,9 +1045,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IngestionDataSourceSettings: Settings for an ingestion data source on a
@@ -791,6 +1055,17 @@ func (s *Expr) MarshalJSON() ([]byte, error) {
 type IngestionDataSourceSettings struct {
 	// AwsKinesis: Optional. Amazon Kinesis Data Streams.
 	AwsKinesis *AwsKinesis `json:"awsKinesis,omitempty"`
+	// AwsMsk: Optional. Amazon MSK.
+	AwsMsk *AwsMsk `json:"awsMsk,omitempty"`
+	// AzureEventHubs: Optional. Azure Event Hubs.
+	AzureEventHubs *AzureEventHubs `json:"azureEventHubs,omitempty"`
+	// CloudStorage: Optional. Cloud Storage.
+	CloudStorage *CloudStorage `json:"cloudStorage,omitempty"`
+	// ConfluentCloud: Optional. Confluent Cloud.
+	ConfluentCloud *ConfluentCloud `json:"confluentCloud,omitempty"`
+	// PlatformLogsSettings: Optional. Platform Logs settings. If unset, no
+	// Platform Logs will be generated.
+	PlatformLogsSettings *PlatformLogsSettings `json:"platformLogsSettings,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AwsKinesis") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -804,9 +1079,45 @@ type IngestionDataSourceSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IngestionDataSourceSettings) MarshalJSON() ([]byte, error) {
+func (s IngestionDataSourceSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod IngestionDataSourceSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// JavaScriptUDF: User-defined JavaScript function that can transform or filter
+// a Pub/Sub message.
+type JavaScriptUDF struct {
+	// Code: Required. JavaScript code that contains a function `function_name`
+	// with the below signature: ``` /** * Transforms a Pub/Sub message. * @return
+	// {(Object)>|null)} - To * filter a message, return `null`. To transform a
+	// message return a map * with the following keys: * - (required) 'data' :
+	// {string} * - (optional) 'attributes' : {Object} * Returning empty
+	// `attributes` will remove all attributes from the * message. * * @param
+	// {(Object)>} Pub/Sub * message. Keys: * - (required) 'data' : {string} * -
+	// (required) 'attributes' : {Object} * * @param {Object} metadata - Pub/Sub
+	// message metadata. * Keys: * - (required) 'message_id' : {string} * -
+	// (optional) 'publish_time': {string} YYYY-MM-DDTHH:MM:SSZ format * -
+	// (optional) 'ordering_key': {string} */ function (message, metadata) { } ```
+	Code string `json:"code,omitempty"`
+	// FunctionName: Required. Name of the JavasScript function that should applied
+	// to Pub/Sub messages.
+	FunctionName string `json:"functionName,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Code") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Code") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s JavaScriptUDF) MarshalJSON() ([]byte, error) {
+	type NoMethod JavaScriptUDF
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSchemaRevisionsResponse: Response for the `ListSchemaRevisions` method.
@@ -832,9 +1143,9 @@ type ListSchemaRevisionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSchemaRevisionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSchemaRevisionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSchemaRevisionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSchemasResponse: Response for the `ListSchemas` method.
@@ -861,9 +1172,9 @@ type ListSchemasResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSchemasResponse) MarshalJSON() ([]byte, error) {
+func (s ListSchemasResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSchemasResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSnapshotsResponse: Response for the `ListSnapshots` method.
@@ -890,9 +1201,9 @@ type ListSnapshotsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSnapshotsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSnapshotsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSnapshotsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSubscriptionsResponse: Response for the `ListSubscriptions` method.
@@ -919,9 +1230,9 @@ type ListSubscriptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSubscriptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSubscriptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSubscriptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTopicSnapshotsResponse: Response for the `ListTopicSnapshots` method.
@@ -948,9 +1259,9 @@ type ListTopicSnapshotsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTopicSnapshotsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTopicSnapshotsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTopicSnapshotsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTopicSubscriptionsResponse: Response for the `ListTopicSubscriptions`
@@ -979,9 +1290,9 @@ type ListTopicSubscriptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTopicSubscriptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTopicSubscriptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTopicSubscriptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTopicsResponse: Response for the `ListTopics` method.
@@ -1008,9 +1319,9 @@ type ListTopicsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTopicsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTopicsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTopicsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MessageStoragePolicy: A policy constraining the storage of messages
@@ -1042,9 +1353,37 @@ type MessageStoragePolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MessageStoragePolicy) MarshalJSON() ([]byte, error) {
+func (s MessageStoragePolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod MessageStoragePolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MessageTransform: All supported message transforms types.
+type MessageTransform struct {
+	// Enabled: Optional. If set to true, the transform is enabled. If false, the
+	// transform is disabled and will not be applied to messages. Defaults to
+	// `true`.
+	Enabled bool `json:"enabled,omitempty"`
+	// JavascriptUdf: Optional. JavaScript User Defined Function. If multiple
+	// JavaScriptUDF's are specified on a resource, each must have a unique
+	// `function_name`.
+	JavascriptUdf *JavaScriptUDF `json:"javascriptUdf,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Enabled") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Enabled") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MessageTransform) MarshalJSON() ([]byte, error) {
+	type NoMethod MessageTransform
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyAckDeadlineRequest: Request for the ModifyAckDeadline method.
@@ -1074,9 +1413,9 @@ type ModifyAckDeadlineRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyAckDeadlineRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyAckDeadlineRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyAckDeadlineRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyPushConfigRequest: Request for the ModifyPushConfig method.
@@ -1100,9 +1439,9 @@ type ModifyPushConfigRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyPushConfigRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyPushConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyPushConfigRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NoWrapper: Sets the `data` field as the HTTP body for delivery.
@@ -1124,9 +1463,9 @@ type NoWrapper struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NoWrapper) MarshalJSON() ([]byte, error) {
+func (s NoWrapper) MarshalJSON() ([]byte, error) {
 	type NoMethod NoWrapper
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OidcToken: Contains information needed for generating an OpenID Connect
@@ -1157,9 +1496,41 @@ type OidcToken struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OidcToken) MarshalJSON() ([]byte, error) {
+func (s OidcToken) MarshalJSON() ([]byte, error) {
 	type NoMethod OidcToken
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PlatformLogsSettings: Settings for Platform Logs produced by Pub/Sub.
+type PlatformLogsSettings struct {
+	// Severity: Optional. The minimum severity level of Platform Logs that will be
+	// written.
+	//
+	// Possible values:
+	//   "SEVERITY_UNSPECIFIED" - Default value. Logs level is unspecified. Logs
+	// will be disabled.
+	//   "DISABLED" - Logs will be disabled.
+	//   "DEBUG" - Debug logs and higher-severity logs will be written.
+	//   "INFO" - Info logs and higher-severity logs will be written.
+	//   "WARNING" - Warning logs and higher-severity logs will be written.
+	//   "ERROR" - Only error logs will be written.
+	Severity string `json:"severity,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Severity") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Severity") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PlatformLogsSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod PlatformLogsSettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -1247,9 +1618,17 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PubSubAvroFormat: Configuration for reading Cloud Storage data written via
+// Cloud Storage subscriptions
+// (https://cloud.google.com/pubsub/docs/cloudstorage). The data and attributes
+// fields of the originally exported Pub/Sub message will be restored when
+// publishing.
+type PubSubAvroFormat struct {
 }
 
 // PublishRequest: Request for the Publish method.
@@ -1269,9 +1648,9 @@ type PublishRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublishRequest) MarshalJSON() ([]byte, error) {
+func (s PublishRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PublishRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PublishResponse: Response for the `Publish` method.
@@ -1296,9 +1675,9 @@ type PublishResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublishResponse) MarshalJSON() ([]byte, error) {
+func (s PublishResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PublishResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PubsubMessage: A message that is published by publishers and consumed by
@@ -1348,9 +1727,9 @@ type PubsubMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PubsubMessage) MarshalJSON() ([]byte, error) {
+func (s PubsubMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod PubsubMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PubsubWrapper: The payload to the push endpoint is in the form of the JSON
@@ -1386,9 +1765,9 @@ type PullRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PullRequest) MarshalJSON() ([]byte, error) {
+func (s PullRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PullRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PullResponse: Response for the `Pull` method.
@@ -1416,9 +1795,9 @@ type PullResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PullResponse) MarshalJSON() ([]byte, error) {
+func (s PullResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PullResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PushConfig: Configuration for a push delivery endpoint.
@@ -1466,9 +1845,9 @@ type PushConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PushConfig) MarshalJSON() ([]byte, error) {
+func (s PushConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PushConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReceivedMessage: A message and its corresponding acknowledgment ID.
@@ -1502,15 +1881,15 @@ type ReceivedMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReceivedMessage) MarshalJSON() ([]byte, error) {
+func (s ReceivedMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod ReceivedMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RetryPolicy: A policy that specifies how Pub/Sub retries message delivery.
 // Retry delay will be exponential based on provided minimum and maximum
 // backoffs. https://en.wikipedia.org/wiki/Exponential_backoff. RetryPolicy
-// will be triggered on NACKs or acknowledgement deadline exceeded events for a
+// will be triggered on NACKs or acknowledgment deadline exceeded events for a
 // given message. Retry Policy is implemented on a best effort basis. At times,
 // the delay between consecutive deliveries may not match the configuration.
 // That is, delay can be more or less than configured backoff.
@@ -1536,9 +1915,9 @@ type RetryPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RetryPolicy) MarshalJSON() ([]byte, error) {
+func (s RetryPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod RetryPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackSchemaRequest: Request for the `RollbackSchema` method.
@@ -1559,9 +1938,9 @@ type RollbackSchemaRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackSchemaRequest) MarshalJSON() ([]byte, error) {
+func (s RollbackSchemaRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackSchemaRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Schema: A schema resource.
@@ -1601,9 +1980,9 @@ type Schema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Schema) MarshalJSON() ([]byte, error) {
+func (s Schema) MarshalJSON() ([]byte, error) {
 	type NoMethod Schema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchemaSettings: Settings for validating messages published against a schema.
@@ -1642,9 +2021,9 @@ type SchemaSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchemaSettings) MarshalJSON() ([]byte, error) {
+func (s SchemaSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod SchemaSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SeekRequest: Request for the `Seek` method.
@@ -1677,9 +2056,9 @@ type SeekRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeekRequest) MarshalJSON() ([]byte, error) {
+func (s SeekRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SeekRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SeekResponse: Response for the `Seek` method (this response is empty).
@@ -1708,9 +2087,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Snapshot: A snapshot resource. Snapshots are used in Seek
@@ -1754,9 +2133,9 @@ type Snapshot struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Snapshot) MarshalJSON() ([]byte, error) {
+func (s Snapshot) MarshalJSON() ([]byte, error) {
 	type NoMethod Snapshot
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Subscription: A subscription resource. If none of `push_config`,
@@ -1780,6 +2159,10 @@ type Subscription struct {
 	// the push endpoint. If the subscriber never acknowledges the message, the
 	// Pub/Sub system will eventually redeliver the message.
 	AckDeadlineSeconds int64 `json:"ackDeadlineSeconds,omitempty"`
+	// AnalyticsHubSubscriptionInfo: Output only. Information about the associated
+	// Analytics Hub subscription. Only set if the subscritpion is created by
+	// Analytics Hub.
+	AnalyticsHubSubscriptionInfo *AnalyticsHubSubscriptionInfo `json:"analyticsHubSubscriptionInfo,omitempty"`
 	// BigqueryConfig: Optional. If delivery to BigQuery is used with this
 	// subscription, this field is used to configure it.
 	BigqueryConfig *BigQueryConfig `json:"bigqueryConfig,omitempty"`
@@ -1802,7 +2185,7 @@ type Subscription struct {
 	// EnableExactlyOnceDelivery: Optional. If true, Pub/Sub provides the following
 	// guarantees for the delivery of a message with a given value of `message_id`
 	// on this subscription: * The message sent to a subscriber is guaranteed not
-	// to be resent before the message's acknowledgement deadline expires. * An
+	// to be resent before the message's acknowledgment deadline expires. * An
 	// acknowledged message will not be resent to a subscriber. Note that
 	// subscribers may still receive multiple copies of a message when
 	// `enable_exactly_once_delivery` is true if the message was published multiple
@@ -1835,9 +2218,13 @@ type Subscription struct {
 	// messages in the subscription's backlog, from the moment a message is
 	// published. If `retain_acked_messages` is true, then this also configures the
 	// retention of acknowledged messages, and thus configures how far back in time
-	// a `Seek` can be done. Defaults to 7 days. Cannot be more than 7 days or less
-	// than 10 minutes.
+	// a `Seek` can be done. Defaults to 7 days. Cannot be more than 31 days or
+	// less than 10 minutes.
 	MessageRetentionDuration string `json:"messageRetentionDuration,omitempty"`
+	// MessageTransforms: Optional. Transforms to be applied to messages before
+	// they are delivered to subscribers. Transforms are applied in the order
+	// specified.
+	MessageTransforms []*MessageTransform `json:"messageTransforms,omitempty"`
 	// Name: Required. The name of the subscription. It must have the format
 	// "projects/{project}/subscriptions/{subscription}". `{subscription}` must
 	// start with a letter, and contain only letters (`[A-Za-z]`), numbers
@@ -1860,7 +2247,7 @@ type Subscription struct {
 	// delivery for this subscription. If not set, the default retry policy is
 	// applied. This generally implies that messages will be retried as soon as
 	// possible for healthy subscribers. RetryPolicy will be triggered on NACKs or
-	// acknowledgement deadline exceeded events for a given message.
+	// acknowledgment deadline exceeded events for a given message.
 	RetryPolicy *RetryPolicy `json:"retryPolicy,omitempty"`
 	// State: Output only. An output-only field indicating whether or not the
 	// subscription can receive messages.
@@ -1900,9 +2287,9 @@ type Subscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Subscription) MarshalJSON() ([]byte, error) {
+func (s Subscription) MarshalJSON() ([]byte, error) {
 	type NoMethod Subscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -1925,9 +2312,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -1952,14 +2339,38 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextConfig: Configuration for writing message data in text format. Message
 // payloads will be written to files as raw text, separated by a newline.
 type TextConfig struct {
+}
+
+// TextFormat: Configuration for reading Cloud Storage data in text format.
+// Each line of text as specified by the delimiter will be set to the `data`
+// field of a Pub/Sub message.
+type TextFormat struct {
+	// Delimiter: Optional. When unset, '\n' is used.
+	Delimiter string `json:"delimiter,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Delimiter") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Delimiter") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TextFormat) MarshalJSON() ([]byte, error) {
+	type NoMethod TextFormat
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Topic: A topic resource.
@@ -1988,6 +2399,9 @@ type Topic struct {
 	// Platform regions where messages published to the topic may be stored. If not
 	// present, then no constraints are in effect.
 	MessageStoragePolicy *MessageStoragePolicy `json:"messageStoragePolicy,omitempty"`
+	// MessageTransforms: Optional. Transforms to be applied to messages published
+	// to the topic. Transforms are applied in the order specified.
+	MessageTransforms []*MessageTransform `json:"messageTransforms,omitempty"`
 	// Name: Required. The name of the topic. It must have the format
 	// "projects/{project}/topics/{topic}". `{topic}` must start with a letter,
 	// and contain only letters (`[A-Za-z]`), numbers (`[0-9]`), dashes (`-`),
@@ -2026,9 +2440,9 @@ type Topic struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Topic) MarshalJSON() ([]byte, error) {
+func (s Topic) MarshalJSON() ([]byte, error) {
 	type NoMethod Topic
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateSnapshotRequest: Request for the UpdateSnapshot method.
@@ -2051,9 +2465,9 @@ type UpdateSnapshotRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateSnapshotRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateSnapshotRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateSnapshotRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateSubscriptionRequest: Request for the UpdateSubscription method.
@@ -2076,9 +2490,9 @@ type UpdateSubscriptionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateSubscriptionRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateSubscriptionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateSubscriptionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateTopicRequest: Request for the UpdateTopic method.
@@ -2104,9 +2518,9 @@ type UpdateTopicRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateTopicRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateTopicRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateTopicRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidateMessageRequest: Request for the `ValidateMessage` method.
@@ -2139,9 +2553,9 @@ type ValidateMessageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValidateMessageRequest) MarshalJSON() ([]byte, error) {
+func (s ValidateMessageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ValidateMessageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidateMessageResponse: Response for the `ValidateMessage` method. Empty
@@ -2168,9 +2582,9 @@ type ValidateSchemaRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValidateSchemaRequest) MarshalJSON() ([]byte, error) {
+func (s ValidateSchemaRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ValidateSchemaRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidateSchemaResponse: Response for the `ValidateSchema` method. Empty for
@@ -2225,8 +2639,7 @@ func (c *ProjectsSchemasCommitCall) Header() http.Header {
 
 func (c *ProjectsSchemasCommitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commitschemarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.commitschemarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2242,6 +2655,7 @@ func (c *ProjectsSchemasCommitCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.commit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2276,9 +2690,11 @@ func (c *ProjectsSchemasCommitCall) Do(opts ...googleapi.CallOption) (*Schema, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.commit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2336,8 +2752,7 @@ func (c *ProjectsSchemasCreateCall) Header() http.Header {
 
 func (c *ProjectsSchemasCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.schema)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.schema)
 	if err != nil {
 		return nil, err
 	}
@@ -2353,6 +2768,7 @@ func (c *ProjectsSchemasCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2387,9 +2803,11 @@ func (c *ProjectsSchemasCreateCall) Do(opts ...googleapi.CallOption) (*Schema, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2436,12 +2854,11 @@ func (c *ProjectsSchemasDeleteCall) Header() http.Header {
 
 func (c *ProjectsSchemasDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2449,6 +2866,7 @@ func (c *ProjectsSchemasDeleteCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2483,9 +2901,11 @@ func (c *ProjectsSchemasDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2540,12 +2960,11 @@ func (c *ProjectsSchemasDeleteRevisionCall) Header() http.Header {
 
 func (c *ProjectsSchemasDeleteRevisionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:deleteRevision")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2553,6 +2972,7 @@ func (c *ProjectsSchemasDeleteRevisionCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.deleteRevision", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2587,9 +3007,11 @@ func (c *ProjectsSchemasDeleteRevisionCall) Do(opts ...googleapi.CallOption) (*S
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.deleteRevision", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2665,12 +3087,11 @@ func (c *ProjectsSchemasGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2678,6 +3099,7 @@ func (c *ProjectsSchemasGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2712,9 +3134,11 @@ func (c *ProjectsSchemasGetCall) Do(opts ...googleapi.CallOption) (*Schema, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2792,12 +3216,11 @@ func (c *ProjectsSchemasGetIamPolicyCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2805,6 +3228,7 @@ func (c *ProjectsSchemasGetIamPolicyCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2839,9 +3263,11 @@ func (c *ProjectsSchemasGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Pol
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2932,12 +3358,11 @@ func (c *ProjectsSchemasListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/schemas")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2945,6 +3370,7 @@ func (c *ProjectsSchemasListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2980,9 +3406,11 @@ func (c *ProjectsSchemasListCall) Do(opts ...googleapi.CallOption) (*ListSchemas
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3093,12 +3521,11 @@ func (c *ProjectsSchemasListRevisionsCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:listRevisions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3106,6 +3533,7 @@ func (c *ProjectsSchemasListRevisionsCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.listRevisions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3141,9 +3569,11 @@ func (c *ProjectsSchemasListRevisionsCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.listRevisions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3213,8 +3643,7 @@ func (c *ProjectsSchemasRollbackCall) Header() http.Header {
 
 func (c *ProjectsSchemasRollbackCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rollbackschemarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rollbackschemarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3230,6 +3659,7 @@ func (c *ProjectsSchemasRollbackCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.rollback", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3264,9 +3694,11 @@ func (c *ProjectsSchemasRollbackCall) Do(opts ...googleapi.CallOption) (*Schema,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.rollback", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3318,8 +3750,7 @@ func (c *ProjectsSchemasSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsSchemasSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3335,6 +3766,7 @@ func (c *ProjectsSchemasSetIamPolicyCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3369,9 +3801,11 @@ func (c *ProjectsSchemasSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Pol
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3426,8 +3860,7 @@ func (c *ProjectsSchemasTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsSchemasTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3443,6 +3876,7 @@ func (c *ProjectsSchemasTestIamPermissionsCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3478,9 +3912,11 @@ func (c *ProjectsSchemasTestIamPermissionsCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3529,8 +3965,7 @@ func (c *ProjectsSchemasValidateCall) Header() http.Header {
 
 func (c *ProjectsSchemasValidateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.validateschemarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.validateschemarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3546,6 +3981,7 @@ func (c *ProjectsSchemasValidateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.validate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3581,9 +4017,11 @@ func (c *ProjectsSchemasValidateCall) Do(opts ...googleapi.CallOption) (*Validat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.validate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3632,8 +4070,7 @@ func (c *ProjectsSchemasValidateMessageCall) Header() http.Header {
 
 func (c *ProjectsSchemasValidateMessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.validatemessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.validatemessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3649,6 +4086,7 @@ func (c *ProjectsSchemasValidateMessageCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.validateMessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3684,9 +4122,11 @@ func (c *ProjectsSchemasValidateMessageCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.schemas.validateMessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3753,8 +4193,7 @@ func (c *ProjectsSnapshotsCreateCall) Header() http.Header {
 
 func (c *ProjectsSnapshotsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createsnapshotrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createsnapshotrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3770,6 +4209,7 @@ func (c *ProjectsSnapshotsCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3804,9 +4244,11 @@ func (c *ProjectsSnapshotsCreateCall) Do(opts ...googleapi.CallOption) (*Snapsho
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3861,12 +4303,11 @@ func (c *ProjectsSnapshotsDeleteCall) Header() http.Header {
 
 func (c *ProjectsSnapshotsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+snapshot}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3874,6 +4315,7 @@ func (c *ProjectsSnapshotsDeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"snapshot": c.snapshot,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3908,9 +4350,11 @@ func (c *ProjectsSnapshotsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3973,12 +4417,11 @@ func (c *ProjectsSnapshotsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+snapshot}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3986,6 +4429,7 @@ func (c *ProjectsSnapshotsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"snapshot": c.snapshot,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4020,9 +4464,11 @@ func (c *ProjectsSnapshotsGetCall) Do(opts ...googleapi.CallOption) (*Snapshot, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4100,12 +4546,11 @@ func (c *ProjectsSnapshotsGetIamPolicyCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4113,6 +4558,7 @@ func (c *ProjectsSnapshotsGetIamPolicyCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4147,9 +4593,11 @@ func (c *ProjectsSnapshotsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4228,12 +4676,11 @@ func (c *ProjectsSnapshotsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+project}/snapshots")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4241,6 +4688,7 @@ func (c *ProjectsSnapshotsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"project": c.project,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4276,9 +4724,11 @@ func (c *ProjectsSnapshotsListCall) Do(opts ...googleapi.CallOption) (*ListSnaps
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4352,8 +4802,7 @@ func (c *ProjectsSnapshotsPatchCall) Header() http.Header {
 
 func (c *ProjectsSnapshotsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatesnapshotrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatesnapshotrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4369,6 +4818,7 @@ func (c *ProjectsSnapshotsPatchCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4403,9 +4853,11 @@ func (c *ProjectsSnapshotsPatchCall) Do(opts ...googleapi.CallOption) (*Snapshot
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4457,8 +4909,7 @@ func (c *ProjectsSnapshotsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsSnapshotsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4474,6 +4925,7 @@ func (c *ProjectsSnapshotsSetIamPolicyCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4508,9 +4960,11 @@ func (c *ProjectsSnapshotsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4565,8 +5019,7 @@ func (c *ProjectsSnapshotsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsSnapshotsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4582,6 +5035,7 @@ func (c *ProjectsSnapshotsTestIamPermissionsCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4617,9 +5071,11 @@ func (c *ProjectsSnapshotsTestIamPermissionsCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.snapshots.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4672,8 +5128,7 @@ func (c *ProjectsSubscriptionsAcknowledgeCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsAcknowledgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.acknowledgerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.acknowledgerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4689,6 +5144,7 @@ func (c *ProjectsSubscriptionsAcknowledgeCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"subscription": c.subscription,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.acknowledge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4723,9 +5179,11 @@ func (c *ProjectsSubscriptionsAcknowledgeCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.acknowledge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4787,8 +5245,7 @@ func (c *ProjectsSubscriptionsCreateCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscription)
 	if err != nil {
 		return nil, err
 	}
@@ -4804,6 +5261,7 @@ func (c *ProjectsSubscriptionsCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4838,9 +5296,11 @@ func (c *ProjectsSubscriptionsCreateCall) Do(opts ...googleapi.CallOption) (*Sub
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4891,12 +5351,11 @@ func (c *ProjectsSubscriptionsDeleteCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+subscription}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4904,6 +5363,7 @@ func (c *ProjectsSubscriptionsDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"subscription": c.subscription,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4938,9 +5398,11 @@ func (c *ProjectsSubscriptionsDeleteCall) Do(opts ...googleapi.CallOption) (*Emp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4990,12 +5452,11 @@ func (c *ProjectsSubscriptionsDetachCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsDetachCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+subscription}:detach")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5003,6 +5464,7 @@ func (c *ProjectsSubscriptionsDetachCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"subscription": c.subscription,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.detach", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5038,9 +5500,11 @@ func (c *ProjectsSubscriptionsDetachCall) Do(opts ...googleapi.CallOption) (*Det
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.detach", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5099,12 +5563,11 @@ func (c *ProjectsSubscriptionsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+subscription}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5112,6 +5575,7 @@ func (c *ProjectsSubscriptionsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"subscription": c.subscription,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5146,9 +5610,11 @@ func (c *ProjectsSubscriptionsGetCall) Do(opts ...googleapi.CallOption) (*Subscr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5226,12 +5692,11 @@ func (c *ProjectsSubscriptionsGetIamPolicyCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5239,6 +5704,7 @@ func (c *ProjectsSubscriptionsGetIamPolicyCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5273,9 +5739,11 @@ func (c *ProjectsSubscriptionsGetIamPolicyCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5350,12 +5818,11 @@ func (c *ProjectsSubscriptionsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+project}/subscriptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5363,6 +5830,7 @@ func (c *ProjectsSubscriptionsListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"project": c.project,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5398,9 +5866,11 @@ func (c *ProjectsSubscriptionsListCall) Do(opts ...googleapi.CallOption) (*ListS
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5474,8 +5944,7 @@ func (c *ProjectsSubscriptionsModifyAckDeadlineCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsModifyAckDeadlineCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifyackdeadlinerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifyackdeadlinerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5491,6 +5960,7 @@ func (c *ProjectsSubscriptionsModifyAckDeadlineCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"subscription": c.subscription,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.modifyAckDeadline", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5525,9 +5995,11 @@ func (c *ProjectsSubscriptionsModifyAckDeadlineCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.modifyAckDeadline", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5580,8 +6052,7 @@ func (c *ProjectsSubscriptionsModifyPushConfigCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsModifyPushConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifypushconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifypushconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5597,6 +6068,7 @@ func (c *ProjectsSubscriptionsModifyPushConfigCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"subscription": c.subscription,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.modifyPushConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5631,9 +6103,11 @@ func (c *ProjectsSubscriptionsModifyPushConfigCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.modifyPushConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5688,8 +6162,7 @@ func (c *ProjectsSubscriptionsPatchCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatesubscriptionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatesubscriptionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5705,6 +6178,7 @@ func (c *ProjectsSubscriptionsPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5739,9 +6213,11 @@ func (c *ProjectsSubscriptionsPatchCall) Do(opts ...googleapi.CallOption) (*Subs
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5790,8 +6266,7 @@ func (c *ProjectsSubscriptionsPullCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsPullCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pullrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pullrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5807,6 +6282,7 @@ func (c *ProjectsSubscriptionsPullCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"subscription": c.subscription,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.pull", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5841,9 +6317,11 @@ func (c *ProjectsSubscriptionsPullCall) Do(opts ...googleapi.CallOption) (*PullR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.pull", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5897,8 +6375,7 @@ func (c *ProjectsSubscriptionsSeekCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsSeekCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.seekrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.seekrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5914,6 +6391,7 @@ func (c *ProjectsSubscriptionsSeekCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"subscription": c.subscription,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.seek", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5948,9 +6426,11 @@ func (c *ProjectsSubscriptionsSeekCall) Do(opts ...googleapi.CallOption) (*SeekR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.seek", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6002,8 +6482,7 @@ func (c *ProjectsSubscriptionsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6019,6 +6498,7 @@ func (c *ProjectsSubscriptionsSetIamPolicyCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6053,9 +6533,11 @@ func (c *ProjectsSubscriptionsSetIamPolicyCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6110,8 +6592,7 @@ func (c *ProjectsSubscriptionsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsSubscriptionsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6127,6 +6608,7 @@ func (c *ProjectsSubscriptionsTestIamPermissionsCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6162,9 +6644,11 @@ func (c *ProjectsSubscriptionsTestIamPermissionsCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.subscriptions.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6218,8 +6702,7 @@ func (c *ProjectsTopicsCreateCall) Header() http.Header {
 
 func (c *ProjectsTopicsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.topic)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.topic)
 	if err != nil {
 		return nil, err
 	}
@@ -6235,6 +6718,7 @@ func (c *ProjectsTopicsCreateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6269,9 +6753,11 @@ func (c *ProjectsTopicsCreateCall) Do(opts ...googleapi.CallOption) (*Topic, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6322,12 +6808,11 @@ func (c *ProjectsTopicsDeleteCall) Header() http.Header {
 
 func (c *ProjectsTopicsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+topic}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6335,6 +6820,7 @@ func (c *ProjectsTopicsDeleteCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"topic": c.topic,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6369,9 +6855,11 @@ func (c *ProjectsTopicsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6430,12 +6918,11 @@ func (c *ProjectsTopicsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+topic}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6443,6 +6930,7 @@ func (c *ProjectsTopicsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"topic": c.topic,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6477,9 +6965,11 @@ func (c *ProjectsTopicsGetCall) Do(opts ...googleapi.CallOption) (*Topic, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6557,12 +7047,11 @@ func (c *ProjectsTopicsGetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6570,6 +7059,7 @@ func (c *ProjectsTopicsGetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6604,9 +7094,11 @@ func (c *ProjectsTopicsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Poli
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6680,12 +7172,11 @@ func (c *ProjectsTopicsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+project}/topics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6693,6 +7184,7 @@ func (c *ProjectsTopicsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"project": c.project,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6728,9 +7220,11 @@ func (c *ProjectsTopicsListCall) Do(opts ...googleapi.CallOption) (*ListTopicsRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6805,8 +7299,7 @@ func (c *ProjectsTopicsPatchCall) Header() http.Header {
 
 func (c *ProjectsTopicsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatetopicrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatetopicrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6822,6 +7315,7 @@ func (c *ProjectsTopicsPatchCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6856,9 +7350,11 @@ func (c *ProjectsTopicsPatchCall) Do(opts ...googleapi.CallOption) (*Topic, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6908,8 +7404,7 @@ func (c *ProjectsTopicsPublishCall) Header() http.Header {
 
 func (c *ProjectsTopicsPublishCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.publishrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.publishrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6925,6 +7420,7 @@ func (c *ProjectsTopicsPublishCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"topic": c.topic,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.publish", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6960,9 +7456,11 @@ func (c *ProjectsTopicsPublishCall) Do(opts ...googleapi.CallOption) (*PublishRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.publish", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7014,8 +7512,7 @@ func (c *ProjectsTopicsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsTopicsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7031,6 +7528,7 @@ func (c *ProjectsTopicsSetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7065,9 +7563,11 @@ func (c *ProjectsTopicsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Poli
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7122,8 +7622,7 @@ func (c *ProjectsTopicsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsTopicsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7139,6 +7638,7 @@ func (c *ProjectsTopicsTestIamPermissionsCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7174,9 +7674,11 @@ func (c *ProjectsTopicsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7255,12 +7757,11 @@ func (c *ProjectsTopicsSnapshotsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+topic}/snapshots")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7268,6 +7769,7 @@ func (c *ProjectsTopicsSnapshotsListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"topic": c.topic,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.snapshots.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7303,9 +7805,11 @@ func (c *ProjectsTopicsSnapshotsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.snapshots.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7401,12 +7905,11 @@ func (c *ProjectsTopicsSubscriptionsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+topic}/subscriptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7414,6 +7917,7 @@ func (c *ProjectsTopicsSubscriptionsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"topic": c.topic,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pubsub.projects.topics.subscriptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7449,9 +7953,11 @@ func (c *ProjectsTopicsSubscriptionsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pubsub.projects.topics.subscriptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

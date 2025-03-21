@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "acceleratedmobilepageurl:v1"
 const apiName = "acceleratedmobilepageurl"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.AmpUrls = NewAmpUrlsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.AmpUrls = NewAmpUrlsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -173,9 +176,9 @@ type AmpUrl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AmpUrl) MarshalJSON() ([]byte, error) {
+func (s AmpUrl) MarshalJSON() ([]byte, error) {
 	type NoMethod AmpUrl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AmpUrlError: AMP URL Error resource for a requested URL that couldn't be
@@ -215,9 +218,9 @@ type AmpUrlError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AmpUrlError) MarshalJSON() ([]byte, error) {
+func (s AmpUrlError) MarshalJSON() ([]byte, error) {
 	type NoMethod AmpUrlError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetAmpUrlsRequest: AMP URL request for a batch of URLs.
@@ -252,9 +255,9 @@ type BatchGetAmpUrlsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetAmpUrlsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchGetAmpUrlsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetAmpUrlsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetAmpUrlsResponse: Batch AMP URL response.
@@ -281,9 +284,9 @@ type BatchGetAmpUrlsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetAmpUrlsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchGetAmpUrlsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetAmpUrlsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AmpUrlsBatchGetCall struct {
@@ -327,8 +330,7 @@ func (c *AmpUrlsBatchGetCall) Header() http.Header {
 
 func (c *AmpUrlsBatchGetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchgetampurlsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchgetampurlsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -341,6 +343,7 @@ func (c *AmpUrlsBatchGetCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "acceleratedmobilepageurl.ampUrls.batchGet", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -376,8 +379,10 @@ func (c *AmpUrlsBatchGetCall) Do(opts ...googleapi.CallOption) (*BatchGetAmpUrls
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "acceleratedmobilepageurl.ampUrls.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

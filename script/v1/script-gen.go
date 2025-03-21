@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "script:v1"
 const apiName = "script"
@@ -188,7 +191,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Processes = NewProcessesService(s)
+	s.Projects = NewProjectsService(s)
+	s.Scripts = NewScriptsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -207,15 +213,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Processes = NewProcessesService(s)
-	s.Projects = NewProjectsService(s)
-	s.Scripts = NewScriptsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -308,9 +311,9 @@ type Content struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Content) MarshalJSON() ([]byte, error) {
+func (s Content) MarshalJSON() ([]byte, error) {
 	type NoMethod Content
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateProjectRequest: Request to create a script project. Request to create
@@ -335,9 +338,9 @@ type CreateProjectRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateProjectRequest) MarshalJSON() ([]byte, error) {
+func (s CreateProjectRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateProjectRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Deployment: Representation of a single script deployment.
@@ -366,9 +369,9 @@ type Deployment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Deployment) MarshalJSON() ([]byte, error) {
+func (s Deployment) MarshalJSON() ([]byte, error) {
 	type NoMethod Deployment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeploymentConfig: Metadata the defines how a deployment is configured.
@@ -394,9 +397,9 @@ type DeploymentConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeploymentConfig) MarshalJSON() ([]byte, error) {
+func (s DeploymentConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DeploymentConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -439,9 +442,9 @@ type EntryPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntryPoint) MarshalJSON() ([]byte, error) {
+func (s EntryPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod EntryPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecuteStreamResponse: The response for executing or debugging a function in
@@ -462,9 +465,9 @@ type ExecuteStreamResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecuteStreamResponse) MarshalJSON() ([]byte, error) {
+func (s ExecuteStreamResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecuteStreamResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutionError: An object that provides information about the nature of an
@@ -497,9 +500,9 @@ type ExecutionError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionError) MarshalJSON() ([]byte, error) {
+func (s ExecutionError) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutionRequest: A request to run the function in a script. The script is
@@ -545,9 +548,9 @@ type ExecutionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionRequest) MarshalJSON() ([]byte, error) {
+func (s ExecutionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutionResponse: An object that provides the return value of a function
@@ -574,9 +577,9 @@ type ExecutionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionResponse) MarshalJSON() ([]byte, error) {
+func (s ExecutionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // File: An individual file within a script project. A file is a third-party
@@ -624,9 +627,9 @@ type File struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *File) MarshalJSON() ([]byte, error) {
+func (s File) MarshalJSON() ([]byte, error) {
 	type NoMethod File
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeAddOnEntryPoint: An add-on entry point.
@@ -661,9 +664,9 @@ type GoogleAppsScriptTypeAddOnEntryPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeAddOnEntryPoint) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeAddOnEntryPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeAddOnEntryPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeExecutionApiConfig: API executable entry point
@@ -694,9 +697,9 @@ type GoogleAppsScriptTypeExecutionApiConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeExecutionApiConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeExecutionApiConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeExecutionApiConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeExecutionApiEntryPoint: An API executable entry point.
@@ -716,9 +719,9 @@ type GoogleAppsScriptTypeExecutionApiEntryPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeExecutionApiEntryPoint) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeExecutionApiEntryPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeExecutionApiEntryPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeFunction: Represents a function in a script project.
@@ -741,9 +744,9 @@ type GoogleAppsScriptTypeFunction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeFunction) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeFunction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeFunction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeFunctionSet: A set of functions. No duplicates are
@@ -764,9 +767,9 @@ type GoogleAppsScriptTypeFunctionSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeFunctionSet) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeFunctionSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeFunctionSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeProcess: Representation of a single script process
@@ -840,9 +843,9 @@ type GoogleAppsScriptTypeProcess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeProcess) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeProcess) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeProcess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeUser: A simple user profile resource.
@@ -868,9 +871,9 @@ type GoogleAppsScriptTypeUser struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeUser) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeUser) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeUser
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeWebAppConfig: Web app entry point configuration.
@@ -908,9 +911,9 @@ type GoogleAppsScriptTypeWebAppConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeWebAppConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeWebAppConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeWebAppConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsScriptTypeWebAppEntryPoint: A web application entry point.
@@ -932,9 +935,9 @@ type GoogleAppsScriptTypeWebAppEntryPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsScriptTypeWebAppEntryPoint) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsScriptTypeWebAppEntryPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeWebAppEntryPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDeploymentsResponse: Response with the list of deployments for the
@@ -961,9 +964,9 @@ type ListDeploymentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDeploymentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDeploymentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDeploymentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListScriptProcessesResponse: Response with the list of Process resources.
@@ -989,9 +992,9 @@ type ListScriptProcessesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListScriptProcessesResponse) MarshalJSON() ([]byte, error) {
+func (s ListScriptProcessesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListScriptProcessesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUserProcessesResponse: Response with the list of Process resources.
@@ -1017,9 +1020,9 @@ type ListUserProcessesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUserProcessesResponse) MarshalJSON() ([]byte, error) {
+func (s ListUserProcessesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUserProcessesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListValue: `ListValue` is a wrapper around a repeated field of values.
@@ -1039,9 +1042,9 @@ type ListValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListValue) MarshalJSON() ([]byte, error) {
+func (s ListValue) MarshalJSON() ([]byte, error) {
 	type NoMethod ListValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVersionsResponse: Response with the list of the versions for the
@@ -1068,9 +1071,9 @@ type ListVersionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVersionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListVersionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVersionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Metrics: Resource containing usage stats for a given script, based on the
@@ -1098,9 +1101,9 @@ type Metrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Metrics) MarshalJSON() ([]byte, error) {
+func (s Metrics) MarshalJSON() ([]byte, error) {
 	type NoMethod Metrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricsValue: Metrics value that holds number of executions counted.
@@ -1124,9 +1127,9 @@ type MetricsValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricsValue) MarshalJSON() ([]byte, error) {
+func (s MetricsValue) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricsValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: A representation of an execution of an Apps Script function
@@ -1177,9 +1180,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Project: The script project resource.
@@ -1216,9 +1219,9 @@ type Project struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Project) MarshalJSON() ([]byte, error) {
+func (s Project) MarshalJSON() ([]byte, error) {
 	type NoMethod Project
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScriptExecutionResult: The result of an execution.
@@ -1238,9 +1241,9 @@ type ScriptExecutionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScriptExecutionResult) MarshalJSON() ([]byte, error) {
+func (s ScriptExecutionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod ScriptExecutionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScriptStackTraceElement: A stack trace through the script that shows where
@@ -1263,9 +1266,9 @@ type ScriptStackTraceElement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScriptStackTraceElement) MarshalJSON() ([]byte, error) {
+func (s ScriptStackTraceElement) MarshalJSON() ([]byte, error) {
 	type NoMethod ScriptStackTraceElement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: If a `run` call succeeds but the script function (or Apps Script
@@ -1296,9 +1299,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Struct: `Struct` represents a structured data value, consisting of fields
@@ -1319,9 +1322,9 @@ type Struct struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Struct) MarshalJSON() ([]byte, error) {
+func (s Struct) MarshalJSON() ([]byte, error) {
 	type NoMethod Struct
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateDeploymentRequest: Request with deployment information to update an
@@ -1342,9 +1345,9 @@ type UpdateDeploymentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateDeploymentRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateDeploymentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateDeploymentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Value: `Value` represents a dynamically typed value which is the outcome of
@@ -1384,9 +1387,9 @@ type Value struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Value) MarshalJSON() ([]byte, error) {
+func (s Value) MarshalJSON() ([]byte, error) {
 	type NoMethod Value
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Value) UnmarshalJSON(data []byte) error {
@@ -1433,9 +1436,9 @@ type Version struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Version) MarshalJSON() ([]byte, error) {
+func (s Version) MarshalJSON() ([]byte, error) {
 	type NoMethod Version
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProcessesListCall struct {
@@ -1612,16 +1615,16 @@ func (c *ProcessesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/processes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.processes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1657,9 +1660,11 @@ func (c *ProcessesListCall) Do(opts ...googleapi.CallOption) (*ListUserProcesses
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.processes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1848,16 +1853,16 @@ func (c *ProcessesListScriptProcessesCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/processes:listScriptProcesses")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.processes.listScriptProcesses", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1893,9 +1898,11 @@ func (c *ProcessesListScriptProcessesCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.processes.listScriptProcesses", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1961,8 +1968,7 @@ func (c *ProjectsCreateCall) Header() http.Header {
 
 func (c *ProjectsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createprojectrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createprojectrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1975,6 +1981,7 @@ func (c *ProjectsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2009,9 +2016,11 @@ func (c *ProjectsCreateCall) Do(opts ...googleapi.CallOption) (*Project, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2069,12 +2078,11 @@ func (c *ProjectsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{scriptId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2082,6 +2090,7 @@ func (c *ProjectsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2116,9 +2125,11 @@ func (c *ProjectsGetCall) Do(opts ...googleapi.CallOption) (*Project, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2185,12 +2196,11 @@ func (c *ProjectsGetContentCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{scriptId}/content")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2198,6 +2208,7 @@ func (c *ProjectsGetContentCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.getContent", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2232,9 +2243,11 @@ func (c *ProjectsGetContentCall) Do(opts ...googleapi.CallOption) (*Content, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.getContent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2317,12 +2330,11 @@ func (c *ProjectsGetMetricsCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{scriptId}/metrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2330,6 +2342,7 @@ func (c *ProjectsGetMetricsCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.getMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2364,9 +2377,11 @@ func (c *ProjectsGetMetricsCall) Do(opts ...googleapi.CallOption) (*Metrics, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.getMetrics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2418,8 +2433,7 @@ func (c *ProjectsUpdateContentCall) Header() http.Header {
 
 func (c *ProjectsUpdateContentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.content)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.content)
 	if err != nil {
 		return nil, err
 	}
@@ -2435,6 +2449,7 @@ func (c *ProjectsUpdateContentCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.updateContent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2469,9 +2484,11 @@ func (c *ProjectsUpdateContentCall) Do(opts ...googleapi.CallOption) (*Content, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.updateContent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2519,8 +2536,7 @@ func (c *ProjectsDeploymentsCreateCall) Header() http.Header {
 
 func (c *ProjectsDeploymentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deploymentconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deploymentconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -2536,6 +2552,7 @@ func (c *ProjectsDeploymentsCreateCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.deployments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2570,9 +2587,11 @@ func (c *ProjectsDeploymentsCreateCall) Do(opts ...googleapi.CallOption) (*Deplo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.deployments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2621,12 +2640,11 @@ func (c *ProjectsDeploymentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsDeploymentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{scriptId}/deployments/{deploymentId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2635,6 +2653,7 @@ func (c *ProjectsDeploymentsDeleteCall) doRequest(alt string) (*http.Response, e
 		"scriptId":     c.scriptId,
 		"deploymentId": c.deploymentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.deployments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2669,9 +2688,11 @@ func (c *ProjectsDeploymentsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.deployments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2732,12 +2753,11 @@ func (c *ProjectsDeploymentsGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{scriptId}/deployments/{deploymentId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2746,6 +2766,7 @@ func (c *ProjectsDeploymentsGetCall) doRequest(alt string) (*http.Response, erro
 		"scriptId":     c.scriptId,
 		"deploymentId": c.deploymentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.deployments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2780,9 +2801,11 @@ func (c *ProjectsDeploymentsGetCall) Do(opts ...googleapi.CallOption) (*Deployme
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.deployments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2855,12 +2878,11 @@ func (c *ProjectsDeploymentsListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{scriptId}/deployments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2868,6 +2890,7 @@ func (c *ProjectsDeploymentsListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.deployments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2903,9 +2926,11 @@ func (c *ProjectsDeploymentsListCall) Do(opts ...googleapi.CallOption) (*ListDep
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.deployments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2977,8 +3002,7 @@ func (c *ProjectsDeploymentsUpdateCall) Header() http.Header {
 
 func (c *ProjectsDeploymentsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatedeploymentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatedeploymentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2995,6 +3019,7 @@ func (c *ProjectsDeploymentsUpdateCall) doRequest(alt string) (*http.Response, e
 		"scriptId":     c.scriptId,
 		"deploymentId": c.deploymentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.deployments.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3029,9 +3054,11 @@ func (c *ProjectsDeploymentsUpdateCall) Do(opts ...googleapi.CallOption) (*Deplo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.deployments.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3080,8 +3107,7 @@ func (c *ProjectsVersionsCreateCall) Header() http.Header {
 
 func (c *ProjectsVersionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.version)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.version)
 	if err != nil {
 		return nil, err
 	}
@@ -3097,6 +3123,7 @@ func (c *ProjectsVersionsCreateCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.versions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3131,9 +3158,11 @@ func (c *ProjectsVersionsCreateCall) Do(opts ...googleapi.CallOption) (*Version,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.versions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3194,12 +3223,11 @@ func (c *ProjectsVersionsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{scriptId}/versions/{versionNumber}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3208,6 +3236,7 @@ func (c *ProjectsVersionsGetCall) doRequest(alt string) (*http.Response, error) 
 		"scriptId":      c.scriptId,
 		"versionNumber": strconv.FormatInt(c.versionNumber, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.versions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3242,9 +3271,11 @@ func (c *ProjectsVersionsGetCall) Do(opts ...googleapi.CallOption) (*Version, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.versions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3317,12 +3348,11 @@ func (c *ProjectsVersionsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{scriptId}/versions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3330,6 +3360,7 @@ func (c *ProjectsVersionsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.projects.versions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3365,9 +3396,11 @@ func (c *ProjectsVersionsListCall) Do(opts ...googleapi.CallOption) (*ListVersio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.projects.versions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3401,17 +3434,7 @@ type ScriptsRunCall struct {
 	header_          http.Header
 }
 
-// Run: Runs a function in an Apps Script project. The script project must be
-// deployed for use with the Apps Script API and the calling application must
-// share the same Cloud Platform project. This method requires authorization
-// with an OAuth 2.0 token that includes at least one of the scopes listed in
-// the Authorization (#authorization-scopes) section; script projects that do
-// not require authorization cannot be executed through this API. To find the
-// correct scopes to include in the authentication token, open the script
-// project **Overview** page and scroll down to "Project OAuth Scopes." The
-// error `403, PERMISSION_DENIED: The caller does not have permission`
-// indicates that the Cloud Platform project used to authorize the request is
-// not the same as the one used by the script.
+// Run:
 //
 //   - scriptId: The script ID of the script to be executed. Find the script ID
 //     on the **Project settings** page under "IDs." As multiple executable APIs
@@ -3450,8 +3473,7 @@ func (c *ScriptsRunCall) Header() http.Header {
 
 func (c *ScriptsRunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.executionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.executionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3467,6 +3489,7 @@ func (c *ScriptsRunCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"scriptId": c.scriptId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "script.scripts.run", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3501,8 +3524,10 @@ func (c *ScriptsRunCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "script.scripts.run", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

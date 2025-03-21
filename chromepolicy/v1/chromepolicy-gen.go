@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "chromepolicy:v1"
 const apiName = "chromepolicy"
@@ -100,11 +103,11 @@ const mtlsBasePath = "https://chromepolicy.mtls.googleapis.com/"
 
 // OAuth2 scopes used by this API.
 const (
-	// See, edit, create or delete policies applied to Chrome OS and Chrome
-	// Browsers managed within your organization
+	// See, edit, create or delete policies applied to ChromeOS and Chrome Browsers
+	// managed within your organization
 	ChromeManagementPolicyScope = "https://www.googleapis.com/auth/chrome.management.policy"
 
-	// See policies applied to Chrome OS and Chrome Browsers managed within your
+	// See policies applied to ChromeOS and Chrome Browsers managed within your
 	// organization
 	ChromeManagementPolicyReadonlyScope = "https://www.googleapis.com/auth/chrome.management.policy.readonly"
 )
@@ -125,7 +128,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Customers = NewCustomersService(s)
+	s.Media = NewMediaService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,14 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Customers = NewCustomersService(s)
-	s.Media = NewMediaService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -265,9 +268,9 @@ type GoogleChromePolicyVersionsV1AdditionalTargetKeyName struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1AdditionalTargetKeyName) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1AdditionalTargetKeyName) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1AdditionalTargetKeyName
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1BatchDeleteGroupPoliciesRequest: Request message
@@ -294,9 +297,9 @@ type GoogleChromePolicyVersionsV1BatchDeleteGroupPoliciesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1BatchDeleteGroupPoliciesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1BatchDeleteGroupPoliciesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1BatchDeleteGroupPoliciesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest: Request
@@ -326,9 +329,9 @@ type GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1BatchInheritOrgUnitPoliciesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest: Request message
@@ -355,9 +358,9 @@ type GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1BatchModifyGroupPoliciesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1BatchModifyOrgUnitPoliciesRequest: Request
@@ -386,9 +389,9 @@ type GoogleChromePolicyVersionsV1BatchModifyOrgUnitPoliciesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1BatchModifyOrgUnitPoliciesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1BatchModifyOrgUnitPoliciesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1BatchModifyOrgUnitPoliciesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1CertificateReference: Error information for
@@ -413,9 +416,9 @@ type GoogleChromePolicyVersionsV1CertificateReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1CertificateReference) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1CertificateReference) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1CertificateReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1DefineCertificateRequest: Request object for
@@ -446,9 +449,9 @@ type GoogleChromePolicyVersionsV1DefineCertificateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1DefineCertificateRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1DefineCertificateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1DefineCertificateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1DefineCertificateResponse: Response object for
@@ -476,9 +479,9 @@ type GoogleChromePolicyVersionsV1DefineCertificateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1DefineCertificateResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1DefineCertificateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1DefineCertificateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1DefineNetworkRequest: Request object for
@@ -505,9 +508,9 @@ type GoogleChromePolicyVersionsV1DefineNetworkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1DefineNetworkRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1DefineNetworkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1DefineNetworkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1DefineNetworkResponse: Response object for
@@ -537,9 +540,9 @@ type GoogleChromePolicyVersionsV1DefineNetworkResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1DefineNetworkResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1DefineNetworkResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1DefineNetworkResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1DeleteGroupPolicyRequest: Request parameters for
@@ -564,9 +567,9 @@ type GoogleChromePolicyVersionsV1DeleteGroupPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1DeleteGroupPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1DeleteGroupPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1DeleteGroupPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1FieldConstraints: Information about any range
@@ -591,9 +594,9 @@ type GoogleChromePolicyVersionsV1FieldConstraints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1FieldConstraints) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1FieldConstraints) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1FieldConstraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1InheritOrgUnitPolicyRequest: Request parameters
@@ -619,9 +622,9 @@ type GoogleChromePolicyVersionsV1InheritOrgUnitPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1InheritOrgUnitPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1InheritOrgUnitPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1InheritOrgUnitPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1ListGroupPriorityOrderingRequest: Request
@@ -648,9 +651,9 @@ type GoogleChromePolicyVersionsV1ListGroupPriorityOrderingRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1ListGroupPriorityOrderingRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1ListGroupPriorityOrderingRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1ListGroupPriorityOrderingRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1ListGroupPriorityOrderingResponse: Response
@@ -682,9 +685,9 @@ type GoogleChromePolicyVersionsV1ListGroupPriorityOrderingResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1ListGroupPriorityOrderingResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1ListGroupPriorityOrderingResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1ListGroupPriorityOrderingResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1ListPolicySchemasResponse: Response message for
@@ -710,9 +713,9 @@ type GoogleChromePolicyVersionsV1ListPolicySchemasResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1ListPolicySchemasResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1ListPolicySchemasResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1ListPolicySchemasResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest: Request parameters for
@@ -741,9 +744,9 @@ type GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1ModifyGroupPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1ModifyOrgUnitPolicyRequest: Request parameters
@@ -772,9 +775,9 @@ type GoogleChromePolicyVersionsV1ModifyOrgUnitPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1ModifyOrgUnitPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1ModifyOrgUnitPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1ModifyOrgUnitPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1NetworkSetting: A network setting contains
@@ -797,9 +800,9 @@ type GoogleChromePolicyVersionsV1NetworkSetting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1NetworkSetting) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1NetworkSetting) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1NetworkSetting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1NumericRangeConstraint: A constraint on upper
@@ -822,9 +825,9 @@ type GoogleChromePolicyVersionsV1NumericRangeConstraint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1NumericRangeConstraint) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1NumericRangeConstraint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1NumericRangeConstraint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicyApiLifecycle: Lifecycle information.
@@ -861,8 +864,7 @@ type GoogleChromePolicyVersionsV1PolicyApiLifecycle struct {
 	PolicyApiLifecycleStage string `json:"policyApiLifecycleStage,omitempty"`
 	// ScheduledToDeprecatePolicies: Corresponding to deprecated_in_favor_of, the
 	// fully qualified namespace(s) of the old policies that will be deprecated
-	// because of introduction of this policy. This field should not be manually
-	// set but will be set and exposed through PolicyAPI automatically.
+	// because of introduction of this policy.
 	ScheduledToDeprecatePolicies []string `json:"scheduledToDeprecatePolicies,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DeprecatedInFavorOf") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -877,9 +879,9 @@ type GoogleChromePolicyVersionsV1PolicyApiLifecycle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicyApiLifecycle) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicyApiLifecycle) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicyApiLifecycle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicyModificationError: Error information for a
@@ -908,9 +910,9 @@ type GoogleChromePolicyVersionsV1PolicyModificationError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicyModificationError) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicyModificationError) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicyModificationError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicyModificationErrorDetails: Details of the
@@ -934,9 +936,9 @@ type GoogleChromePolicyVersionsV1PolicyModificationErrorDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicyModificationErrorDetails) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicyModificationErrorDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicyModificationErrorDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicyModificationFieldError: Error information
@@ -959,9 +961,9 @@ type GoogleChromePolicyVersionsV1PolicyModificationFieldError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicyModificationFieldError) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicyModificationFieldError) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicyModificationFieldError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicySchema: Resource representing a policy
@@ -1034,9 +1036,9 @@ type GoogleChromePolicyVersionsV1PolicySchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicySchema) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicySchema) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicySchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicySchemaFieldDependencies: The field and the
@@ -1060,9 +1062,9 @@ type GoogleChromePolicyVersionsV1PolicySchemaFieldDependencies struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicySchemaFieldDependencies) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicySchemaFieldDependencies) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicySchemaFieldDependencies
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicySchemaFieldDescription: Provides detailed
@@ -1114,9 +1116,9 @@ type GoogleChromePolicyVersionsV1PolicySchemaFieldDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicySchemaFieldDescription) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicySchemaFieldDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicySchemaFieldDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicySchemaFieldKnownValueDescription: Provides
@@ -1144,9 +1146,9 @@ type GoogleChromePolicyVersionsV1PolicySchemaFieldKnownValueDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicySchemaFieldKnownValueDescription) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicySchemaFieldKnownValueDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicySchemaFieldKnownValueDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicySchemaNoticeDescription: Provides special
@@ -1178,9 +1180,9 @@ type GoogleChromePolicyVersionsV1PolicySchemaNoticeDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicySchemaNoticeDescription) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicySchemaNoticeDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicySchemaNoticeDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicySchemaRequiredItems: The fields that will
@@ -1206,9 +1208,9 @@ type GoogleChromePolicyVersionsV1PolicySchemaRequiredItems struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicySchemaRequiredItems) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicySchemaRequiredItems) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicySchemaRequiredItems
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicyTargetKey: The key used to identify the
@@ -1234,9 +1236,9 @@ type GoogleChromePolicyVersionsV1PolicyTargetKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicyTargetKey) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicyTargetKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicyTargetKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1PolicyValue: A particular value for a policy
@@ -1261,9 +1263,9 @@ type GoogleChromePolicyVersionsV1PolicyValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1PolicyValue) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1PolicyValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1PolicyValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1RemoveCertificateErrorDetails: Details of the
@@ -1288,9 +1290,9 @@ type GoogleChromePolicyVersionsV1RemoveCertificateErrorDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1RemoveCertificateErrorDetails) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1RemoveCertificateErrorDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1RemoveCertificateErrorDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1RemoveCertificateRequest: Request object for
@@ -1315,9 +1317,9 @@ type GoogleChromePolicyVersionsV1RemoveCertificateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1RemoveCertificateRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1RemoveCertificateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1RemoveCertificateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1RemoveCertificateResponse: Response object for
@@ -1349,9 +1351,9 @@ type GoogleChromePolicyVersionsV1RemoveNetworkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1RemoveNetworkRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1RemoveNetworkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1RemoveNetworkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1RemoveNetworkResponse: Response object for
@@ -1395,9 +1397,9 @@ type GoogleChromePolicyVersionsV1ResolveRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1ResolveRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1ResolveRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1ResolveRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1ResolveResponse: Response message for getting
@@ -1425,9 +1427,9 @@ type GoogleChromePolicyVersionsV1ResolveResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1ResolveResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1ResolveResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1ResolveResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1ResolvedPolicy: The resolved value of a policy
@@ -1465,9 +1467,9 @@ type GoogleChromePolicyVersionsV1ResolvedPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1ResolvedPolicy) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1ResolvedPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1ResolvedPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1UpdateGroupPriorityOrderingRequest: Request
@@ -1495,9 +1497,9 @@ type GoogleChromePolicyVersionsV1UpdateGroupPriorityOrderingRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1UpdateGroupPriorityOrderingRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1UpdateGroupPriorityOrderingRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1UpdateGroupPriorityOrderingRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1UploadPolicyFileRequest: Request message for
@@ -1520,9 +1522,9 @@ type GoogleChromePolicyVersionsV1UploadPolicyFileRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1UploadPolicyFileRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1UploadPolicyFileRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1UploadPolicyFileRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1UploadPolicyFileResponse: Response message for
@@ -1546,9 +1548,9 @@ type GoogleChromePolicyVersionsV1UploadPolicyFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1UploadPolicyFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1UploadPolicyFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1UploadPolicyFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleChromePolicyVersionsV1UploadedFileConstraints: Constraints on the
@@ -1585,9 +1587,9 @@ type GoogleChromePolicyVersionsV1UploadedFileConstraints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleChromePolicyVersionsV1UploadedFileConstraints) MarshalJSON() ([]byte, error) {
+func (s GoogleChromePolicyVersionsV1UploadedFileConstraints) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleChromePolicyVersionsV1UploadedFileConstraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -1633,9 +1635,9 @@ type GoogleTypeDate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Proto2DescriptorProto: Describes a message type.
@@ -1658,9 +1660,9 @@ type Proto2DescriptorProto struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Proto2DescriptorProto) MarshalJSON() ([]byte, error) {
+func (s Proto2DescriptorProto) MarshalJSON() ([]byte, error) {
 	type NoMethod Proto2DescriptorProto
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Proto2EnumDescriptorProto: Describes an enum type.
@@ -1680,9 +1682,9 @@ type Proto2EnumDescriptorProto struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Proto2EnumDescriptorProto) MarshalJSON() ([]byte, error) {
+func (s Proto2EnumDescriptorProto) MarshalJSON() ([]byte, error) {
 	type NoMethod Proto2EnumDescriptorProto
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Proto2EnumValueDescriptorProto: Describes a value within an enum.
@@ -1702,9 +1704,9 @@ type Proto2EnumValueDescriptorProto struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Proto2EnumValueDescriptorProto) MarshalJSON() ([]byte, error) {
+func (s Proto2EnumValueDescriptorProto) MarshalJSON() ([]byte, error) {
 	type NoMethod Proto2EnumValueDescriptorProto
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Proto2FieldDescriptorProto: Describes a field within a message.
@@ -1796,9 +1798,9 @@ type Proto2FieldDescriptorProto struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Proto2FieldDescriptorProto) MarshalJSON() ([]byte, error) {
+func (s Proto2FieldDescriptorProto) MarshalJSON() ([]byte, error) {
 	type NoMethod Proto2FieldDescriptorProto
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Proto2FileDescriptorProto: Describes a complete .proto file.
@@ -1815,7 +1817,9 @@ type Proto2FileDescriptorProto struct {
 	Package string `json:"package,omitempty"`
 	// Syntax: The syntax of the proto file. The supported values are "proto2",
 	// "proto3", and "editions". If `edition` is present, this value must be
-	// "editions".
+	// "editions". WARNING: This field should only be used by protobuf plugins or
+	// special cases like the proto compiler. Other uses are discouraged and
+	// developers should rely on the protoreflect APIs for their client language.
 	Syntax string `json:"syntax,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EditionDeprecated") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1830,9 +1834,9 @@ type Proto2FileDescriptorProto struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Proto2FileDescriptorProto) MarshalJSON() ([]byte, error) {
+func (s Proto2FileDescriptorProto) MarshalJSON() ([]byte, error) {
 	type NoMethod Proto2FileDescriptorProto
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Proto2OneofDescriptorProto: Describes a oneof.
@@ -1851,9 +1855,9 @@ type Proto2OneofDescriptorProto struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Proto2OneofDescriptorProto) MarshalJSON() ([]byte, error) {
+func (s Proto2OneofDescriptorProto) MarshalJSON() ([]byte, error) {
 	type NoMethod Proto2OneofDescriptorProto
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CustomersPoliciesResolveCall struct {
@@ -1902,8 +1906,7 @@ func (c *CustomersPoliciesResolveCall) Header() http.Header {
 
 func (c *CustomersPoliciesResolveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1resolverequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1resolverequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1919,6 +1922,7 @@ func (c *CustomersPoliciesResolveCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.resolve", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1954,9 +1958,11 @@ func (c *CustomersPoliciesResolveCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.resolve", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2031,8 +2037,7 @@ func (c *CustomersPoliciesGroupsBatchDeleteCall) Header() http.Header {
 
 func (c *CustomersPoliciesGroupsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1batchdeletegrouppoliciesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1batchdeletegrouppoliciesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2048,6 +2053,7 @@ func (c *CustomersPoliciesGroupsBatchDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.groups.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2083,9 +2089,11 @@ func (c *CustomersPoliciesGroupsBatchDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.groups.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2139,8 +2147,7 @@ func (c *CustomersPoliciesGroupsBatchModifyCall) Header() http.Header {
 
 func (c *CustomersPoliciesGroupsBatchModifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1batchmodifygrouppoliciesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1batchmodifygrouppoliciesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2156,6 +2163,7 @@ func (c *CustomersPoliciesGroupsBatchModifyCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.groups.batchModify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2191,9 +2199,11 @@ func (c *CustomersPoliciesGroupsBatchModifyCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.groups.batchModify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2245,8 +2255,7 @@ func (c *CustomersPoliciesGroupsListGroupPriorityOrderingCall) Header() http.Hea
 
 func (c *CustomersPoliciesGroupsListGroupPriorityOrderingCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1listgrouppriorityorderingrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1listgrouppriorityorderingrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2262,6 +2271,7 @@ func (c *CustomersPoliciesGroupsListGroupPriorityOrderingCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.groups.listGroupPriorityOrdering", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2297,9 +2307,11 @@ func (c *CustomersPoliciesGroupsListGroupPriorityOrderingCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.groups.listGroupPriorityOrdering", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2351,8 +2363,7 @@ func (c *CustomersPoliciesGroupsUpdateGroupPriorityOrderingCall) Header() http.H
 
 func (c *CustomersPoliciesGroupsUpdateGroupPriorityOrderingCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1updategrouppriorityorderingrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1updategrouppriorityorderingrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2368,6 +2379,7 @@ func (c *CustomersPoliciesGroupsUpdateGroupPriorityOrderingCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.groups.updateGroupPriorityOrdering", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2403,9 +2415,11 @@ func (c *CustomersPoliciesGroupsUpdateGroupPriorityOrderingCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.groups.updateGroupPriorityOrdering", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2453,8 +2467,7 @@ func (c *CustomersPoliciesNetworksDefineCertificateCall) Header() http.Header {
 
 func (c *CustomersPoliciesNetworksDefineCertificateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1definecertificaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1definecertificaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2470,6 +2483,7 @@ func (c *CustomersPoliciesNetworksDefineCertificateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.networks.defineCertificate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2505,9 +2519,11 @@ func (c *CustomersPoliciesNetworksDefineCertificateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.networks.defineCertificate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2555,8 +2571,7 @@ func (c *CustomersPoliciesNetworksDefineNetworkCall) Header() http.Header {
 
 func (c *CustomersPoliciesNetworksDefineNetworkCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1definenetworkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1definenetworkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2572,6 +2587,7 @@ func (c *CustomersPoliciesNetworksDefineNetworkCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.networks.defineNetwork", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2607,9 +2623,11 @@ func (c *CustomersPoliciesNetworksDefineNetworkCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.networks.defineNetwork", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2657,8 +2675,7 @@ func (c *CustomersPoliciesNetworksRemoveCertificateCall) Header() http.Header {
 
 func (c *CustomersPoliciesNetworksRemoveCertificateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1removecertificaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1removecertificaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2674,6 +2691,7 @@ func (c *CustomersPoliciesNetworksRemoveCertificateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.networks.removeCertificate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2709,9 +2727,11 @@ func (c *CustomersPoliciesNetworksRemoveCertificateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.networks.removeCertificate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2759,8 +2779,7 @@ func (c *CustomersPoliciesNetworksRemoveNetworkCall) Header() http.Header {
 
 func (c *CustomersPoliciesNetworksRemoveNetworkCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1removenetworkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1removenetworkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2776,6 +2795,7 @@ func (c *CustomersPoliciesNetworksRemoveNetworkCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.networks.removeNetwork", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2811,9 +2831,11 @@ func (c *CustomersPoliciesNetworksRemoveNetworkCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.networks.removeNetwork", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2868,8 +2890,7 @@ func (c *CustomersPoliciesOrgunitsBatchInheritCall) Header() http.Header {
 
 func (c *CustomersPoliciesOrgunitsBatchInheritCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1batchinheritorgunitpoliciesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1batchinheritorgunitpoliciesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2885,6 +2906,7 @@ func (c *CustomersPoliciesOrgunitsBatchInheritCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.orgunits.batchInherit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2920,9 +2942,11 @@ func (c *CustomersPoliciesOrgunitsBatchInheritCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.orgunits.batchInherit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2976,8 +3000,7 @@ func (c *CustomersPoliciesOrgunitsBatchModifyCall) Header() http.Header {
 
 func (c *CustomersPoliciesOrgunitsBatchModifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1batchmodifyorgunitpoliciesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1batchmodifyorgunitpoliciesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2993,6 +3016,7 @@ func (c *CustomersPoliciesOrgunitsBatchModifyCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.orgunits.batchModify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3028,9 +3052,11 @@ func (c *CustomersPoliciesOrgunitsBatchModifyCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policies.orgunits.batchModify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3088,12 +3114,11 @@ func (c *CustomersPolicySchemasGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3101,6 +3126,7 @@ func (c *CustomersPolicySchemasGetCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policySchemas.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3136,9 +3162,11 @@ func (c *CustomersPolicySchemasGetCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policySchemas.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3219,12 +3247,11 @@ func (c *CustomersPolicySchemasListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/policySchemas")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3232,6 +3259,7 @@ func (c *CustomersPolicySchemasListCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.customers.policySchemas.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3267,9 +3295,11 @@ func (c *CustomersPolicySchemasListCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.customers.policySchemas.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3378,8 +3408,7 @@ func (c *MediaUploadCall) Header() http.Header {
 
 func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlechromepolicyversionsv1uploadpolicyfilerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlechromepolicyversionsv1uploadpolicyfilerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3390,14 +3419,10 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+customer}/policies/files:uploadPolicyFile")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -3406,6 +3431,7 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromepolicy.media.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3458,8 +3484,10 @@ func (c *MediaUploadCall) Do(opts ...googleapi.CallOption) (*GoogleChromePolicyV
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromepolicy.media.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

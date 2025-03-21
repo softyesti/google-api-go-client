@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "businessprofileperformance:v1"
 const apiName = "businessprofileperformance"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Locations = NewLocationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Locations = NewLocationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -240,9 +243,9 @@ type DailyMetricTimeSeries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DailyMetricTimeSeries) MarshalJSON() ([]byte, error) {
+func (s DailyMetricTimeSeries) MarshalJSON() ([]byte, error) {
 	type NoMethod DailyMetricTimeSeries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DailySubEntityType: Represents all possible subentity types that are
@@ -277,9 +280,9 @@ type DailySubEntityType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DailySubEntityType) MarshalJSON() ([]byte, error) {
+func (s DailySubEntityType) MarshalJSON() ([]byte, error) {
 	type NoMethod DailySubEntityType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -315,9 +318,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatedValue: Represents a single datapoint in the timeseries, where each
@@ -342,9 +345,9 @@ type DatedValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatedValue) MarshalJSON() ([]byte, error) {
+func (s DatedValue) MarshalJSON() ([]byte, error) {
 	type NoMethod DatedValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchMultiDailyMetricsTimeSeriesResponse: Represents the response for
@@ -369,9 +372,9 @@ type FetchMultiDailyMetricsTimeSeriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchMultiDailyMetricsTimeSeriesResponse) MarshalJSON() ([]byte, error) {
+func (s FetchMultiDailyMetricsTimeSeriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchMultiDailyMetricsTimeSeriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetDailyMetricsTimeSeriesResponse: Represents the response for
@@ -395,9 +398,9 @@ type GetDailyMetricsTimeSeriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetDailyMetricsTimeSeriesResponse) MarshalJSON() ([]byte, error) {
+func (s GetDailyMetricsTimeSeriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetDailyMetricsTimeSeriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InsightsValue: Represents an insights value.
@@ -419,9 +422,9 @@ type InsightsValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InsightsValue) MarshalJSON() ([]byte, error) {
+func (s InsightsValue) MarshalJSON() ([]byte, error) {
 	type NoMethod InsightsValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSearchKeywordImpressionsMonthlyResponse: Represents the response for
@@ -449,9 +452,9 @@ type ListSearchKeywordImpressionsMonthlyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSearchKeywordImpressionsMonthlyResponse) MarshalJSON() ([]byte, error) {
+func (s ListSearchKeywordImpressionsMonthlyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSearchKeywordImpressionsMonthlyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultiDailyMetricTimeSeries: Represents a list of tuples of
@@ -472,9 +475,9 @@ type MultiDailyMetricTimeSeries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiDailyMetricTimeSeries) MarshalJSON() ([]byte, error) {
+func (s MultiDailyMetricTimeSeries) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiDailyMetricTimeSeries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchKeywordCount: Represents a single search keyword and its value.
@@ -498,25 +501,28 @@ type SearchKeywordCount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchKeywordCount) MarshalJSON() ([]byte, error) {
+func (s SearchKeywordCount) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchKeywordCount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeOfDay: Represents a time of day. The date and time zone are either not
 // significant or are specified elsewhere. An API may choose to allow leap
 // seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 type TimeOfDay struct {
-	// Hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-	// choose to allow the value "24:00:00" for scenarios like business closing
-	// time.
+	// Hours: Hours of a day in 24 hour format. Must be greater than or equal to 0
+	// and typically must be less than or equal to 23. An API may choose to allow
+	// the value "24:00:00" for scenarios like business closing time.
 	Hours int64 `json:"hours,omitempty"`
-	// Minutes: Minutes of hour of day. Must be from 0 to 59.
+	// Minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+	// than or equal to 59.
 	Minutes int64 `json:"minutes,omitempty"`
-	// Nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+	// Nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+	// to 0 and less than or equal to 999,999,999.
 	Nanos int64 `json:"nanos,omitempty"`
-	// Seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-	// API may allow the value 60 if it allows leap-seconds.
+	// Seconds: Seconds of a minute. Must be greater than or equal to 0 and
+	// typically must be less than or equal to 59. An API may allow the value 60 if
+	// it allows leap-seconds.
 	Seconds int64 `json:"seconds,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -531,9 +537,9 @@ type TimeOfDay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeOfDay) MarshalJSON() ([]byte, error) {
+func (s TimeOfDay) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeOfDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeSeries: Represents a timeseries.
@@ -554,9 +560,9 @@ type TimeSeries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeSeries) MarshalJSON() ([]byte, error) {
+func (s TimeSeries) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeSeries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LocationsFetchMultiDailyMetricsTimeSeriesCall struct {
@@ -727,12 +733,11 @@ func (c *LocationsFetchMultiDailyMetricsTimeSeriesCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+location}:fetchMultiDailyMetricsTimeSeries")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -740,6 +745,7 @@ func (c *LocationsFetchMultiDailyMetricsTimeSeriesCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"location": c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "businessprofileperformance.locations.fetchMultiDailyMetricsTimeSeries", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -775,9 +781,11 @@ func (c *LocationsFetchMultiDailyMetricsTimeSeriesCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "businessprofileperformance.locations.fetchMultiDailyMetricsTimeSeries", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -932,34 +940,35 @@ func (c *LocationsGetDailyMetricsTimeSeriesCall) DailySubEntityTypeDayOfWeek(dai
 }
 
 // DailySubEntityTypeTimeOfDayHours sets the optional parameter
-// "dailySubEntityType.timeOfDay.hours": Hours of day in 24 hour format. Should
-// be from 0 to 23. An API may choose to allow the value "24:00:00" for
-// scenarios like business closing time.
+// "dailySubEntityType.timeOfDay.hours": Hours of a day in 24 hour format. Must
+// be greater than or equal to 0 and typically must be less than or equal to
+// 23. An API may choose to allow the value "24:00:00" for scenarios like
+// business closing time.
 func (c *LocationsGetDailyMetricsTimeSeriesCall) DailySubEntityTypeTimeOfDayHours(dailySubEntityTypeTimeOfDayHours int64) *LocationsGetDailyMetricsTimeSeriesCall {
 	c.urlParams_.Set("dailySubEntityType.timeOfDay.hours", fmt.Sprint(dailySubEntityTypeTimeOfDayHours))
 	return c
 }
 
 // DailySubEntityTypeTimeOfDayMinutes sets the optional parameter
-// "dailySubEntityType.timeOfDay.minutes": Minutes of hour of day. Must be from
-// 0 to 59.
+// "dailySubEntityType.timeOfDay.minutes": Minutes of an hour. Must be greater
+// than or equal to 0 and less than or equal to 59.
 func (c *LocationsGetDailyMetricsTimeSeriesCall) DailySubEntityTypeTimeOfDayMinutes(dailySubEntityTypeTimeOfDayMinutes int64) *LocationsGetDailyMetricsTimeSeriesCall {
 	c.urlParams_.Set("dailySubEntityType.timeOfDay.minutes", fmt.Sprint(dailySubEntityTypeTimeOfDayMinutes))
 	return c
 }
 
 // DailySubEntityTypeTimeOfDayNanos sets the optional parameter
-// "dailySubEntityType.timeOfDay.nanos": Fractions of seconds in nanoseconds.
-// Must be from 0 to 999,999,999.
+// "dailySubEntityType.timeOfDay.nanos": Fractions of seconds, in nanoseconds.
+// Must be greater than or equal to 0 and less than or equal to 999,999,999.
 func (c *LocationsGetDailyMetricsTimeSeriesCall) DailySubEntityTypeTimeOfDayNanos(dailySubEntityTypeTimeOfDayNanos int64) *LocationsGetDailyMetricsTimeSeriesCall {
 	c.urlParams_.Set("dailySubEntityType.timeOfDay.nanos", fmt.Sprint(dailySubEntityTypeTimeOfDayNanos))
 	return c
 }
 
 // DailySubEntityTypeTimeOfDaySeconds sets the optional parameter
-// "dailySubEntityType.timeOfDay.seconds": Seconds of minutes of the time. Must
-// normally be from 0 to 59. An API may allow the value 60 if it allows
-// leap-seconds.
+// "dailySubEntityType.timeOfDay.seconds": Seconds of a minute. Must be greater
+// than or equal to 0 and typically must be less than or equal to 59. An API
+// may allow the value 60 if it allows leap-seconds.
 func (c *LocationsGetDailyMetricsTimeSeriesCall) DailySubEntityTypeTimeOfDaySeconds(dailySubEntityTypeTimeOfDaySeconds int64) *LocationsGetDailyMetricsTimeSeriesCall {
 	c.urlParams_.Set("dailySubEntityType.timeOfDay.seconds", fmt.Sprint(dailySubEntityTypeTimeOfDaySeconds))
 	return c
@@ -1001,12 +1010,11 @@ func (c *LocationsGetDailyMetricsTimeSeriesCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:getDailyMetricsTimeSeries")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1014,6 +1022,7 @@ func (c *LocationsGetDailyMetricsTimeSeriesCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "businessprofileperformance.locations.getDailyMetricsTimeSeries", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1049,9 +1058,11 @@ func (c *LocationsGetDailyMetricsTimeSeriesCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "businessprofileperformance.locations.getDailyMetricsTimeSeries", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1178,12 +1189,11 @@ func (c *LocationsSearchkeywordsImpressionsMonthlyListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/searchkeywords/impressions/monthly")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1191,6 +1201,7 @@ func (c *LocationsSearchkeywordsImpressionsMonthlyListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "businessprofileperformance.locations.searchkeywords.impressions.monthly.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1226,9 +1237,11 @@ func (c *LocationsSearchkeywordsImpressionsMonthlyListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "businessprofileperformance.locations.searchkeywords.impressions.monthly.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

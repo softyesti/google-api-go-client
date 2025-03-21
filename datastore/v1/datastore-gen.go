@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "datastore:v1"
 const apiName = "datastore"
@@ -126,7 +129,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -228,9 +231,9 @@ type Aggregation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Aggregation) MarshalJSON() ([]byte, error) {
+func (s Aggregation) MarshalJSON() ([]byte, error) {
 	type NoMethod Aggregation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationQuery: Datastore query for running an aggregation over a Query.
@@ -254,9 +257,9 @@ type AggregationQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationQuery) MarshalJSON() ([]byte, error) {
+func (s AggregationQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationResult: The result of a single bucket from a Datastore
@@ -282,9 +285,9 @@ type AggregationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResult) MarshalJSON() ([]byte, error) {
+func (s AggregationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationResultBatch: A batch of aggregation results produced by an
@@ -323,9 +326,9 @@ type AggregationResultBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResultBatch) MarshalJSON() ([]byte, error) {
+func (s AggregationResultBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResultBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AllocateIdsRequest: The request for Datastore.AllocateIds.
@@ -350,9 +353,9 @@ type AllocateIdsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllocateIdsRequest) MarshalJSON() ([]byte, error) {
+func (s AllocateIdsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AllocateIdsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AllocateIdsResponse: The response for Datastore.AllocateIds.
@@ -376,9 +379,9 @@ type AllocateIdsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllocateIdsResponse) MarshalJSON() ([]byte, error) {
+func (s AllocateIdsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AllocateIdsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ArrayValue: An array value.
@@ -399,9 +402,9 @@ type ArrayValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ArrayValue) MarshalJSON() ([]byte, error) {
+func (s ArrayValue) MarshalJSON() ([]byte, error) {
 	type NoMethod ArrayValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Avg: Average of the values of the requested property. * Only numeric values
@@ -425,9 +428,9 @@ type Avg struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Avg) MarshalJSON() ([]byte, error) {
+func (s Avg) MarshalJSON() ([]byte, error) {
 	type NoMethod Avg
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BeginTransactionRequest: The request for Datastore.BeginTransaction.
@@ -451,9 +454,9 @@ type BeginTransactionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BeginTransactionRequest) MarshalJSON() ([]byte, error) {
+func (s BeginTransactionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BeginTransactionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BeginTransactionResponse: The response for Datastore.BeginTransaction.
@@ -476,9 +479,9 @@ type BeginTransactionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BeginTransactionResponse) MarshalJSON() ([]byte, error) {
+func (s BeginTransactionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BeginTransactionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitRequest: The request for Datastore.Commit.
@@ -524,9 +527,9 @@ type CommitRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitRequest) MarshalJSON() ([]byte, error) {
+func (s CommitRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitResponse: The response for Datastore.Commit.
@@ -556,9 +559,9 @@ type CommitResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitResponse) MarshalJSON() ([]byte, error) {
+func (s CommitResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompositeFilter: A filter that merges multiple other filters using the given
@@ -588,9 +591,9 @@ type CompositeFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompositeFilter) MarshalJSON() ([]byte, error) {
+func (s CompositeFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod CompositeFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Count: Count of entities that match the query. The `COUNT(*)` aggregation
@@ -617,9 +620,9 @@ type Count struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Count) MarshalJSON() ([]byte, error) {
+func (s Count) MarshalJSON() ([]byte, error) {
 	type NoMethod Count
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -656,9 +659,9 @@ type Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Entity) MarshalJSON() ([]byte, error) {
+func (s Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityResult: The result of fetching an entity from Datastore.
@@ -695,9 +698,9 @@ type EntityResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityResult) MarshalJSON() ([]byte, error) {
+func (s EntityResult) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutionStats: Execution statistics for the query.
@@ -728,9 +731,9 @@ type ExecutionStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionStats) MarshalJSON() ([]byte, error) {
+func (s ExecutionStats) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExplainMetrics: Explain metrics for the query.
@@ -753,9 +756,9 @@ type ExplainMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExplainMetrics) MarshalJSON() ([]byte, error) {
+func (s ExplainMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod ExplainMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExplainOptions: Explain options for the query.
@@ -778,9 +781,9 @@ type ExplainOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExplainOptions) MarshalJSON() ([]byte, error) {
+func (s ExplainOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ExplainOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Filter: A holder for any type of filter.
@@ -802,9 +805,87 @@ type Filter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Filter) MarshalJSON() ([]byte, error) {
+func (s Filter) MarshalJSON() ([]byte, error) {
 	type NoMethod Filter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// FindNearest: Nearest Neighbors search config. The ordering provided by
+// FindNearest supersedes the order_by stage. If multiple documents have the
+// same vector distance, the returned document order is not guaranteed to be
+// stable between queries.
+type FindNearest struct {
+	// DistanceMeasure: Required. The Distance Measure to use, required.
+	//
+	// Possible values:
+	//   "DISTANCE_MEASURE_UNSPECIFIED" - Should not be set.
+	//   "EUCLIDEAN" - Measures the EUCLIDEAN distance between the vectors. See
+	// [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) to learn more.
+	// The resulting distance decreases the more similar two vectors are.
+	//   "COSINE" - COSINE distance compares vectors based on the angle between
+	// them, which allows you to measure similarity that isn't based on the vectors
+	// magnitude. We recommend using DOT_PRODUCT with unit normalized vectors
+	// instead of COSINE distance, which is mathematically equivalent with better
+	// performance. See [Cosine
+	// Similarity](https://en.wikipedia.org/wiki/Cosine_similarity) to learn more
+	// about COSINE similarity and COSINE distance. The resulting COSINE distance
+	// decreases the more similar two vectors are.
+	//   "DOT_PRODUCT" - Similar to cosine but is affected by the magnitude of the
+	// vectors. See [Dot Product](https://en.wikipedia.org/wiki/Dot_product) to
+	// learn more. The resulting distance increases the more similar two vectors
+	// are.
+	DistanceMeasure string `json:"distanceMeasure,omitempty"`
+	// DistanceResultProperty: Optional. Optional name of the field to output the
+	// result of the vector distance calculation. Must conform to entity property
+	// limitations.
+	DistanceResultProperty string `json:"distanceResultProperty,omitempty"`
+	// DistanceThreshold: Optional. Option to specify a threshold for which no less
+	// similar documents will be returned. The behavior of the specified
+	// `distance_measure` will affect the meaning of the distance threshold. Since
+	// DOT_PRODUCT distances increase when the vectors are more similar, the
+	// comparison is inverted. * For EUCLIDEAN, COSINE: WHERE distance <=
+	// distance_threshold * For DOT_PRODUCT: WHERE distance >= distance_threshold
+	DistanceThreshold float64 `json:"distanceThreshold,omitempty"`
+	// Limit: Required. The number of nearest neighbors to return. Must be a
+	// positive integer of no more than 100.
+	Limit int64 `json:"limit,omitempty"`
+	// QueryVector: Required. The query vector that we are searching on. Must be a
+	// vector of no more than 2048 dimensions.
+	QueryVector *Value `json:"queryVector,omitempty"`
+	// VectorProperty: Required. An indexed vector property to search upon. Only
+	// documents which contain vectors whose dimensionality match the query_vector
+	// can be returned.
+	VectorProperty *PropertyReference `json:"vectorProperty,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DistanceMeasure") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DistanceMeasure") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s FindNearest) MarshalJSON() ([]byte, error) {
+	type NoMethod FindNearest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *FindNearest) UnmarshalJSON(data []byte) error {
+	type NoMethod FindNearest
+	var s1 struct {
+		DistanceThreshold gensupport.JSONFloat64 `json:"distanceThreshold"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.DistanceThreshold = float64(s1.DistanceThreshold)
+	return nil
 }
 
 // GoogleDatastoreAdminV1CommonMetadata: Metadata common to all Datastore Admin
@@ -855,9 +936,9 @@ type GoogleDatastoreAdminV1CommonMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1CommonMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1CommonMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1CommonMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata: Metadata for
@@ -906,9 +987,9 @@ type GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1EntityFilter: Identifies a subset of entities in a
@@ -942,9 +1023,9 @@ type GoogleDatastoreAdminV1EntityFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1EntityFilter) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1EntityFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1EntityFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ExportEntitiesMetadata: Metadata for ExportEntities
@@ -977,9 +1058,9 @@ type GoogleDatastoreAdminV1ExportEntitiesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ExportEntitiesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ExportEntitiesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ExportEntitiesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ExportEntitiesRequest: The request for
@@ -1019,9 +1100,9 @@ type GoogleDatastoreAdminV1ExportEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ExportEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ExportEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ExportEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ExportEntitiesResponse: The response for
@@ -1045,9 +1126,9 @@ type GoogleDatastoreAdminV1ExportEntitiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ExportEntitiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ExportEntitiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ExportEntitiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ImportEntitiesMetadata: Metadata for ImportEntities
@@ -1078,9 +1159,9 @@ type GoogleDatastoreAdminV1ImportEntitiesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ImportEntitiesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ImportEntitiesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ImportEntitiesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ImportEntitiesRequest: The request for
@@ -1118,9 +1199,9 @@ type GoogleDatastoreAdminV1ImportEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ImportEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ImportEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ImportEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1Index: Datastore composite index definition.
@@ -1177,9 +1258,9 @@ type GoogleDatastoreAdminV1Index struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1Index) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1Index) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1Index
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1IndexOperationMetadata: Metadata for Index operations.
@@ -1203,9 +1284,9 @@ type GoogleDatastoreAdminV1IndexOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1IndexOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1IndexOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1IndexOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1IndexedProperty: A property of an index.
@@ -1235,9 +1316,9 @@ type GoogleDatastoreAdminV1IndexedProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1IndexedProperty) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1IndexedProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1IndexedProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ListIndexesResponse: The response for
@@ -1263,9 +1344,9 @@ type GoogleDatastoreAdminV1ListIndexesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ListIndexesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ListIndexesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ListIndexesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1MigrationProgressEvent: An event signifying the start
@@ -1308,9 +1389,9 @@ type GoogleDatastoreAdminV1MigrationProgressEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1MigrationProgressEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1MigrationProgressEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1MigrationProgressEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1MigrationStateEvent: An event signifying a change in
@@ -1338,9 +1419,9 @@ type GoogleDatastoreAdminV1MigrationStateEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1MigrationStateEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1MigrationStateEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1MigrationStateEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1PrepareStepDetails: Details for the `PREPARE` step.
@@ -1368,9 +1449,9 @@ type GoogleDatastoreAdminV1PrepareStepDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1PrepareStepDetails) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1PrepareStepDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1PrepareStepDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1Progress: Measures the progress of a particular
@@ -1395,15 +1476,15 @@ type GoogleDatastoreAdminV1Progress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1Progress) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1Progress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1Progress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1RedirectWritesStepDetails: Details for the
 // `REDIRECT_WRITES` step.
 type GoogleDatastoreAdminV1RedirectWritesStepDetails struct {
-	// ConcurrencyMode: Ths concurrency mode for this database.
+	// ConcurrencyMode: The concurrency mode for this database.
 	//
 	// Possible values:
 	//   "CONCURRENCY_MODE_UNSPECIFIED" - Unspecified.
@@ -1425,9 +1506,9 @@ type GoogleDatastoreAdminV1RedirectWritesStepDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1RedirectWritesStepDetails) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1RedirectWritesStepDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1RedirectWritesStepDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1CommonMetadata: Metadata common to all Datastore
@@ -1476,9 +1557,9 @@ type GoogleDatastoreAdminV1beta1CommonMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1CommonMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1CommonMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1CommonMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1EntityFilter: Identifies a subset of entities in
@@ -1512,9 +1593,9 @@ type GoogleDatastoreAdminV1beta1EntityFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1EntityFilter) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1EntityFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1EntityFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1ExportEntitiesMetadata: Metadata for
@@ -1547,9 +1628,9 @@ type GoogleDatastoreAdminV1beta1ExportEntitiesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1ExportEntitiesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1ExportEntitiesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1ExportEntitiesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1ExportEntitiesResponse: The response for
@@ -1573,9 +1654,9 @@ type GoogleDatastoreAdminV1beta1ExportEntitiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1ExportEntitiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1ExportEntitiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1ExportEntitiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1ImportEntitiesMetadata: Metadata for
@@ -1606,9 +1687,9 @@ type GoogleDatastoreAdminV1beta1ImportEntitiesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1ImportEntitiesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1ImportEntitiesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1ImportEntitiesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1Progress: Measures the progress of a particular
@@ -1633,9 +1714,9 @@ type GoogleDatastoreAdminV1beta1Progress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1Progress) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1Progress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1Progress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningListOperationsResponse: The response message for
@@ -1662,9 +1743,9 @@ type GoogleLongrunningListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -1709,9 +1790,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GqlQuery: A GQL query
@@ -1748,9 +1829,9 @@ type GqlQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GqlQuery) MarshalJSON() ([]byte, error) {
+func (s GqlQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod GqlQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GqlQueryParameter: A binding parameter for a GQL query.
@@ -1772,9 +1853,9 @@ type GqlQueryParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GqlQueryParameter) MarshalJSON() ([]byte, error) {
+func (s GqlQueryParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GqlQueryParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Key: A unique identifier for an entity. If a key's partition ID or any of
@@ -1811,9 +1892,9 @@ type Key struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Key) MarshalJSON() ([]byte, error) {
+func (s Key) MarshalJSON() ([]byte, error) {
 	type NoMethod Key
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KindExpression: A representation of a kind.
@@ -1833,9 +1914,9 @@ type KindExpression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KindExpression) MarshalJSON() ([]byte, error) {
+func (s KindExpression) MarshalJSON() ([]byte, error) {
 	type NoMethod KindExpression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LatLng: An object that represents a latitude/longitude pair. This is
@@ -1861,9 +1942,9 @@ type LatLng struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatLng) MarshalJSON() ([]byte, error) {
+func (s LatLng) MarshalJSON() ([]byte, error) {
 	type NoMethod LatLng
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LatLng) UnmarshalJSON(data []byte) error {
@@ -1910,9 +1991,9 @@ type LookupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupRequest) MarshalJSON() ([]byte, error) {
+func (s LookupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupResponse: The response for Datastore.Lookup.
@@ -1951,9 +2032,9 @@ type LookupResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupResponse) MarshalJSON() ([]byte, error) {
+func (s LookupResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Mutation: A mutation to apply to an entity.
@@ -1962,6 +2043,15 @@ type Mutation struct {
 	// to. If this does not match the current version on the server, the mutation
 	// conflicts.
 	BaseVersion int64 `json:"baseVersion,omitempty,string"`
+	// ConflictResolutionStrategy: The strategy to use when a conflict is detected.
+	// Defaults to `SERVER_VALUE`. If this is set, then
+	// `conflict_detection_strategy` must also be set.
+	//
+	// Possible values:
+	//   "STRATEGY_UNSPECIFIED" - Unspecified. Defaults to `SERVER_VALUE`.
+	//   "SERVER_VALUE" - The server entity is kept.
+	//   "FAIL" - The whole commit request fails.
+	ConflictResolutionStrategy string `json:"conflictResolutionStrategy,omitempty"`
 	// Delete: The key of the entity to delete. The entity may or may not already
 	// exist. Must have a complete key path and must not be reserved/read-only.
 	Delete *Key `json:"delete,omitempty"`
@@ -1974,6 +2064,11 @@ type Mutation struct {
 	// referenced in the mask are updated, others are left untouched. Properties
 	// referenced in the mask but not in the entity are deleted.
 	PropertyMask *PropertyMask `json:"propertyMask,omitempty"`
+	// PropertyTransforms: Optional. The transforms to perform on the entity. This
+	// field can be set only when the operation is `insert`, `update`, or `upsert`.
+	// If present, the transforms are be applied to the entity regardless of the
+	// property mask, in order, after the operation.
+	PropertyTransforms []*PropertyTransform `json:"propertyTransforms,omitempty"`
 	// Update: The entity to update. The entity must already exist. Must have a
 	// complete key path.
 	Update *Entity `json:"update,omitempty"`
@@ -1997,9 +2092,9 @@ type Mutation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Mutation) MarshalJSON() ([]byte, error) {
+func (s Mutation) MarshalJSON() ([]byte, error) {
 	type NoMethod Mutation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MutationResult: The result of applying a mutation.
@@ -2013,6 +2108,9 @@ type MutationResult struct {
 	// Key: The automatically allocated key. Set only when the mutation allocated a
 	// key.
 	Key *Key `json:"key,omitempty"`
+	// TransformResults: The results of applying each PropertyTransform, in the
+	// same order of the request.
+	TransformResults []*Value `json:"transformResults,omitempty"`
 	// UpdateTime: The update time of the entity on the server after processing the
 	// mutation. If the mutation doesn't change anything on the server, then the
 	// timestamp will be the update timestamp of the current entity. This field
@@ -2037,9 +2135,9 @@ type MutationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MutationResult) MarshalJSON() ([]byte, error) {
+func (s MutationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod MutationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartitionId: A partition ID identifies a grouping of entities. The grouping
@@ -2074,9 +2172,9 @@ type PartitionId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartitionId) MarshalJSON() ([]byte, error) {
+func (s PartitionId) MarshalJSON() ([]byte, error) {
 	type NoMethod PartitionId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PathElement: A (kind, ID/name) pair used to construct a key path. If either
@@ -2111,9 +2209,9 @@ type PathElement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PathElement) MarshalJSON() ([]byte, error) {
+func (s PathElement) MarshalJSON() ([]byte, error) {
 	type NoMethod PathElement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlanSummary: Planning phase information for the query.
@@ -2135,9 +2233,9 @@ type PlanSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlanSummary) MarshalJSON() ([]byte, error) {
+func (s PlanSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod PlanSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Projection: A representation of a property in a projection.
@@ -2157,9 +2255,9 @@ type Projection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Projection) MarshalJSON() ([]byte, error) {
+func (s Projection) MarshalJSON() ([]byte, error) {
 	type NoMethod Projection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PropertyFilter: A filter on a specific property.
@@ -2208,9 +2306,9 @@ type PropertyFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PropertyFilter) MarshalJSON() ([]byte, error) {
+func (s PropertyFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod PropertyFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PropertyMask: The set of arbitrarily nested property paths used to restrict
@@ -2236,9 +2334,9 @@ type PropertyMask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PropertyMask) MarshalJSON() ([]byte, error) {
+func (s PropertyMask) MarshalJSON() ([]byte, error) {
 	type NoMethod PropertyMask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PropertyOrder: The desired order for a specific property.
@@ -2265,9 +2363,9 @@ type PropertyOrder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PropertyOrder) MarshalJSON() ([]byte, error) {
+func (s PropertyOrder) MarshalJSON() ([]byte, error) {
 	type NoMethod PropertyOrder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PropertyReference: A reference to a property relative to the kind
@@ -2290,12 +2388,97 @@ type PropertyReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PropertyReference) MarshalJSON() ([]byte, error) {
+func (s PropertyReference) MarshalJSON() ([]byte, error) {
 	type NoMethod PropertyReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Query: A query for entities.
+// PropertyTransform: A transformation of an entity property.
+type PropertyTransform struct {
+	// AppendMissingElements: Appends the given elements in order if they are not
+	// already present in the current property value. If the property is not an
+	// array, or if the property does not yet exist, it is first set to the empty
+	// array. Equivalent numbers of different types (e.g. 3L and 3.0) are
+	// considered equal when checking if a value is missing. NaN is equal to NaN,
+	// and the null value is equal to the null value. If the input contains
+	// multiple equivalent values, only the first will be considered. The
+	// corresponding transform result will be the null value.
+	AppendMissingElements *ArrayValue `json:"appendMissingElements,omitempty"`
+	// Increment: Adds the given value to the property's current value. This must
+	// be an integer or a double value. If the property is not an integer or
+	// double, or if the property does not yet exist, the transformation will set
+	// the property to the given value. If either of the given value or the current
+	// property value are doubles, both values will be interpreted as doubles.
+	// Double arithmetic and representation of double values follows IEEE 754
+	// semantics. If there is positive/negative integer overflow, the property is
+	// resolved to the largest magnitude positive/negative integer.
+	Increment *Value `json:"increment,omitempty"`
+	// Maximum: Sets the property to the maximum of its current value and the given
+	// value. This must be an integer or a double value. If the property is not an
+	// integer or double, or if the property does not yet exist, the transformation
+	// will set the property to the given value. If a maximum operation is applied
+	// where the property and the input value are of mixed types (that is - one is
+	// an integer and one is a double) the property takes on the type of the larger
+	// operand. If the operands are equivalent (e.g. 3 and 3.0), the property does
+	// not change. 0, 0.0, and -0.0 are all zero. The maximum of a zero stored
+	// value and zero input value is always the stored value. The maximum of any
+	// numeric value x and NaN is NaN.
+	Maximum *Value `json:"maximum,omitempty"`
+	// Minimum: Sets the property to the minimum of its current value and the given
+	// value. This must be an integer or a double value. If the property is not an
+	// integer or double, or if the property does not yet exist, the transformation
+	// will set the property to the input value. If a minimum operation is applied
+	// where the property and the input value are of mixed types (that is - one is
+	// an integer and one is a double) the property takes on the type of the
+	// smaller operand. If the operands are equivalent (e.g. 3 and 3.0), the
+	// property does not change. 0, 0.0, and -0.0 are all zero. The minimum of a
+	// zero stored value and zero input value is always the stored value. The
+	// minimum of any numeric value x and NaN is NaN.
+	Minimum *Value `json:"minimum,omitempty"`
+	// Property: Optional. The name of the property. Property paths (a list of
+	// property names separated by dots (`.`)) may be used to refer to properties
+	// inside entity values. For example `foo.bar` means the property `bar` inside
+	// the entity property `foo`. If a property name contains a dot `.` or a
+	// backlslash `\`, then that name must be escaped.
+	Property string `json:"property,omitempty"`
+	// RemoveAllFromArray: Removes all of the given elements from the array in the
+	// property. If the property is not an array, or if the property does not yet
+	// exist, it is set to the empty array. Equivalent numbers of different types
+	// (e.g. 3L and 3.0) are considered equal when deciding whether an element
+	// should be removed. NaN is equal to NaN, and the null value is equal to the
+	// null value. This will remove all equivalent values if there are duplicates.
+	// The corresponding transform result will be the null value.
+	RemoveAllFromArray *ArrayValue `json:"removeAllFromArray,omitempty"`
+	// SetToServerValue: Sets the property to the given server value.
+	//
+	// Possible values:
+	//   "SERVER_VALUE_UNSPECIFIED" - Unspecified. This value must not be used.
+	//   "REQUEST_TIME" - The time at which the server processed the request, with
+	// millisecond precision. If used on multiple properties (same or different
+	// entities) in a transaction, all the properties will get the same server
+	// timestamp.
+	SetToServerValue string `json:"setToServerValue,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AppendMissingElements") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AppendMissingElements") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PropertyTransform) MarshalJSON() ([]byte, error) {
+	type NoMethod PropertyTransform
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Query: A query for entities. The query stages are executed in the following
+// order: 1. kind 2. filter 3. projection 4. order + start_cursor + end_cursor
+// 5. offset 6. limit 7. find_nearest
 type Query struct {
 	// DistinctOn: The properties to make distinct. The query results will contain
 	// the first result for each distinct combination of values for the given
@@ -2309,6 +2492,10 @@ type Query struct {
 	EndCursor string `json:"endCursor,omitempty"`
 	// Filter: The filter to apply.
 	Filter *Filter `json:"filter,omitempty"`
+	// FindNearest: Optional. A potential Nearest Neighbors Search. Applies after
+	// all other filters and ordering. Finds the closest vector embeddings to the
+	// given query vector.
+	FindNearest *FindNearest `json:"findNearest,omitempty"`
 	// Kind: The kinds to query (if empty, returns entities of all kinds).
 	// Currently at most 1 kind may be specified.
 	Kind []*KindExpression `json:"kind,omitempty"`
@@ -2342,9 +2529,9 @@ type Query struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Query) MarshalJSON() ([]byte, error) {
+func (s Query) MarshalJSON() ([]byte, error) {
 	type NoMethod Query
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryResultBatch: A batch of results produced by a query.
@@ -2409,9 +2596,9 @@ type QueryResultBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryResultBatch) MarshalJSON() ([]byte, error) {
+func (s QueryResultBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryResultBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadOnly: Options specific to read-only transactions.
@@ -2434,9 +2621,9 @@ type ReadOnly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadOnly) MarshalJSON() ([]byte, error) {
+func (s ReadOnly) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadOnly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadOptions: The options shared by read requests.
@@ -2475,9 +2662,9 @@ type ReadOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadOptions) MarshalJSON() ([]byte, error) {
+func (s ReadOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadWrite: Options specific to read / write transactions.
@@ -2498,9 +2685,9 @@ type ReadWrite struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadWrite) MarshalJSON() ([]byte, error) {
+func (s ReadWrite) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadWrite
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReserveIdsRequest: The request for Datastore.ReserveIds.
@@ -2525,9 +2712,9 @@ type ReserveIdsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReserveIdsRequest) MarshalJSON() ([]byte, error) {
+func (s ReserveIdsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReserveIdsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReserveIdsResponse: The response for Datastore.ReserveIds.
@@ -2558,9 +2745,9 @@ type RollbackRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackRequest) MarshalJSON() ([]byte, error) {
+func (s RollbackRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackResponse: The response for Datastore.Rollback. (an empty message).
@@ -2602,9 +2789,9 @@ type RunAggregationQueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunAggregationQueryRequest) MarshalJSON() ([]byte, error) {
+func (s RunAggregationQueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunAggregationQueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunAggregationQueryResponse: The response for Datastore.RunAggregationQuery.
@@ -2637,9 +2824,9 @@ type RunAggregationQueryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunAggregationQueryResponse) MarshalJSON() ([]byte, error) {
+func (s RunAggregationQueryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunAggregationQueryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunQueryRequest: The request for Datastore.RunQuery.
@@ -2678,14 +2865,16 @@ type RunQueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunQueryRequest) MarshalJSON() ([]byte, error) {
+func (s RunQueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunQueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunQueryResponse: The response for Datastore.RunQuery.
 type RunQueryResponse struct {
-	// Batch: A batch of query results (always present).
+	// Batch: A batch of query results. This is always present unless running a
+	// query under explain-only mode: RunQueryRequest.explain_options was provided
+	// and ExplainOptions.analyze was set to false.
 	Batch *QueryResultBatch `json:"batch,omitempty"`
 	// ExplainMetrics: Query explain metrics. This is only present when the
 	// RunQueryRequest.explain_options is provided, and it is sent only once with
@@ -2713,9 +2902,9 @@ type RunQueryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunQueryResponse) MarshalJSON() ([]byte, error) {
+func (s RunQueryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunQueryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2747,9 +2936,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Sum: Sum of the values of the requested property. * Only numeric values will
@@ -2781,9 +2970,9 @@ type Sum struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Sum) MarshalJSON() ([]byte, error) {
+func (s Sum) MarshalJSON() ([]byte, error) {
 	type NoMethod Sum
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransactionOptions: Options for beginning a new transaction. Transactions
@@ -2807,9 +2996,9 @@ type TransactionOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransactionOptions) MarshalJSON() ([]byte, error) {
+func (s TransactionOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod TransactionOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Value: A message that can hold any of the supported value types and
@@ -2868,9 +3057,9 @@ type Value struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Value) MarshalJSON() ([]byte, error) {
+func (s Value) MarshalJSON() ([]byte, error) {
 	type NoMethod Value
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Value) UnmarshalJSON(data []byte) error {
@@ -2932,8 +3121,7 @@ func (c *ProjectsAllocateIdsCall) Header() http.Header {
 
 func (c *ProjectsAllocateIdsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.allocateidsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.allocateidsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2949,6 +3137,7 @@ func (c *ProjectsAllocateIdsCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.allocateIds", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2984,9 +3173,11 @@ func (c *ProjectsAllocateIdsCall) Do(opts ...googleapi.CallOption) (*AllocateIds
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.allocateIds", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3034,8 +3225,7 @@ func (c *ProjectsBeginTransactionCall) Header() http.Header {
 
 func (c *ProjectsBeginTransactionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.begintransactionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.begintransactionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3051,6 +3241,7 @@ func (c *ProjectsBeginTransactionCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.beginTransaction", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3086,9 +3277,11 @@ func (c *ProjectsBeginTransactionCall) Do(opts ...googleapi.CallOption) (*BeginT
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.beginTransaction", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3137,8 +3330,7 @@ func (c *ProjectsCommitCall) Header() http.Header {
 
 func (c *ProjectsCommitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commitrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.commitrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3154,6 +3346,7 @@ func (c *ProjectsCommitCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.commit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3188,9 +3381,11 @@ func (c *ProjectsCommitCall) Do(opts ...googleapi.CallOption) (*CommitResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.commit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3244,8 +3439,7 @@ func (c *ProjectsExportCall) Header() http.Header {
 
 func (c *ProjectsExportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googledatastoreadminv1exportentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googledatastoreadminv1exportentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3261,6 +3455,7 @@ func (c *ProjectsExportCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.export", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3296,9 +3491,11 @@ func (c *ProjectsExportCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3350,8 +3547,7 @@ func (c *ProjectsImportCall) Header() http.Header {
 
 func (c *ProjectsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googledatastoreadminv1importentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googledatastoreadminv1importentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3367,6 +3563,7 @@ func (c *ProjectsImportCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3402,9 +3599,11 @@ func (c *ProjectsImportCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3452,8 +3651,7 @@ func (c *ProjectsLookupCall) Header() http.Header {
 
 func (c *ProjectsLookupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.lookuprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.lookuprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3469,6 +3667,7 @@ func (c *ProjectsLookupCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.lookup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3503,9 +3702,11 @@ func (c *ProjectsLookupCall) Do(opts ...googleapi.CallOption) (*LookupResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3554,8 +3755,7 @@ func (c *ProjectsReserveIdsCall) Header() http.Header {
 
 func (c *ProjectsReserveIdsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reserveidsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reserveidsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3571,6 +3771,7 @@ func (c *ProjectsReserveIdsCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.reserveIds", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3606,9 +3807,11 @@ func (c *ProjectsReserveIdsCall) Do(opts ...googleapi.CallOption) (*ReserveIdsRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.reserveIds", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3656,8 +3859,7 @@ func (c *ProjectsRollbackCall) Header() http.Header {
 
 func (c *ProjectsRollbackCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rollbackrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rollbackrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3673,6 +3875,7 @@ func (c *ProjectsRollbackCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.rollback", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3708,9 +3911,11 @@ func (c *ProjectsRollbackCall) Do(opts ...googleapi.CallOption) (*RollbackRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.rollback", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3758,8 +3963,7 @@ func (c *ProjectsRunAggregationQueryCall) Header() http.Header {
 
 func (c *ProjectsRunAggregationQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runaggregationqueryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runaggregationqueryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3775,6 +3979,7 @@ func (c *ProjectsRunAggregationQueryCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.runAggregationQuery", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3810,9 +4015,11 @@ func (c *ProjectsRunAggregationQueryCall) Do(opts ...googleapi.CallOption) (*Run
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.runAggregationQuery", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3860,8 +4067,7 @@ func (c *ProjectsRunQueryCall) Header() http.Header {
 
 func (c *ProjectsRunQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runqueryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runqueryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3877,6 +4083,7 @@ func (c *ProjectsRunQueryCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.runQuery", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3912,9 +4119,11 @@ func (c *ProjectsRunQueryCall) Do(opts ...googleapi.CallOption) (*RunQueryRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.runQuery", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3969,8 +4178,7 @@ func (c *ProjectsIndexesCreateCall) Header() http.Header {
 
 func (c *ProjectsIndexesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googledatastoreadminv1index)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googledatastoreadminv1index)
 	if err != nil {
 		return nil, err
 	}
@@ -3986,6 +4194,7 @@ func (c *ProjectsIndexesCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.indexes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4021,9 +4230,11 @@ func (c *ProjectsIndexesCreateCall) Do(opts ...googleapi.CallOption) (*GoogleLon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.indexes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4078,12 +4289,11 @@ func (c *ProjectsIndexesDeleteCall) Header() http.Header {
 
 func (c *ProjectsIndexesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/indexes/{indexId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4092,6 +4302,7 @@ func (c *ProjectsIndexesDeleteCall) doRequest(alt string) (*http.Response, error
 		"projectId": c.projectId,
 		"indexId":   c.indexId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.indexes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4127,9 +4338,11 @@ func (c *ProjectsIndexesDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleLon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.indexes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4190,12 +4403,11 @@ func (c *ProjectsIndexesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/indexes/{indexId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4204,6 +4416,7 @@ func (c *ProjectsIndexesGetCall) doRequest(alt string) (*http.Response, error) {
 		"projectId": c.projectId,
 		"indexId":   c.indexId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.indexes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4239,9 +4452,11 @@ func (c *ProjectsIndexesGetCall) Do(opts ...googleapi.CallOption) (*GoogleDatast
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.indexes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4321,12 +4536,11 @@ func (c *ProjectsIndexesListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/indexes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4334,6 +4548,7 @@ func (c *ProjectsIndexesListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.indexes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4369,9 +4584,11 @@ func (c *ProjectsIndexesListCall) Do(opts ...googleapi.CallOption) (*GoogleDatas
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.indexes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4411,7 +4628,7 @@ type ProjectsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -4446,12 +4663,11 @@ func (c *ProjectsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4459,6 +4675,7 @@ func (c *ProjectsOperationsCancelCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4493,9 +4710,11 @@ func (c *ProjectsOperationsCancelCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4544,12 +4763,11 @@ func (c *ProjectsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4557,6 +4775,7 @@ func (c *ProjectsOperationsDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4591,9 +4810,11 @@ func (c *ProjectsOperationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4653,12 +4874,11 @@ func (c *ProjectsOperationsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4666,6 +4886,7 @@ func (c *ProjectsOperationsGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4701,9 +4922,11 @@ func (c *ProjectsOperationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleLon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4782,12 +5005,11 @@ func (c *ProjectsOperationsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4795,6 +5017,7 @@ func (c *ProjectsOperationsListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4830,9 +5053,11 @@ func (c *ProjectsOperationsListCall) Do(opts ...googleapi.CallOption) (*GoogleLo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

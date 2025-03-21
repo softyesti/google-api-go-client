@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "clouddeploy:v1"
 const apiName = "clouddeploy"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -170,6 +173,7 @@ func NewProjectsLocationsService(s *Service) *ProjectsLocationsService {
 	rs := &ProjectsLocationsService{s: s}
 	rs.CustomTargetTypes = NewProjectsLocationsCustomTargetTypesService(s)
 	rs.DeliveryPipelines = NewProjectsLocationsDeliveryPipelinesService(s)
+	rs.DeployPolicies = NewProjectsLocationsDeployPoliciesService(s)
 	rs.Operations = NewProjectsLocationsOperationsService(s)
 	rs.Targets = NewProjectsLocationsTargetsService(s)
 	return rs
@@ -181,6 +185,8 @@ type ProjectsLocationsService struct {
 	CustomTargetTypes *ProjectsLocationsCustomTargetTypesService
 
 	DeliveryPipelines *ProjectsLocationsDeliveryPipelinesService
+
+	DeployPolicies *ProjectsLocationsDeployPoliciesService
 
 	Operations *ProjectsLocationsOperationsService
 
@@ -265,6 +271,15 @@ type ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsService struct {
 	s *Service
 }
 
+func NewProjectsLocationsDeployPoliciesService(s *Service) *ProjectsLocationsDeployPoliciesService {
+	rs := &ProjectsLocationsDeployPoliciesService{s: s}
+	return rs
+}
+
+type ProjectsLocationsDeployPoliciesService struct {
+	s *Service
+}
+
 func NewProjectsLocationsOperationsService(s *Service) *ProjectsLocationsOperationsService {
 	rs := &ProjectsLocationsOperationsService{s: s}
 	return rs
@@ -319,9 +334,9 @@ type AdvanceChildRolloutJobRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvanceChildRolloutJobRun) MarshalJSON() ([]byte, error) {
+func (s AdvanceChildRolloutJobRun) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvanceChildRolloutJobRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvanceRolloutOperation: Contains the information of an automated
@@ -350,31 +365,34 @@ type AdvanceRolloutOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvanceRolloutOperation) MarshalJSON() ([]byte, error) {
+func (s AdvanceRolloutOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvanceRolloutOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvanceRolloutRequest: The request object used by `AdvanceRollout`.
 type AdvanceRolloutRequest struct {
+	// OverrideDeployPolicy: Optional. Deploy policies to override. Format is
+	// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+	OverrideDeployPolicy []string `json:"overrideDeployPolicy,omitempty"`
 	// PhaseId: Required. The phase ID to advance the `Rollout` to.
 	PhaseId string `json:"phaseId,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "PhaseId") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "OverrideDeployPolicy") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "PhaseId") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "OverrideDeployPolicy") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvanceRolloutRequest) MarshalJSON() ([]byte, error) {
+func (s AdvanceRolloutRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvanceRolloutRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvanceRolloutResponse: The response object from `AdvanceRollout`.
@@ -413,9 +431,9 @@ type AdvanceRolloutRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvanceRolloutRule) MarshalJSON() ([]byte, error) {
+func (s AdvanceRolloutRule) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvanceRolloutRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnthosCluster: Information specifying an Anthos Cluster.
@@ -437,15 +455,18 @@ type AnthosCluster struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnthosCluster) MarshalJSON() ([]byte, error) {
+func (s AnthosCluster) MarshalJSON() ([]byte, error) {
 	type NoMethod AnthosCluster
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApproveRolloutRequest: The request object used by `ApproveRollout`.
 type ApproveRolloutRequest struct {
 	// Approved: Required. True = approve; false = reject
 	Approved bool `json:"approved,omitempty"`
+	// OverrideDeployPolicy: Optional. Deploy policies to override. Format is
+	// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+	OverrideDeployPolicy []string `json:"overrideDeployPolicy,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Approved") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -459,15 +480,41 @@ type ApproveRolloutRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApproveRolloutRequest) MarshalJSON() ([]byte, error) {
+func (s ApproveRolloutRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ApproveRolloutRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApproveRolloutResponse: The response object from `ApproveRollout`.
 type ApproveRolloutResponse struct {
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
+}
+
+// AssociatedEntities: Information about entities associated with a `Target`.
+type AssociatedEntities struct {
+	// AnthosClusters: Optional. Information specifying Anthos clusters as
+	// associated entities.
+	AnthosClusters []*AnthosCluster `json:"anthosClusters,omitempty"`
+	// GkeClusters: Optional. Information specifying GKE clusters as associated
+	// entities.
+	GkeClusters []*GkeCluster `json:"gkeClusters,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AnthosClusters") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AnthosClusters") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AssociatedEntities) MarshalJSON() ([]byte, error) {
+	type NoMethod AssociatedEntities
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -506,9 +553,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -541,9 +588,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Automation: An `Automation` resource in the Cloud Deploy API. An
@@ -623,9 +670,9 @@ type Automation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Automation) MarshalJSON() ([]byte, error) {
+func (s Automation) MarshalJSON() ([]byte, error) {
 	type NoMethod Automation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomationEvent: Payload proto for "clouddeploy.googleapis.com/automation"
@@ -649,6 +696,7 @@ type AutomationEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -665,16 +713,16 @@ type AutomationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomationEvent) MarshalJSON() ([]byte, error) {
+func (s AutomationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomationResourceSelector: AutomationResourceSelector contains the
 // information to select the resources to which an Automation is going to be
 // applied.
 type AutomationResourceSelector struct {
-	// Targets: Contains attributes about a target.
+	// Targets: Optional. Contains attributes about a target.
 	Targets []*TargetAttribute `json:"targets,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Targets") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -689,9 +737,9 @@ type AutomationResourceSelector struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomationResourceSelector) MarshalJSON() ([]byte, error) {
+func (s AutomationResourceSelector) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomationResourceSelector
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomationRolloutMetadata: AutomationRolloutMetadata contains
@@ -719,9 +767,9 @@ type AutomationRolloutMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomationRolloutMetadata) MarshalJSON() ([]byte, error) {
+func (s AutomationRolloutMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomationRolloutMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomationRule: `AutomationRule` defines the automation activities.
@@ -735,6 +783,10 @@ type AutomationRule struct {
 	// RepairRolloutRule: Optional. The `RepairRolloutRule` will automatically
 	// repair a failed rollout.
 	RepairRolloutRule *RepairRolloutRule `json:"repairRolloutRule,omitempty"`
+	// TimedPromoteReleaseRule: Optional. The `TimedPromoteReleaseRule` will
+	// automatically promote a release from the current target(s) to the specified
+	// target(s) on a configured schedule.
+	TimedPromoteReleaseRule *TimedPromoteReleaseRule `json:"timedPromoteReleaseRule,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AdvanceRolloutRule") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -748,9 +800,9 @@ type AutomationRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomationRule) MarshalJSON() ([]byte, error) {
+func (s AutomationRule) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomationRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomationRuleCondition: `AutomationRuleCondition` contains conditions
@@ -759,6 +811,10 @@ type AutomationRuleCondition struct {
 	// TargetsPresentCondition: Optional. Details around targets enumerated in the
 	// rule.
 	TargetsPresentCondition *TargetsPresentCondition `json:"targetsPresentCondition,omitempty"`
+	// TimedPromoteReleaseCondition: Optional. TimedPromoteReleaseCondition
+	// contains rule conditions specific to a an Automation with a timed promote
+	// release rule defined.
+	TimedPromoteReleaseCondition *TimedPromoteReleaseCondition `json:"timedPromoteReleaseCondition,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "TargetsPresentCondition") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -772,9 +828,9 @@ type AutomationRuleCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomationRuleCondition) MarshalJSON() ([]byte, error) {
+func (s AutomationRuleCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomationRuleCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomationRun: An `AutomationRun` resource in the Cloud Deploy API. An
@@ -802,6 +858,9 @@ type AutomationRun struct {
 	// `projects/{project}/locations/{location}/deliveryPipelines/{delivery_pipeline
 	// }/automationRuns/{automation_run}`.
 	Name string `json:"name,omitempty"`
+	// PolicyViolation: Output only. Contains information about what policies
+	// prevented the `AutomationRun` from proceeding.
+	PolicyViolation *PolicyViolation `json:"policyViolation,omitempty"`
 	// PromoteReleaseOperation: Output only. Promotes a release to a specified
 	// 'Target'.
 	PromoteReleaseOperation *PromoteReleaseOperation `json:"promoteReleaseOperation,omitempty"`
@@ -827,10 +886,13 @@ type AutomationRun struct {
 	// StateDescription: Output only. Explains the current state of the
 	// `AutomationRun`. Present only when an explanation is needed.
 	StateDescription string `json:"stateDescription,omitempty"`
-	// TargetId: Output only. The ID of the target that represents the promotion
-	// stage that initiates the `AutomationRun`. The value of this field is the
-	// last segment of a target name.
+	// TargetId: Output only. The ID of the source target that initiates the
+	// `AutomationRun`. The value of this field is the last segment of a target
+	// name.
 	TargetId string `json:"targetId,omitempty"`
+	// TimedPromoteReleaseOperation: Output only. Promotes a release to a specified
+	// 'Target' as defined in a Timed Promote Release rule.
+	TimedPromoteReleaseOperation *TimedPromoteReleaseOperation `json:"timedPromoteReleaseOperation,omitempty"`
 	// UpdateTime: Output only. Time at which the automationRun was updated.
 	UpdateTime string `json:"updateTime,omitempty"`
 	// WaitUntilTime: Output only. Earliest time the `AutomationRun` will attempt
@@ -852,9 +914,9 @@ type AutomationRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomationRun) MarshalJSON() ([]byte, error) {
+func (s AutomationRun) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomationRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomationRunEvent: Payload proto for
@@ -886,6 +948,7 @@ type AutomationRunEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -902,9 +965,9 @@ type AutomationRunEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomationRunEvent) MarshalJSON() ([]byte, error) {
+func (s AutomationRunEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomationRunEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -1001,17 +1064,17 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BuildArtifact: Description of an a image to use during Skaffold rendering.
 type BuildArtifact struct {
-	// Image: Image name in Skaffold configuration.
+	// Image: Optional. Image name in Skaffold configuration.
 	Image string `json:"image,omitempty"`
-	// Tag: Image tag to use. This will generally be the full path to an image,
-	// such as "gcr.io/my-project/busybox:1.2.3" or
+	// Tag: Optional. Image tag to use. This will generally be the full path to an
+	// image, such as "gcr.io/my-project/busybox:1.2.3" or
 	// "gcr.io/my-project/busybox@sha256:abc123".
 	Tag string `json:"tag,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Image") to unconditionally
@@ -1027,18 +1090,19 @@ type BuildArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BuildArtifact) MarshalJSON() ([]byte, error) {
+func (s BuildArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod BuildArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Canary: Canary represents the canary deployment strategy.
 type Canary struct {
-	// CanaryDeployment: Configures the progressive based deployment for a Target.
+	// CanaryDeployment: Optional. Configures the progressive based deployment for
+	// a Target.
 	CanaryDeployment *CanaryDeployment `json:"canaryDeployment,omitempty"`
-	// CustomCanaryDeployment: Configures the progressive based deployment for a
-	// Target, but allows customizing at the phase level where a phase represents
-	// each of the percentage deployments.
+	// CustomCanaryDeployment: Optional. Configures the progressive based
+	// deployment for a Target, but allows customizing at the phase level where a
+	// phase represents each of the percentage deployments.
 	CustomCanaryDeployment *CustomCanaryDeployment `json:"customCanaryDeployment,omitempty"`
 	// RuntimeConfig: Optional. Runtime specific configurations for the deployment
 	// strategy. The runtime configuration is used to determine how Cloud Deploy
@@ -1057,9 +1121,9 @@ type Canary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Canary) MarshalJSON() ([]byte, error) {
+func (s Canary) MarshalJSON() ([]byte, error) {
 	type NoMethod Canary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CanaryDeployment: CanaryDeployment represents the canary deployment
@@ -1067,7 +1131,8 @@ func (s *Canary) MarshalJSON() ([]byte, error) {
 type CanaryDeployment struct {
 	// Percentages: Required. The percentage based deployments that will occur as a
 	// part of a `Rollout`. List is expected in ascending order and each integer n
-	// is 0 <= n < 100.
+	// is 0 <= n < 100. If the GatewayServiceMesh is configured for Kubernetes,
+	// then the range for n is 0 <= n <= 100.
 	Percentages []int64 `json:"percentages,omitempty"`
 	// Postdeploy: Optional. Configuration for the postdeploy job of the last
 	// phase. If this is not configured, there will be no postdeploy job for this
@@ -1076,7 +1141,8 @@ type CanaryDeployment struct {
 	// Predeploy: Optional. Configuration for the predeploy job of the first phase.
 	// If this is not configured, there will be no predeploy job for this phase.
 	Predeploy *Predeploy `json:"predeploy,omitempty"`
-	// Verify: Whether to run verify tests after each percentage deployment.
+	// Verify: Optional. Whether to run verify tests after each percentage
+	// deployment.
 	Verify bool `json:"verify,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Percentages") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1091,9 +1157,9 @@ type CanaryDeployment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CanaryDeployment) MarshalJSON() ([]byte, error) {
+func (s CanaryDeployment) MarshalJSON() ([]byte, error) {
 	type NoMethod CanaryDeployment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelAutomationRunRequest: The request object used by
@@ -1113,6 +1179,25 @@ type CancelOperationRequest struct {
 
 // CancelRolloutRequest: The request object used by `CancelRollout`.
 type CancelRolloutRequest struct {
+	// OverrideDeployPolicy: Optional. Deploy policies to override. Format is
+	// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+	OverrideDeployPolicy []string `json:"overrideDeployPolicy,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "OverrideDeployPolicy") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "OverrideDeployPolicy") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CancelRolloutRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod CancelRolloutRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelRolloutResponse: The response object from `CancelRollout`.
@@ -1140,17 +1225,17 @@ type ChildRolloutJobs struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ChildRolloutJobs) MarshalJSON() ([]byte, error) {
+func (s ChildRolloutJobs) MarshalJSON() ([]byte, error) {
 	type NoMethod ChildRolloutJobs
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudRunConfig: CloudRunConfig contains the Cloud Run runtime configuration.
 type CloudRunConfig struct {
-	// AutomaticTrafficControl: Whether Cloud Deploy should update the traffic
-	// stanza in a Cloud Run Service on the user's behalf to facilitate traffic
-	// splitting. This is required to be true for CanaryDeployments, but optional
-	// for CustomCanaryDeployments.
+	// AutomaticTrafficControl: Optional. Whether Cloud Deploy should update the
+	// traffic stanza in a Cloud Run Service on the user's behalf to facilitate
+	// traffic splitting. This is required to be true for CanaryDeployments, but
+	// optional for CustomCanaryDeployments.
 	AutomaticTrafficControl bool `json:"automaticTrafficControl,omitempty"`
 	// CanaryRevisionTags: Optional. A list of tags that are added to the canary
 	// revision while the canary phase is in progress.
@@ -1174,9 +1259,9 @@ type CloudRunConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudRunConfig) MarshalJSON() ([]byte, error) {
+func (s CloudRunConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudRunConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudRunLocation: Information specifying where to deploy a Cloud Run
@@ -1198,9 +1283,9 @@ type CloudRunLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudRunLocation) MarshalJSON() ([]byte, error) {
+func (s CloudRunLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudRunLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudRunMetadata: CloudRunMetadata contains information from a Cloud Run
@@ -1233,9 +1318,9 @@ type CloudRunMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudRunMetadata) MarshalJSON() ([]byte, error) {
+func (s CloudRunMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudRunMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudRunRenderMetadata: CloudRunRenderMetadata contains Cloud Run
@@ -1258,9 +1343,9 @@ type CloudRunRenderMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudRunRenderMetadata) MarshalJSON() ([]byte, error) {
+func (s CloudRunRenderMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudRunRenderMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Config: Service-wide configuration.
@@ -1288,9 +1373,9 @@ type Config struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Config) MarshalJSON() ([]byte, error) {
+func (s Config) MarshalJSON() ([]byte, error) {
 	type NoMethod Config
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateChildRolloutJob: A createChildRollout Job.
@@ -1320,9 +1405,9 @@ type CreateChildRolloutJobRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateChildRolloutJobRun) MarshalJSON() ([]byte, error) {
+func (s CreateChildRolloutJobRun) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateChildRolloutJobRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomCanaryDeployment: CustomCanaryDeployment represents the custom canary
@@ -1344,9 +1429,9 @@ type CustomCanaryDeployment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomCanaryDeployment) MarshalJSON() ([]byte, error) {
+func (s CustomCanaryDeployment) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomCanaryDeployment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomMetadata: CustomMetadata contains information from a user-defined
@@ -1367,9 +1452,9 @@ type CustomMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomMetadata) MarshalJSON() ([]byte, error) {
+func (s CustomMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomTarget: Information specifying a Custom Target.
@@ -1391,9 +1476,9 @@ type CustomTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomTarget) MarshalJSON() ([]byte, error) {
+func (s CustomTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomTargetDeployMetadata: CustomTargetDeployMetadata contains information
@@ -1415,9 +1500,9 @@ type CustomTargetDeployMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomTargetDeployMetadata) MarshalJSON() ([]byte, error) {
+func (s CustomTargetDeployMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomTargetDeployMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomTargetSkaffoldActions: CustomTargetSkaffoldActions represents the
@@ -1446,9 +1531,9 @@ type CustomTargetSkaffoldActions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomTargetSkaffoldActions) MarshalJSON() ([]byte, error) {
+func (s CustomTargetSkaffoldActions) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomTargetSkaffoldActions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomTargetType: A `CustomTargetType` resource in the Cloud Deploy API. A
@@ -1463,8 +1548,8 @@ type CustomTargetType struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// CreateTime: Output only. Time at which the `CustomTargetType` was created.
 	CreateTime string `json:"createTime,omitempty"`
-	// CustomActions: Configures render and deploy for the `CustomTargetType` using
-	// Skaffold custom actions.
+	// CustomActions: Optional. Configures render and deploy for the
+	// `CustomTargetType` using Skaffold custom actions.
 	CustomActions *CustomTargetSkaffoldActions `json:"customActions,omitempty"`
 	// CustomTargetTypeId: Output only. Resource id of the `CustomTargetType`.
 	CustomTargetTypeId string `json:"customTargetTypeId,omitempty"`
@@ -1484,7 +1569,7 @@ type CustomTargetType struct {
 	// of 64 labels. Both keys and values are additionally constrained to be <= 128
 	// bytes.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name: Optional. Name of the `CustomTargetType`. Format is
+	// Name: Identifier. Name of the `CustomTargetType`. Format is
 	// `projects/{project}/locations/{location}/customTargetTypes/{customTargetType}
 	// `. The `customTargetType` component must match
 	// `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`
@@ -1510,9 +1595,53 @@ type CustomTargetType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomTargetType) MarshalJSON() ([]byte, error) {
+func (s CustomTargetType) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomTargetType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CustomTargetTypeNotificationEvent: Payload proto for
+// "clouddeploy.googleapis.com/customtargettype_notification" Platform Log
+// event that describes the failure to send a custom target type status change
+// Pub/Sub notification.
+type CustomTargetTypeNotificationEvent struct {
+	// CustomTargetType: The name of the `CustomTargetType`.
+	CustomTargetType string `json:"customTargetType,omitempty"`
+	// CustomTargetTypeUid: Unique identifier of the `CustomTargetType`.
+	CustomTargetTypeUid string `json:"customTargetTypeUid,omitempty"`
+	// Message: Debug message for when a notification fails to send.
+	Message string `json:"message,omitempty"`
+	// Type: Type of this notification, e.g. for a Pub/Sub failure.
+	//
+	// Possible values:
+	//   "TYPE_UNSPECIFIED" - Type is unspecified.
+	//   "TYPE_PUBSUB_NOTIFICATION_FAILURE" - A Pub/Sub notification failed to be
+	// sent.
+	//   "TYPE_RESOURCE_STATE_CHANGE" - Resource state changed.
+	//   "TYPE_PROCESS_ABORTED" - A process aborted.
+	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
+	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
+	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
+	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
+	// release_render log type instead.
+	Type string `json:"type,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CustomTargetType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CustomTargetType") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CustomTargetTypeNotificationEvent) MarshalJSON() ([]byte, error) {
+	type NoMethod CustomTargetTypeNotificationEvent
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -1548,9 +1677,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DefaultPool: Execution using the default Cloud Build pool.
@@ -1577,25 +1706,25 @@ type DefaultPool struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DefaultPool) MarshalJSON() ([]byte, error) {
+func (s DefaultPool) MarshalJSON() ([]byte, error) {
 	type NoMethod DefaultPool
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeliveryPipeline: A `DeliveryPipeline` resource in the Cloud Deploy API. A
 // `DeliveryPipeline` defines a pipeline through which a Skaffold configuration
 // can progress.
 type DeliveryPipeline struct {
-	// Annotations: User annotations. These attributes can only be set and used by
-	// the user, and not by Cloud Deploy.
+	// Annotations: Optional. User annotations. These attributes can only be set
+	// and used by the user, and not by Cloud Deploy.
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Condition: Output only. Information around the state of the Delivery
 	// Pipeline.
 	Condition *PipelineCondition `json:"condition,omitempty"`
 	// CreateTime: Output only. Time at which the pipeline was created.
 	CreateTime string `json:"createTime,omitempty"`
-	// Description: Description of the `DeliveryPipeline`. Max length is 255
-	// characters.
+	// Description: Optional. Description of the `DeliveryPipeline`. Max length is
+	// 255 characters.
 	Description string `json:"description,omitempty"`
 	// Etag: This checksum is computed by the server based on the value of other
 	// fields, and may be sent on update and delete requests to ensure the client
@@ -1610,16 +1739,16 @@ type DeliveryPipeline struct {
 	// labels. Both keys and values are additionally constrained to be <= 128
 	// bytes.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name: Optional. Name of the `DeliveryPipeline`. Format is
+	// Name: Identifier. Name of the `DeliveryPipeline`. Format is
 	// `projects/{project}/locations/{location}/deliveryPipelines/{deliveryPipeline}
 	// `. The `deliveryPipeline` component must match
 	// `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`
 	Name string `json:"name,omitempty"`
-	// SerialPipeline: SerialPipeline defines a sequential set of stages for a
-	// `DeliveryPipeline`.
+	// SerialPipeline: Optional. SerialPipeline defines a sequential set of stages
+	// for a `DeliveryPipeline`.
 	SerialPipeline *SerialPipeline `json:"serialPipeline,omitempty"`
-	// Suspended: When suspended, no new releases or rollouts can be created, but
-	// in-progress ones will complete.
+	// Suspended: Optional. When suspended, no new releases or rollouts can be
+	// created, but in-progress ones will complete.
 	Suspended bool `json:"suspended,omitempty"`
 	// Uid: Output only. Unique identifier of the `DeliveryPipeline`.
 	Uid string `json:"uid,omitempty"`
@@ -1641,9 +1770,36 @@ type DeliveryPipeline struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeliveryPipeline) MarshalJSON() ([]byte, error) {
+func (s DeliveryPipeline) MarshalJSON() ([]byte, error) {
 	type NoMethod DeliveryPipeline
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DeliveryPipelineAttribute: Contains criteria for selecting
+// DeliveryPipelines.
+type DeliveryPipelineAttribute struct {
+	// Id: Optional. ID of the `DeliveryPipeline`. The value of this field could be
+	// one of the following: * The last segment of a pipeline name * "*", all
+	// delivery pipelines in a location
+	Id string `json:"id,omitempty"`
+	// Labels: DeliveryPipeline labels.
+	Labels map[string]string `json:"labels,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Id") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DeliveryPipelineAttribute) MarshalJSON() ([]byte, error) {
+	type NoMethod DeliveryPipelineAttribute
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeliveryPipelineNotificationEvent: Payload proto for
@@ -1668,6 +1824,7 @@ type DeliveryPipelineNotificationEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -1684,9 +1841,9 @@ type DeliveryPipelineNotificationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeliveryPipelineNotificationEvent) MarshalJSON() ([]byte, error) {
+func (s DeliveryPipelineNotificationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod DeliveryPipelineNotificationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeployArtifact: The artifacts produced by a deploy operation.
@@ -1710,9 +1867,9 @@ type DeployArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeployArtifact) MarshalJSON() ([]byte, error) {
+func (s DeployArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod DeployArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeployJob: A deploy Job.
@@ -1741,7 +1898,7 @@ type DeployJobRun struct {
 	//   "EXECUTION_FAILED" - The deploy operation did not complete successfully;
 	// check Cloud Build logs.
 	//   "DEADLINE_EXCEEDED" - The deploy job run did not complete within the
-	// alloted time.
+	// allotted time.
 	//   "MISSING_RESOURCES_FOR_CANARY" - There were missing resources in the
 	// runtime environment required for a canary deployment. Check the Cloud Build
 	// logs for more information.
@@ -1769,9 +1926,9 @@ type DeployJobRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeployJobRun) MarshalJSON() ([]byte, error) {
+func (s DeployJobRun) MarshalJSON() ([]byte, error) {
 	type NoMethod DeployJobRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeployJobRunMetadata: DeployJobRunMetadata surfaces information associated
@@ -1799,9 +1956,9 @@ type DeployJobRunMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeployJobRunMetadata) MarshalJSON() ([]byte, error) {
+func (s DeployJobRunMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod DeployJobRunMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeployParameters: DeployParameters contains deploy parameters information.
@@ -1825,9 +1982,231 @@ type DeployParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeployParameters) MarshalJSON() ([]byte, error) {
+func (s DeployParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod DeployParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DeployPolicy: A `DeployPolicy` resource in the Cloud Deploy API. A
+// `DeployPolicy` inhibits manual or automation-driven actions within a
+// Delivery Pipeline or Target.
+type DeployPolicy struct {
+	// Annotations: Optional. User annotations. These attributes can only be set
+	// and used by the user, and not by Cloud Deploy. Annotations must meet the
+	// following constraints: * Annotations are key/value pairs. * Valid annotation
+	// keys have two segments: an optional prefix and name, separated by a slash
+	// (`/`). * The name segment is required and must be 63 characters or less,
+	// beginning and ending with an alphanumeric character (`[a-z0-9A-Z]`) with
+	// dashes (`-`), underscores (`_`), dots (`.`), and alphanumerics between. *
+	// The prefix is optional. If specified, the prefix must be a DNS subdomain: a
+	// series of DNS labels separated by dots(`.`), not longer than 253 characters
+	// in total, followed by a slash (`/`). See
+	// https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/#syntax-and-character-set
+	// for more details.
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// CreateTime: Output only. Time at which the deploy policy was created.
+	CreateTime string `json:"createTime,omitempty"`
+	// Description: Optional. Description of the `DeployPolicy`. Max length is 255
+	// characters.
+	Description string `json:"description,omitempty"`
+	// Etag: The weak etag of the `Automation` resource. This checksum is computed
+	// by the server based on the value of other fields, and may be sent on update
+	// and delete requests to ensure the client has an up-to-date value before
+	// proceeding.
+	Etag string `json:"etag,omitempty"`
+	// Labels: Labels are attributes that can be set and used by both the user and
+	// by Cloud Deploy. Labels must meet the following constraints: * Keys and
+	// values can contain only lowercase letters, numeric characters, underscores,
+	// and dashes. * All characters must use UTF-8 encoding, and international
+	// characters are allowed. * Keys must start with a lowercase letter or
+	// international character. * Each resource is limited to a maximum of 64
+	// labels. Both keys and values are additionally constrained to be <= 128
+	// bytes.
+	Labels map[string]string `json:"labels,omitempty"`
+	// Name: Output only. Name of the `DeployPolicy`. Format is
+	// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`. The
+	// `deployPolicy` component must match `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`
+	Name string `json:"name,omitempty"`
+	// Rules: Required. Rules to apply. At least one rule must be present.
+	Rules []*PolicyRule `json:"rules,omitempty"`
+	// Selectors: Required. Selected resources to which the policy will be applied.
+	// At least one selector is required. If one selector matches the resource the
+	// policy applies. For example, if there are two selectors and the action being
+	// attempted matches one of them, the policy will apply to that action.
+	Selectors []*DeployPolicyResourceSelector `json:"selectors,omitempty"`
+	// Suspended: Optional. When suspended, the policy will not prevent actions
+	// from occurring, even if the action violates the policy.
+	Suspended bool `json:"suspended,omitempty"`
+	// Uid: Output only. Unique identifier of the `DeployPolicy`.
+	Uid string `json:"uid,omitempty"`
+	// UpdateTime: Output only. Most recent time at which the deploy policy was
+	// updated.
+	UpdateTime string `json:"updateTime,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Annotations") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Annotations") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DeployPolicy) MarshalJSON() ([]byte, error) {
+	type NoMethod DeployPolicy
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DeployPolicyEvaluationEvent: Payload proto for
+// "clouddeploy.googleapis.com/deploypolicy_evaluation" Platform Log event that
+// describes the deploy policy evaluation event.
+type DeployPolicyEvaluationEvent struct {
+	// Allowed: Whether the request is allowed. Allowed is set as true if: (1) the
+	// request complies with the policy; or (2) the request doesn't comply with the
+	// policy but the policy was overridden; or (3) the request doesn't comply with
+	// the policy but the policy was suspended
+	Allowed bool `json:"allowed,omitempty"`
+	// DeliveryPipeline: The name of the `Delivery Pipeline`.
+	DeliveryPipeline string `json:"deliveryPipeline,omitempty"`
+	// DeployPolicy: The name of the `DeployPolicy`.
+	DeployPolicy string `json:"deployPolicy,omitempty"`
+	// DeployPolicyUid: Unique identifier of the `DeployPolicy`.
+	DeployPolicyUid string `json:"deployPolicyUid,omitempty"`
+	// Invoker: What invoked the action (e.g. a user or automation).
+	//
+	// Possible values:
+	//   "INVOKER_UNSPECIFIED" - Unspecified.
+	//   "USER" - The action is user-driven. For example, creating a rollout
+	// manually via a gcloud create command.
+	//   "DEPLOY_AUTOMATION" - Automated action by Cloud Deploy.
+	Invoker string `json:"invoker,omitempty"`
+	// Message: Debug message for when a deploy policy event occurs.
+	Message string `json:"message,omitempty"`
+	// Overrides: Things that could have overridden the policy verdict. Overrides
+	// together with verdict decide whether the request is allowed.
+	//
+	// Possible values:
+	//   "POLICY_VERDICT_OVERRIDE_UNSPECIFIED" - This should never happen.
+	//   "POLICY_OVERRIDDEN" - The policy was overridden.
+	//   "POLICY_SUSPENDED" - The policy was suspended.
+	Overrides []string `json:"overrides,omitempty"`
+	// PipelineUid: Unique identifier of the `Delivery Pipeline`.
+	PipelineUid string `json:"pipelineUid,omitempty"`
+	// Rule: Rule id.
+	Rule string `json:"rule,omitempty"`
+	// RuleType: Rule type (e.g. Restrict Rollouts).
+	RuleType string `json:"ruleType,omitempty"`
+	// Target: The name of the `Target`. This is an optional field, as a `Target`
+	// may not always be applicable to a policy.
+	Target string `json:"target,omitempty"`
+	// TargetUid: Unique identifier of the `Target`. This is an optional field, as
+	// a `Target` may not always be applicable to a policy.
+	TargetUid string `json:"targetUid,omitempty"`
+	// Verdict: The policy verdict of the request.
+	//
+	// Possible values:
+	//   "POLICY_VERDICT_UNSPECIFIED" - This should never happen.
+	//   "ALLOWED_BY_POLICY" - Allowed by policy. This enum value is not currently
+	// used but may be used in the future. Currently logs are only generated when a
+	// request is denied by policy.
+	//   "DENIED_BY_POLICY" - Denied by policy.
+	Verdict string `json:"verdict,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Allowed") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Allowed") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DeployPolicyEvaluationEvent) MarshalJSON() ([]byte, error) {
+	type NoMethod DeployPolicyEvaluationEvent
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DeployPolicyNotificationEvent: Payload proto for
+// "clouddeploy.googleapis.com/deploypolicy_notification". Platform Log event
+// that describes the failure to send a pub/sub notification when there is a
+// DeployPolicy status change.
+type DeployPolicyNotificationEvent struct {
+	// DeployPolicy: The name of the `DeployPolicy`.
+	DeployPolicy string `json:"deployPolicy,omitempty"`
+	// DeployPolicyUid: Unique identifier of the deploy policy.
+	DeployPolicyUid string `json:"deployPolicyUid,omitempty"`
+	// Message: Debug message for when a deploy policy fails to send a pub/sub
+	// notification.
+	Message string `json:"message,omitempty"`
+	// Type: Type of this notification, e.g. for a Pub/Sub failure.
+	//
+	// Possible values:
+	//   "TYPE_UNSPECIFIED" - Type is unspecified.
+	//   "TYPE_PUBSUB_NOTIFICATION_FAILURE" - A Pub/Sub notification failed to be
+	// sent.
+	//   "TYPE_RESOURCE_STATE_CHANGE" - Resource state changed.
+	//   "TYPE_PROCESS_ABORTED" - A process aborted.
+	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
+	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
+	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
+	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
+	// release_render log type instead.
+	Type string `json:"type,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DeployPolicy") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DeployPolicy") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DeployPolicyNotificationEvent) MarshalJSON() ([]byte, error) {
+	type NoMethod DeployPolicyNotificationEvent
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DeployPolicyResourceSelector: Contains information on the resources to
+// select for a deploy policy. Attributes provided must all match the resource
+// in order for policy restrictions to apply. For example, if delivery
+// pipelines attributes given are an id "prod" and labels "foo: bar", a
+// delivery pipeline resource must match both that id and have that label in
+// order to be subject to the policy.
+type DeployPolicyResourceSelector struct {
+	// DeliveryPipeline: Optional. Contains attributes about a delivery pipeline.
+	DeliveryPipeline *DeliveryPipelineAttribute `json:"deliveryPipeline,omitempty"`
+	// Target: Optional. Contains attributes about a target.
+	Target *TargetAttribute `json:"target,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DeliveryPipeline") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DeliveryPipeline") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DeployPolicyResourceSelector) MarshalJSON() ([]byte, error) {
+	type NoMethod DeployPolicyResourceSelector
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeploymentJobs: Deployment job composition.
@@ -1856,9 +2235,9 @@ type DeploymentJobs struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeploymentJobs) MarshalJSON() ([]byte, error) {
+func (s DeploymentJobs) MarshalJSON() ([]byte, error) {
 	type NoMethod DeploymentJobs
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1921,9 +2300,9 @@ type ExecutionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionConfig) MarshalJSON() ([]byte, error) {
+func (s ExecutionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -1969,9 +2348,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GatewayServiceMesh: Information about the Kubernetes Gateway API service
@@ -1982,6 +2361,16 @@ type GatewayServiceMesh struct {
 	Deployment string `json:"deployment,omitempty"`
 	// HttpRoute: Required. Name of the Gateway API HTTPRoute.
 	HttpRoute string `json:"httpRoute,omitempty"`
+	// PodSelectorLabel: Optional. The label to use when selecting Pods for the
+	// Deployment and Service resources. This label must already be present in both
+	// resources.
+	PodSelectorLabel string `json:"podSelectorLabel,omitempty"`
+	// RouteDestinations: Optional. Route destinations allow configuring the
+	// Gateway API HTTPRoute to be deployed to additional clusters. This option is
+	// available for multi-cluster service mesh set ups that require the route to
+	// exist in the clusters that call the service. If unspecified, the HTTPRoute
+	// will only be deployed to the Target cluster.
+	RouteDestinations *RouteDestinations `json:"routeDestinations,omitempty"`
 	// RouteUpdateWaitTime: Optional. The time to wait for route updates to
 	// propagate. The maximum configurable time is 3 hours, in seconds format. If
 	// unspecified, there is no wait time.
@@ -2006,9 +2395,9 @@ type GatewayServiceMesh struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GatewayServiceMesh) MarshalJSON() ([]byte, error) {
+func (s GatewayServiceMesh) MarshalJSON() ([]byte, error) {
 	type NoMethod GatewayServiceMesh
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GkeCluster: Information specifying a GKE Cluster.
@@ -2016,6 +2405,10 @@ type GkeCluster struct {
 	// Cluster: Optional. Information specifying a GKE Cluster. Format is
 	// `projects/{project_id}/locations/{location_id}/clusters/{cluster_id}`.
 	Cluster string `json:"cluster,omitempty"`
+	// DnsEndpoint: Optional. If set, the cluster will be accessed using the DNS
+	// endpoint. Note that both `dns_endpoint` and `internal_ip` cannot be set to
+	// true.
+	DnsEndpoint bool `json:"dnsEndpoint,omitempty"`
 	// InternalIp: Optional. If true, `cluster` is accessed using the private IP
 	// address of the control plane endpoint. Otherwise, the default IP address of
 	// the control plane endpoint is used. The default IP address is the private IP
@@ -2023,6 +2416,7 @@ type GkeCluster struct {
 	// address otherwise. Only specify this option when `cluster` is a private GKE
 	// cluster
 	// (https://cloud.google.com/kubernetes-engine/docs/concepts/private-cluster-concept).
+	// Note that `internal_ip` and `dns_endpoint` cannot both be set to true.
 	InternalIp bool `json:"internalIp,omitempty"`
 	// ProxyUrl: Optional. If set, used to configure a proxy
 	// (https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#proxy)
@@ -2041,15 +2435,18 @@ type GkeCluster struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GkeCluster) MarshalJSON() ([]byte, error) {
+func (s GkeCluster) MarshalJSON() ([]byte, error) {
 	type NoMethod GkeCluster
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IgnoreJobRequest: The request object used by `IgnoreJob`.
 type IgnoreJobRequest struct {
 	// JobId: Required. The job ID for the Job to ignore.
 	JobId string `json:"jobId,omitempty"`
+	// OverrideDeployPolicy: Optional. Deploy policies to override. Format is
+	// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+	OverrideDeployPolicy []string `json:"overrideDeployPolicy,omitempty"`
 	// PhaseId: Required. The phase ID the Job to ignore belongs to.
 	PhaseId string `json:"phaseId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "JobId") to unconditionally
@@ -2065,9 +2462,9 @@ type IgnoreJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IgnoreJobRequest) MarshalJSON() ([]byte, error) {
+func (s IgnoreJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IgnoreJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IgnoreJobResponse: The response object from `IgnoreJob`.
@@ -2125,9 +2522,9 @@ type Job struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Job) MarshalJSON() ([]byte, error) {
+func (s Job) MarshalJSON() ([]byte, error) {
 	type NoMethod Job
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobRun: A `JobRun` resource in the Cloud Deploy API. A `JobRun` contains
@@ -2151,7 +2548,7 @@ type JobRun struct {
 	Etag string `json:"etag,omitempty"`
 	// JobId: Output only. ID of the `Rollout` job this `JobRun` corresponds to.
 	JobId string `json:"jobId,omitempty"`
-	// Name: Optional. Name of the `JobRun`. Format is
+	// Name: Output only. Name of the `JobRun`. Format is
 	// `projects/{project}/locations/{location}/deliveryPipelines/{deliveryPipeline}
 	// /releases/{releases}/rollouts/{rollouts}/jobRuns/{uuid}`.
 	Name string `json:"name,omitempty"`
@@ -2194,9 +2591,9 @@ type JobRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobRun) MarshalJSON() ([]byte, error) {
+func (s JobRun) MarshalJSON() ([]byte, error) {
 	type NoMethod JobRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobRunNotificationEvent: Payload proto for
@@ -2230,6 +2627,7 @@ type JobRunNotificationEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -2246,17 +2644,18 @@ type JobRunNotificationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobRunNotificationEvent) MarshalJSON() ([]byte, error) {
+func (s JobRunNotificationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod JobRunNotificationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KubernetesConfig: KubernetesConfig contains the Kubernetes runtime
 // configuration.
 type KubernetesConfig struct {
-	// GatewayServiceMesh: Kubernetes Gateway API service mesh configuration.
+	// GatewayServiceMesh: Optional. Kubernetes Gateway API service mesh
+	// configuration.
 	GatewayServiceMesh *GatewayServiceMesh `json:"gatewayServiceMesh,omitempty"`
-	// ServiceNetworking: Kubernetes Service networking configuration.
+	// ServiceNetworking: Optional. Kubernetes Service networking configuration.
 	ServiceNetworking *ServiceNetworking `json:"serviceNetworking,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "GatewayServiceMesh") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2271,9 +2670,9 @@ type KubernetesConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KubernetesConfig) MarshalJSON() ([]byte, error) {
+func (s KubernetesConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod KubernetesConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAutomationRunsResponse: The response object from `ListAutomationRuns`.
@@ -2301,9 +2700,9 @@ type ListAutomationRunsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAutomationRunsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAutomationRunsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAutomationRunsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAutomationsResponse: The response object from `ListAutomations`.
@@ -2331,9 +2730,9 @@ type ListAutomationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAutomationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAutomationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAutomationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCustomTargetTypesResponse: The response object from
@@ -2362,9 +2761,9 @@ type ListCustomTargetTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCustomTargetTypesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCustomTargetTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCustomTargetTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDeliveryPipelinesResponse: The response object from
@@ -2393,9 +2792,39 @@ type ListDeliveryPipelinesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDeliveryPipelinesResponse) MarshalJSON() ([]byte, error) {
+func (s ListDeliveryPipelinesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDeliveryPipelinesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListDeployPoliciesResponse: The response object from `ListDeployPolicies`.
+type ListDeployPoliciesResponse struct {
+	// DeployPolicies: The `DeployPolicy` objects.
+	DeployPolicies []*DeployPolicy `json:"deployPolicies,omitempty"`
+	// NextPageToken: A token, which can be sent as `page_token` to retrieve the
+	// next page. If this field is omitted, there are no subsequent pages.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// Unreachable: Locations that could not be reached.
+	Unreachable []string `json:"unreachable,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "DeployPolicies") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DeployPolicies") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListDeployPoliciesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListDeployPoliciesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListJobRunsResponse: ListJobRunsResponse is the response object returned by
@@ -2424,9 +2853,9 @@ type ListJobRunsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListJobRunsResponse) MarshalJSON() ([]byte, error) {
+func (s ListJobRunsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListJobRunsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -2452,9 +2881,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -2480,9 +2909,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListReleasesResponse: The response object from `ListReleases`.
@@ -2510,12 +2939,12 @@ type ListReleasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListReleasesResponse) MarshalJSON() ([]byte, error) {
+func (s ListReleasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListReleasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// ListRolloutsResponse: ListRolloutsResponse is the response object reutrned
+// ListRolloutsResponse: ListRolloutsResponse is the response object returned
 // by `ListRollouts`.
 type ListRolloutsResponse struct {
 	// NextPageToken: A token, which can be sent as `page_token` to retrieve the
@@ -2541,9 +2970,9 @@ type ListRolloutsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListRolloutsResponse) MarshalJSON() ([]byte, error) {
+func (s ListRolloutsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListRolloutsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTargetsResponse: The response object from `ListTargets`.
@@ -2571,9 +3000,9 @@ type ListTargetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTargetsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTargetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTargetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -2609,9 +3038,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Metadata: Metadata includes information associated with a `Rollout`.
@@ -2638,9 +3067,9 @@ type Metadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Metadata) MarshalJSON() ([]byte, error) {
+func (s Metadata) MarshalJSON() ([]byte, error) {
 	type NoMethod Metadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultiTarget: Information specifying a multiTarget.
@@ -2660,9 +3089,41 @@ type MultiTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiTarget) MarshalJSON() ([]byte, error) {
+func (s MultiTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OneTimeWindow: One-time window within which actions are restricted. For
+// example, blocking actions over New Year's Eve from December 31st at 5pm to
+// January 1st at 9am.
+type OneTimeWindow struct {
+	// EndDate: Required. End date.
+	EndDate *Date `json:"endDate,omitempty"`
+	// EndTime: Required. End time (exclusive). You may use 24:00 for the end of
+	// the day.
+	EndTime *TimeOfDay `json:"endTime,omitempty"`
+	// StartDate: Required. Start date.
+	StartDate *Date `json:"startDate,omitempty"`
+	// StartTime: Required. Start time (inclusive). Use 00:00 for the beginning of
+	// the day.
+	StartTime *TimeOfDay `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndDate") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndDate") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OneTimeWindow) MarshalJSON() ([]byte, error) {
+	type NoMethod OneTimeWindow
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -2707,9 +3168,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of the long-running operation.
@@ -2722,8 +3183,8 @@ type OperationMetadata struct {
 	EndTime string `json:"endTime,omitempty"`
 	// RequestedCancellation: Output only. Identifies whether the user has
 	// requested cancellation of the operation. Operations that have successfully
-	// been cancelled have Operation.error value with a google.rpc.Status.code of
-	// 1, corresponding to `Code.CANCELLED`.
+	// been cancelled have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
 	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
 	// StatusMessage: Output only. Human-readable status of the operation, if any.
 	StatusMessage string `json:"statusMessage,omitempty"`
@@ -2745,9 +3206,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Phase: Phase represents a collection of jobs that are logically grouped
@@ -2786,9 +3247,9 @@ type Phase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Phase) MarshalJSON() ([]byte, error) {
+func (s Phase) MarshalJSON() ([]byte, error) {
 	type NoMethod Phase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PhaseArtifact: Contains the paths to the artifacts, relative to the URI, for
@@ -2816,9 +3277,9 @@ type PhaseArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PhaseArtifact) MarshalJSON() ([]byte, error) {
+func (s PhaseArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod PhaseArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PhaseConfig: PhaseConfig represents the configuration for a phase in the
@@ -2838,11 +3299,11 @@ type PhaseConfig struct {
 	// Predeploy: Optional. Configuration for the predeploy job of this phase. If
 	// this is not configured, there will be no predeploy job for this phase.
 	Predeploy *Predeploy `json:"predeploy,omitempty"`
-	// Profiles: Skaffold profiles to use when rendering the manifest for this
-	// phase. These are in addition to the profiles list specified in the
+	// Profiles: Optional. Skaffold profiles to use when rendering the manifest for
+	// this phase. These are in addition to the profiles list specified in the
 	// `DeliveryPipeline` stage.
 	Profiles []string `json:"profiles,omitempty"`
-	// Verify: Whether to run verify tests after the deployment.
+	// Verify: Optional. Whether to run verify tests after the deployment.
 	Verify bool `json:"verify,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Percentage") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2857,9 +3318,9 @@ type PhaseConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PhaseConfig) MarshalJSON() ([]byte, error) {
+func (s PhaseConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PhaseConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PipelineCondition: PipelineCondition contains all conditions relevant to a
@@ -2885,9 +3346,9 @@ type PipelineCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PipelineCondition) MarshalJSON() ([]byte, error) {
+func (s PipelineCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod PipelineCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PipelineReadyCondition: PipelineReadyCondition contains information around
@@ -2913,9 +3374,9 @@ type PipelineReadyCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PipelineReadyCondition) MarshalJSON() ([]byte, error) {
+func (s PipelineReadyCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod PipelineReadyCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -3005,9 +3466,83 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PolicyRule: Deploy Policy rule.
+type PolicyRule struct {
+	// RolloutRestriction: Optional. Rollout restrictions.
+	RolloutRestriction *RolloutRestriction `json:"rolloutRestriction,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "RolloutRestriction") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "RolloutRestriction") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PolicyRule) MarshalJSON() ([]byte, error) {
+	type NoMethod PolicyRule
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PolicyViolation: Returned from an action if one or more policies were
+// violated, and therefore the action was prevented. Contains information about
+// what policies were violated and why.
+type PolicyViolation struct {
+	// PolicyViolationDetails: Policy violation details.
+	PolicyViolationDetails []*PolicyViolationDetails `json:"policyViolationDetails,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PolicyViolationDetails") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PolicyViolationDetails") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PolicyViolation) MarshalJSON() ([]byte, error) {
+	type NoMethod PolicyViolation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PolicyViolationDetails: Policy violation details.
+type PolicyViolationDetails struct {
+	// FailureMessage: User readable message about why the request violated a
+	// policy. This is not intended for machine parsing.
+	FailureMessage string `json:"failureMessage,omitempty"`
+	// Policy: Name of the policy that was violated. Policy resource will be in the
+	// format of `projects/{project}/locations/{location}/policies/{policy}`.
+	Policy string `json:"policy,omitempty"`
+	// RuleId: Id of the rule that triggered the policy violation.
+	RuleId string `json:"ruleId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FailureMessage") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FailureMessage") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PolicyViolationDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod PolicyViolationDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Postdeploy: Postdeploy contains the postdeploy job configuration
@@ -3029,9 +3564,9 @@ type Postdeploy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Postdeploy) MarshalJSON() ([]byte, error) {
+func (s Postdeploy) MarshalJSON() ([]byte, error) {
 	type NoMethod Postdeploy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostdeployJob: A postdeploy Job.
@@ -3051,9 +3586,9 @@ type PostdeployJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostdeployJob) MarshalJSON() ([]byte, error) {
+func (s PostdeployJob) MarshalJSON() ([]byte, error) {
 	type NoMethod PostdeployJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostdeployJobRun: PostdeployJobRun contains information specific to a
@@ -3077,7 +3612,7 @@ type PostdeployJobRun struct {
 	//   "EXECUTION_FAILED" - The postdeploy operation did not complete
 	// successfully; check Cloud Build logs.
 	//   "DEADLINE_EXCEEDED" - The postdeploy job run did not complete within the
-	// alloted time.
+	// allotted time.
 	//   "CLOUD_BUILD_REQUEST_FAILED" - Cloud Build failed to fulfill Cloud
 	// Deploy's request. See failure_message for additional details.
 	FailureCause string `json:"failureCause,omitempty"`
@@ -3097,9 +3632,9 @@ type PostdeployJobRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostdeployJobRun) MarshalJSON() ([]byte, error) {
+func (s PostdeployJobRun) MarshalJSON() ([]byte, error) {
 	type NoMethod PostdeployJobRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Predeploy: Predeploy contains the predeploy job configuration information.
@@ -3120,9 +3655,9 @@ type Predeploy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Predeploy) MarshalJSON() ([]byte, error) {
+func (s Predeploy) MarshalJSON() ([]byte, error) {
 	type NoMethod Predeploy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PredeployJob: A predeploy Job.
@@ -3142,9 +3677,9 @@ type PredeployJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PredeployJob) MarshalJSON() ([]byte, error) {
+func (s PredeployJob) MarshalJSON() ([]byte, error) {
 	type NoMethod PredeployJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PredeployJobRun: PredeployJobRun contains information specific to a
@@ -3167,7 +3702,7 @@ type PredeployJobRun struct {
 	//   "EXECUTION_FAILED" - The predeploy operation did not complete
 	// successfully; check Cloud Build logs.
 	//   "DEADLINE_EXCEEDED" - The predeploy job run did not complete within the
-	// alloted time.
+	// allotted time.
 	//   "CLOUD_BUILD_REQUEST_FAILED" - Cloud Build failed to fulfill Cloud
 	// Deploy's request. See failure_message for additional details.
 	FailureCause string `json:"failureCause,omitempty"`
@@ -3187,9 +3722,9 @@ type PredeployJobRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PredeployJobRun) MarshalJSON() ([]byte, error) {
+func (s PredeployJobRun) MarshalJSON() ([]byte, error) {
 	type NoMethod PredeployJobRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrivatePool: Execution using a private Cloud Build pool.
@@ -3219,9 +3754,9 @@ type PrivatePool struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrivatePool) MarshalJSON() ([]byte, error) {
+func (s PrivatePool) MarshalJSON() ([]byte, error) {
 	type NoMethod PrivatePool
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PromoteReleaseOperation: Contains the information of an automated
@@ -3252,12 +3787,12 @@ type PromoteReleaseOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PromoteReleaseOperation) MarshalJSON() ([]byte, error) {
+func (s PromoteReleaseOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod PromoteReleaseOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// PromoteReleaseRule: `PromoteRelease` rule will automatically promote a
+// PromoteReleaseRule: The `PromoteRelease` rule will automatically promote a
 // release from the current target to a specified target.
 type PromoteReleaseRule struct {
 	// Condition: Output only. Information around the state of the Automation rule.
@@ -3268,9 +3803,8 @@ type PromoteReleaseRule struct {
 	// DestinationTargetId: Optional. The ID of the stage in the pipeline to which
 	// this `Release` is deploying. If unspecified, default it to the next stage in
 	// the promotion flow. The value of this field could be one of the following: *
-	// The last segment of a target name. It only needs the ID to determine if the
-	// target is one of the stages in the promotion sequence defined in the
-	// pipeline. * "@next", the next target in the promotion sequence.
+	// The last segment of a target name * "@next", the next target in the
+	// promotion sequence
 	DestinationTargetId string `json:"destinationTargetId,omitempty"`
 	// Id: Required. ID of the rule. This id must be unique in the `Automation`
 	// resource to which this rule belongs. The format is
@@ -3292,9 +3826,9 @@ type PromoteReleaseRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PromoteReleaseRule) MarshalJSON() ([]byte, error) {
+func (s PromoteReleaseRule) MarshalJSON() ([]byte, error) {
 	type NoMethod PromoteReleaseRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Release: A `Release` resource in the Cloud Deploy API. A `Release` defines a
@@ -3302,12 +3836,13 @@ func (s *PromoteReleaseRule) MarshalJSON() ([]byte, error) {
 type Release struct {
 	// Abandoned: Output only. Indicates whether this is an abandoned release.
 	Abandoned bool `json:"abandoned,omitempty"`
-	// Annotations: User annotations. These attributes can only be set and used by
-	// the user, and not by Cloud Deploy. See
+	// Annotations: Optional. User annotations. These attributes can only be set
+	// and used by the user, and not by Cloud Deploy. See
 	// https://google.aip.dev/128#annotations for more details such as format and
 	// size limitations.
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// BuildArtifacts: List of artifacts to pass through to Skaffold command.
+	// BuildArtifacts: Optional. List of artifacts to pass through to Skaffold
+	// command.
 	BuildArtifacts []*BuildArtifact `json:"buildArtifacts,omitempty"`
 	// Condition: Output only. Information around the state of the Release.
 	Condition *ReleaseCondition `json:"condition,omitempty"`
@@ -3322,7 +3857,8 @@ type Release struct {
 	// DeployParameters: Optional. The deploy parameters to use for all targets in
 	// this release.
 	DeployParameters map[string]string `json:"deployParameters,omitempty"`
-	// Description: Description of the `Release`. Max length is 255 characters.
+	// Description: Optional. Description of the `Release`. Max length is 255
+	// characters.
 	Description string `json:"description,omitempty"`
 	// Etag: This checksum is computed by the server based on the value of other
 	// fields, and may be sent on update and delete requests to ensure the client
@@ -3337,7 +3873,7 @@ type Release struct {
 	// labels. Both keys and values are additionally constrained to be <= 128
 	// bytes.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name: Optional. Name of the `Release`. Format is
+	// Name: Identifier. Name of the `Release`. Format is
 	// `projects/{project}/locations/{location}/deliveryPipelines/{deliveryPipeline}
 	// /releases/{release}`. The `release` component must match
 	// `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`
@@ -3355,16 +3891,16 @@ type Release struct {
 	// failed.
 	//   "IN_PROGRESS" - Rendering has started and is not complete.
 	RenderState string `json:"renderState,omitempty"`
-	// SkaffoldConfigPath: Filepath of the Skaffold config inside of the config
-	// URI.
+	// SkaffoldConfigPath: Optional. Filepath of the Skaffold config inside of the
+	// config URI.
 	SkaffoldConfigPath string `json:"skaffoldConfigPath,omitempty"`
-	// SkaffoldConfigUri: Cloud Storage URI of tar.gz archive containing Skaffold
-	// configuration.
+	// SkaffoldConfigUri: Optional. Cloud Storage URI of tar.gz archive containing
+	// Skaffold configuration.
 	SkaffoldConfigUri string `json:"skaffoldConfigUri,omitempty"`
-	// SkaffoldVersion: The Skaffold version to use when operating on this release,
-	// such as "1.20.0". Not all versions are valid; Cloud Deploy supports a
-	// specific set of versions. If unset, the most recent supported Skaffold
-	// version will be used.
+	// SkaffoldVersion: Optional. The Skaffold version to use when operating on
+	// this release, such as "1.20.0". Not all versions are valid; Cloud Deploy
+	// supports a specific set of versions. If unset, the most recent supported
+	// Skaffold version will be used.
 	SkaffoldVersion string `json:"skaffoldVersion,omitempty"`
 	// TargetArtifacts: Output only. Map from target ID to the target artifacts
 	// created during the render operation.
@@ -3393,9 +3929,9 @@ type Release struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Release) MarshalJSON() ([]byte, error) {
+func (s Release) MarshalJSON() ([]byte, error) {
 	type NoMethod Release
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReleaseCondition: ReleaseCondition contains all conditions relevant to a
@@ -3419,9 +3955,9 @@ type ReleaseCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReleaseCondition) MarshalJSON() ([]byte, error) {
+func (s ReleaseCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod ReleaseCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReleaseNotificationEvent: Payload proto for
@@ -3447,6 +3983,7 @@ type ReleaseNotificationEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -3463,9 +4000,9 @@ type ReleaseNotificationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReleaseNotificationEvent) MarshalJSON() ([]byte, error) {
+func (s ReleaseNotificationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod ReleaseNotificationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReleaseReadyCondition: ReleaseReadyCondition contains information around the
@@ -3490,9 +4027,9 @@ type ReleaseReadyCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReleaseReadyCondition) MarshalJSON() ([]byte, error) {
+func (s ReleaseReadyCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod ReleaseReadyCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReleaseRenderEvent: Payload proto for
@@ -3529,6 +4066,7 @@ type ReleaseRenderEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -3545,9 +4083,9 @@ type ReleaseRenderEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReleaseRenderEvent) MarshalJSON() ([]byte, error) {
+func (s ReleaseRenderEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod ReleaseRenderEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RenderMetadata: RenderMetadata includes information associated with a
@@ -3571,9 +4109,9 @@ type RenderMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RenderMetadata) MarshalJSON() ([]byte, error) {
+func (s RenderMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod RenderMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RepairPhase: RepairPhase tracks the repair attempts that have been made for
@@ -3596,14 +4134,41 @@ type RepairPhase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RepairPhase) MarshalJSON() ([]byte, error) {
+func (s RepairPhase) MarshalJSON() ([]byte, error) {
 	type NoMethod RepairPhase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RepairPhaseConfig: Configuration of the repair phase.
+type RepairPhaseConfig struct {
+	// Retry: Optional. Retries a failed job.
+	Retry *Retry `json:"retry,omitempty"`
+	// Rollback: Optional. Rolls back a `Rollout`.
+	Rollback *Rollback `json:"rollback,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Retry") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Retry") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RepairPhaseConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod RepairPhaseConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RepairRolloutOperation: Contains the information for an automated `repair
 // rollout` operation.
 type RepairRolloutOperation struct {
+	// CurrentRepairPhaseIndex: Output only. The index of the current repair action
+	// in the repair sequence.
+	CurrentRepairPhaseIndex int64 `json:"currentRepairPhaseIndex,omitempty,string"`
 	// JobId: Output only. The job ID for the Job to repair.
 	JobId string `json:"jobId,omitempty"`
 	// PhaseId: Output only. The phase ID of the phase that includes the job being
@@ -3615,22 +4180,22 @@ type RepairRolloutOperation struct {
 	// Rollout: Output only. The name of the rollout that initiates the
 	// `AutomationRun`.
 	Rollout string `json:"rollout,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "JobId") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "CurrentRepairPhaseIndex") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "JobId") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "CurrentRepairPhaseIndex") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *RepairRolloutOperation) MarshalJSON() ([]byte, error) {
+func (s RepairRolloutOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod RepairRolloutOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RepairRolloutRule: The `RepairRolloutRule` automation rule will
@@ -3651,6 +4216,16 @@ type RepairRolloutRule struct {
 	// characters. In other words, it must match the following regex: `^a-z
 	// ([a-z0-9-]{0,61}[a-z0-9])?$`.
 	Jobs []string `json:"jobs,omitempty"`
+	// Phases: Optional. Phases within which jobs are subject to automatic repair
+	// actions on failure. Proceeds only after phase name matched any one in the
+	// list, or for all phases if unspecified. This value must consist of
+	// lower-case letters, numbers, and hyphens, start with a letter and end with a
+	// letter or a number, and have a max length of 63 characters. In other words,
+	// it must match the following regex: `^a-z ([a-z0-9-]{0,61}[a-z0-9])?$`.
+	Phases []string `json:"phases,omitempty"`
+	// RepairPhases: Required. Defines the types of automatic repair phases for
+	// failed jobs.
+	RepairPhases []*RepairPhaseConfig `json:"repairPhases,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Condition") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -3664,9 +4239,43 @@ type RepairRolloutRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RepairRolloutRule) MarshalJSON() ([]byte, error) {
+func (s RepairRolloutRule) MarshalJSON() ([]byte, error) {
 	type NoMethod RepairRolloutRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Retry: Retries the failed job.
+type Retry struct {
+	// Attempts: Required. Total number of retries. Retry is skipped if set to 0;
+	// The minimum value is 1, and the maximum value is 10.
+	Attempts int64 `json:"attempts,omitempty,string"`
+	// BackoffMode: Optional. The pattern of how wait time will be increased.
+	// Default is linear. Backoff mode will be ignored if `wait` is 0.
+	//
+	// Possible values:
+	//   "BACKOFF_MODE_UNSPECIFIED" - No WaitMode is specified.
+	//   "BACKOFF_MODE_LINEAR" - Increases the wait time linearly.
+	//   "BACKOFF_MODE_EXPONENTIAL" - Increases the wait time exponentially.
+	BackoffMode string `json:"backoffMode,omitempty"`
+	// Wait: Optional. How long to wait for the first retry. Default is 0, and the
+	// maximum value is 14d.
+	Wait string `json:"wait,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Attempts") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Attempts") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Retry) MarshalJSON() ([]byte, error) {
+	type NoMethod Retry
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RetryAttempt: RetryAttempt represents an action of retrying the failed Cloud
@@ -3702,15 +4311,18 @@ type RetryAttempt struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RetryAttempt) MarshalJSON() ([]byte, error) {
+func (s RetryAttempt) MarshalJSON() ([]byte, error) {
 	type NoMethod RetryAttempt
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RetryJobRequest: RetryJobRequest is the request object used by `RetryJob`.
 type RetryJobRequest struct {
 	// JobId: Required. The job ID for the Job to retry.
 	JobId string `json:"jobId,omitempty"`
+	// OverrideDeployPolicy: Optional. Deploy policies to override. Format is
+	// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+	OverrideDeployPolicy []string `json:"overrideDeployPolicy,omitempty"`
 	// PhaseId: Required. The phase ID the Job to retry belongs to.
 	PhaseId string `json:"phaseId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "JobId") to unconditionally
@@ -3726,9 +4338,9 @@ type RetryJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RetryJobRequest) MarshalJSON() ([]byte, error) {
+func (s RetryJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RetryJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RetryJobResponse: The response object from 'RetryJob'.
@@ -3765,9 +4377,35 @@ type RetryPhase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RetryPhase) MarshalJSON() ([]byte, error) {
+func (s RetryPhase) MarshalJSON() ([]byte, error) {
 	type NoMethod RetryPhase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Rollback: Rolls back a `Rollout`.
+type Rollback struct {
+	// DestinationPhase: Optional. The starting phase ID for the `Rollout`. If
+	// unspecified, the `Rollout` will start in the stable phase.
+	DestinationPhase string `json:"destinationPhase,omitempty"`
+	// DisableRollbackIfRolloutPending: Optional. If pending rollout exists on the
+	// target, the rollback operation will be aborted.
+	DisableRollbackIfRolloutPending bool `json:"disableRollbackIfRolloutPending,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DestinationPhase") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DestinationPhase") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Rollback) MarshalJSON() ([]byte, error) {
+	type NoMethod Rollback
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackAttempt: RollbackAttempt represents an action of rolling back a
@@ -3776,6 +4414,9 @@ type RollbackAttempt struct {
 	// DestinationPhase: Output only. The phase to which the rollout will be rolled
 	// back to.
 	DestinationPhase string `json:"destinationPhase,omitempty"`
+	// DisableRollbackIfRolloutPending: Output only. If active rollout exists on
+	// the target, abort this rollback.
+	DisableRollbackIfRolloutPending bool `json:"disableRollbackIfRolloutPending,omitempty"`
 	// RolloutId: Output only. ID of the rollback `Rollout` to create.
 	RolloutId string `json:"rolloutId,omitempty"`
 	// State: Output only. Valid state of this rollback action.
@@ -3804,9 +4445,9 @@ type RollbackAttempt struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackAttempt) MarshalJSON() ([]byte, error) {
+func (s RollbackAttempt) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackAttempt
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackTargetConfig: Configs for the Rollback rollout.
@@ -3829,13 +4470,16 @@ type RollbackTargetConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackTargetConfig) MarshalJSON() ([]byte, error) {
+func (s RollbackTargetConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackTargetConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackTargetRequest: The request object for `RollbackTarget`.
 type RollbackTargetRequest struct {
+	// OverrideDeployPolicy: Optional. Deploy policies to override. Format is
+	// `projects/{project}/locations/{location}/deployPolicies/{deploy_policy}`.
+	OverrideDeployPolicy []string `json:"overrideDeployPolicy,omitempty"`
 	// ReleaseId: Optional. ID of the `Release` to roll back to. If this isn't
 	// specified, the previous successful `Rollout` to the specified target will be
 	// used to determine the `Release`.
@@ -3852,22 +4496,22 @@ type RollbackTargetRequest struct {
 	// ValidateOnly: Optional. If set to true, the request is validated and the
 	// user is provided with a `RollbackTargetResponse`.
 	ValidateOnly bool `json:"validateOnly,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "ReleaseId") to
+	// ForceSendFields is a list of field names (e.g. "OverrideDeployPolicy") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ReleaseId") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "OverrideDeployPolicy") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackTargetRequest) MarshalJSON() ([]byte, error) {
+func (s RollbackTargetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackTargetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackTargetResponse: The response object from `RollbackTarget`.
@@ -3891,16 +4535,19 @@ type RollbackTargetResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackTargetResponse) MarshalJSON() ([]byte, error) {
+func (s RollbackTargetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackTargetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Rollout: A `Rollout` resource in the Cloud Deploy API. A `Rollout` contains
 // information around a specific deployment to a `Target`.
 type Rollout struct {
-	// Annotations: User annotations. These attributes can only be set and used by
-	// the user, and not by Cloud Deploy. See
+	// ActiveRepairAutomationRun: Output only. The AutomationRun actively repairing
+	// the rollout.
+	ActiveRepairAutomationRun string `json:"activeRepairAutomationRun,omitempty"`
+	// Annotations: Optional. User annotations. These attributes can only be set
+	// and used by the user, and not by Cloud Deploy. See
 	// https://google.aip.dev/128#annotations for more details such as format and
 	// size limitations.
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -3936,7 +4583,8 @@ type Rollout struct {
 	// #required_permissions).
 	//   "EXECUTION_FAILED" - The deploy operation did not complete successfully;
 	// check Cloud Build logs.
-	//   "DEADLINE_EXCEEDED" - Deployment did not complete within the alloted time.
+	//   "DEADLINE_EXCEEDED" - Deployment did not complete within the allotted
+	// time.
 	//   "RELEASE_FAILED" - Release is in a failed state.
 	//   "RELEASE_ABANDONED" - Release is abandoned.
 	//   "VERIFICATION_CONFIG_NOT_FOUND" - No Skaffold verify configuration was
@@ -3952,8 +4600,8 @@ type Rollout struct {
 	// object that is used to deploy the Rollout. Format is
 	// `projects/{project}/locations/{location}/builds/{build}`.
 	DeployingBuild string `json:"deployingBuild,omitempty"`
-	// Description: Description of the `Rollout` for user purposes. Max length is
-	// 255 characters.
+	// Description: Optional. Description of the `Rollout` for user purposes. Max
+	// length is 255 characters.
 	Description string `json:"description,omitempty"`
 	// EnqueueTime: Output only. Time at which the `Rollout` was enqueued.
 	EnqueueTime string `json:"enqueueTime,omitempty"`
@@ -3975,7 +4623,7 @@ type Rollout struct {
 	Labels map[string]string `json:"labels,omitempty"`
 	// Metadata: Output only. Metadata contains information about the rollout.
 	Metadata *Metadata `json:"metadata,omitempty"`
-	// Name: Optional. Name of the `Rollout`. Format is
+	// Name: Identifier. Name of the `Rollout`. Format is
 	// `projects/{project}/locations/{location}/deliveryPipelines/{deliveryPipeline}
 	// /releases/{release}/rollouts/{rollout}`. The `rollout` component must match
 	// `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`
@@ -4013,22 +4661,22 @@ type Rollout struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "Annotations") to
-	// unconditionally include in API requests. By default, fields with empty or
+	// ForceSendFields is a list of field names (e.g. "ActiveRepairAutomationRun")
+	// to unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Annotations") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "ActiveRepairAutomationRun") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *Rollout) MarshalJSON() ([]byte, error) {
+func (s Rollout) MarshalJSON() ([]byte, error) {
 	type NoMethod Rollout
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RolloutNotificationEvent: Payload proto for
@@ -4060,6 +4708,7 @@ type RolloutNotificationEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -4076,9 +4725,57 @@ type RolloutNotificationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RolloutNotificationEvent) MarshalJSON() ([]byte, error) {
+func (s RolloutNotificationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod RolloutNotificationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RolloutRestriction: Rollout restrictions.
+type RolloutRestriction struct {
+	// Actions: Optional. Rollout actions to be restricted as part of the policy.
+	// If left empty, all actions will be restricted.
+	//
+	// Possible values:
+	//   "ROLLOUT_ACTIONS_UNSPECIFIED" - Unspecified.
+	//   "ADVANCE" - Advance the rollout to the next phase.
+	//   "APPROVE" - Approve the rollout.
+	//   "CANCEL" - Cancel the rollout.
+	//   "CREATE" - Create a rollout.
+	//   "IGNORE_JOB" - Ignore a job result on the rollout.
+	//   "RETRY_JOB" - Retry a job for a rollout.
+	//   "ROLLBACK" - Rollback a rollout.
+	//   "TERMINATE_JOBRUN" - Terminate a jobrun.
+	Actions []string `json:"actions,omitempty"`
+	// Id: Required. Restriction rule ID. Required and must be unique within a
+	// DeployPolicy. The format is `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`.
+	Id string `json:"id,omitempty"`
+	// Invokers: Optional. What invoked the action. If left empty, all invoker
+	// types will be restricted.
+	//
+	// Possible values:
+	//   "INVOKER_UNSPECIFIED" - Unspecified.
+	//   "USER" - The action is user-driven. For example, creating a rollout
+	// manually via a gcloud create command.
+	//   "DEPLOY_AUTOMATION" - Automated action by Cloud Deploy.
+	Invokers []string `json:"invokers,omitempty"`
+	// TimeWindows: Required. Time window within which actions are restricted.
+	TimeWindows *TimeWindows `json:"timeWindows,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Actions") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Actions") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RolloutRestriction) MarshalJSON() ([]byte, error) {
+	type NoMethod RolloutRestriction
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RolloutUpdateEvent: Payload proto for
@@ -4128,6 +4825,7 @@ type RolloutUpdateEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -4144,17 +4842,49 @@ type RolloutUpdateEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RolloutUpdateEvent) MarshalJSON() ([]byte, error) {
+func (s RolloutUpdateEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod RolloutUpdateEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RouteDestinations: Information about route destinations for the Gateway API
+// service mesh.
+type RouteDestinations struct {
+	// DestinationIds: Required. The clusters where the Gateway API HTTPRoute
+	// resource will be deployed to. Valid entries include the associated entities
+	// IDs configured in the Target resource and "@self" to include the Target
+	// cluster.
+	DestinationIds []string `json:"destinationIds,omitempty"`
+	// PropagateService: Optional. Whether to propagate the Kubernetes Service to
+	// the route destination clusters. The Service will always be deployed to the
+	// Target cluster even if the HTTPRoute is not. This option may be used to
+	// facilitate successful DNS lookup in the route destination clusters. Can only
+	// be set to true if destinations are specified.
+	PropagateService bool `json:"propagateService,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DestinationIds") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DestinationIds") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RouteDestinations) MarshalJSON() ([]byte, error) {
+	type NoMethod RouteDestinations
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuntimeConfig: RuntimeConfig contains the runtime specific configurations
 // for a deployment strategy.
 type RuntimeConfig struct {
-	// CloudRun: Cloud Run runtime configuration.
+	// CloudRun: Optional. Cloud Run runtime configuration.
 	CloudRun *CloudRunConfig `json:"cloudRun,omitempty"`
-	// Kubernetes: Kubernetes runtime configuration.
+	// Kubernetes: Optional. Kubernetes runtime configuration.
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CloudRun") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -4169,16 +4899,16 @@ type RuntimeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuntimeConfig) MarshalJSON() ([]byte, error) {
+func (s RuntimeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RuntimeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SerialPipeline: SerialPipeline defines a sequential set of stages for a
 // `DeliveryPipeline`.
 type SerialPipeline struct {
-	// Stages: Each stage specifies configuration for a `Target`. The ordering of
-	// this list defines the promotion flow.
+	// Stages: Optional. Each stage specifies configuration for a `Target`. The
+	// ordering of this list defines the promotion flow.
 	Stages []*Stage `json:"stages,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Stages") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -4193,9 +4923,9 @@ type SerialPipeline struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SerialPipeline) MarshalJSON() ([]byte, error) {
+func (s SerialPipeline) MarshalJSON() ([]byte, error) {
 	type NoMethod SerialPipeline
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServiceNetworking: Information about the Kubernetes Service networking
@@ -4209,6 +4939,9 @@ type ServiceNetworking struct {
 	// limit the number of total Pods used for the deployment strategy to the
 	// number of Pods the Deployment has on the cluster.
 	DisablePodOverprovisioning bool `json:"disablePodOverprovisioning,omitempty"`
+	// PodSelectorLabel: Optional. The label to use when selecting Pods for the
+	// Deployment resource. This label must already be present in the Deployment.
+	PodSelectorLabel string `json:"podSelectorLabel,omitempty"`
 	// Service: Required. Name of the Kubernetes Service.
 	Service string `json:"service,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Deployment") to
@@ -4224,9 +4957,9 @@ type ServiceNetworking struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServiceNetworking) MarshalJSON() ([]byte, error) {
+func (s ServiceNetworking) MarshalJSON() ([]byte, error) {
 	type NoMethod ServiceNetworking
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -4253,9 +4986,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SkaffoldGCBRepoSource: Cloud Build V2 Repository containing Skaffold
@@ -4283,9 +5016,9 @@ type SkaffoldGCBRepoSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SkaffoldGCBRepoSource) MarshalJSON() ([]byte, error) {
+func (s SkaffoldGCBRepoSource) MarshalJSON() ([]byte, error) {
 	type NoMethod SkaffoldGCBRepoSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SkaffoldGCSSource: Cloud Storage bucket containing Skaffold Config modules.
@@ -4310,9 +5043,9 @@ type SkaffoldGCSSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SkaffoldGCSSource) MarshalJSON() ([]byte, error) {
+func (s SkaffoldGCSSource) MarshalJSON() ([]byte, error) {
 	type NoMethod SkaffoldGCSSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SkaffoldGitSource: Git repository containing Skaffold Config modules.
@@ -4336,9 +5069,9 @@ type SkaffoldGitSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SkaffoldGitSource) MarshalJSON() ([]byte, error) {
+func (s SkaffoldGitSource) MarshalJSON() ([]byte, error) {
 	type NoMethod SkaffoldGitSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SkaffoldModules: Skaffold Config modules and their remote source.
@@ -4346,13 +5079,13 @@ type SkaffoldModules struct {
 	// Configs: Optional. The Skaffold Config modules to use from the specified
 	// source.
 	Configs []string `json:"configs,omitempty"`
-	// Git: Remote git repository containing the Skaffold Config modules.
+	// Git: Optional. Remote git repository containing the Skaffold Config modules.
 	Git *SkaffoldGitSource `json:"git,omitempty"`
-	// GoogleCloudBuildRepo: Cloud Build V2 repository containing the Skaffold
-	// Config modules.
+	// GoogleCloudBuildRepo: Optional. Cloud Build V2 repository containing the
+	// Skaffold Config modules.
 	GoogleCloudBuildRepo *SkaffoldGCBRepoSource `json:"googleCloudBuildRepo,omitempty"`
-	// GoogleCloudStorage: Cloud Storage bucket containing the Skaffold Config
-	// modules.
+	// GoogleCloudStorage: Optional. Cloud Storage bucket containing the Skaffold
+	// Config modules.
 	GoogleCloudStorage *SkaffoldGCSSource `json:"googleCloudStorage,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Configs") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -4367,9 +5100,9 @@ type SkaffoldModules struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SkaffoldModules) MarshalJSON() ([]byte, error) {
+func (s SkaffoldModules) MarshalJSON() ([]byte, error) {
 	type NoMethod SkaffoldModules
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SkaffoldSupportedCondition: SkaffoldSupportedCondition contains information
@@ -4409,9 +5142,9 @@ type SkaffoldSupportedCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SkaffoldSupportedCondition) MarshalJSON() ([]byte, error) {
+func (s SkaffoldSupportedCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod SkaffoldSupportedCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SkaffoldVersion: Details of a supported Skaffold version.
@@ -4440,9 +5173,9 @@ type SkaffoldVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SkaffoldVersion) MarshalJSON() ([]byte, error) {
+func (s SkaffoldVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod SkaffoldVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Stage: Stage specifies a location to which to deploy.
@@ -4450,14 +5183,14 @@ type Stage struct {
 	// DeployParameters: Optional. The deploy parameters to use for the target in
 	// this stage.
 	DeployParameters []*DeployParameters `json:"deployParameters,omitempty"`
-	// Profiles: Skaffold profiles to use when rendering the manifest for this
-	// stage's `Target`.
+	// Profiles: Optional. Skaffold profiles to use when rendering the manifest for
+	// this stage's `Target`.
 	Profiles []string `json:"profiles,omitempty"`
 	// Strategy: Optional. The strategy to use for a `Rollout` to this stage.
 	Strategy *Strategy `json:"strategy,omitempty"`
-	// TargetId: The target_id to which this stage points. This field refers
-	// exclusively to the last segment of a target name. For example, this field
-	// would just be `my-target` (rather than
+	// TargetId: Optional. The target_id to which this stage points. This field
+	// refers exclusively to the last segment of a target name. For example, this
+	// field would just be `my-target` (rather than
 	// `projects/project/locations/location/targets/my-target`). The location of
 	// the `Target` is inferred to be the same as the location of the
 	// `DeliveryPipeline` that contains this `Stage`.
@@ -4475,9 +5208,9 @@ type Stage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Stage) MarshalJSON() ([]byte, error) {
+func (s Stage) MarshalJSON() ([]byte, error) {
 	type NoMethod Stage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Standard: Standard represents the standard deployment strategy.
@@ -4488,7 +5221,7 @@ type Standard struct {
 	// Predeploy: Optional. Configuration for the predeploy job. If this is not
 	// configured, predeploy job will not be present.
 	Predeploy *Predeploy `json:"predeploy,omitempty"`
-	// Verify: Whether to verify a deployment.
+	// Verify: Optional. Whether to verify a deployment.
 	Verify bool `json:"verify,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Postdeploy") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -4503,9 +5236,9 @@ type Standard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Standard) MarshalJSON() ([]byte, error) {
+func (s Standard) MarshalJSON() ([]byte, error) {
 	type NoMethod Standard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -4537,18 +5270,18 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Strategy: Strategy contains deployment strategy information.
 type Strategy struct {
-	// Canary: Canary deployment strategy provides progressive percentage based
-	// deployments to a Target.
+	// Canary: Optional. Canary deployment strategy provides progressive percentage
+	// based deployments to a Target.
 	Canary *Canary `json:"canary,omitempty"`
-	// Standard: Standard deployment strategy executes a single deploy and allows
-	// verifying the deployment.
+	// Standard: Optional. Standard deployment strategy executes a single deploy
+	// and allows verifying the deployment.
 	Standard *Standard `json:"standard,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Canary") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -4563,9 +5296,9 @@ type Strategy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Strategy) MarshalJSON() ([]byte, error) {
+func (s Strategy) MarshalJSON() ([]byte, error) {
 	type NoMethod Strategy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Target: A `Target` resource in the Cloud Deploy API. A `Target` defines a
@@ -4578,6 +5311,15 @@ type Target struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// AnthosCluster: Optional. Information specifying an Anthos Cluster.
 	AnthosCluster *AnthosCluster `json:"anthosCluster,omitempty"`
+	// AssociatedEntities: Optional. Map of entity IDs to their associated
+	// entities. Associated entities allows specifying places other than the
+	// deployment target for specific features. For example, the Gateway API canary
+	// can be configured to deploy the HTTPRoute to a different cluster(s) than the
+	// deployment cluster using associated entities. An entity ID must consist of
+	// lower-case letters, numbers, and hyphens, start with a letter and end with a
+	// letter or a number, and have a max length of 63 characters. In other words,
+	// it must match the following regex: `^a-z ([a-z0-9-]{0,61}[a-z0-9])?$`.
+	AssociatedEntities map[string]AssociatedEntities `json:"associatedEntities,omitempty"`
 	// CreateTime: Output only. Time at which the `Target` was created.
 	CreateTime string `json:"createTime,omitempty"`
 	// CustomTarget: Optional. Information specifying a Custom Target.
@@ -4591,8 +5333,8 @@ type Target struct {
 	// of other fields, and may be sent on update and delete requests to ensure the
 	// client has an up-to-date value before proceeding.
 	Etag string `json:"etag,omitempty"`
-	// ExecutionConfigs: Configurations for all execution that relates to this
-	// `Target`. Each `ExecutionEnvironmentUsage` value may only be used in a
+	// ExecutionConfigs: Optional. Configurations for all execution that relates to
+	// this `Target`. Each `ExecutionEnvironmentUsage` value may only be used in a
 	// single configuration; using the same value multiple times is an error. When
 	// one or more configurations are specified, they must include the `RENDER` and
 	// `DEPLOY` `ExecutionEnvironmentUsage` values. When no configurations are
@@ -4611,7 +5353,7 @@ type Target struct {
 	Labels map[string]string `json:"labels,omitempty"`
 	// MultiTarget: Optional. Information specifying a multiTarget.
 	MultiTarget *MultiTarget `json:"multiTarget,omitempty"`
-	// Name: Optional. Name of the `Target`. Format is
+	// Name: Identifier. Name of the `Target`. Format is
 	// `projects/{project}/locations/{location}/targets/{target}`. The `target`
 	// component must match `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`
 	Name string `json:"name,omitempty"`
@@ -4641,9 +5383,9 @@ type Target struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Target) MarshalJSON() ([]byte, error) {
+func (s Target) MarshalJSON() ([]byte, error) {
 	type NoMethod Target
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetArtifact: The artifacts produced by a target render operation.
@@ -4653,13 +5395,13 @@ type TargetArtifact struct {
 	// paths are relative to this location.
 	ArtifactUri string `json:"artifactUri,omitempty"`
 	// ManifestPath: Output only. File path of the rendered manifest relative to
-	// the URI.
+	// the URI for the stable phase.
 	ManifestPath string `json:"manifestPath,omitempty"`
 	// PhaseArtifacts: Output only. Map from the phase ID to the phase artifacts
 	// for the `Target`.
 	PhaseArtifacts map[string]PhaseArtifact `json:"phaseArtifacts,omitempty"`
 	// SkaffoldConfigPath: Output only. File path of the resolved Skaffold
-	// configuration relative to the URI.
+	// configuration for the stable phase, relative to the URI.
 	SkaffoldConfigPath string `json:"skaffoldConfigPath,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ArtifactUri") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -4674,17 +5416,17 @@ type TargetArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetArtifact) MarshalJSON() ([]byte, error) {
+func (s TargetArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// TargetAttribute: Contains criteria for selecting Targets.
+// TargetAttribute: Contains criteria for selecting Targets. This could be used
+// to select targets for a Deploy Policy or for an Automation.
 type TargetAttribute struct {
-	// Id: ID of the `Target`. The value of this field could be one of the
-	// following: * The last segment of a target name. It only needs the ID to
-	// determine which target is being referred to * "*", all targets in a
-	// location.
+	// Id: Optional. ID of the `Target`. The value of this field could be one of
+	// the following: * The last segment of a target name * "*", all targets in a
+	// location
 	Id string `json:"id,omitempty"`
 	// Labels: Target labels.
 	Labels map[string]string `json:"labels,omitempty"`
@@ -4701,9 +5443,9 @@ type TargetAttribute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetAttribute) MarshalJSON() ([]byte, error) {
+func (s TargetAttribute) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetAttribute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetNotificationEvent: Payload proto for
@@ -4725,6 +5467,7 @@ type TargetNotificationEvent struct {
 	//   "TYPE_RESTRICTION_VIOLATED" - Restriction check failed.
 	//   "TYPE_RESOURCE_DELETED" - Resource deleted.
 	//   "TYPE_ROLLOUT_UPDATE" - Rollout updated.
+	//   "TYPE_DEPLOY_POLICY_EVALUATION" - Deploy Policy evaluation.
 	//   "TYPE_RENDER_STATUES_CHANGE" - Deprecated: This field is never used. Use
 	// release_render log type instead.
 	Type string `json:"type,omitempty"`
@@ -4741,9 +5484,9 @@ type TargetNotificationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetNotificationEvent) MarshalJSON() ([]byte, error) {
+func (s TargetNotificationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetNotificationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetRender: Details of rendering for a single target.
@@ -4766,9 +5509,9 @@ type TargetRender struct {
 	// successfully because the verification stanza required for verify was not
 	// found on the Skaffold configuration.
 	//   "CUSTOM_ACTION_NOT_FOUND" - The render operation did not complete
-	// successfully because the custom action required for predeploy or postdeploy
-	// was not found in the Skaffold configuration. See failure_message for
-	// additional details.
+	// successfully because the custom action(s) required for Rollout jobs were not
+	// found in the Skaffold configuration. See failure_message for additional
+	// details.
 	//   "DEPLOYMENT_STRATEGY_NOT_SUPPORTED" - Release failed during rendering
 	// because the release configuration is not supported with the specified
 	// deployment strategy.
@@ -4808,9 +5551,33 @@ type TargetRender struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetRender) MarshalJSON() ([]byte, error) {
+func (s TargetRender) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetRender
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Targets: The targets involved in a single timed promotion.
+type Targets struct {
+	// DestinationTargetId: Optional. The destination target ID.
+	DestinationTargetId string `json:"destinationTargetId,omitempty"`
+	// SourceTargetId: Optional. The source target ID.
+	SourceTargetId string `json:"sourceTargetId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DestinationTargetId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DestinationTargetId") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Targets) MarshalJSON() ([]byte, error) {
+	type NoMethod Targets
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetsPresentCondition: `TargetsPresentCondition` contains information on
@@ -4836,9 +5603,9 @@ type TargetsPresentCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetsPresentCondition) MarshalJSON() ([]byte, error) {
+func (s TargetsPresentCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetsPresentCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetsTypeCondition: TargetsTypeCondition contains information on whether
@@ -4863,13 +5630,32 @@ type TargetsTypeCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetsTypeCondition) MarshalJSON() ([]byte, error) {
+func (s TargetsTypeCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetsTypeCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TerminateJobRunRequest: The request object used by `TerminateJobRun`.
 type TerminateJobRunRequest struct {
+	// OverrideDeployPolicy: Optional. Deploy policies to override. Format is
+	// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+	OverrideDeployPolicy []string `json:"overrideDeployPolicy,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "OverrideDeployPolicy") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "OverrideDeployPolicy") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TerminateJobRunRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod TerminateJobRunRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TerminateJobRunResponse: The response object from `TerminateJobRun`.
@@ -4898,9 +5684,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -4925,9 +5711,178 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TimeOfDay: Represents a time of day. The date and time zone are either not
+// significant or are specified elsewhere. An API may choose to allow leap
+// seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
+type TimeOfDay struct {
+	// Hours: Hours of a day in 24 hour format. Must be greater than or equal to 0
+	// and typically must be less than or equal to 23. An API may choose to allow
+	// the value "24:00:00" for scenarios like business closing time.
+	Hours int64 `json:"hours,omitempty"`
+	// Minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+	// than or equal to 59.
+	Minutes int64 `json:"minutes,omitempty"`
+	// Nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+	// to 0 and less than or equal to 999,999,999.
+	Nanos int64 `json:"nanos,omitempty"`
+	// Seconds: Seconds of a minute. Must be greater than or equal to 0 and
+	// typically must be less than or equal to 59. An API may allow the value 60 if
+	// it allows leap-seconds.
+	Seconds int64 `json:"seconds,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Hours") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TimeOfDay) MarshalJSON() ([]byte, error) {
+	type NoMethod TimeOfDay
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TimeWindows: Time windows within which actions are restricted. See the
+// documentation
+// (https://cloud.google.com/deploy/docs/deploy-policy#dates_times) for more
+// information on how to configure dates/times.
+type TimeWindows struct {
+	// OneTimeWindows: Optional. One-time windows within which actions are
+	// restricted.
+	OneTimeWindows []*OneTimeWindow `json:"oneTimeWindows,omitempty"`
+	// TimeZone: Required. The time zone in IANA format IANA Time Zone Database
+	// (https://www.iana.org/time-zones) (e.g. America/New_York).
+	TimeZone string `json:"timeZone,omitempty"`
+	// WeeklyWindows: Optional. Recurring weekly windows within which actions are
+	// restricted.
+	WeeklyWindows []*WeeklyWindow `json:"weeklyWindows,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "OneTimeWindows") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "OneTimeWindows") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TimeWindows) MarshalJSON() ([]byte, error) {
+	type NoMethod TimeWindows
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TimedPromoteReleaseCondition: `TimedPromoteReleaseCondition` contains
+// conditions specific to an Automation with a Timed Promote Release rule
+// defined.
+type TimedPromoteReleaseCondition struct {
+	// NextPromotionTime: Output only. When the next scheduled promotion(s) will
+	// occur.
+	NextPromotionTime string `json:"nextPromotionTime,omitempty"`
+	// TargetsList: Output only. A list of targets involved in the upcoming timed
+	// promotion(s).
+	TargetsList []*Targets `json:"targetsList,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "NextPromotionTime") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPromotionTime") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TimedPromoteReleaseCondition) MarshalJSON() ([]byte, error) {
+	type NoMethod TimedPromoteReleaseCondition
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TimedPromoteReleaseOperation: Contains the information of an automated timed
+// promote-release operation.
+type TimedPromoteReleaseOperation struct {
+	// Phase: Output only. The starting phase of the rollout created by this
+	// operation.
+	Phase string `json:"phase,omitempty"`
+	// Release: Output only. The name of the release to be promoted.
+	Release string `json:"release,omitempty"`
+	// TargetId: Output only. The ID of the target that represents the promotion
+	// stage to which the release will be promoted. The value of this field is the
+	// last segment of a target name.
+	TargetId string `json:"targetId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Phase") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Phase") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TimedPromoteReleaseOperation) MarshalJSON() ([]byte, error) {
+	type NoMethod TimedPromoteReleaseOperation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TimedPromoteReleaseRule: The `TimedPromoteReleaseRule` will automatically
+// promote a release from the current target(s) to the specified target(s) on a
+// configured schedule.
+type TimedPromoteReleaseRule struct {
+	// Condition: Output only. Information around the state of the Automation rule.
+	Condition *AutomationRuleCondition `json:"condition,omitempty"`
+	// DestinationPhase: Optional. The starting phase of the rollout created by
+	// this rule. Default to the first phase.
+	DestinationPhase string `json:"destinationPhase,omitempty"`
+	// DestinationTargetId: Optional. The ID of the stage in the pipeline to which
+	// this `Release` is deploying. If unspecified, default it to the next stage in
+	// the promotion flow. The value of this field could be one of the following: *
+	// The last segment of a target name * "@next", the next target in the
+	// promotion sequence
+	DestinationTargetId string `json:"destinationTargetId,omitempty"`
+	// Id: Required. ID of the rule. This ID must be unique in the `Automation`
+	// resource to which this rule belongs. The format is
+	// `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`.
+	Id string `json:"id,omitempty"`
+	// Schedule: Required. Schedule in crontab format. e.g. "0 9 * * 1" for every
+	// Monday at 9am.
+	Schedule string `json:"schedule,omitempty"`
+	// TimeZone: Required. The time zone in IANA format IANA Time Zone Database
+	// (https://www.iana.org/time-zones) (e.g. America/New_York).
+	TimeZone string `json:"timeZone,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Condition") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Condition") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TimedPromoteReleaseRule) MarshalJSON() ([]byte, error) {
+	type NoMethod TimedPromoteReleaseRule
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerifyJob: A verify Job.
@@ -4960,7 +5915,7 @@ type VerifyJobRun struct {
 	//   "EXECUTION_FAILED" - The verify operation did not complete successfully;
 	// check Cloud Build logs.
 	//   "DEADLINE_EXCEEDED" - The verify job run did not complete within the
-	// alloted time.
+	// allotted time.
 	//   "VERIFICATION_CONFIG_NOT_FOUND" - No Skaffold verify configuration was
 	// found.
 	//   "CLOUD_BUILD_REQUEST_FAILED" - Cloud Build failed to fulfill Cloud
@@ -4982,9 +5937,53 @@ type VerifyJobRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerifyJobRun) MarshalJSON() ([]byte, error) {
+func (s VerifyJobRun) MarshalJSON() ([]byte, error) {
 	type NoMethod VerifyJobRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// WeeklyWindow: Weekly windows. For example, blocking actions every Saturday
+// and Sunday. Another example would be blocking actions every weekday from 5pm
+// to midnight.
+type WeeklyWindow struct {
+	// DaysOfWeek: Optional. Days of week. If left empty, all days of the week will
+	// be included.
+	//
+	// Possible values:
+	//   "DAY_OF_WEEK_UNSPECIFIED" - The day of the week is unspecified.
+	//   "MONDAY" - Monday
+	//   "TUESDAY" - Tuesday
+	//   "WEDNESDAY" - Wednesday
+	//   "THURSDAY" - Thursday
+	//   "FRIDAY" - Friday
+	//   "SATURDAY" - Saturday
+	//   "SUNDAY" - Sunday
+	DaysOfWeek []string `json:"daysOfWeek,omitempty"`
+	// EndTime: Optional. End time (exclusive). Use 24:00 to indicate midnight. If
+	// you specify end_time you must also specify start_time. If left empty, this
+	// will block for the entire day for the days specified in days_of_week.
+	EndTime *TimeOfDay `json:"endTime,omitempty"`
+	// StartTime: Optional. Start time (inclusive). Use 00:00 for the beginning of
+	// the day. If you specify start_time you must also specify end_time. If left
+	// empty, this will block for the entire day for the days specified in
+	// days_of_week.
+	StartTime *TimeOfDay `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DaysOfWeek") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DaysOfWeek") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s WeeklyWindow) MarshalJSON() ([]byte, error) {
+	type NoMethod WeeklyWindow
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -5041,12 +6040,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5054,6 +6052,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5088,9 +6087,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5148,12 +6149,11 @@ func (c *ProjectsLocationsGetConfigCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5161,6 +6161,7 @@ func (c *ProjectsLocationsGetConfigCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5195,9 +6196,11 @@ func (c *ProjectsLocationsGetConfigCall) Do(opts ...googleapi.CallOption) (*Conf
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5279,12 +6282,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5292,6 +6294,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5327,9 +6330,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5365,9 +6370,8 @@ type ProjectsLocationsCustomTargetTypesCreateCall struct {
 
 // Create: Creates a new CustomTargetType in a given project and location.
 //
-//   - parent: The parent collection in which the `CustomTargetType` should be
-//     created. Format should be
-//     `projects/{project_id}/locations/{location_name}`.
+//   - parent: The parent collection in which the `CustomTargetType` must be
+//     created. The format is `projects/{project_id}/locations/{location_name}`.
 func (r *ProjectsLocationsCustomTargetTypesService) Create(parent string, customtargettype *CustomTargetType) *ProjectsLocationsCustomTargetTypesCreateCall {
 	c := &ProjectsLocationsCustomTargetTypesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -5431,8 +6435,7 @@ func (c *ProjectsLocationsCustomTargetTypesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsCustomTargetTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customtargettype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customtargettype)
 	if err != nil {
 		return nil, err
 	}
@@ -5448,6 +6451,7 @@ func (c *ProjectsLocationsCustomTargetTypesCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5482,9 +6486,11 @@ func (c *ProjectsLocationsCustomTargetTypesCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5572,12 +6578,11 @@ func (c *ProjectsLocationsCustomTargetTypesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsCustomTargetTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5585,6 +6590,7 @@ func (c *ProjectsLocationsCustomTargetTypesDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5619,9 +6625,11 @@ func (c *ProjectsLocationsCustomTargetTypesDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5681,12 +6689,11 @@ func (c *ProjectsLocationsCustomTargetTypesGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5694,6 +6701,7 @@ func (c *ProjectsLocationsCustomTargetTypesGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5729,9 +6737,11 @@ func (c *ProjectsLocationsCustomTargetTypesGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5809,12 +6819,11 @@ func (c *ProjectsLocationsCustomTargetTypesGetIamPolicyCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5822,6 +6831,7 @@ func (c *ProjectsLocationsCustomTargetTypesGetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5856,9 +6866,11 @@ func (c *ProjectsLocationsCustomTargetTypesGetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5949,12 +6961,11 @@ func (c *ProjectsLocationsCustomTargetTypesListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/customTargetTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5962,6 +6973,7 @@ func (c *ProjectsLocationsCustomTargetTypesListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5997,9 +7009,11 @@ func (c *ProjectsLocationsCustomTargetTypesListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6035,7 +7049,7 @@ type ProjectsLocationsCustomTargetTypesPatchCall struct {
 
 // Patch: Updates a single CustomTargetType.
 //
-//   - name: Optional. Name of the `CustomTargetType`. Format is
+//   - name: Identifier. Name of the `CustomTargetType`. Format is
 //     `projects/{project}/locations/{location}/customTargetTypes/{customTargetTyp
 //     e}`. The `customTargetType` component must match
 //     `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`.
@@ -6071,10 +7085,10 @@ func (c *ProjectsLocationsCustomTargetTypesPatchCall) RequestId(requestId string
 }
 
 // UpdateMask sets the optional parameter "updateMask": Required. Field mask is
-// used to specify the fields to be overwritten in the `CustomTargetType`
-// resource by the update. The fields specified in the update_mask are relative
-// to the resource, not the full request. A field will be overwritten if it's
-// in the mask. If the user doesn't provide a mask then all fields are
+// used to specify the fields to be overwritten by the update in the
+// `CustomTargetType` resource. The fields specified in the update_mask are
+// relative to the resource, not the full request. A field will be overwritten
+// if it's in the mask. If the user doesn't provide a mask then all fields are
 // overwritten.
 func (c *ProjectsLocationsCustomTargetTypesPatchCall) UpdateMask(updateMask string) *ProjectsLocationsCustomTargetTypesPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
@@ -6114,8 +7128,7 @@ func (c *ProjectsLocationsCustomTargetTypesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsCustomTargetTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customtargettype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customtargettype)
 	if err != nil {
 		return nil, err
 	}
@@ -6131,6 +7144,7 @@ func (c *ProjectsLocationsCustomTargetTypesPatchCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6165,9 +7179,11 @@ func (c *ProjectsLocationsCustomTargetTypesPatchCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6219,8 +7235,7 @@ func (c *ProjectsLocationsCustomTargetTypesSetIamPolicyCall) Header() http.Heade
 
 func (c *ProjectsLocationsCustomTargetTypesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6236,6 +7251,7 @@ func (c *ProjectsLocationsCustomTargetTypesSetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6270,9 +7286,11 @@ func (c *ProjectsLocationsCustomTargetTypesSetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.customTargetTypes.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6287,9 +7305,8 @@ type ProjectsLocationsDeliveryPipelinesCreateCall struct {
 
 // Create: Creates a new DeliveryPipeline in a given project and location.
 //
-//   - parent: The parent collection in which the `DeliveryPipeline` should be
-//     created. Format should be
-//     `projects/{project_id}/locations/{location_name}`.
+//   - parent: The parent collection in which the `DeliveryPipeline` must be
+//     created. The format is `projects/{project_id}/locations/{location_name}`.
 func (r *ProjectsLocationsDeliveryPipelinesService) Create(parent string, deliverypipeline *DeliveryPipeline) *ProjectsLocationsDeliveryPipelinesCreateCall {
 	c := &ProjectsLocationsDeliveryPipelinesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -6353,8 +7370,7 @@ func (c *ProjectsLocationsDeliveryPipelinesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDeliveryPipelinesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deliverypipeline)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deliverypipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -6370,6 +7386,7 @@ func (c *ProjectsLocationsDeliveryPipelinesCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6404,9 +7421,11 @@ func (c *ProjectsLocationsDeliveryPipelinesCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6420,7 +7439,7 @@ type ProjectsLocationsDeliveryPipelinesDeleteCall struct {
 
 // Delete: Deletes a single DeliveryPipeline.
 //
-//   - name: The name of the `DeliveryPipeline` to delete. Format should be
+//   - name: The name of the `DeliveryPipeline` to delete. The format is
 //     `projects/{project_id}/locations/{location_name}/deliveryPipelines/{pipelin
 //     e_name}`.
 func (r *ProjectsLocationsDeliveryPipelinesService) Delete(name string) *ProjectsLocationsDeliveryPipelinesDeleteCall {
@@ -6502,12 +7521,11 @@ func (c *ProjectsLocationsDeliveryPipelinesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDeliveryPipelinesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6515,6 +7533,7 @@ func (c *ProjectsLocationsDeliveryPipelinesDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6549,9 +7568,11 @@ func (c *ProjectsLocationsDeliveryPipelinesDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6611,12 +7632,11 @@ func (c *ProjectsLocationsDeliveryPipelinesGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6624,6 +7644,7 @@ func (c *ProjectsLocationsDeliveryPipelinesGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6659,9 +7680,11 @@ func (c *ProjectsLocationsDeliveryPipelinesGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6739,12 +7762,11 @@ func (c *ProjectsLocationsDeliveryPipelinesGetIamPolicyCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6752,6 +7774,7 @@ func (c *ProjectsLocationsDeliveryPipelinesGetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6786,9 +7809,11 @@ func (c *ProjectsLocationsDeliveryPipelinesGetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6879,12 +7904,11 @@ func (c *ProjectsLocationsDeliveryPipelinesListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/deliveryPipelines")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6892,6 +7916,7 @@ func (c *ProjectsLocationsDeliveryPipelinesListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6927,9 +7952,11 @@ func (c *ProjectsLocationsDeliveryPipelinesListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6965,7 +7992,7 @@ type ProjectsLocationsDeliveryPipelinesPatchCall struct {
 
 // Patch: Updates the parameters of a single DeliveryPipeline.
 //
-//   - name: Optional. Name of the `DeliveryPipeline`. Format is
+//   - name: Identifier. Name of the `DeliveryPipeline`. Format is
 //     `projects/{project}/locations/{location}/deliveryPipelines/{deliveryPipelin
 //     e}`. The `deliveryPipeline` component must match
 //     `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`.
@@ -7001,10 +8028,10 @@ func (c *ProjectsLocationsDeliveryPipelinesPatchCall) RequestId(requestId string
 }
 
 // UpdateMask sets the optional parameter "updateMask": Required. Field mask is
-// used to specify the fields to be overwritten in the `DeliveryPipeline`
-// resource by the update. The fields specified in the update_mask are relative
-// to the resource, not the full request. A field will be overwritten if it's
-// in the mask. If the user doesn't provide a mask then all fields are
+// used to specify the fields to be overwritten by the update in the
+// `DeliveryPipeline` resource. The fields specified in the update_mask are
+// relative to the resource, not the full request. A field will be overwritten
+// if it's in the mask. If the user doesn't provide a mask then all fields are
 // overwritten.
 func (c *ProjectsLocationsDeliveryPipelinesPatchCall) UpdateMask(updateMask string) *ProjectsLocationsDeliveryPipelinesPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
@@ -7044,8 +8071,7 @@ func (c *ProjectsLocationsDeliveryPipelinesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDeliveryPipelinesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deliverypipeline)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deliverypipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -7061,6 +8087,7 @@ func (c *ProjectsLocationsDeliveryPipelinesPatchCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7095,9 +8122,11 @@ func (c *ProjectsLocationsDeliveryPipelinesPatchCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7112,8 +8141,8 @@ type ProjectsLocationsDeliveryPipelinesRollbackTargetCall struct {
 
 // RollbackTarget: Creates a `Rollout` to roll back the specified target.
 //
-//   - name: The `DeliveryPipeline` for which the rollback `Rollout` should be
-//     created. Format should be
+//   - name: The `DeliveryPipeline` for which the rollback `Rollout` must be
+//     created. The format is
 //     `projects/{project_id}/locations/{location_name}/deliveryPipelines/{pipelin
 //     e_name}`.
 func (r *ProjectsLocationsDeliveryPipelinesService) RollbackTarget(name string, rollbacktargetrequest *RollbackTargetRequest) *ProjectsLocationsDeliveryPipelinesRollbackTargetCall {
@@ -7148,8 +8177,7 @@ func (c *ProjectsLocationsDeliveryPipelinesRollbackTargetCall) Header() http.Hea
 
 func (c *ProjectsLocationsDeliveryPipelinesRollbackTargetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rollbacktargetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rollbacktargetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7165,6 +8193,7 @@ func (c *ProjectsLocationsDeliveryPipelinesRollbackTargetCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.rollbackTarget", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7200,9 +8229,11 @@ func (c *ProjectsLocationsDeliveryPipelinesRollbackTargetCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.rollbackTarget", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7254,8 +8285,7 @@ func (c *ProjectsLocationsDeliveryPipelinesSetIamPolicyCall) Header() http.Heade
 
 func (c *ProjectsLocationsDeliveryPipelinesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7271,6 +8301,7 @@ func (c *ProjectsLocationsDeliveryPipelinesSetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7305,9 +8336,11 @@ func (c *ProjectsLocationsDeliveryPipelinesSetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7362,8 +8395,7 @@ func (c *ProjectsLocationsDeliveryPipelinesTestIamPermissionsCall) Header() http
 
 func (c *ProjectsLocationsDeliveryPipelinesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7379,6 +8411,7 @@ func (c *ProjectsLocationsDeliveryPipelinesTestIamPermissionsCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7414,9 +8447,11 @@ func (c *ProjectsLocationsDeliveryPipelinesTestIamPermissionsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7469,8 +8504,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsCancelCall) Header() ht
 
 func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelautomationrunrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelautomationrunrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7486,6 +8520,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsCancelCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automationRuns.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7521,9 +8556,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsCancelCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automationRuns.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7583,12 +8620,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsGetCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7596,6 +8632,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsGetCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automationRuns.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7630,9 +8667,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsGetCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automationRuns.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7724,12 +8763,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsListCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/automationRuns")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7737,6 +8775,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsListCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automationRuns.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7772,9 +8811,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationRunsListCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automationRuns.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7810,8 +8851,8 @@ type ProjectsLocationsDeliveryPipelinesAutomationsCreateCall struct {
 
 // Create: Creates a new Automation in a given project and location.
 //
-//   - parent: The parent collection in which the `Automation` should be created.
-//     Format should be
+//   - parent: The parent collection in which the `Automation` must be created.
+//     The format is
 //     `projects/{project_id}/locations/{location_name}/deliveryPipelines/{pipelin
 //     e_name}`.
 func (r *ProjectsLocationsDeliveryPipelinesAutomationsService) Create(parent string, automation *Automation) *ProjectsLocationsDeliveryPipelinesAutomationsCreateCall {
@@ -7877,8 +8918,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsCreateCall) Header() http.
 
 func (c *ProjectsLocationsDeliveryPipelinesAutomationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.automation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.automation)
 	if err != nil {
 		return nil, err
 	}
@@ -7894,6 +8934,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsCreateCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7928,9 +8969,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsCreateCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7944,7 +8987,7 @@ type ProjectsLocationsDeliveryPipelinesAutomationsDeleteCall struct {
 
 // Delete: Deletes a single Automation resource.
 //
-//   - name: The name of the `Automation` to delete. Format should be
+//   - name: The name of the `Automation` to delete. The format is
 //     `projects/{project_id}/locations/{location_name}/deliveryPipelines/{pipelin
 //     e_name}/automations/{automation_name}`.
 func (r *ProjectsLocationsDeliveryPipelinesAutomationsService) Delete(name string) *ProjectsLocationsDeliveryPipelinesAutomationsDeleteCall {
@@ -8018,12 +9061,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsDeleteCall) Header() http.
 
 func (c *ProjectsLocationsDeliveryPipelinesAutomationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8031,6 +9073,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsDeleteCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8065,9 +9108,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsDeleteCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8127,12 +9172,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsGetCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8140,6 +9184,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsGetCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8174,9 +9219,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsGetCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8268,12 +9315,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsListCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/automations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8281,6 +9327,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsListCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8316,9 +9363,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsListCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8389,10 +9438,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsPatchCall) RequestId(reque
 }
 
 // UpdateMask sets the optional parameter "updateMask": Required. Field mask is
-// used to specify the fields to be overwritten in the `Automation` resource by
-// the update. The fields specified in the update_mask are relative to the
-// resource, not the full request. A field will be overwritten if it's in the
-// mask. If the user doesn't provide a mask then all fields are overwritten.
+// used to specify the fields to be overwritten by the update in the
+// `Automation` resource. The fields specified in the update_mask are relative
+// to the resource, not the full request. A field will be overwritten if it's
+// in the mask. If the user doesn't provide a mask then all fields are
+// overwritten.
 func (c *ProjectsLocationsDeliveryPipelinesAutomationsPatchCall) UpdateMask(updateMask string) *ProjectsLocationsDeliveryPipelinesAutomationsPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
 	return c
@@ -8431,8 +9481,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsPatchCall) Header() http.H
 
 func (c *ProjectsLocationsDeliveryPipelinesAutomationsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.automation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.automation)
 	if err != nil {
 		return nil, err
 	}
@@ -8448,6 +9497,7 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsPatchCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8482,9 +9532,11 @@ func (c *ProjectsLocationsDeliveryPipelinesAutomationsPatchCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.automations.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8534,8 +9586,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesAbandonCall) Header() http.He
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesAbandonCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.abandonreleaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.abandonreleaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8551,6 +9602,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesAbandonCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.abandon", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8586,9 +9638,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesAbandonCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.abandon", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8603,14 +9657,22 @@ type ProjectsLocationsDeliveryPipelinesReleasesCreateCall struct {
 
 // Create: Creates a new Release in a given project and location.
 //
-//   - parent: The parent collection in which the `Release` should be created.
-//     Format should be
+//   - parent: The parent collection in which the `Release` is created. The
+//     format is
 //     `projects/{project_id}/locations/{location_name}/deliveryPipelines/{pipelin
 //     e_name}`.
 func (r *ProjectsLocationsDeliveryPipelinesReleasesService) Create(parent string, release *Release) *ProjectsLocationsDeliveryPipelinesReleasesCreateCall {
 	c := &ProjectsLocationsDeliveryPipelinesReleasesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
 	c.release = release
+	return c
+}
+
+// OverrideDeployPolicy sets the optional parameter "overrideDeployPolicy":
+// Deploy policies to override. Format is
+// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+func (c *ProjectsLocationsDeliveryPipelinesReleasesCreateCall) OverrideDeployPolicy(overrideDeployPolicy ...string) *ProjectsLocationsDeliveryPipelinesReleasesCreateCall {
+	c.urlParams_.SetMulti("overrideDeployPolicy", append([]string{}, overrideDeployPolicy...))
 	return c
 }
 
@@ -8670,8 +9732,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesCreateCall) Header() http.Hea
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.release)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.release)
 	if err != nil {
 		return nil, err
 	}
@@ -8687,6 +9748,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesCreateCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8721,9 +9783,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesCreateCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8783,12 +9847,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesGetCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8796,6 +9859,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesGetCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8830,9 +9894,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesGetCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8923,12 +9989,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesListCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/releases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8936,6 +10001,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesListCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8971,9 +10037,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesListCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9044,8 +10112,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsAdvanceCall) Header()
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsAdvanceCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advancerolloutrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.advancerolloutrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9061,6 +10128,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsAdvanceCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.advance", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9096,9 +10164,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsAdvanceCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.advance", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9148,8 +10218,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsApproveCall) Header()
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsApproveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.approverolloutrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.approverolloutrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9165,6 +10234,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsApproveCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.approve", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9200,9 +10270,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsApproveCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.approve", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9252,8 +10324,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCancelCall) Header() 
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelrolloutrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelrolloutrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9269,6 +10340,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCancelCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9304,9 +10376,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCancelCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9321,14 +10395,22 @@ type ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall struct {
 
 // Create: Creates a new Rollout in a given project and location.
 //
-//   - parent: The parent collection in which the `Rollout` should be created.
-//     Format should be
+//   - parent: The parent collection in which the `Rollout` must be created. The
+//     format is
 //     `projects/{project_id}/locations/{location_name}/deliveryPipelines/{pipelin
 //     e_name}/releases/{release_name}`.
 func (r *ProjectsLocationsDeliveryPipelinesReleasesRolloutsService) Create(parent string, rollout *Rollout) *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall {
 	c := &ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
 	c.rollout = rollout
+	return c
+}
+
+// OverrideDeployPolicy sets the optional parameter "overrideDeployPolicy":
+// Deploy policies to override. Format is
+// `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall) OverrideDeployPolicy(overrideDeployPolicy ...string) *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall {
+	c.urlParams_.SetMulti("overrideDeployPolicy", append([]string{}, overrideDeployPolicy...))
 	return c
 }
 
@@ -9396,8 +10478,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall) Header() 
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rollout)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rollout)
 	if err != nil {
 		return nil, err
 	}
@@ -9413,6 +10494,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9447,9 +10529,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsCreateCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9509,12 +10593,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsGetCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9522,6 +10605,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsGetCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9556,9 +10640,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsGetCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9608,8 +10694,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsIgnoreJobCall) Header
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsIgnoreJobCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.ignorejobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.ignorejobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9625,6 +10710,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsIgnoreJobCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"rollout": c.rollout,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.ignoreJob", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9660,9 +10746,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsIgnoreJobCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.ignoreJob", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9752,12 +10840,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsListCall) doRequest(a
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/rollouts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9765,6 +10852,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsListCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9800,9 +10888,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsListCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9873,8 +10963,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsRetryJobCall) Header(
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsRetryJobCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.retryjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.retryjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9890,6 +10979,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsRetryJobCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"rollout": c.rollout,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.retryJob", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9925,9 +11015,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsRetryJobCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.retryJob", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9988,12 +11080,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsGetCall) doReq
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10001,6 +11092,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsGetCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.jobRuns.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10035,9 +11127,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsGetCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.jobRuns.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10127,12 +11221,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsListCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/jobRuns")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10140,6 +11233,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsListCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.jobRuns.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10175,9 +11269,11 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsListCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.jobRuns.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10248,8 +11344,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsTerminateCall)
 
 func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsTerminateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.terminatejobrunrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.terminatejobrunrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10265,6 +11360,7 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsTerminateCall)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.jobRuns.terminate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10300,9 +11396,945 @@ func (c *ProjectsLocationsDeliveryPipelinesReleasesRolloutsJobRunsTerminateCall)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deliveryPipelines.releases.rollouts.jobRuns.terminate", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDeployPoliciesCreateCall struct {
+	s            *Service
+	parent       string
+	deploypolicy *DeployPolicy
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Create: Creates a new DeployPolicy in a given project and location.
+//
+//   - parent: The parent collection in which the `DeployPolicy` must be created.
+//     The format is `projects/{project_id}/locations/{location_name}`.
+func (r *ProjectsLocationsDeployPoliciesService) Create(parent string, deploypolicy *DeployPolicy) *ProjectsLocationsDeployPoliciesCreateCall {
+	c := &ProjectsLocationsDeployPoliciesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.deploypolicy = deploypolicy
+	return c
+}
+
+// DeployPolicyId sets the optional parameter "deployPolicyId": Required. ID of
+// the `DeployPolicy`.
+func (c *ProjectsLocationsDeployPoliciesCreateCall) DeployPolicyId(deployPolicyId string) *ProjectsLocationsDeployPoliciesCreateCall {
+	c.urlParams_.Set("deployPolicyId", deployPolicyId)
+	return c
+}
+
+// RequestId sets the optional parameter "requestId": A request ID to identify
+// requests. Specify a unique request ID so that if you must retry your
+// request, the server knows to ignore the request if it has already been
+// completed. The server guarantees that for at least 60 minutes after the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if original operation with the same
+// request ID was received, and if so, will ignore the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
+// request ID must be a valid UUID with the exception that zero UUID is not
+// supported (00000000-0000-0000-0000-000000000000).
+func (c *ProjectsLocationsDeployPoliciesCreateCall) RequestId(requestId string) *ProjectsLocationsDeployPoliciesCreateCall {
+	c.urlParams_.Set("requestId", requestId)
+	return c
+}
+
+// ValidateOnly sets the optional parameter "validateOnly": If set to true, the
+// request is validated and the user is provided with an expected result, but
+// no actual change is made.
+func (c *ProjectsLocationsDeployPoliciesCreateCall) ValidateOnly(validateOnly bool) *ProjectsLocationsDeployPoliciesCreateCall {
+	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDeployPoliciesCreateCall) Fields(s ...googleapi.Field) *ProjectsLocationsDeployPoliciesCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDeployPoliciesCreateCall) Context(ctx context.Context) *ProjectsLocationsDeployPoliciesCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDeployPoliciesCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDeployPoliciesCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deploypolicy)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/deployPolicies")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "clouddeploy.projects.locations.deployPolicies.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDeployPoliciesCreateCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDeployPoliciesDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Deletes a single DeployPolicy.
+//
+//   - name: The name of the `DeployPolicy` to delete. The format is
+//     `projects/{project_id}/locations/{location_name}/deployPolicies/{deploy_pol
+//     icy_name}`.
+func (r *ProjectsLocationsDeployPoliciesService) Delete(name string) *ProjectsLocationsDeployPoliciesDeleteCall {
+	c := &ProjectsLocationsDeployPoliciesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// AllowMissing sets the optional parameter "allowMissing": If set to true,
+// then deleting an already deleted or non-existing `DeployPolicy` will
+// succeed.
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) AllowMissing(allowMissing bool) *ProjectsLocationsDeployPoliciesDeleteCall {
+	c.urlParams_.Set("allowMissing", fmt.Sprint(allowMissing))
+	return c
+}
+
+// Etag sets the optional parameter "etag": This checksum is computed by the
+// server based on the value of other fields, and may be sent on update and
+// delete requests to ensure the client has an up-to-date value before
+// proceeding.
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) Etag(etag string) *ProjectsLocationsDeployPoliciesDeleteCall {
+	c.urlParams_.Set("etag", etag)
+	return c
+}
+
+// RequestId sets the optional parameter "requestId": A request ID to identify
+// requests. Specify a unique request ID so that if you must retry your
+// request, the server knows to ignore the request if it has already been
+// completed. The server guarantees that for at least 60 minutes after the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if original operation with the same
+// request ID was received, and if so, will ignore the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
+// request ID must be a valid UUID with the exception that zero UUID is not
+// supported (00000000-0000-0000-0000-000000000000).
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) RequestId(requestId string) *ProjectsLocationsDeployPoliciesDeleteCall {
+	c.urlParams_.Set("requestId", requestId)
+	return c
+}
+
+// ValidateOnly sets the optional parameter "validateOnly": If set, validate
+// the request and preview the review, but do not actually post it.
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) ValidateOnly(validateOnly bool) *ProjectsLocationsDeployPoliciesDeleteCall {
+	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) Fields(s ...googleapi.Field) *ProjectsLocationsDeployPoliciesDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) Context(ctx context.Context) *ProjectsLocationsDeployPoliciesDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "clouddeploy.projects.locations.deployPolicies.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDeployPoliciesDeleteCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDeployPoliciesGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets details of a single DeployPolicy.
+//
+//   - name: Name of the `DeployPolicy`. Format must be
+//     `projects/{project_id}/locations/{location_name}/deployPolicies/{deploy_pol
+//     icy_name}`.
+func (r *ProjectsLocationsDeployPoliciesService) Get(name string) *ProjectsLocationsDeployPoliciesGetCall {
+	c := &ProjectsLocationsDeployPoliciesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDeployPoliciesGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsDeployPoliciesGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDeployPoliciesGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsDeployPoliciesGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDeployPoliciesGetCall) Context(ctx context.Context) *ProjectsLocationsDeployPoliciesGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDeployPoliciesGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDeployPoliciesGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "clouddeploy.projects.locations.deployPolicies.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *DeployPolicy.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDeployPoliciesGetCall) Do(opts ...googleapi.CallOption) (*DeployPolicy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &DeployPolicy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDeployPoliciesGetIamPolicyCall struct {
+	s            *Service
+	resource     string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetIamPolicy: Gets the access control policy for a resource. Returns an
+// empty policy if the resource exists and does not have a policy set.
+//
+//   - resource: REQUIRED: The resource for which the policy is being requested.
+//     See Resource names (https://cloud.google.com/apis/design/resource_names)
+//     for the appropriate value for this field.
+func (r *ProjectsLocationsDeployPoliciesService) GetIamPolicy(resource string) *ProjectsLocationsDeployPoliciesGetIamPolicyCall {
+	c := &ProjectsLocationsDeployPoliciesGetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	return c
+}
+
+// OptionsRequestedPolicyVersion sets the optional parameter
+// "options.requestedPolicyVersion": The maximum policy version that will be
+// used to format the policy. Valid values are 0, 1, and 3. Requests specifying
+// an invalid value will be rejected. Requests for policies with any
+// conditional role bindings must specify version 3. Policies with no
+// conditional role bindings may specify any valid value or leave the field
+// unset. The policy in the response might use the policy version that you
+// specified, or it might use a lower policy version. For example, if you
+// specify version 3, but the policy has no conditional role bindings, the
+// response uses version 1. To learn which resources support conditions in
+// their IAM policies, see the IAM documentation
+// (https://cloud.google.com/iam/help/conditions/resource-policies).
+func (c *ProjectsLocationsDeployPoliciesGetIamPolicyCall) OptionsRequestedPolicyVersion(optionsRequestedPolicyVersion int64) *ProjectsLocationsDeployPoliciesGetIamPolicyCall {
+	c.urlParams_.Set("options.requestedPolicyVersion", fmt.Sprint(optionsRequestedPolicyVersion))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDeployPoliciesGetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsLocationsDeployPoliciesGetIamPolicyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDeployPoliciesGetIamPolicyCall) IfNoneMatch(entityTag string) *ProjectsLocationsDeployPoliciesGetIamPolicyCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDeployPoliciesGetIamPolicyCall) Context(ctx context.Context) *ProjectsLocationsDeployPoliciesGetIamPolicyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDeployPoliciesGetIamPolicyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDeployPoliciesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "clouddeploy.projects.locations.deployPolicies.getIamPolicy" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDeployPoliciesGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.getIamPolicy", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDeployPoliciesListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists DeployPolicies in a given project and location.
+//
+//   - parent: The parent, which owns this collection of deploy policies. Format
+//     must be `projects/{project_id}/locations/{location_name}`.
+func (r *ProjectsLocationsDeployPoliciesService) List(parent string) *ProjectsLocationsDeployPoliciesListCall {
+	c := &ProjectsLocationsDeployPoliciesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": Filter deploy policies to be
+// returned. See https://google.aip.dev/160 for more details. All fields can be
+// used in the filter.
+func (c *ProjectsLocationsDeployPoliciesListCall) Filter(filter string) *ProjectsLocationsDeployPoliciesListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// OrderBy sets the optional parameter "orderBy": Field to sort by. See
+// https://google.aip.dev/132#ordering for more details.
+func (c *ProjectsLocationsDeployPoliciesListCall) OrderBy(orderBy string) *ProjectsLocationsDeployPoliciesListCall {
+	c.urlParams_.Set("orderBy", orderBy)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// deploy policies to return. The service may return fewer than this value. If
+// unspecified, at most 50 deploy policies will be returned. The maximum value
+// is 1000; values above 1000 will be set to 1000.
+func (c *ProjectsLocationsDeployPoliciesListCall) PageSize(pageSize int64) *ProjectsLocationsDeployPoliciesListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token, received
+// from a previous `ListDeployPolicies` call. Provide this to retrieve the
+// subsequent page. When paginating, all other provided parameters match the
+// call that provided the page token.
+func (c *ProjectsLocationsDeployPoliciesListCall) PageToken(pageToken string) *ProjectsLocationsDeployPoliciesListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDeployPoliciesListCall) Fields(s ...googleapi.Field) *ProjectsLocationsDeployPoliciesListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDeployPoliciesListCall) IfNoneMatch(entityTag string) *ProjectsLocationsDeployPoliciesListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDeployPoliciesListCall) Context(ctx context.Context) *ProjectsLocationsDeployPoliciesListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDeployPoliciesListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDeployPoliciesListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/deployPolicies")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "clouddeploy.projects.locations.deployPolicies.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListDeployPoliciesResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsDeployPoliciesListCall) Do(opts ...googleapi.CallOption) (*ListDeployPoliciesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListDeployPoliciesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsDeployPoliciesListCall) Pages(ctx context.Context, f func(*ListDeployPoliciesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsDeployPoliciesPatchCall struct {
+	s            *Service
+	name         string
+	deploypolicy *DeployPolicy
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Patch: Updates the parameters of a single DeployPolicy.
+//
+//   - name: Output only. Name of the `DeployPolicy`. Format is
+//     `projects/{project}/locations/{location}/deployPolicies/{deployPolicy}`.
+//     The `deployPolicy` component must match `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`.
+func (r *ProjectsLocationsDeployPoliciesService) Patch(name string, deploypolicy *DeployPolicy) *ProjectsLocationsDeployPoliciesPatchCall {
+	c := &ProjectsLocationsDeployPoliciesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.deploypolicy = deploypolicy
+	return c
+}
+
+// AllowMissing sets the optional parameter "allowMissing": If set to true,
+// updating a `DeployPolicy` that does not exist will result in the creation of
+// a new `DeployPolicy`.
+func (c *ProjectsLocationsDeployPoliciesPatchCall) AllowMissing(allowMissing bool) *ProjectsLocationsDeployPoliciesPatchCall {
+	c.urlParams_.Set("allowMissing", fmt.Sprint(allowMissing))
+	return c
+}
+
+// RequestId sets the optional parameter "requestId": A request ID to identify
+// requests. Specify a unique request ID so that if you must retry your
+// request, the server knows to ignore the request if it has already been
+// completed. The server guarantees that for at least 60 minutes after the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if original operation with the same
+// request ID was received, and if so, will ignore the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
+// request ID must be a valid UUID with the exception that zero UUID is not
+// supported (00000000-0000-0000-0000-000000000000).
+func (c *ProjectsLocationsDeployPoliciesPatchCall) RequestId(requestId string) *ProjectsLocationsDeployPoliciesPatchCall {
+	c.urlParams_.Set("requestId", requestId)
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. Field mask is
+// used to specify the fields to be overwritten by the update in the
+// `DeployPolicy` resource. The fields specified in the update_mask are
+// relative to the resource, not the full request. A field will be overwritten
+// if it's in the mask. If the user doesn't provide a mask then all fields are
+// overwritten.
+func (c *ProjectsLocationsDeployPoliciesPatchCall) UpdateMask(updateMask string) *ProjectsLocationsDeployPoliciesPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// ValidateOnly sets the optional parameter "validateOnly": If set to true, the
+// request is validated and the user is provided with an expected result, but
+// no actual change is made.
+func (c *ProjectsLocationsDeployPoliciesPatchCall) ValidateOnly(validateOnly bool) *ProjectsLocationsDeployPoliciesPatchCall {
+	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDeployPoliciesPatchCall) Fields(s ...googleapi.Field) *ProjectsLocationsDeployPoliciesPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDeployPoliciesPatchCall) Context(ctx context.Context) *ProjectsLocationsDeployPoliciesPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDeployPoliciesPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDeployPoliciesPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deploypolicy)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "clouddeploy.projects.locations.deployPolicies.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDeployPoliciesPatchCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDeployPoliciesSetIamPolicyCall struct {
+	s                   *Service
+	resource            string
+	setiampolicyrequest *SetIamPolicyRequest
+	urlParams_          gensupport.URLParams
+	ctx_                context.Context
+	header_             http.Header
+}
+
+// SetIamPolicy: Sets the access control policy on the specified resource.
+// Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`,
+// and `PERMISSION_DENIED` errors.
+//
+//   - resource: REQUIRED: The resource for which the policy is being specified.
+//     See Resource names (https://cloud.google.com/apis/design/resource_names)
+//     for the appropriate value for this field.
+func (r *ProjectsLocationsDeployPoliciesService) SetIamPolicy(resource string, setiampolicyrequest *SetIamPolicyRequest) *ProjectsLocationsDeployPoliciesSetIamPolicyCall {
+	c := &ProjectsLocationsDeployPoliciesSetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.setiampolicyrequest = setiampolicyrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDeployPoliciesSetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsLocationsDeployPoliciesSetIamPolicyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDeployPoliciesSetIamPolicyCall) Context(ctx context.Context) *ProjectsLocationsDeployPoliciesSetIamPolicyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDeployPoliciesSetIamPolicyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDeployPoliciesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:setIamPolicy")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "clouddeploy.projects.locations.deployPolicies.setIamPolicy" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDeployPoliciesSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.deployPolicies.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10322,7 +12354,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -10358,8 +12390,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10375,6 +12406,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10409,9 +12441,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10460,12 +12494,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10473,6 +12506,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10507,9 +12541,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10569,12 +12605,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10582,6 +12617,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10616,9 +12652,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10697,12 +12735,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10710,6 +12747,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10745,9 +12783,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10783,8 +12823,8 @@ type ProjectsLocationsTargetsCreateCall struct {
 
 // Create: Creates a new Target in a given project and location.
 //
-//   - parent: The parent collection in which the `Target` should be created.
-//     Format should be `projects/{project_id}/locations/{location_name}`.
+//   - parent: The parent collection in which the `Target` must be created. The
+//     format is `projects/{project_id}/locations/{location_name}`.
 func (r *ProjectsLocationsTargetsService) Create(parent string, target *Target) *ProjectsLocationsTargetsCreateCall {
 	c := &ProjectsLocationsTargetsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -10848,8 +12888,7 @@ func (c *ProjectsLocationsTargetsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsTargetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.target)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.target)
 	if err != nil {
 		return nil, err
 	}
@@ -10865,6 +12904,7 @@ func (c *ProjectsLocationsTargetsCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10899,9 +12939,11 @@ func (c *ProjectsLocationsTargetsCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10915,7 +12957,7 @@ type ProjectsLocationsTargetsDeleteCall struct {
 
 // Delete: Deletes a single Target.
 //
-//   - name: The name of the `Target` to delete. Format should be
+//   - name: The name of the `Target` to delete. The format is
 //     `projects/{project_id}/locations/{location_name}/targets/{target_name}`.
 func (r *ProjectsLocationsTargetsService) Delete(name string) *ProjectsLocationsTargetsDeleteCall {
 	c := &ProjectsLocationsTargetsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -10987,12 +13029,11 @@ func (c *ProjectsLocationsTargetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsTargetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11000,6 +13041,7 @@ func (c *ProjectsLocationsTargetsDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11034,9 +13076,11 @@ func (c *ProjectsLocationsTargetsDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11095,12 +13139,11 @@ func (c *ProjectsLocationsTargetsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11108,6 +13151,7 @@ func (c *ProjectsLocationsTargetsGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11142,9 +13186,11 @@ func (c *ProjectsLocationsTargetsGetCall) Do(opts ...googleapi.CallOption) (*Tar
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11222,12 +13268,11 @@ func (c *ProjectsLocationsTargetsGetIamPolicyCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11235,6 +13280,7 @@ func (c *ProjectsLocationsTargetsGetIamPolicyCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11269,9 +13315,11 @@ func (c *ProjectsLocationsTargetsGetIamPolicyCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11362,12 +13410,11 @@ func (c *ProjectsLocationsTargetsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/targets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11375,6 +13422,7 @@ func (c *ProjectsLocationsTargetsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11410,9 +13458,11 @@ func (c *ProjectsLocationsTargetsListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11448,7 +13498,7 @@ type ProjectsLocationsTargetsPatchCall struct {
 
 // Patch: Updates the parameters of a single Target.
 //
-//   - name: Optional. Name of the `Target`. Format is
+//   - name: Identifier. Name of the `Target`. Format is
 //     `projects/{project}/locations/{location}/targets/{target}`. The `target`
 //     component must match `[a-z]([a-z0-9-]{0,61}[a-z0-9])?`.
 func (r *ProjectsLocationsTargetsService) Patch(name string, target *Target) *ProjectsLocationsTargetsPatchCall {
@@ -11483,8 +13533,8 @@ func (c *ProjectsLocationsTargetsPatchCall) RequestId(requestId string) *Project
 }
 
 // UpdateMask sets the optional parameter "updateMask": Required. Field mask is
-// used to specify the fields to be overwritten in the Target resource by the
-// update. The fields specified in the update_mask are relative to the
+// used to specify the fields to be overwritten by the update in the `Target`
+// resource. The fields specified in the update_mask are relative to the
 // resource, not the full request. A field will be overwritten if it's in the
 // mask. If the user doesn't provide a mask then all fields are overwritten.
 func (c *ProjectsLocationsTargetsPatchCall) UpdateMask(updateMask string) *ProjectsLocationsTargetsPatchCall {
@@ -11525,8 +13575,7 @@ func (c *ProjectsLocationsTargetsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsTargetsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.target)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.target)
 	if err != nil {
 		return nil, err
 	}
@@ -11542,6 +13591,7 @@ func (c *ProjectsLocationsTargetsPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11576,9 +13626,11 @@ func (c *ProjectsLocationsTargetsPatchCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11630,8 +13682,7 @@ func (c *ProjectsLocationsTargetsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsTargetsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11647,6 +13698,7 @@ func (c *ProjectsLocationsTargetsSetIamPolicyCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11681,9 +13733,11 @@ func (c *ProjectsLocationsTargetsSetIamPolicyCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11738,8 +13792,7 @@ func (c *ProjectsLocationsTargetsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsLocationsTargetsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11755,6 +13808,7 @@ func (c *ProjectsLocationsTargetsTestIamPermissionsCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11790,8 +13844,10 @@ func (c *ProjectsLocationsTargetsTestIamPermissionsCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "clouddeploy.projects.locations.targets.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

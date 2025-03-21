@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "translate:v2"
 const apiName = "translate"
@@ -123,7 +126,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Detections = NewDetectionsService(s)
+	s.Languages = NewLanguagesService(s)
+	s.Translations = NewTranslationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -142,15 +148,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Detections = NewDetectionsService(s)
-	s.Languages = NewLanguagesService(s)
-	s.Translations = NewTranslationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -214,9 +217,9 @@ type DetectLanguageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectLanguageRequest) MarshalJSON() ([]byte, error) {
+func (s DetectLanguageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectLanguageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DetectionsListResponse struct {
@@ -238,9 +241,9 @@ type DetectionsListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectionsListResponse) MarshalJSON() ([]byte, error) {
+func (s DetectionsListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectionsListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DetectionsResourceItem struct {
@@ -263,9 +266,9 @@ type DetectionsResourceItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectionsResourceItem) MarshalJSON() ([]byte, error) {
+func (s DetectionsResourceItem) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectionsResourceItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DetectionsResourceItem) UnmarshalJSON(data []byte) error {
@@ -302,9 +305,9 @@ type GetSupportedLanguagesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetSupportedLanguagesRequest) MarshalJSON() ([]byte, error) {
+func (s GetSupportedLanguagesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetSupportedLanguagesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LanguagesListResponse struct {
@@ -330,9 +333,9 @@ type LanguagesListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LanguagesListResponse) MarshalJSON() ([]byte, error) {
+func (s LanguagesListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LanguagesListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LanguagesResource struct {
@@ -357,9 +360,9 @@ type LanguagesResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LanguagesResource) MarshalJSON() ([]byte, error) {
+func (s LanguagesResource) MarshalJSON() ([]byte, error) {
 	type NoMethod LanguagesResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TranslateTextRequest: The main translation request message for the Cloud
@@ -402,9 +405,9 @@ type TranslateTextRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslateTextRequest) MarshalJSON() ([]byte, error) {
+func (s TranslateTextRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslateTextRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TranslationsListResponse: The main language translation response message.
@@ -428,9 +431,9 @@ type TranslationsListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslationsListResponse) MarshalJSON() ([]byte, error) {
+func (s TranslationsListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslationsListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TranslationsResource struct {
@@ -460,9 +463,9 @@ type TranslationsResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslationsResource) MarshalJSON() ([]byte, error) {
+func (s TranslationsResource) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslationsResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DetectionsDetectCall struct {
@@ -505,8 +508,7 @@ func (c *DetectionsDetectCall) Header() http.Header {
 
 func (c *DetectionsDetectCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithDataWrapper.JSONReader(c.detectlanguagerequest)
+	body, err := googleapi.WithDataWrapper.JSONBuffer(c.detectlanguagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -519,6 +521,7 @@ func (c *DetectionsDetectCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.detections.detect", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -556,9 +559,11 @@ func (c *DetectionsDetectCall) Do(opts ...googleapi.CallOption) (*DetectionsList
 	target := &struct {
 		Data *DetectionsListResponse `json:"data"`
 	}{ret}
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.detections.detect", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -618,16 +623,16 @@ func (c *DetectionsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/detect")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.detections.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -665,9 +670,11 @@ func (c *DetectionsListCall) Do(opts ...googleapi.CallOption) (*DetectionsListRe
 	target := &struct {
 		Data *DetectionsListResponse `json:"data"`
 	}{ret}
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.detections.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -736,16 +743,16 @@ func (c *LanguagesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/languages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.languages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -783,9 +790,11 @@ func (c *LanguagesListCall) Do(opts ...googleapi.CallOption) (*LanguagesListResp
 	target := &struct {
 		Data *LanguagesListResponse `json:"data"`
 	}{ret}
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.languages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -889,16 +898,16 @@ func (c *TranslationsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.translations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -936,9 +945,11 @@ func (c *TranslationsListCall) Do(opts ...googleapi.CallOption) (*TranslationsLi
 	target := &struct {
 		Data *TranslationsListResponse `json:"data"`
 	}{ret}
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.translations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -982,8 +993,7 @@ func (c *TranslationsTranslateCall) Header() http.Header {
 
 func (c *TranslationsTranslateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithDataWrapper.JSONReader(c.translatetextrequest)
+	body, err := googleapi.WithDataWrapper.JSONBuffer(c.translatetextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -996,6 +1006,7 @@ func (c *TranslationsTranslateCall) doRequest(alt string) (*http.Response, error
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.translations.translate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1033,8 +1044,10 @@ func (c *TranslationsTranslateCall) Do(opts ...googleapi.CallOption) (*Translati
 	target := &struct {
 		Data *TranslationsListResponse `json:"data"`
 	}{ret}
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.translations.translate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

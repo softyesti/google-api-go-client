@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -59,11 +59,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -87,6 +89,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "dlp:v2"
 const apiName = "dlp"
@@ -117,7 +120,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.InfoTypes = NewInfoTypesService(s)
+	s.Locations = NewLocationsService(s)
+	s.Organizations = NewOrganizationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -136,16 +143,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.InfoTypes = NewInfoTypesService(s)
-	s.Locations = NewLocationsService(s)
-	s.Organizations = NewOrganizationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -241,6 +244,8 @@ func NewOrganizationsLocationsService(s *Service) *OrganizationsLocationsService
 	rs.DeidentifyTemplates = NewOrganizationsLocationsDeidentifyTemplatesService(s)
 	rs.DiscoveryConfigs = NewOrganizationsLocationsDiscoveryConfigsService(s)
 	rs.DlpJobs = NewOrganizationsLocationsDlpJobsService(s)
+	rs.FileStoreDataProfiles = NewOrganizationsLocationsFileStoreDataProfilesService(s)
+	rs.InfoTypes = NewOrganizationsLocationsInfoTypesService(s)
 	rs.InspectTemplates = NewOrganizationsLocationsInspectTemplatesService(s)
 	rs.JobTriggers = NewOrganizationsLocationsJobTriggersService(s)
 	rs.ProjectDataProfiles = NewOrganizationsLocationsProjectDataProfilesService(s)
@@ -261,6 +266,10 @@ type OrganizationsLocationsService struct {
 	DiscoveryConfigs *OrganizationsLocationsDiscoveryConfigsService
 
 	DlpJobs *OrganizationsLocationsDlpJobsService
+
+	FileStoreDataProfiles *OrganizationsLocationsFileStoreDataProfilesService
+
+	InfoTypes *OrganizationsLocationsInfoTypesService
 
 	InspectTemplates *OrganizationsLocationsInspectTemplatesService
 
@@ -315,6 +324,24 @@ func NewOrganizationsLocationsDlpJobsService(s *Service) *OrganizationsLocations
 }
 
 type OrganizationsLocationsDlpJobsService struct {
+	s *Service
+}
+
+func NewOrganizationsLocationsFileStoreDataProfilesService(s *Service) *OrganizationsLocationsFileStoreDataProfilesService {
+	rs := &OrganizationsLocationsFileStoreDataProfilesService{s: s}
+	return rs
+}
+
+type OrganizationsLocationsFileStoreDataProfilesService struct {
+	s *Service
+}
+
+func NewOrganizationsLocationsInfoTypesService(s *Service) *OrganizationsLocationsInfoTypesService {
+	rs := &OrganizationsLocationsInfoTypesService{s: s}
+	return rs
+}
+
+type OrganizationsLocationsInfoTypesService struct {
 	s *Service
 }
 
@@ -467,7 +494,9 @@ func NewProjectsLocationsService(s *Service) *ProjectsLocationsService {
 	rs.DeidentifyTemplates = NewProjectsLocationsDeidentifyTemplatesService(s)
 	rs.DiscoveryConfigs = NewProjectsLocationsDiscoveryConfigsService(s)
 	rs.DlpJobs = NewProjectsLocationsDlpJobsService(s)
+	rs.FileStoreDataProfiles = NewProjectsLocationsFileStoreDataProfilesService(s)
 	rs.Image = NewProjectsLocationsImageService(s)
+	rs.InfoTypes = NewProjectsLocationsInfoTypesService(s)
 	rs.InspectTemplates = NewProjectsLocationsInspectTemplatesService(s)
 	rs.JobTriggers = NewProjectsLocationsJobTriggersService(s)
 	rs.ProjectDataProfiles = NewProjectsLocationsProjectDataProfilesService(s)
@@ -491,7 +520,11 @@ type ProjectsLocationsService struct {
 
 	DlpJobs *ProjectsLocationsDlpJobsService
 
+	FileStoreDataProfiles *ProjectsLocationsFileStoreDataProfilesService
+
 	Image *ProjectsLocationsImageService
+
+	InfoTypes *ProjectsLocationsInfoTypesService
 
 	InspectTemplates *ProjectsLocationsInspectTemplatesService
 
@@ -558,12 +591,30 @@ type ProjectsLocationsDlpJobsService struct {
 	s *Service
 }
 
+func NewProjectsLocationsFileStoreDataProfilesService(s *Service) *ProjectsLocationsFileStoreDataProfilesService {
+	rs := &ProjectsLocationsFileStoreDataProfilesService{s: s}
+	return rs
+}
+
+type ProjectsLocationsFileStoreDataProfilesService struct {
+	s *Service
+}
+
 func NewProjectsLocationsImageService(s *Service) *ProjectsLocationsImageService {
 	rs := &ProjectsLocationsImageService{s: s}
 	return rs
 }
 
 type ProjectsLocationsImageService struct {
+	s *Service
+}
+
+func NewProjectsLocationsInfoTypesService(s *Service) *ProjectsLocationsInfoTypesService {
+	rs := &ProjectsLocationsInfoTypesService{s: s}
+	return rs
+}
+
+type ProjectsLocationsInfoTypesService struct {
 	s *Service
 }
 
@@ -656,9 +707,9 @@ type GooglePrivacyDlpV2Action struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Action) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Action) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Action
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ActionDetails: The results of an Action.
@@ -678,9 +729,9 @@ type GooglePrivacyDlpV2ActionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ActionDetails) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ActionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ActionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ActivateJobTriggerRequest: Request message for
@@ -703,8 +754,102 @@ type GooglePrivacyDlpV2AllOtherBigQueryTables struct {
 type GooglePrivacyDlpV2AllOtherDatabaseResources struct {
 }
 
+// GooglePrivacyDlpV2AllOtherResources: Match discovery resources not covered
+// by any other filter.
+type GooglePrivacyDlpV2AllOtherResources struct {
+}
+
 // GooglePrivacyDlpV2AllText: Apply to all text.
 type GooglePrivacyDlpV2AllText struct {
+}
+
+// GooglePrivacyDlpV2AmazonS3Bucket: Amazon S3 bucket.
+type GooglePrivacyDlpV2AmazonS3Bucket struct {
+	// AwsAccount: The AWS account.
+	AwsAccount *GooglePrivacyDlpV2AwsAccount `json:"awsAccount,omitempty"`
+	// BucketName: Required. The bucket name.
+	BucketName string `json:"bucketName,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AwsAccount") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AwsAccount") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2AmazonS3Bucket) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2AmazonS3Bucket
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2AmazonS3BucketConditions: Amazon S3 bucket conditions.
+type GooglePrivacyDlpV2AmazonS3BucketConditions struct {
+	// BucketTypes: Optional. Bucket types that should be profiled. Optional.
+	// Defaults to TYPE_ALL_SUPPORTED if unspecified.
+	//
+	// Possible values:
+	//   "TYPE_UNSPECIFIED" - Unused.
+	//   "TYPE_ALL_SUPPORTED" - All supported classes.
+	//   "TYPE_GENERAL_PURPOSE" - A general purpose Amazon S3 bucket.
+	BucketTypes []string `json:"bucketTypes,omitempty"`
+	// ObjectStorageClasses: Optional. Object classes that should be profiled.
+	// Optional. Defaults to ALL_SUPPORTED_CLASSES if unspecified.
+	//
+	// Possible values:
+	//   "UNSPECIFIED" - Unused.
+	//   "ALL_SUPPORTED_CLASSES" - All supported classes.
+	//   "STANDARD" - Standard object class.
+	//   "STANDARD_INFREQUENT_ACCESS" - Standard - infrequent access object class.
+	//   "GLACIER_INSTANT_RETRIEVAL" - Glacier - instant retrieval object class.
+	//   "INTELLIGENT_TIERING" - Objects in the S3 Intelligent-Tiering access
+	// tiers.
+	ObjectStorageClasses []string `json:"objectStorageClasses,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BucketTypes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BucketTypes") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2AmazonS3BucketConditions) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2AmazonS3BucketConditions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2AmazonS3BucketRegex: Amazon S3 bucket regex.
+type GooglePrivacyDlpV2AmazonS3BucketRegex struct {
+	// AwsAccountRegex: The AWS account regex.
+	AwsAccountRegex *GooglePrivacyDlpV2AwsAccountRegex `json:"awsAccountRegex,omitempty"`
+	// BucketNameRegex: Optional. Regex to test the bucket name against. If empty,
+	// all buckets match.
+	BucketNameRegex string `json:"bucketNameRegex,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AwsAccountRegex") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AwsAccountRegex") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2AmazonS3BucketRegex) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2AmazonS3BucketRegex
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2AnalyzeDataSourceRiskDetails: Result of a risk analysis
@@ -741,9 +886,9 @@ type GooglePrivacyDlpV2AnalyzeDataSourceRiskDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2AnalyzeDataSourceRiskDetails) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2AnalyzeDataSourceRiskDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2AnalyzeDataSourceRiskDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2AuxiliaryTable: An auxiliary table contains statistical
@@ -775,9 +920,84 @@ type GooglePrivacyDlpV2AuxiliaryTable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2AuxiliaryTable) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2AuxiliaryTable) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2AuxiliaryTable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2AwsAccount: AWS account.
+type GooglePrivacyDlpV2AwsAccount struct {
+	// AccountId: Required. AWS account ID.
+	AccountId string `json:"accountId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccountId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccountId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2AwsAccount) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2AwsAccount
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2AwsAccountRegex: AWS account regex.
+type GooglePrivacyDlpV2AwsAccountRegex struct {
+	// AccountIdRegex: Optional. Regex to test the AWS account ID against. If
+	// empty, all accounts match.
+	AccountIdRegex string `json:"accountIdRegex,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccountIdRegex") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccountIdRegex") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2AwsAccountRegex) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2AwsAccountRegex
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2AwsDiscoveryStartingLocation: The AWS starting location
+// for discovery.
+type GooglePrivacyDlpV2AwsDiscoveryStartingLocation struct {
+	// AccountId: The AWS account ID that this discovery config applies to. Within
+	// an AWS organization, you can find the AWS account ID inside an AWS account
+	// ARN. Example:
+	// arn:{partition}:organizations::{management_account_id}:account/{org_id}/{acco
+	// unt_id}
+	AccountId string `json:"accountId,omitempty"`
+	// AllAssetInventoryAssets: All AWS assets stored in Asset Inventory that
+	// didn't match other AWS discovery configs.
+	AllAssetInventoryAssets bool `json:"allAssetInventoryAssets,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccountId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccountId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2AwsDiscoveryStartingLocation) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2AwsDiscoveryStartingLocation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryDiscoveryTarget: Target used to match against for
@@ -808,9 +1028,9 @@ type GooglePrivacyDlpV2BigQueryDiscoveryTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryDiscoveryTarget) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryDiscoveryTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryDiscoveryTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryField: Message defining a field of a BigQuery
@@ -833,9 +1053,9 @@ type GooglePrivacyDlpV2BigQueryField struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryField) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryField) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryField
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryKey: Row key for identifying a record in BigQuery
@@ -862,9 +1082,9 @@ type GooglePrivacyDlpV2BigQueryKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryKey) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryOptions: Options defining BigQuery table and row
@@ -924,9 +1144,9 @@ type GooglePrivacyDlpV2BigQueryOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryRegex: A pattern to match against one or more
@@ -955,9 +1175,9 @@ type GooglePrivacyDlpV2BigQueryRegex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryRegex) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryRegex) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryRegex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryRegexes: A collection of regular expressions to
@@ -979,9 +1199,9 @@ type GooglePrivacyDlpV2BigQueryRegexes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryRegexes) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryRegexes) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryRegexes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryTable: Message defining the location of a BigQuery
@@ -991,8 +1211,8 @@ func (s *GooglePrivacyDlpV2BigQueryRegexes) MarshalJSON() ([]byte, error) {
 type GooglePrivacyDlpV2BigQueryTable struct {
 	// DatasetId: Dataset ID of the table.
 	DatasetId string `json:"datasetId,omitempty"`
-	// ProjectId: The Google Cloud Platform project ID of the project containing
-	// the table. If omitted, project ID is inferred from the API call.
+	// ProjectId: The Google Cloud project ID of the project containing the table.
+	// If omitted, project ID is inferred from the API call.
 	ProjectId string `json:"projectId,omitempty"`
 	// TableId: Name of the table.
 	TableId string `json:"tableId,omitempty"`
@@ -1009,9 +1229,9 @@ type GooglePrivacyDlpV2BigQueryTable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryTable) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryTable) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryTable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryTableCollection: Specifies a collection of
@@ -1033,9 +1253,9 @@ type GooglePrivacyDlpV2BigQueryTableCollection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryTableCollection) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryTableCollection) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryTableCollection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BigQueryTableTypes: The types of BigQuery tables supported
@@ -1048,6 +1268,7 @@ type GooglePrivacyDlpV2BigQueryTableTypes struct {
 	//   "BIG_QUERY_TABLE_TYPE_TABLE" - A normal BigQuery table.
 	//   "BIG_QUERY_TABLE_TYPE_EXTERNAL_BIG_LAKE" - A table that references data
 	// stored in Cloud Storage.
+	//   "BIG_QUERY_TABLE_TYPE_SNAPSHOT" - A snapshot of a BigQuery table.
 	Types []string `json:"types,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Types") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1062,9 +1283,9 @@ type GooglePrivacyDlpV2BigQueryTableTypes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BigQueryTableTypes) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BigQueryTableTypes) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BigQueryTableTypes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BoundingBox: Bounding box encompassing detected text
@@ -1091,9 +1312,9 @@ type GooglePrivacyDlpV2BoundingBox struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BoundingBox) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BoundingBox) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BoundingBox
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Bucket: Bucket is represented as a range, along with
@@ -1119,15 +1340,15 @@ type GooglePrivacyDlpV2Bucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Bucket) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Bucket) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Bucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2BucketingConfig: Generalization function that buckets
 // values based on ranges. The ranges and replacement values are dynamically
-// provided by the user for custom behavior, such as 1-30 -> LOW 31-65 ->
-// MEDIUM 66-100 -> HIGH This can be used on data of type: number, long,
+// provided by the user for custom behavior, such as 1-30 -> LOW, 31-65 ->
+// MEDIUM, 66-100 -> HIGH. This can be used on data of type: number, long,
 // string, timestamp. If the bound `Value` type differs from the type of data
 // being transformed, we will first attempt converting the type of the data to
 // be transformed to match the type of the bound before comparing. See
@@ -1149,9 +1370,9 @@ type GooglePrivacyDlpV2BucketingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2BucketingConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2BucketingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2BucketingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ByteContentItem: Container for bytes to inspect or redact.
@@ -1176,6 +1397,10 @@ type GooglePrivacyDlpV2ByteContentItem struct {
 	//   "AVRO" - avro
 	//   "CSV" - csv
 	//   "TSV" - tsv
+	//   "AUDIO" - Audio file types. Only used for profiling.
+	//   "VIDEO" - Video file types. Only used for profiling.
+	//   "EXECUTABLE" - Executable file types. Only used for profiling.
+	//   "AI_MODEL" - AI model file types. Only used for profiling.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Data") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1190,9 +1415,9 @@ type GooglePrivacyDlpV2ByteContentItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ByteContentItem) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ByteContentItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ByteContentItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CancelDlpJobRequest: The request message for canceling a
@@ -1221,9 +1446,9 @@ type GooglePrivacyDlpV2CategoricalStatsConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CategoricalStatsConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CategoricalStatsConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CategoricalStatsConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CategoricalStatsHistogramBucket: Histogram of value
@@ -1255,9 +1480,9 @@ type GooglePrivacyDlpV2CategoricalStatsHistogramBucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CategoricalStatsHistogramBucket) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CategoricalStatsHistogramBucket) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CategoricalStatsHistogramBucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CategoricalStatsResult: Result of the categorical stats
@@ -1280,9 +1505,9 @@ type GooglePrivacyDlpV2CategoricalStatsResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CategoricalStatsResult) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CategoricalStatsResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CategoricalStatsResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CharacterMaskConfig: Partially mask a string by replacing
@@ -1334,9 +1559,9 @@ type GooglePrivacyDlpV2CharacterMaskConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CharacterMaskConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CharacterMaskConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CharacterMaskConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CharsToIgnore: Characters to skip when doing
@@ -1368,9 +1593,9 @@ type GooglePrivacyDlpV2CharsToIgnore struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CharsToIgnore) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CharsToIgnore) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CharsToIgnore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CloudSqlDiscoveryTarget: Target used to match against for
@@ -1401,9 +1626,9 @@ type GooglePrivacyDlpV2CloudSqlDiscoveryTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CloudSqlDiscoveryTarget) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CloudSqlDiscoveryTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CloudSqlDiscoveryTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CloudSqlIamCredential: Use IAM authentication to connect.
@@ -1435,8 +1660,8 @@ type GooglePrivacyDlpV2CloudSqlProperties struct {
 	//   "DATABASE_ENGINE_MYSQL" - Cloud SQL for MySQL instance.
 	//   "DATABASE_ENGINE_POSTGRES" - Cloud SQL for PostgreSQL instance.
 	DatabaseEngine string `json:"databaseEngine,omitempty"`
-	// MaxConnections: Required. DLP will limit its connections to max_connections.
-	// Must be 2 or greater.
+	// MaxConnections: Required. The DLP API will limit its connections to
+	// max_connections. Must be 2 or greater.
 	MaxConnections int64 `json:"maxConnections,omitempty"`
 	// UsernamePassword: A username and password stored in Secret Manager.
 	UsernamePassword *GooglePrivacyDlpV2SecretManagerCredential `json:"usernamePassword,omitempty"`
@@ -1453,9 +1678,42 @@ type GooglePrivacyDlpV2CloudSqlProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CloudSqlProperties) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CloudSqlProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CloudSqlProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2CloudStorageDiscoveryTarget: Target used to match against
+// for discovery with Cloud Storage buckets.
+type GooglePrivacyDlpV2CloudStorageDiscoveryTarget struct {
+	// Conditions: Optional. In addition to matching the filter, these conditions
+	// must be true before a profile is generated.
+	Conditions *GooglePrivacyDlpV2DiscoveryFileStoreConditions `json:"conditions,omitempty"`
+	// Disabled: Optional. Disable profiling for buckets that match this filter.
+	Disabled *GooglePrivacyDlpV2Disabled `json:"disabled,omitempty"`
+	// Filter: Required. The buckets the generation_cadence applies to. The first
+	// target with a matching filter will be the one to apply to a bucket.
+	Filter *GooglePrivacyDlpV2DiscoveryCloudStorageFilter `json:"filter,omitempty"`
+	// GenerationCadence: Optional. How often and when to update profiles. New
+	// buckets that match both the filter and conditions are scanned as quickly as
+	// possible depending on system capacity.
+	GenerationCadence *GooglePrivacyDlpV2DiscoveryCloudStorageGenerationCadence `json:"generationCadence,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Conditions") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Conditions") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2CloudStorageDiscoveryTarget) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2CloudStorageDiscoveryTarget
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CloudStorageFileSet: Message representing a set of files
@@ -1477,9 +1735,9 @@ type GooglePrivacyDlpV2CloudStorageFileSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CloudStorageFileSet) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CloudStorageFileSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CloudStorageFileSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CloudStorageOptions: Options defining a file or a set of
@@ -1572,9 +1830,9 @@ type GooglePrivacyDlpV2CloudStorageOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CloudStorageOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CloudStorageOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CloudStorageOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CloudStoragePath: Message representing a single file or
@@ -1596,9 +1854,39 @@ type GooglePrivacyDlpV2CloudStoragePath struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CloudStoragePath) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CloudStoragePath) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CloudStoragePath
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2CloudStorageRegex: A pattern to match against one or more
+// file stores. At least one pattern must be specified. Regular expressions use
+// RE2 syntax (https://github.com/google/re2/wiki/Syntax); a guide can be found
+// under the google/re2 repository on GitHub.
+type GooglePrivacyDlpV2CloudStorageRegex struct {
+	// BucketNameRegex: Optional. Regex to test the bucket name against. If empty,
+	// all buckets match. Example: "marketing2021" or "(marketing)\d{4}" will both
+	// match the bucket gs://marketing2021
+	BucketNameRegex string `json:"bucketNameRegex,omitempty"`
+	// ProjectIdRegex: Optional. For organizations, if unset, will match all
+	// projects.
+	ProjectIdRegex string `json:"projectIdRegex,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BucketNameRegex") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BucketNameRegex") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2CloudStorageRegex) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2CloudStorageRegex
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CloudStorageRegexFileSet: Message representing a set of
@@ -1652,9 +1940,35 @@ type GooglePrivacyDlpV2CloudStorageRegexFileSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CloudStorageRegexFileSet) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CloudStorageRegexFileSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CloudStorageRegexFileSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2CloudStorageResourceReference: Identifies a single Cloud
+// Storage bucket.
+type GooglePrivacyDlpV2CloudStorageResourceReference struct {
+	// BucketName: Required. The bucket to scan.
+	BucketName string `json:"bucketName,omitempty"`
+	// ProjectId: Required. If within a project-level config, then this must match
+	// the config's project id.
+	ProjectId string `json:"projectId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BucketName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BucketName") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2CloudStorageResourceReference) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2CloudStorageResourceReference
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Color: Represents a color in the RGB color space.
@@ -1678,9 +1992,9 @@ type GooglePrivacyDlpV2Color struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Color) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Color) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Color
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GooglePrivacyDlpV2Color) UnmarshalJSON(data []byte) error {
@@ -1739,11 +2053,12 @@ type GooglePrivacyDlpV2ColumnDataProfile struct {
 	ColumnType string `json:"columnType,omitempty"`
 	// DataRiskLevel: The data risk level for this column.
 	DataRiskLevel *GooglePrivacyDlpV2DataRiskLevel `json:"dataRiskLevel,omitempty"`
-	// DatasetId: The BigQuery dataset ID.
+	// DatasetId: The BigQuery dataset ID, if the resource profiled is a BigQuery
+	// table.
 	DatasetId string `json:"datasetId,omitempty"`
-	// DatasetLocation: The BigQuery location where the dataset's data is stored.
-	// See https://cloud.google.com/bigquery/docs/locations for supported
-	// locations.
+	// DatasetLocation: If supported, the location where the dataset's data is
+	// stored. See https://cloud.google.com/bigquery/docs/locations for supported
+	// BigQuery locations.
 	DatasetLocation string `json:"datasetLocation,omitempty"`
 	// DatasetProjectId: The Google Cloud project ID that owns the profiled
 	// resource.
@@ -1804,7 +2119,7 @@ type GooglePrivacyDlpV2ColumnDataProfile struct {
 	TableDataProfile string `json:"tableDataProfile,omitempty"`
 	// TableFullResource: The resource name of the resource this column is within.
 	TableFullResource string `json:"tableFullResource,omitempty"`
-	// TableId: The BigQuery table ID.
+	// TableId: The table ID.
 	TableId string `json:"tableId,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -1822,9 +2137,9 @@ type GooglePrivacyDlpV2ColumnDataProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ColumnDataProfile) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ColumnDataProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ColumnDataProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GooglePrivacyDlpV2ColumnDataProfile) UnmarshalJSON(data []byte) error {
@@ -1886,9 +2201,9 @@ type GooglePrivacyDlpV2Condition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Condition) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Condition) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Condition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Conditions: A collection of conditions.
@@ -1908,13 +2223,13 @@ type GooglePrivacyDlpV2Conditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Conditions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Conditions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Conditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GooglePrivacyDlpV2Connection: A data connection to allow DLP to profile data
-// in locations that require additional configuration.
+// GooglePrivacyDlpV2Connection: A data connection to allow the DLP API to
+// profile data in locations that require additional configuration.
 type GooglePrivacyDlpV2Connection struct {
 	// CloudSql: Connect to a Cloud SQL instance.
 	CloudSql *GooglePrivacyDlpV2CloudSqlProperties `json:"cloudSql,omitempty"`
@@ -1928,8 +2243,8 @@ type GooglePrivacyDlpV2Connection struct {
 	//
 	// Possible values:
 	//   "CONNECTION_STATE_UNSPECIFIED" - Unused
-	//   "MISSING_CREDENTIALS" - DLP automatically created this connection during
-	// an initial scan, and it is awaiting full configuration by a user.
+	//   "MISSING_CREDENTIALS" - The DLP API automatically created this connection
+	// during an initial scan, and it is awaiting full configuration by a user.
 	//   "AVAILABLE" - A configured connection that has not encountered any errors.
 	//   "ERROR" - A configured connection that encountered errors during its last
 	// use. It will not be used again until it is set to AVAILABLE. If the
@@ -1954,9 +2269,9 @@ type GooglePrivacyDlpV2Connection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Connection) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Connection) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Connection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Container: Represents a container that may contain DLP
@@ -2001,9 +2316,9 @@ type GooglePrivacyDlpV2Container struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Container) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Container) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Container
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ContentItem: Type of content to inspect.
@@ -2029,9 +2344,9 @@ type GooglePrivacyDlpV2ContentItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ContentItem) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ContentItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ContentItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ContentLocation: Precise location of the finding within a
@@ -2074,9 +2389,9 @@ type GooglePrivacyDlpV2ContentLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ContentLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ContentLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ContentLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CreateConnectionRequest: Request message for
@@ -2097,9 +2412,9 @@ type GooglePrivacyDlpV2CreateConnectionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CreateConnectionRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CreateConnectionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CreateConnectionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CreateDeidentifyTemplateRequest: Request message for
@@ -2127,9 +2442,9 @@ type GooglePrivacyDlpV2CreateDeidentifyTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CreateDeidentifyTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CreateDeidentifyTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CreateDeidentifyTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CreateDiscoveryConfigRequest: Request message for
@@ -2155,9 +2470,9 @@ type GooglePrivacyDlpV2CreateDiscoveryConfigRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CreateDiscoveryConfigRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CreateDiscoveryConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CreateDiscoveryConfigRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CreateDlpJobRequest: Request message for
@@ -2189,9 +2504,9 @@ type GooglePrivacyDlpV2CreateDlpJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CreateDlpJobRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CreateDlpJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CreateDlpJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CreateInspectTemplateRequest: Request message for
@@ -2219,9 +2534,9 @@ type GooglePrivacyDlpV2CreateInspectTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CreateInspectTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CreateInspectTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CreateInspectTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CreateJobTriggerRequest: Request message for
@@ -2249,9 +2564,9 @@ type GooglePrivacyDlpV2CreateJobTriggerRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CreateJobTriggerRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CreateJobTriggerRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CreateJobTriggerRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CreateStoredInfoTypeRequest: Request message for
@@ -2279,9 +2594,9 @@ type GooglePrivacyDlpV2CreateStoredInfoTypeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CreateStoredInfoTypeRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CreateStoredInfoTypeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CreateStoredInfoTypeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CryptoDeterministicConfig: Pseudonymization method that
@@ -2342,9 +2657,9 @@ type GooglePrivacyDlpV2CryptoDeterministicConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CryptoDeterministicConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CryptoDeterministicConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CryptoDeterministicConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CryptoHashConfig: Pseudonymization method that generates
@@ -2370,9 +2685,9 @@ type GooglePrivacyDlpV2CryptoHashConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CryptoHashConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CryptoHashConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CryptoHashConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CryptoKey: This is a data encryption key (DEK) (as opposed
@@ -2400,9 +2715,9 @@ type GooglePrivacyDlpV2CryptoKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CryptoKey) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CryptoKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CryptoKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig: Replaces an identifier with a
@@ -2416,7 +2731,7 @@ func (s *GooglePrivacyDlpV2CryptoKey) MarshalJSON() ([]byte, error) {
 // https://cloud.google.com/sensitive-data-protection/docs/pseudonymization to
 // learn more. Note: We recommend using CryptoDeterministicConfig for all use
 // cases which do not require preserving the input alphabet space and size,
-// plus warrant referential integrity.
+// plus warrant referential integrity. FPE incurs significant latency costs.
 type GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig struct {
 	// CommonAlphabet: Common alphabets.
 	//
@@ -2447,8 +2762,9 @@ type GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig struct {
 	// encryption/decryption. Each character listed must appear only once. Number
 	// of characters must be in the range [2, 95]. This must be encoded as ASCII.
 	// The order of characters does not matter. The full list of allowed characters
-	// is: 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-	// ~`!@#$%^&*()_-+={[}]|\:;"'<,>.?/
+	// is:
+	// ``0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~`!@#$%^&*()_
+	// -+={[}]|\:;"'<,>.?/``
 	CustomAlphabet string `json:"customAlphabet,omitempty"`
 	// Radix: The native way to select the alphabet. Must be in the range [2, 95].
 	Radix int64 `json:"radix,omitempty"`
@@ -2486,9 +2802,9 @@ type GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2CustomInfoType: Custom information type provided by the
@@ -2557,9 +2873,9 @@ type GooglePrivacyDlpV2CustomInfoType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2CustomInfoType) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2CustomInfoType) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2CustomInfoType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataProfileAction: A task to execute when a data profile
@@ -2569,6 +2885,16 @@ type GooglePrivacyDlpV2DataProfileAction struct {
 	ExportData *GooglePrivacyDlpV2Export `json:"exportData,omitempty"`
 	// PubSubNotification: Publish a message into the Pub/Sub topic.
 	PubSubNotification *GooglePrivacyDlpV2PubSubNotification `json:"pubSubNotification,omitempty"`
+	// PublishToChronicle: Publishes generated data profiles to Google Security
+	// Operations. For more information, see Use Sensitive Data Protection data in
+	// context-aware analytics
+	// (https://cloud.google.com/chronicle/docs/detection/usecase-dlp-high-risk-user-download).
+	PublishToChronicle *GooglePrivacyDlpV2PublishToChronicle `json:"publishToChronicle,omitempty"`
+	// PublishToScc: Publishes findings to Security Command Center for each data
+	// profile.
+	PublishToScc *GooglePrivacyDlpV2PublishToSecurityCommandCenter `json:"publishToScc,omitempty"`
+	// TagResources: Tags the profiled resources with the specified tag values.
+	TagResources *GooglePrivacyDlpV2TagResources `json:"tagResources,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExportData") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -2582,9 +2908,9 @@ type GooglePrivacyDlpV2DataProfileAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataProfileAction) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataProfileAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataProfileAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataProfileBigQueryRowSchema: The schema of data to be
@@ -2592,6 +2918,8 @@ func (s *GooglePrivacyDlpV2DataProfileAction) MarshalJSON() ([]byte, error) {
 type GooglePrivacyDlpV2DataProfileBigQueryRowSchema struct {
 	// ColumnProfile: Column data profile column
 	ColumnProfile *GooglePrivacyDlpV2ColumnDataProfile `json:"columnProfile,omitempty"`
+	// FileStoreProfile: File store data profile column.
+	FileStoreProfile *GooglePrivacyDlpV2FileStoreDataProfile `json:"fileStoreProfile,omitempty"`
 	// TableProfile: Table data profile column
 	TableProfile *GooglePrivacyDlpV2TableDataProfile `json:"tableProfile,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ColumnProfile") to
@@ -2607,9 +2935,9 @@ type GooglePrivacyDlpV2DataProfileBigQueryRowSchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataProfileBigQueryRowSchema) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataProfileBigQueryRowSchema) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataProfileBigQueryRowSchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataProfileConfigSnapshot: Snapshot of the configurations
@@ -2645,9 +2973,113 @@ type GooglePrivacyDlpV2DataProfileConfigSnapshot struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataProfileConfigSnapshot) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataProfileConfigSnapshot) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataProfileConfigSnapshot
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DataProfileFinding: Details about a piece of potentially
+// sensitive information that was detected when the data resource was profiled.
+type GooglePrivacyDlpV2DataProfileFinding struct {
+	// DataProfileResourceName: Resource name of the data profile associated with
+	// the finding.
+	DataProfileResourceName string `json:"dataProfileResourceName,omitempty"`
+	// FindingId: A unique identifier for the finding.
+	FindingId string `json:"findingId,omitempty"`
+	// Infotype: The type of content
+	// (https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference)
+	// that might have been found.
+	Infotype *GooglePrivacyDlpV2InfoType `json:"infotype,omitempty"`
+	// Location: Where the content was found.
+	Location *GooglePrivacyDlpV2DataProfileFindingLocation `json:"location,omitempty"`
+	// Quote: The content that was found. Even if the content is not textual, it
+	// may be converted to a textual representation here. If the finding exceeds
+	// 4096 bytes in length, the quote may be omitted.
+	Quote string `json:"quote,omitempty"`
+	// QuoteInfo: Contains data parsed from quotes. Currently supported infoTypes:
+	// DATE, DATE_OF_BIRTH, and TIME.
+	QuoteInfo *GooglePrivacyDlpV2QuoteInfo `json:"quoteInfo,omitempty"`
+	// ResourceVisibility: How broadly a resource has been shared.
+	//
+	// Possible values:
+	//   "RESOURCE_VISIBILITY_UNSPECIFIED" - Unused.
+	//   "RESOURCE_VISIBILITY_PUBLIC" - Visible to any user.
+	//   "RESOURCE_VISIBILITY_INCONCLUSIVE" - May contain public items. For
+	// example, if a Cloud Storage bucket has uniform bucket level access disabled,
+	// some objects inside it may be public, but none are known yet.
+	//   "RESOURCE_VISIBILITY_RESTRICTED" - Visible only to specific users.
+	ResourceVisibility string `json:"resourceVisibility,omitempty"`
+	// Timestamp: Timestamp when the finding was detected.
+	Timestamp string `json:"timestamp,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DataProfileResourceName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DataProfileResourceName") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DataProfileFinding) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DataProfileFinding
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DataProfileFindingLocation: Location of a data profile
+// finding within a resource.
+type GooglePrivacyDlpV2DataProfileFindingLocation struct {
+	// ContainerName: Name of the container where the finding is located. The
+	// top-level name is the source file name or table name. Names of some common
+	// storage containers are formatted as follows: * BigQuery tables:
+	// `{project_id}:{dataset_id}.{table_id}` * Cloud Storage files:
+	// `gs://{bucket}/{path}`
+	ContainerName string `json:"containerName,omitempty"`
+	// DataProfileFindingRecordLocation: Location of a finding within a resource
+	// that produces a table data profile.
+	DataProfileFindingRecordLocation *GooglePrivacyDlpV2DataProfileFindingRecordLocation `json:"dataProfileFindingRecordLocation,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ContainerName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ContainerName") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DataProfileFindingLocation) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DataProfileFindingLocation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DataProfileFindingRecordLocation: Location of a finding
+// within a resource that produces a table data profile.
+type GooglePrivacyDlpV2DataProfileFindingRecordLocation struct {
+	// Field: Field ID of the column containing the finding.
+	Field *GooglePrivacyDlpV2FieldId `json:"field,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Field") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Field") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DataProfileFindingRecordLocation) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DataProfileFindingRecordLocation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataProfileJobConfig: Configuration for setting up a job
@@ -2671,9 +3103,11 @@ type GooglePrivacyDlpV2DataProfileJobConfig struct {
 	InspectTemplates []string `json:"inspectTemplates,omitempty"`
 	// Location: The data to scan.
 	Location *GooglePrivacyDlpV2DataProfileLocation `json:"location,omitempty"`
+	// OtherCloudStartingLocation: Must be set only when scanning other clouds.
+	OtherCloudStartingLocation *GooglePrivacyDlpV2OtherCloudDiscoveryStartingLocation `json:"otherCloudStartingLocation,omitempty"`
 	// ProjectId: The project that will run the scan. The DLP service account that
 	// exists within this project must have access to all resources that are
-	// profiled, and the Cloud DLP API must be enabled.
+	// profiled, and the DLP API must be enabled.
 	ProjectId string `json:"projectId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DataProfileActions") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2688,14 +3122,14 @@ type GooglePrivacyDlpV2DataProfileJobConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataProfileJobConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataProfileJobConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataProfileJobConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataProfileLocation: The data that will be profiled.
 type GooglePrivacyDlpV2DataProfileLocation struct {
-	// FolderId: The ID of the Folder within an organization to scan.
+	// FolderId: The ID of the folder within an organization to scan.
 	FolderId int64 `json:"folderId,omitempty,string"`
 	// OrganizationId: The ID of an organization to scan.
 	OrganizationId int64 `json:"organizationId,omitempty,string"`
@@ -2712,9 +3146,9 @@ type GooglePrivacyDlpV2DataProfileLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataProfileLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataProfileLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataProfileLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataProfilePubSubCondition: A condition for determining
@@ -2735,9 +3169,9 @@ type GooglePrivacyDlpV2DataProfilePubSubCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataProfilePubSubCondition) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataProfilePubSubCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataProfilePubSubCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataProfilePubSubMessage: Pub/Sub topic message for a
@@ -2756,6 +3190,10 @@ type GooglePrivacyDlpV2DataProfilePubSubMessage struct {
 	//   "SCORE_INCREASED" - Table data risk score or sensitivity score increased.
 	//   "ERROR_CHANGED" - A user (non-internal) error occurred.
 	Event string `json:"event,omitempty"`
+	// FileStoreProfile: If `DetailLevel` is `FILE_STORE_PROFILE` this will be
+	// fully populated. Otherwise, if `DetailLevel` is `RESOURCE_NAME`, then only
+	// `name` and `file_store_path` will be populated.
+	FileStoreProfile *GooglePrivacyDlpV2FileStoreDataProfile `json:"fileStoreProfile,omitempty"`
 	// Profile: If `DetailLevel` is `TABLE_PROFILE` this will be fully populated.
 	// Otherwise, if `DetailLevel` is `RESOURCE_NAME`, then only `name` and
 	// `full_resource` will be populated.
@@ -2773,9 +3211,9 @@ type GooglePrivacyDlpV2DataProfilePubSubMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataProfilePubSubMessage) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataProfilePubSubMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataProfilePubSubMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataRiskLevel: Score is a summary of all elements in the
@@ -2788,6 +3226,7 @@ type GooglePrivacyDlpV2DataRiskLevel struct {
 	//   "RISK_LOW" - Low risk - Lower indication of sensitive data that appears to
 	// have additional access restrictions in place or no indication of sensitive
 	// data found.
+	//   "RISK_UNKNOWN" - Unable to determine risk.
 	//   "RISK_MODERATE" - Medium risk - Sensitive data may be present but
 	// additional access or fine grain access restrictions appear to be present.
 	// Consider limiting access even further or transform data to mask.
@@ -2809,16 +3248,17 @@ type GooglePrivacyDlpV2DataRiskLevel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataRiskLevel) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataRiskLevel) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataRiskLevel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DataSourceType: Message used to identify the type of
 // resource being profiled.
 type GooglePrivacyDlpV2DataSourceType struct {
 	// DataSource: Output only. An identifying string to the type of resource being
-	// profiled. Current values: google/bigquery/table, google/project
+	// profiled. Current values: * google/bigquery/table * google/project *
+	// google/sql/table * google/gcs/bucket
 	DataSource string `json:"dataSource,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DataSource") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2833,9 +3273,9 @@ type GooglePrivacyDlpV2DataSourceType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DataSourceType) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DataSourceType) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DataSourceType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DatabaseResourceCollection: Match database resources using
@@ -2858,9 +3298,9 @@ type GooglePrivacyDlpV2DatabaseResourceCollection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DatabaseResourceCollection) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DatabaseResourceCollection) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DatabaseResourceCollection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DatabaseResourceReference: Identifies a single database
@@ -2890,9 +3330,9 @@ type GooglePrivacyDlpV2DatabaseResourceReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DatabaseResourceReference) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DatabaseResourceReference) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DatabaseResourceReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DatabaseResourceRegex: A pattern to match against one or
@@ -2927,9 +3367,9 @@ type GooglePrivacyDlpV2DatabaseResourceRegex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DatabaseResourceRegex) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DatabaseResourceRegex) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DatabaseResourceRegex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DatabaseResourceRegexes: A collection of regular
@@ -2952,9 +3392,9 @@ type GooglePrivacyDlpV2DatabaseResourceRegexes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DatabaseResourceRegexes) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DatabaseResourceRegexes) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DatabaseResourceRegexes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DatastoreKey: Record key for a finding in Cloud Datastore.
@@ -2974,9 +3414,9 @@ type GooglePrivacyDlpV2DatastoreKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DatastoreKey) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DatastoreKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DatastoreKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DatastoreOptions: Options defining a data set within
@@ -3000,9 +3440,9 @@ type GooglePrivacyDlpV2DatastoreOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DatastoreOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DatastoreOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DatastoreOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DateShiftConfig: Shifts dates by random number of days,
@@ -3040,9 +3480,9 @@ type GooglePrivacyDlpV2DateShiftConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DateShiftConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DateShiftConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DateShiftConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DateTime: Message for a date time object. e.g. 2018-01-01,
@@ -3080,9 +3520,9 @@ type GooglePrivacyDlpV2DateTime struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DateTime) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DateTime) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DateTime
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Deidentify: Create a de-identified copy of the requested
@@ -3097,18 +3537,18 @@ func (s *GooglePrivacyDlpV2DateTime) MarshalJSON() ([]byte, error) {
 // project and dataset as the original table. Compatible with: Inspect
 type GooglePrivacyDlpV2Deidentify struct {
 	// CloudStorageOutput: Required. User settable Cloud Storage bucket and folders
-	// to store de-identified files. This field must be set for cloud storage
+	// to store de-identified files. This field must be set for Cloud Storage
 	// deidentification. The output Cloud Storage bucket must be different from the
 	// input bucket. De-identified files will overwrite files in the output path.
 	// Form of: gs://bucket/folder/ or gs://bucket
 	CloudStorageOutput string `json:"cloudStorageOutput,omitempty"`
 	// FileTypesToTransform: List of user-specified file type groups to transform.
-	// If specified, only the files with these filetypes will be transformed. If
+	// If specified, only the files with these file types will be transformed. If
 	// empty, all supported files will be transformed. Supported types may be
 	// automatically added over time. If a file type is set in this field that
 	// isn't supported by the Deidentify action then the job will fail and will not
-	// be successfully created/started. Currently the only filetypes supported are:
-	// IMAGES, TEXT_FILES, CSV, TSV.
+	// be successfully created/started. Currently the only file types supported
+	// are: IMAGES, TEXT_FILES, CSV, TSV.
 	//
 	// Possible values:
 	//   "FILE_TYPE_UNSPECIFIED" - Includes all files.
@@ -3169,9 +3609,9 @@ type GooglePrivacyDlpV2Deidentify struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Deidentify) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Deidentify) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Deidentify
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DeidentifyConfig: The configuration that controls how the
@@ -3203,9 +3643,9 @@ type GooglePrivacyDlpV2DeidentifyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeidentifyConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeidentifyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeidentifyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DeidentifyContentRequest: Request to de-identify a
@@ -3248,9 +3688,9 @@ type GooglePrivacyDlpV2DeidentifyContentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeidentifyContentRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeidentifyContentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeidentifyContentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DeidentifyContentResponse: Results of de-identifying a
@@ -3276,9 +3716,9 @@ type GooglePrivacyDlpV2DeidentifyContentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeidentifyContentResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeidentifyContentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeidentifyContentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DeidentifyDataSourceDetails: The results of a Deidentify
@@ -3301,9 +3741,9 @@ type GooglePrivacyDlpV2DeidentifyDataSourceDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeidentifyDataSourceDetails) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeidentifyDataSourceDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeidentifyDataSourceDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DeidentifyDataSourceStats: Summary of what was modified
@@ -3329,9 +3769,9 @@ type GooglePrivacyDlpV2DeidentifyDataSourceStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeidentifyDataSourceStats) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeidentifyDataSourceStats) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeidentifyDataSourceStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DeidentifyTemplate: DeidentifyTemplates contains
@@ -3369,9 +3809,9 @@ type GooglePrivacyDlpV2DeidentifyTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeidentifyTemplate) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeidentifyTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeidentifyTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DeltaPresenceEstimationConfig: δ-presence metric, used to
@@ -3404,9 +3844,9 @@ type GooglePrivacyDlpV2DeltaPresenceEstimationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeltaPresenceEstimationConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeltaPresenceEstimationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeltaPresenceEstimationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DeltaPresenceEstimationHistogramBucket: A
@@ -3441,9 +3881,9 @@ type GooglePrivacyDlpV2DeltaPresenceEstimationHistogramBucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeltaPresenceEstimationHistogramBucket) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeltaPresenceEstimationHistogramBucket) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeltaPresenceEstimationHistogramBucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GooglePrivacyDlpV2DeltaPresenceEstimationHistogramBucket) UnmarshalJSON(data []byte) error {
@@ -3489,9 +3929,9 @@ type GooglePrivacyDlpV2DeltaPresenceEstimationQuasiIdValues struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeltaPresenceEstimationQuasiIdValues) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeltaPresenceEstimationQuasiIdValues) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeltaPresenceEstimationQuasiIdValues
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GooglePrivacyDlpV2DeltaPresenceEstimationQuasiIdValues) UnmarshalJSON(data []byte) error {
@@ -3535,9 +3975,9 @@ type GooglePrivacyDlpV2DeltaPresenceEstimationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DeltaPresenceEstimationResult) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DeltaPresenceEstimationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DeltaPresenceEstimationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DetectionRule: Deprecated; use `InspectionRuleSet`
@@ -3560,9 +4000,9 @@ type GooglePrivacyDlpV2DetectionRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DetectionRule) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DetectionRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DetectionRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Dictionary: Custom information type based on a dictionary
@@ -3604,9 +4044,9 @@ type GooglePrivacyDlpV2Dictionary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Dictionary) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Dictionary) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Dictionary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Disabled: Do not profile the tables.
@@ -3654,9 +4094,9 @@ type GooglePrivacyDlpV2DiscoveryBigQueryConditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryBigQueryConditions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryBigQueryConditions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryBigQueryConditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoveryBigQueryFilter: Determines what tables will have
@@ -3691,9 +4131,9 @@ type GooglePrivacyDlpV2DiscoveryBigQueryFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryBigQueryFilter) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryBigQueryFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryBigQueryFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoveryCloudSqlConditions: Requirements that must be
@@ -3731,9 +4171,9 @@ type GooglePrivacyDlpV2DiscoveryCloudSqlConditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryCloudSqlConditions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryCloudSqlConditions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryCloudSqlConditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoveryCloudSqlFilter: Determines what tables will have
@@ -3766,15 +4206,19 @@ type GooglePrivacyDlpV2DiscoveryCloudSqlFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryCloudSqlFilter) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryCloudSqlFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryCloudSqlFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoveryCloudSqlGenerationCadence: How often existing
 // tables should have their profiles refreshed. New tables are scanned as
 // quickly as possible depending on system capacity.
 type GooglePrivacyDlpV2DiscoveryCloudSqlGenerationCadence struct {
+	// InspectTemplateModifiedCadence: Governs when to update data profiles when
+	// the inspection rules defined by the `InspectTemplate` change. If not set,
+	// changing the template will not cause a data profile to update.
+	InspectTemplateModifiedCadence *GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence `json:"inspectTemplateModifiedCadence,omitempty"`
 	// RefreshFrequency: Data changes (non-schema changes) in Cloud SQL tables
 	// can't trigger reprofiling. If you set this field, profiles are refreshed at
 	// this frequency regardless of whether the underlying tables have changed.
@@ -3791,22 +4235,157 @@ type GooglePrivacyDlpV2DiscoveryCloudSqlGenerationCadence struct {
 	RefreshFrequency string `json:"refreshFrequency,omitempty"`
 	// SchemaModifiedCadence: When to reprofile if the schema has changed.
 	SchemaModifiedCadence *GooglePrivacyDlpV2SchemaModifiedCadence `json:"schemaModifiedCadence,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "RefreshFrequency") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g.
+	// "InspectTemplateModifiedCadence") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "RefreshFrequency") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "InspectTemplateModifiedCadence")
+	// to include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryCloudSqlGenerationCadence) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryCloudSqlGenerationCadence) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryCloudSqlGenerationCadence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryCloudStorageConditions: Requirements that must be
+// true before a Cloud Storage bucket or object is scanned in discovery for the
+// first time. There is an AND relationship between the top-level attributes.
+type GooglePrivacyDlpV2DiscoveryCloudStorageConditions struct {
+	// IncludedBucketAttributes: Required. Only objects with the specified
+	// attributes will be scanned. Defaults to [ALL_SUPPORTED_BUCKETS] if unset.
+	//
+	// Possible values:
+	//   "CLOUD_STORAGE_BUCKET_ATTRIBUTE_UNSPECIFIED" - Unused.
+	//   "ALL_SUPPORTED_BUCKETS" - Scan buckets regardless of the attribute.
+	//   "AUTOCLASS_DISABLED" - Buckets with
+	// [Autoclass](https://cloud.google.com/storage/docs/autoclass) disabled. Only
+	// one of AUTOCLASS_DISABLED or AUTOCLASS_ENABLED should be set.
+	//   "AUTOCLASS_ENABLED" - Buckets with
+	// [Autoclass](https://cloud.google.com/storage/docs/autoclass) enabled. Only
+	// one of AUTOCLASS_DISABLED or AUTOCLASS_ENABLED should be set. Scanning
+	// Autoclass-enabled buckets can affect object storage classes.
+	IncludedBucketAttributes []string `json:"includedBucketAttributes,omitempty"`
+	// IncludedObjectAttributes: Required. Only objects with the specified
+	// attributes will be scanned. If an object has one of the specified attributes
+	// but is inside an excluded bucket, it will not be scanned. Defaults to
+	// [ALL_SUPPORTED_OBJECTS]. A profile will be created even if no objects match
+	// the included_object_attributes.
+	//
+	// Possible values:
+	//   "CLOUD_STORAGE_OBJECT_ATTRIBUTE_UNSPECIFIED" - Unused.
+	//   "ALL_SUPPORTED_OBJECTS" - Scan objects regardless of the attribute.
+	//   "STANDARD" - Scan objects with the standard storage class.
+	//   "NEARLINE" - Scan objects with the nearline storage class. This will incur
+	// retrieval fees.
+	//   "COLDLINE" - Scan objects with the coldline storage class. This will incur
+	// retrieval fees.
+	//   "ARCHIVE" - Scan objects with the archive storage class. This will incur
+	// retrieval fees.
+	//   "REGIONAL" - Scan objects with the regional storage class.
+	//   "MULTI_REGIONAL" - Scan objects with the multi-regional storage class.
+	//   "DURABLE_REDUCED_AVAILABILITY" - Scan objects with the dual-regional
+	// storage class. This will incur retrieval fees.
+	IncludedObjectAttributes []string `json:"includedObjectAttributes,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "IncludedBucketAttributes")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IncludedBucketAttributes") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryCloudStorageConditions) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryCloudStorageConditions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryCloudStorageFilter: Determines which buckets will
+// have profiles generated within an organization or project. Includes the
+// ability to filter by regular expression patterns on project ID and bucket
+// name.
+type GooglePrivacyDlpV2DiscoveryCloudStorageFilter struct {
+	// CloudStorageResourceReference: Optional. The bucket to scan. Targets
+	// including this can only include one target (the target with this bucket).
+	// This enables profiling the contents of a single bucket, while the other
+	// options allow for easy profiling of many bucets within a project or an
+	// organization.
+	CloudStorageResourceReference *GooglePrivacyDlpV2CloudStorageResourceReference `json:"cloudStorageResourceReference,omitempty"`
+	// Collection: Optional. A specific set of buckets for this filter to apply to.
+	Collection *GooglePrivacyDlpV2FileStoreCollection `json:"collection,omitempty"`
+	// Others: Optional. Catch-all. This should always be the last target in the
+	// list because anything above it will apply first. Should only appear once in
+	// a configuration. If none is specified, a default one will be added
+	// automatically.
+	Others *GooglePrivacyDlpV2AllOtherResources `json:"others,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "CloudStorageResourceReference") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
+	// for more details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CloudStorageResourceReference")
+	// to include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryCloudStorageFilter) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryCloudStorageFilter
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryCloudStorageGenerationCadence: How often existing
+// buckets should have their profiles refreshed. New buckets are scanned as
+// quickly as possible depending on system capacity.
+type GooglePrivacyDlpV2DiscoveryCloudStorageGenerationCadence struct {
+	// InspectTemplateModifiedCadence: Optional. Governs when to update data
+	// profiles when the inspection rules defined by the `InspectTemplate` change.
+	// If not set, changing the template will not cause a data profile to update.
+	InspectTemplateModifiedCadence *GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence `json:"inspectTemplateModifiedCadence,omitempty"`
+	// RefreshFrequency: Optional. Data changes in Cloud Storage can't trigger
+	// reprofiling. If you set this field, profiles are refreshed at this frequency
+	// regardless of whether the underlying buckets have changed. Defaults to
+	// never.
+	//
+	// Possible values:
+	//   "UPDATE_FREQUENCY_UNSPECIFIED" - Unspecified.
+	//   "UPDATE_FREQUENCY_NEVER" - After the data profile is created, it will
+	// never be updated.
+	//   "UPDATE_FREQUENCY_DAILY" - The data profile can be updated up to once
+	// every 24 hours.
+	//   "UPDATE_FREQUENCY_MONTHLY" - The data profile can be updated up to once
+	// every 30 days. Default.
+	RefreshFrequency string `json:"refreshFrequency,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "InspectTemplateModifiedCadence") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "InspectTemplateModifiedCadence")
+	// to include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryCloudStorageGenerationCadence) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryCloudStorageGenerationCadence
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoveryConfig: Configuration for discovery to scan
@@ -3846,6 +4425,12 @@ type GooglePrivacyDlpV2DiscoveryConfig struct {
 	Name string `json:"name,omitempty"`
 	// OrgConfig: Only set when the parent is an org.
 	OrgConfig *GooglePrivacyDlpV2OrgConfig `json:"orgConfig,omitempty"`
+	// OtherCloudStartingLocation: Must be set only when scanning other clouds.
+	OtherCloudStartingLocation *GooglePrivacyDlpV2OtherCloudDiscoveryStartingLocation `json:"otherCloudStartingLocation,omitempty"`
+	// ProcessingLocation: Optional. Processing location configuration. Vertex AI
+	// dataset scanning will set processing_location.image_fallback_type to
+	// MultiRegionProcessing by default.
+	ProcessingLocation *GooglePrivacyDlpV2ProcessingLocation `json:"processingLocation,omitempty"`
 	// Status: Required. A status for this configuration.
 	//
 	// Possible values:
@@ -3874,37 +4459,215 @@ type GooglePrivacyDlpV2DiscoveryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GooglePrivacyDlpV2DiscoveryGenerationCadence: What must take place for a
-// profile to be updated and how frequently it should occur. New tables are
-// scanned as quickly as possible depending on system capacity.
-type GooglePrivacyDlpV2DiscoveryGenerationCadence struct {
-	// SchemaModifiedCadence: Governs when to update data profiles when a schema is
-	// modified.
-	SchemaModifiedCadence *GooglePrivacyDlpV2DiscoverySchemaModifiedCadence `json:"schemaModifiedCadence,omitempty"`
-	// TableModifiedCadence: Governs when to update data profiles when a table is
-	// modified.
-	TableModifiedCadence *GooglePrivacyDlpV2DiscoveryTableModifiedCadence `json:"tableModifiedCadence,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "SchemaModifiedCadence") to
+// GooglePrivacyDlpV2DiscoveryFileStoreConditions: Requirements that must be
+// true before a file store is scanned in discovery for the first time. There
+// is an AND relationship between the top-level attributes.
+type GooglePrivacyDlpV2DiscoveryFileStoreConditions struct {
+	// CloudStorageConditions: Optional. Cloud Storage conditions.
+	CloudStorageConditions *GooglePrivacyDlpV2DiscoveryCloudStorageConditions `json:"cloudStorageConditions,omitempty"`
+	// CreatedAfter: Optional. File store must have been created after this date.
+	// Used to avoid backfilling.
+	CreatedAfter string `json:"createdAfter,omitempty"`
+	// MinAge: Optional. Minimum age a file store must have. If set, the value must
+	// be 1 hour or greater.
+	MinAge string `json:"minAge,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CloudStorageConditions") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "SchemaModifiedCadence") to
+	// NullFields is a list of field names (e.g. "CloudStorageConditions") to
 	// include in API requests with the JSON null value. By default, fields with
 	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryGenerationCadence) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryFileStoreConditions) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryFileStoreConditions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryGenerationCadence: What must take place for a
+// profile to be updated and how frequently it should occur. New tables are
+// scanned as quickly as possible depending on system capacity.
+type GooglePrivacyDlpV2DiscoveryGenerationCadence struct {
+	// InspectTemplateModifiedCadence: Governs when to update data profiles when
+	// the inspection rules defined by the `InspectTemplate` change. If not set,
+	// changing the template will not cause a data profile to update.
+	InspectTemplateModifiedCadence *GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence `json:"inspectTemplateModifiedCadence,omitempty"`
+	// RefreshFrequency: Frequency at which profiles should be updated, regardless
+	// of whether the underlying resource has changed. Defaults to never.
+	//
+	// Possible values:
+	//   "UPDATE_FREQUENCY_UNSPECIFIED" - Unspecified.
+	//   "UPDATE_FREQUENCY_NEVER" - After the data profile is created, it will
+	// never be updated.
+	//   "UPDATE_FREQUENCY_DAILY" - The data profile can be updated up to once
+	// every 24 hours.
+	//   "UPDATE_FREQUENCY_MONTHLY" - The data profile can be updated up to once
+	// every 30 days. Default.
+	RefreshFrequency string `json:"refreshFrequency,omitempty"`
+	// SchemaModifiedCadence: Governs when to update data profiles when a schema is
+	// modified.
+	SchemaModifiedCadence *GooglePrivacyDlpV2DiscoverySchemaModifiedCadence `json:"schemaModifiedCadence,omitempty"`
+	// TableModifiedCadence: Governs when to update data profiles when a table is
+	// modified.
+	TableModifiedCadence *GooglePrivacyDlpV2DiscoveryTableModifiedCadence `json:"tableModifiedCadence,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "InspectTemplateModifiedCadence") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "InspectTemplateModifiedCadence")
+	// to include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryGenerationCadence) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryGenerationCadence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence: The cadence at
+// which to update data profiles when the inspection rules defined by the
+// `InspectTemplate` change.
+type GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence struct {
+	// Frequency: How frequently data profiles can be updated when the template is
+	// modified. Defaults to never.
+	//
+	// Possible values:
+	//   "UPDATE_FREQUENCY_UNSPECIFIED" - Unspecified.
+	//   "UPDATE_FREQUENCY_NEVER" - After the data profile is created, it will
+	// never be updated.
+	//   "UPDATE_FREQUENCY_DAILY" - The data profile can be updated up to once
+	// every 24 hours.
+	//   "UPDATE_FREQUENCY_MONTHLY" - The data profile can be updated up to once
+	// every 30 days. Default.
+	Frequency string `json:"frequency,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Frequency") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Frequency") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryOtherCloudConditions: Requirements that must be
+// true before a resource is profiled for the first time.
+type GooglePrivacyDlpV2DiscoveryOtherCloudConditions struct {
+	// AmazonS3BucketConditions: Amazon S3 bucket conditions.
+	AmazonS3BucketConditions *GooglePrivacyDlpV2AmazonS3BucketConditions `json:"amazonS3BucketConditions,omitempty"`
+	// MinAge: Minimum age a resource must be before Cloud DLP can profile it.
+	// Value must be 1 hour or greater.
+	MinAge string `json:"minAge,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AmazonS3BucketConditions")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AmazonS3BucketConditions") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryOtherCloudConditions) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryOtherCloudConditions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryOtherCloudFilter: Determines which resources from
+// the other cloud will have profiles generated. Includes the ability to filter
+// by resource names.
+type GooglePrivacyDlpV2DiscoveryOtherCloudFilter struct {
+	// Collection: A collection of resources for this filter to apply to.
+	Collection *GooglePrivacyDlpV2OtherCloudResourceCollection `json:"collection,omitempty"`
+	// Others: Optional. Catch-all. This should always be the last target in the
+	// list because anything above it will apply first. Should only appear once in
+	// a configuration. If none is specified, a default one will be added
+	// automatically.
+	Others *GooglePrivacyDlpV2AllOtherResources `json:"others,omitempty"`
+	// SingleResource: The resource to scan. Configs using this filter can only
+	// have one target (the target with this single resource reference).
+	SingleResource *GooglePrivacyDlpV2OtherCloudSingleResourceReference `json:"singleResource,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Collection") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Collection") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryOtherCloudFilter) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryOtherCloudFilter
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryOtherCloudGenerationCadence: How often existing
+// resources should have their profiles refreshed. New resources are scanned as
+// quickly as possible depending on system capacity.
+type GooglePrivacyDlpV2DiscoveryOtherCloudGenerationCadence struct {
+	// InspectTemplateModifiedCadence: Optional. Governs when to update data
+	// profiles when the inspection rules defined by the `InspectTemplate` change.
+	// If not set, changing the template will not cause a data profile to update.
+	InspectTemplateModifiedCadence *GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence `json:"inspectTemplateModifiedCadence,omitempty"`
+	// RefreshFrequency: Optional. Frequency to update profiles regardless of
+	// whether the underlying resource has changes. Defaults to never.
+	//
+	// Possible values:
+	//   "UPDATE_FREQUENCY_UNSPECIFIED" - Unspecified.
+	//   "UPDATE_FREQUENCY_NEVER" - After the data profile is created, it will
+	// never be updated.
+	//   "UPDATE_FREQUENCY_DAILY" - The data profile can be updated up to once
+	// every 24 hours.
+	//   "UPDATE_FREQUENCY_MONTHLY" - The data profile can be updated up to once
+	// every 30 days. Default.
+	RefreshFrequency string `json:"refreshFrequency,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "InspectTemplateModifiedCadence") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "InspectTemplateModifiedCadence")
+	// to include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryOtherCloudGenerationCadence) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryOtherCloudGenerationCadence
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoverySchemaModifiedCadence: The cadence at which to
@@ -3946,16 +4709,16 @@ type GooglePrivacyDlpV2DiscoverySchemaModifiedCadence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoverySchemaModifiedCadence) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoverySchemaModifiedCadence) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoverySchemaModifiedCadence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoveryStartingLocation: The location to begin a
 // discovery scan. Denotes an organization ID or folder ID within an
 // organization.
 type GooglePrivacyDlpV2DiscoveryStartingLocation struct {
-	// FolderId: The ID of the Folder within an organization to scan.
+	// FolderId: The ID of the folder within an organization to be scanned.
 	FolderId int64 `json:"folderId,omitempty,string"`
 	// OrganizationId: The ID of an organization to scan.
 	OrganizationId int64 `json:"organizationId,omitempty,string"`
@@ -3972,9 +4735,9 @@ type GooglePrivacyDlpV2DiscoveryStartingLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryStartingLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryStartingLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryStartingLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoveryTableModifiedCadence: The cadence at which to
@@ -4014,9 +4777,9 @@ type GooglePrivacyDlpV2DiscoveryTableModifiedCadence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryTableModifiedCadence) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryTableModifiedCadence) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryTableModifiedCadence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DiscoveryTarget: Target used to match against for
@@ -4028,10 +4791,26 @@ type GooglePrivacyDlpV2DiscoveryTarget struct {
 	// CloudSqlTarget: Cloud SQL target for Discovery. The first target to match a
 	// table will be the one applied.
 	CloudSqlTarget *GooglePrivacyDlpV2CloudSqlDiscoveryTarget `json:"cloudSqlTarget,omitempty"`
+	// CloudStorageTarget: Cloud Storage target for Discovery. The first target to
+	// match a table will be the one applied.
+	CloudStorageTarget *GooglePrivacyDlpV2CloudStorageDiscoveryTarget `json:"cloudStorageTarget,omitempty"`
+	// OtherCloudTarget: Other clouds target for discovery. The first target to
+	// match a resource will be the one applied.
+	OtherCloudTarget *GooglePrivacyDlpV2OtherCloudDiscoveryTarget `json:"otherCloudTarget,omitempty"`
 	// SecretsTarget: Discovery target that looks for credentials and secrets
 	// stored in cloud resource metadata and reports them as vulnerabilities to
 	// Security Command Center. Only one target of this type is allowed.
 	SecretsTarget *GooglePrivacyDlpV2SecretsDiscoveryTarget `json:"secretsTarget,omitempty"`
+	// VertexDatasetTarget: Vertex AI dataset target for Discovery. The first
+	// target to match a dataset will be the one applied. Note that discovery for
+	// Vertex AI can incur Cloud Storage Class B operation charges for
+	// storage.objects.get operations and retrieval fees. For more information, see
+	// Cloud Storage pricing
+	// (https://cloud.google.com/storage/pricing#price-tables). Note that discovery
+	// for Vertex AI dataset will not be able to scan images unless
+	// DiscoveryConfig.processing_location.image_fallback_location has
+	// multi_region_processing or global_processing configured.
+	VertexDatasetTarget *GooglePrivacyDlpV2VertexDatasetDiscoveryTarget `json:"vertexDatasetTarget,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "BigQueryTarget") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -4045,9 +4824,111 @@ type GooglePrivacyDlpV2DiscoveryTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DiscoveryTarget) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DiscoveryTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DiscoveryTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryVertexDatasetConditions: Requirements that must
+// be true before a dataset is profiled for the first time.
+type GooglePrivacyDlpV2DiscoveryVertexDatasetConditions struct {
+	// CreatedAfter: Vertex AI dataset must have been created after this date. Used
+	// to avoid backfilling.
+	CreatedAfter string `json:"createdAfter,omitempty"`
+	// MinAge: Minimum age a Vertex AI dataset must have. If set, the value must be
+	// 1 hour or greater.
+	MinAge string `json:"minAge,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CreatedAfter") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CreatedAfter") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryVertexDatasetConditions) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryVertexDatasetConditions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryVertexDatasetFilter: Determines what datasets
+// will have profiles generated within an organization or project. Includes the
+// ability to filter by regular expression patterns on project ID or dataset
+// regex.
+type GooglePrivacyDlpV2DiscoveryVertexDatasetFilter struct {
+	// Collection: A specific set of Vertex AI datasets for this filter to apply
+	// to.
+	Collection *GooglePrivacyDlpV2VertexDatasetCollection `json:"collection,omitempty"`
+	// Others: Catch-all. This should always be the last target in the list because
+	// anything above it will apply first. Should only appear once in a
+	// configuration. If none is specified, a default one will be added
+	// automatically.
+	Others *GooglePrivacyDlpV2AllOtherResources `json:"others,omitempty"`
+	// VertexDatasetResourceReference: The dataset resource to scan. Targets
+	// including this can only include one target (the target with this dataset
+	// resource reference).
+	VertexDatasetResourceReference *GooglePrivacyDlpV2VertexDatasetResourceReference `json:"vertexDatasetResourceReference,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Collection") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Collection") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryVertexDatasetFilter) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryVertexDatasetFilter
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2DiscoveryVertexDatasetGenerationCadence: How often
+// existing datasets should have their profiles refreshed. New datasets are
+// scanned as quickly as possible depending on system capacity.
+type GooglePrivacyDlpV2DiscoveryVertexDatasetGenerationCadence struct {
+	// InspectTemplateModifiedCadence: Governs when to update data profiles when
+	// the inspection rules defined by the `InspectTemplate` change. If not set,
+	// changing the template will not cause a data profile to be updated.
+	InspectTemplateModifiedCadence *GooglePrivacyDlpV2DiscoveryInspectTemplateModifiedCadence `json:"inspectTemplateModifiedCadence,omitempty"`
+	// RefreshFrequency: If you set this field, profiles are refreshed at this
+	// frequency regardless of whether the underlying datasets have changed.
+	// Defaults to never.
+	//
+	// Possible values:
+	//   "UPDATE_FREQUENCY_UNSPECIFIED" - Unspecified.
+	//   "UPDATE_FREQUENCY_NEVER" - After the data profile is created, it will
+	// never be updated.
+	//   "UPDATE_FREQUENCY_DAILY" - The data profile can be updated up to once
+	// every 24 hours.
+	//   "UPDATE_FREQUENCY_MONTHLY" - The data profile can be updated up to once
+	// every 30 days. Default.
+	RefreshFrequency string `json:"refreshFrequency,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "InspectTemplateModifiedCadence") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "InspectTemplateModifiedCadence")
+	// to include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2DiscoveryVertexDatasetGenerationCadence) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2DiscoveryVertexDatasetGenerationCadence
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DlpJob: Combines all of the information about a DLP job.
@@ -4111,9 +4992,9 @@ type GooglePrivacyDlpV2DlpJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DlpJob) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DlpJob) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DlpJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2DocumentLocation: Location of a finding within a document.
@@ -4134,9 +5015,9 @@ type GooglePrivacyDlpV2DocumentLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2DocumentLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2DocumentLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2DocumentLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2EntityId: An entity in a dataset is a field or set of
@@ -4161,9 +5042,9 @@ type GooglePrivacyDlpV2EntityId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2EntityId) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2EntityId) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2EntityId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Error: Details information about an error encountered
@@ -4172,6 +5053,15 @@ func (s *GooglePrivacyDlpV2EntityId) MarshalJSON() ([]byte, error) {
 type GooglePrivacyDlpV2Error struct {
 	// Details: Detailed error codes and messages.
 	Details *GoogleRpcStatus `json:"details,omitempty"`
+	// ExtraInfo: Additional information about the error.
+	//
+	// Possible values:
+	//   "ERROR_INFO_UNSPECIFIED" - Unused.
+	//   "IMAGE_SCAN_UNAVAILABLE_IN_REGION" - Image scan is not available in the
+	// region.
+	//   "FILE_STORE_CLUSTER_UNSUPPORTED" - File store cluster is not supported for
+	// profile generation.
+	ExtraInfo string `json:"extraInfo,omitempty"`
 	// Timestamps: The times the error occurred. List includes the oldest timestamp
 	// and the last 9 timestamps.
 	Timestamps []string `json:"timestamps,omitempty"`
@@ -4188,9 +5078,9 @@ type GooglePrivacyDlpV2Error struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Error) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Error) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Error
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ExcludeByHotword: The rule to exclude findings based on a
@@ -4219,9 +5109,9 @@ type GooglePrivacyDlpV2ExcludeByHotword struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ExcludeByHotword) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ExcludeByHotword) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ExcludeByHotword
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ExcludeInfoTypes: List of excluded infoTypes.
@@ -4247,9 +5137,9 @@ type GooglePrivacyDlpV2ExcludeInfoTypes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ExcludeInfoTypes) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ExcludeInfoTypes) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ExcludeInfoTypes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ExclusionRule: The rule that specifies conditions when
@@ -4295,23 +5185,44 @@ type GooglePrivacyDlpV2ExclusionRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ExclusionRule) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ExclusionRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ExclusionRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Export: If set, the detailed data profiles will be
 // persisted to the location of your choice whenever updated.
 type GooglePrivacyDlpV2Export struct {
-	// ProfileTable: Store all table and column profiles in an existing table or a
-	// new table in an existing dataset. Each re-generation will result in new rows
-	// in BigQuery. Data is inserted using streaming insert
+	// ProfileTable: Store all profiles to BigQuery. * The system will create a new
+	// dataset and table for you if none are are provided. The dataset will be
+	// named `sensitive_data_protection_discovery` and table will be named
+	// `discovery_profiles`. This table will be placed in the same project as the
+	// container project running the scan. After the first profile is generated and
+	// the dataset and table are created, the discovery scan configuration will be
+	// updated with the dataset and table names. * See Analyze data profiles stored
+	// in BigQuery
+	// (https://cloud.google.com/sensitive-data-protection/docs/analyze-data-profiles).
+	// * See Sample queries for your BigQuery table
+	// (https://cloud.google.com/sensitive-data-protection/docs/analyze-data-profiles#sample_sql_queries).
+	// * Data is inserted using streaming insert
 	// (https://cloud.google.com/blog/products/bigquery/life-of-a-bigquery-streaming-insert)
 	// and so data may be in the buffer for a period of time after the profile has
-	// finished. The Pub/Sub notification is sent before the streaming buffer is
+	// finished. * The Pub/Sub notification is sent before the streaming buffer is
 	// guaranteed to be written, so data may not be instantly visible to queries by
-	// the time your topic receives the Pub/Sub notification.
+	// the time your topic receives the Pub/Sub notification. * The best practice
+	// is to use the same table for an entire organization so that you can take
+	// advantage of the provided Looker reports
+	// (https://cloud.google.com/sensitive-data-protection/docs/analyze-data-profiles#use_a_premade_report).
+	// If you use VPC Service Controls to define security perimeters, then you must
+	// use a separate table for each boundary.
 	ProfileTable *GooglePrivacyDlpV2BigQueryTable `json:"profileTable,omitempty"`
+	// SampleFindingsTable: Store sample data profile findings in an existing table
+	// or a new table in an existing dataset. Each regeneration will result in new
+	// rows in BigQuery. Data is inserted using streaming insert
+	// (https://cloud.google.com/blog/products/bigquery/life-of-a-bigquery-streaming-insert)
+	// and so data may be in the buffer for a period of time after the profile has
+	// finished.
+	SampleFindingsTable *GooglePrivacyDlpV2BigQueryTable `json:"sampleFindingsTable,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ProfileTable") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -4325,9 +5236,9 @@ type GooglePrivacyDlpV2Export struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Export) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Export) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Export
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Expressions: An expression, consisting of an operator and
@@ -4355,9 +5266,9 @@ type GooglePrivacyDlpV2Expressions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Expressions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Expressions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Expressions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2FieldId: General identifier of a data field in a storage
@@ -4378,9 +5289,9 @@ type GooglePrivacyDlpV2FieldId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2FieldId) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2FieldId) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2FieldId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2FieldTransformation: The transformation to apply to the
@@ -4416,9 +5327,113 @@ type GooglePrivacyDlpV2FieldTransformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2FieldTransformation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2FieldTransformation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2FieldTransformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2FileClusterSummary: The file cluster summary.
+type GooglePrivacyDlpV2FileClusterSummary struct {
+	// DataRiskLevel: The data risk level of this cluster. RISK_LOW if nothing has
+	// been scanned.
+	DataRiskLevel *GooglePrivacyDlpV2DataRiskLevel `json:"dataRiskLevel,omitempty"`
+	// Errors: A list of errors detected while scanning this cluster. The list is
+	// truncated to 10 per cluster.
+	Errors []*GooglePrivacyDlpV2Error `json:"errors,omitempty"`
+	// FileClusterType: The file cluster type.
+	FileClusterType *GooglePrivacyDlpV2FileClusterType `json:"fileClusterType,omitempty"`
+	// FileExtensionsScanned: A sample of file types scanned in this cluster. Empty
+	// if no files were scanned. File extensions can be derived from the file name
+	// or the file content.
+	FileExtensionsScanned []*GooglePrivacyDlpV2FileExtensionInfo `json:"fileExtensionsScanned,omitempty"`
+	// FileExtensionsSeen: A sample of file types seen in this cluster. Empty if no
+	// files were seen. File extensions can be derived from the file name or the
+	// file content.
+	FileExtensionsSeen []*GooglePrivacyDlpV2FileExtensionInfo `json:"fileExtensionsSeen,omitempty"`
+	// FileStoreInfoTypeSummaries: InfoTypes detected in this cluster.
+	FileStoreInfoTypeSummaries []*GooglePrivacyDlpV2FileStoreInfoTypeSummary `json:"fileStoreInfoTypeSummaries,omitempty"`
+	// NoFilesExist: True if no files exist in this cluster. If the file store had
+	// more files than could be listed, this will be false even if no files for
+	// this cluster were seen and file_extensions_seen is empty.
+	NoFilesExist bool `json:"noFilesExist,omitempty"`
+	// SensitivityScore: The sensitivity score of this cluster. The score will be
+	// SENSITIVITY_LOW if nothing has been scanned.
+	SensitivityScore *GooglePrivacyDlpV2SensitivityScore `json:"sensitivityScore,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DataRiskLevel") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DataRiskLevel") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2FileClusterSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2FileClusterSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2FileClusterType: Message used to identify file cluster
+// type being profiled.
+type GooglePrivacyDlpV2FileClusterType struct {
+	// Cluster: Cluster type.
+	//
+	// Possible values:
+	//   "CLUSTER_UNSPECIFIED" - Unused.
+	//   "CLUSTER_UNKNOWN" - Unsupported files.
+	//   "CLUSTER_TEXT" - Plain text.
+	//   "CLUSTER_STRUCTURED_DATA" - Structured data like CSV, TSV etc.
+	//   "CLUSTER_SOURCE_CODE" - Source code.
+	//   "CLUSTER_RICH_DOCUMENT" - Rich document like docx, xlsx etc.
+	//   "CLUSTER_IMAGE" - Images like jpeg, bmp.
+	//   "CLUSTER_ARCHIVE" - Archives and containers like .zip, .tar etc.
+	//   "CLUSTER_MULTIMEDIA" - Multimedia like .mp4, .avi etc.
+	//   "CLUSTER_EXECUTABLE" - Executable files like .exe, .class, .apk etc.
+	//   "CLUSTER_AI_MODEL" - AI models like .tflite etc.
+	Cluster string `json:"cluster,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Cluster") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Cluster") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2FileClusterType) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2FileClusterType
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2FileExtensionInfo: Information regarding the discovered
+// file extension.
+type GooglePrivacyDlpV2FileExtensionInfo struct {
+	// FileExtension: The file extension if set. (aka .pdf, .jpg, .txt)
+	FileExtension string `json:"fileExtension,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FileExtension") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FileExtension") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2FileExtensionInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2FileExtensionInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2FileSet: Set of files to scan.
@@ -4447,9 +5462,222 @@ type GooglePrivacyDlpV2FileSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2FileSet) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2FileSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2FileSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2FileStoreCollection: Match file stores (e.g. buckets)
+// using regex filters.
+type GooglePrivacyDlpV2FileStoreCollection struct {
+	// IncludeRegexes: Optional. A collection of regular expressions to match a
+	// file store against.
+	IncludeRegexes *GooglePrivacyDlpV2FileStoreRegexes `json:"includeRegexes,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "IncludeRegexes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IncludeRegexes") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2FileStoreCollection) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2FileStoreCollection
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2FileStoreDataProfile: The profile for a file store. *
+// Cloud Storage: maps 1:1 with a bucket. * Amazon S3: maps 1:1 with a bucket.
+type GooglePrivacyDlpV2FileStoreDataProfile struct {
+	// ConfigSnapshot: The snapshot of the configurations used to generate the
+	// profile.
+	ConfigSnapshot *GooglePrivacyDlpV2DataProfileConfigSnapshot `json:"configSnapshot,omitempty"`
+	// CreateTime: The time the file store was first created.
+	CreateTime string `json:"createTime,omitempty"`
+	// DataRiskLevel: The data risk level of this resource.
+	DataRiskLevel *GooglePrivacyDlpV2DataRiskLevel `json:"dataRiskLevel,omitempty"`
+	// DataSourceType: The resource type that was profiled.
+	DataSourceType *GooglePrivacyDlpV2DataSourceType `json:"dataSourceType,omitempty"`
+	// DataStorageLocations: For resources that have multiple storage locations,
+	// these are those regions. For Cloud Storage this is the list of regions
+	// chosen for dual-region storage. `file_store_location` will normally be the
+	// corresponding multi-region for the list of individual locations. The first
+	// region is always picked as the processing and storage location for the data
+	// profile.
+	DataStorageLocations []string `json:"dataStorageLocations,omitempty"`
+	// FileClusterSummaries: FileClusterSummary per each cluster.
+	FileClusterSummaries []*GooglePrivacyDlpV2FileClusterSummary `json:"fileClusterSummaries,omitempty"`
+	// FileStoreInfoTypeSummaries: InfoTypes detected in this file store.
+	FileStoreInfoTypeSummaries []*GooglePrivacyDlpV2FileStoreInfoTypeSummary `json:"fileStoreInfoTypeSummaries,omitempty"`
+	// FileStoreIsEmpty: The file store does not have any files.
+	FileStoreIsEmpty bool `json:"fileStoreIsEmpty,omitempty"`
+	// FileStoreLocation: The location of the file store. * Cloud Storage:
+	// https://cloud.google.com/storage/docs/locations#available-locations * Amazon
+	// S3:
+	// https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
+	FileStoreLocation string `json:"fileStoreLocation,omitempty"`
+	// FileStorePath: The file store path. * Cloud Storage: `gs://{bucket}` *
+	// Amazon S3: `s3://{bucket}` * Vertex AI dataset:
+	// `projects/{project_number}/locations/{location}/datasets/{dataset_id}`
+	FileStorePath string `json:"fileStorePath,omitempty"`
+	// FullResource: The resource name of the resource profiled.
+	// https://cloud.google.com/apis/design/resource_names#full_resource_name
+	// Example format of an S3 bucket full resource name:
+	// `//cloudasset.googleapis.com/organizations/{org_id}/otherCloudConnections/aws
+	// /arn:aws:s3:::{bucket_name}`
+	FullResource string `json:"fullResource,omitempty"`
+	// LastModifiedTime: The time the file store was last modified.
+	LastModifiedTime string `json:"lastModifiedTime,omitempty"`
+	// LocationType: The location type of the file store (region, dual-region,
+	// multi-region, etc). If dual-region, expect data_storage_locations to be
+	// populated.
+	LocationType string `json:"locationType,omitempty"`
+	// Name: The name of the profile.
+	Name string `json:"name,omitempty"`
+	// ProfileLastGenerated: The last time the profile was generated.
+	ProfileLastGenerated string `json:"profileLastGenerated,omitempty"`
+	// ProfileStatus: Success or error status from the most recent profile
+	// generation attempt. May be empty if the profile is still being generated.
+	ProfileStatus *GooglePrivacyDlpV2ProfileStatus `json:"profileStatus,omitempty"`
+	// ProjectDataProfile: The resource name of the project data profile for this
+	// file store.
+	ProjectDataProfile string `json:"projectDataProfile,omitempty"`
+	// ProjectId: The Google Cloud project ID that owns the resource. For Amazon S3
+	// buckets, this is the AWS Account Id.
+	ProjectId string `json:"projectId,omitempty"`
+	// RelatedResources: Resources related to this profile.
+	RelatedResources []*GooglePrivacyDlpV2RelatedResource `json:"relatedResources,omitempty"`
+	// ResourceAttributes: Attributes of the resource being profiled. Currently
+	// used attributes: * customer_managed_encryption: boolean - true: the resource
+	// is encrypted with a customer-managed key. - false: the resource is encrypted
+	// with a provider-managed key.
+	ResourceAttributes map[string]GooglePrivacyDlpV2Value `json:"resourceAttributes,omitempty"`
+	// ResourceLabels: The labels applied to the resource at the time the profile
+	// was generated.
+	ResourceLabels map[string]string `json:"resourceLabels,omitempty"`
+	// ResourceVisibility: How broadly a resource has been shared.
+	//
+	// Possible values:
+	//   "RESOURCE_VISIBILITY_UNSPECIFIED" - Unused.
+	//   "RESOURCE_VISIBILITY_PUBLIC" - Visible to any user.
+	//   "RESOURCE_VISIBILITY_INCONCLUSIVE" - May contain public items. For
+	// example, if a Cloud Storage bucket has uniform bucket level access disabled,
+	// some objects inside it may be public, but none are known yet.
+	//   "RESOURCE_VISIBILITY_RESTRICTED" - Visible only to specific users.
+	ResourceVisibility string `json:"resourceVisibility,omitempty"`
+	// SampleFindingsTable: The BigQuery table to which the sample findings are
+	// written.
+	SampleFindingsTable *GooglePrivacyDlpV2BigQueryTable `json:"sampleFindingsTable,omitempty"`
+	// SensitivityScore: The sensitivity score of this resource.
+	SensitivityScore *GooglePrivacyDlpV2SensitivityScore `json:"sensitivityScore,omitempty"`
+	// State: State of a profile.
+	//
+	// Possible values:
+	//   "STATE_UNSPECIFIED" - Unused.
+	//   "RUNNING" - The profile is currently running. Once a profile has finished
+	// it will transition to DONE.
+	//   "DONE" - The profile is no longer generating. If
+	// profile_status.status.code is 0, the profile succeeded, otherwise, it
+	// failed.
+	State string `json:"state,omitempty"`
+	// Tags: The tags attached to the resource, including any tags attached during
+	// profiling.
+	Tags []*GooglePrivacyDlpV2Tag `json:"tags,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ConfigSnapshot") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ConfigSnapshot") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2FileStoreDataProfile) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2FileStoreDataProfile
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2FileStoreInfoTypeSummary: Information regarding the
+// discovered InfoType.
+type GooglePrivacyDlpV2FileStoreInfoTypeSummary struct {
+	// InfoType: The InfoType seen.
+	InfoType *GooglePrivacyDlpV2InfoType `json:"infoType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "InfoType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "InfoType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2FileStoreInfoTypeSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2FileStoreInfoTypeSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2FileStoreRegex: A pattern to match against one or more
+// file stores.
+type GooglePrivacyDlpV2FileStoreRegex struct {
+	// CloudStorageRegex: Optional. Regex for Cloud Storage.
+	CloudStorageRegex *GooglePrivacyDlpV2CloudStorageRegex `json:"cloudStorageRegex,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CloudStorageRegex") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CloudStorageRegex") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2FileStoreRegex) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2FileStoreRegex
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2FileStoreRegexes: A collection of regular expressions to
+// determine what file store to match against.
+type GooglePrivacyDlpV2FileStoreRegexes struct {
+	// Patterns: Required. The group of regular expression patterns to match
+	// against one or more file stores. Maximum of 100 entries. The sum of all
+	// regular expression's length can't exceed 10 KiB.
+	Patterns []*GooglePrivacyDlpV2FileStoreRegex `json:"patterns,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Patterns") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Patterns") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2FileStoreRegexes) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2FileStoreRegexes
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Finding: Represents a piece of potentially sensitive
@@ -4517,9 +5745,9 @@ type GooglePrivacyDlpV2Finding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Finding) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Finding) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Finding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2FindingLimits: Configuration to control the number of
@@ -4560,9 +5788,9 @@ type GooglePrivacyDlpV2FindingLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2FindingLimits) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2FindingLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2FindingLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2FinishDlpJobRequest: The request message for finishing a
@@ -4611,9 +5839,9 @@ type GooglePrivacyDlpV2FixedSizeBucketingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2FixedSizeBucketingConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2FixedSizeBucketingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2FixedSizeBucketingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GooglePrivacyDlpV2FixedSizeBucketingConfig) UnmarshalJSON(data []byte) error {
@@ -4628,6 +5856,11 @@ func (s *GooglePrivacyDlpV2FixedSizeBucketingConfig) UnmarshalJSON(data []byte) 
 	}
 	s.BucketSize = float64(s1.BucketSize)
 	return nil
+}
+
+// GooglePrivacyDlpV2GlobalProcessing: Processing will happen in the global
+// region.
+type GooglePrivacyDlpV2GlobalProcessing struct {
 }
 
 // GooglePrivacyDlpV2HotwordRule: The rule that adjusts the likelihood of
@@ -4663,9 +5896,9 @@ type GooglePrivacyDlpV2HotwordRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2HotwordRule) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2HotwordRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2HotwordRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2HybridContentItem: An individual hybrid item to inspect.
@@ -4689,9 +5922,9 @@ type GooglePrivacyDlpV2HybridContentItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2HybridContentItem) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2HybridContentItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2HybridContentItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2HybridFindingDetails: Populate to associate additional
@@ -4738,9 +5971,9 @@ type GooglePrivacyDlpV2HybridFindingDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2HybridFindingDetails) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2HybridFindingDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2HybridFindingDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2HybridInspectDlpJobRequest: Request to search for
@@ -4761,9 +5994,9 @@ type GooglePrivacyDlpV2HybridInspectDlpJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2HybridInspectDlpJobRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2HybridInspectDlpJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2HybridInspectDlpJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2HybridInspectJobTriggerRequest: Request to search for
@@ -4784,9 +6017,9 @@ type GooglePrivacyDlpV2HybridInspectJobTriggerRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2HybridInspectJobTriggerRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2HybridInspectJobTriggerRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2HybridInspectJobTriggerRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2HybridInspectResponse: Quota exceeded errors will be
@@ -4824,9 +6057,9 @@ type GooglePrivacyDlpV2HybridInspectStatistics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2HybridInspectStatistics) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2HybridInspectStatistics) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2HybridInspectStatistics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2HybridOptions: Configuration to control jobs where the
@@ -4865,9 +6098,36 @@ type GooglePrivacyDlpV2HybridOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2HybridOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2HybridOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2HybridOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2ImageFallbackLocation: Configure image processing to fall
+// back to the configured processing option below if unavailable in the request
+// location.
+type GooglePrivacyDlpV2ImageFallbackLocation struct {
+	// GlobalProcessing: Processing will happen in the global region.
+	GlobalProcessing *GooglePrivacyDlpV2GlobalProcessing `json:"globalProcessing,omitempty"`
+	// MultiRegionProcessing: Processing will happen in a multi-region that
+	// contains the current region if available.
+	MultiRegionProcessing *GooglePrivacyDlpV2MultiRegionProcessing `json:"multiRegionProcessing,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "GlobalProcessing") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "GlobalProcessing") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2ImageFallbackLocation) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2ImageFallbackLocation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ImageLocation: Location of the finding within an image.
@@ -4888,9 +6148,9 @@ type GooglePrivacyDlpV2ImageLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ImageLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ImageLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ImageLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ImageRedactionConfig: Configuration for determining how
@@ -4920,9 +6180,9 @@ type GooglePrivacyDlpV2ImageRedactionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ImageRedactionConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ImageRedactionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ImageRedactionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ImageTransformation: Configuration for determining how
@@ -4953,9 +6213,9 @@ type GooglePrivacyDlpV2ImageTransformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ImageTransformation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ImageTransformation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ImageTransformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ImageTransformations: A type of transformation that is
@@ -4976,9 +6236,9 @@ type GooglePrivacyDlpV2ImageTransformations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ImageTransformations) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ImageTransformations) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ImageTransformations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoType: Type of information detected by the API.
@@ -5008,9 +6268,9 @@ type GooglePrivacyDlpV2InfoType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoType) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoType) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoTypeCategory: Classification of infoTypes to organize
@@ -5034,8 +6294,10 @@ type GooglePrivacyDlpV2InfoTypeCategory struct {
 	//   "GLOBAL" - The infoType is not issued by or tied to a specific region, but
 	// is used almost everywhere.
 	//   "ARGENTINA" - The infoType is typically used in Argentina.
+	//   "ARMENIA" - The infoType is typically used in Armenia.
 	//   "AUSTRALIA" - The infoType is typically used in Australia.
 	//   "AZERBAIJAN" - The infoType is typically used in Azerbaijan.
+	//   "BELARUS" - The infoType is typically used in Belarus.
 	//   "BELGIUM" - The infoType is typically used in Belgium.
 	//   "BRAZIL" - The infoType is typically used in Brazil.
 	//   "CANADA" - The infoType is typically used in Canada.
@@ -5043,6 +6305,7 @@ type GooglePrivacyDlpV2InfoTypeCategory struct {
 	//   "CHINA" - The infoType is typically used in China.
 	//   "COLOMBIA" - The infoType is typically used in Colombia.
 	//   "CROATIA" - The infoType is typically used in Croatia.
+	//   "CZECHIA" - The infoType is typically used in Czechia.
 	//   "DENMARK" - The infoType is typically used in Denmark.
 	//   "FRANCE" - The infoType is typically used in France.
 	//   "FINLAND" - The infoType is typically used in Finland.
@@ -5098,6 +6361,7 @@ type GooglePrivacyDlpV2InfoTypeCategory struct {
 	//   "CONTEXTUAL_INFORMATION" - Information that is not sensitive on its own,
 	// but provides details about the circumstances surrounding an entity or an
 	// event.
+	//   "CUSTOM" - Category for `CustomInfoType` types.
 	TypeCategory string `json:"typeCategory,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "IndustryCategory") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -5112,9 +6376,9 @@ type GooglePrivacyDlpV2InfoTypeCategory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoTypeCategory) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoTypeCategory) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoTypeCategory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoTypeDescription: InfoType description.
@@ -5126,10 +6390,18 @@ type GooglePrivacyDlpV2InfoTypeDescription struct {
 	Description string `json:"description,omitempty"`
 	// DisplayName: Human readable form of the infoType name.
 	DisplayName string `json:"displayName,omitempty"`
+	// Example: A sample that is a true positive for this infoType.
+	Example string `json:"example,omitempty"`
 	// Name: Internal name of the infoType.
 	Name string `json:"name,omitempty"`
 	// SensitivityScore: The default sensitivity of the infoType.
 	SensitivityScore *GooglePrivacyDlpV2SensitivityScore `json:"sensitivityScore,omitempty"`
+	// SpecificInfoTypes: If this field is set, this infoType is a general infoType
+	// and these specific infoTypes are contained within it. General infoTypes are
+	// infoTypes that encompass multiple specific infoTypes. For example, the
+	// "GEOGRAPHIC_DATA" general infoType would have set for this field "LOCATION",
+	// "LOCATION_COORDINATES", and "STREET_ADDRESS".
+	SpecificInfoTypes []string `json:"specificInfoTypes,omitempty"`
 	// SupportedBy: Which parts of the API supports this InfoType.
 	//
 	// Possible values:
@@ -5152,9 +6424,9 @@ type GooglePrivacyDlpV2InfoTypeDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoTypeDescription) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoTypeDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoTypeDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoTypeLikelihood: Configuration for setting a minimum
@@ -5192,9 +6464,9 @@ type GooglePrivacyDlpV2InfoTypeLikelihood struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoTypeLikelihood) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoTypeLikelihood) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoTypeLikelihood
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoTypeLimit: Max findings configuration per infoType,
@@ -5220,9 +6492,9 @@ type GooglePrivacyDlpV2InfoTypeLimit struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoTypeLimit) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoTypeLimit) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoTypeLimit
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoTypeStats: Statistics regarding a specific InfoType.
@@ -5244,9 +6516,9 @@ type GooglePrivacyDlpV2InfoTypeStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoTypeStats) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoTypeStats) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoTypeStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoTypeSummary: The infoType details for this column.
@@ -5268,9 +6540,9 @@ type GooglePrivacyDlpV2InfoTypeSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoTypeSummary) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoTypeSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoTypeSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoTypeTransformation: A transformation to apply to text
@@ -5296,9 +6568,9 @@ type GooglePrivacyDlpV2InfoTypeTransformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoTypeTransformation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoTypeTransformation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoTypeTransformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InfoTypeTransformations: A type of transformation that
@@ -5322,9 +6594,9 @@ type GooglePrivacyDlpV2InfoTypeTransformations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InfoTypeTransformations) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InfoTypeTransformations) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InfoTypeTransformations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectConfig: Configuration description of the scanning
@@ -5407,9 +6679,9 @@ type GooglePrivacyDlpV2InspectConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectContentRequest: Request to search for potentially
@@ -5441,9 +6713,9 @@ type GooglePrivacyDlpV2InspectContentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectContentRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectContentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectContentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectContentResponse: Results of inspecting an item.
@@ -5466,9 +6738,9 @@ type GooglePrivacyDlpV2InspectContentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectContentResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectContentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectContentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectDataSourceDetails: The results of an inspect
@@ -5491,9 +6763,9 @@ type GooglePrivacyDlpV2InspectDataSourceDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectDataSourceDetails) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectDataSourceDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectDataSourceDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectJobConfig: Controls what and how to inspect for
@@ -5522,9 +6794,9 @@ type GooglePrivacyDlpV2InspectJobConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectJobConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectJobConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectJobConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectResult: All the findings for a single scanned item.
@@ -5551,9 +6823,9 @@ type GooglePrivacyDlpV2InspectResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectResult) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectTemplate: The inspectTemplate contains a
@@ -5593,9 +6865,9 @@ type GooglePrivacyDlpV2InspectTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectTemplate) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectionRule: A single inspection rule to be applied to
@@ -5618,9 +6890,9 @@ type GooglePrivacyDlpV2InspectionRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectionRule) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectionRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectionRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2InspectionRuleSet: Rule set for modifying a set of
@@ -5645,9 +6917,9 @@ type GooglePrivacyDlpV2InspectionRuleSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2InspectionRuleSet) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2InspectionRuleSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2InspectionRuleSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2JobNotificationEmails: Sends an email when the job
@@ -5712,9 +6984,9 @@ type GooglePrivacyDlpV2JobTrigger struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2JobTrigger) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2JobTrigger) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2JobTrigger
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KAnonymityConfig: k-anonymity metric, used for analysis of
@@ -5748,9 +7020,9 @@ type GooglePrivacyDlpV2KAnonymityConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KAnonymityConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KAnonymityConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KAnonymityConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KAnonymityEquivalenceClass: The set of columns' values
@@ -5776,9 +7048,9 @@ type GooglePrivacyDlpV2KAnonymityEquivalenceClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KAnonymityEquivalenceClass) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KAnonymityEquivalenceClass) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KAnonymityEquivalenceClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KAnonymityHistogramBucket: Histogram of k-anonymity
@@ -5811,9 +7083,9 @@ type GooglePrivacyDlpV2KAnonymityHistogramBucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KAnonymityHistogramBucket) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KAnonymityHistogramBucket) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KAnonymityHistogramBucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KAnonymityResult: Result of the k-anonymity computation.
@@ -5836,9 +7108,9 @@ type GooglePrivacyDlpV2KAnonymityResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KAnonymityResult) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KAnonymityResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KAnonymityResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KMapEstimationConfig: Reidentifiability metric. This
@@ -5873,9 +7145,9 @@ type GooglePrivacyDlpV2KMapEstimationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KMapEstimationConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KMapEstimationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KMapEstimationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KMapEstimationHistogramBucket: A
@@ -5911,9 +7183,9 @@ type GooglePrivacyDlpV2KMapEstimationHistogramBucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KMapEstimationHistogramBucket) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KMapEstimationHistogramBucket) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KMapEstimationHistogramBucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KMapEstimationQuasiIdValues: A tuple of values for the
@@ -5937,9 +7209,9 @@ type GooglePrivacyDlpV2KMapEstimationQuasiIdValues struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KMapEstimationQuasiIdValues) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KMapEstimationQuasiIdValues) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KMapEstimationQuasiIdValues
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KMapEstimationResult: Result of the reidentifiability
@@ -5966,9 +7238,9 @@ type GooglePrivacyDlpV2KMapEstimationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KMapEstimationResult) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KMapEstimationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KMapEstimationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Key: A unique identifier for a Datastore entity. If a
@@ -6000,9 +7272,9 @@ type GooglePrivacyDlpV2Key struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Key) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Key) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Key
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KindExpression: A representation of a Datastore kind.
@@ -6022,9 +7294,9 @@ type GooglePrivacyDlpV2KindExpression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KindExpression) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KindExpression) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KindExpression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2KmsWrappedCryptoKey: Include to use an existing data
@@ -6054,9 +7326,9 @@ type GooglePrivacyDlpV2KmsWrappedCryptoKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2KmsWrappedCryptoKey) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2KmsWrappedCryptoKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2KmsWrappedCryptoKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2LDiversityConfig: l-diversity metric, used for analysis of
@@ -6081,9 +7353,9 @@ type GooglePrivacyDlpV2LDiversityConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2LDiversityConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2LDiversityConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2LDiversityConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2LDiversityEquivalenceClass: The set of columns' values
@@ -6112,9 +7384,9 @@ type GooglePrivacyDlpV2LDiversityEquivalenceClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2LDiversityEquivalenceClass) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2LDiversityEquivalenceClass) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2LDiversityEquivalenceClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2LDiversityHistogramBucket: Histogram of l-diversity
@@ -6147,9 +7419,9 @@ type GooglePrivacyDlpV2LDiversityHistogramBucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2LDiversityHistogramBucket) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2LDiversityHistogramBucket) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2LDiversityHistogramBucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2LDiversityResult: Result of the l-diversity computation.
@@ -6172,9 +7444,9 @@ type GooglePrivacyDlpV2LDiversityResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2LDiversityResult) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2LDiversityResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2LDiversityResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2LargeCustomDictionaryConfig: Configuration for a custom
@@ -6209,9 +7481,9 @@ type GooglePrivacyDlpV2LargeCustomDictionaryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2LargeCustomDictionaryConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2LargeCustomDictionaryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2LargeCustomDictionaryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2LargeCustomDictionaryStats: Summary statistics of a custom
@@ -6232,9 +7504,9 @@ type GooglePrivacyDlpV2LargeCustomDictionaryStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2LargeCustomDictionaryStats) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2LargeCustomDictionaryStats) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2LargeCustomDictionaryStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2LeaveUntransformed: Skips the data without modifying it if
@@ -6279,9 +7551,9 @@ type GooglePrivacyDlpV2LikelihoodAdjustment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2LikelihoodAdjustment) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2LikelihoodAdjustment) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2LikelihoodAdjustment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListColumnDataProfilesResponse: List of profiles generated
@@ -6307,9 +7579,9 @@ type GooglePrivacyDlpV2ListColumnDataProfilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListColumnDataProfilesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListColumnDataProfilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListColumnDataProfilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListConnectionsResponse: Response message for
@@ -6336,9 +7608,9 @@ type GooglePrivacyDlpV2ListConnectionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListConnectionsResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListConnectionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListConnectionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListDeidentifyTemplatesResponse: Response message for
@@ -6366,9 +7638,9 @@ type GooglePrivacyDlpV2ListDeidentifyTemplatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListDeidentifyTemplatesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListDeidentifyTemplatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListDeidentifyTemplatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListDiscoveryConfigsResponse: Response message for
@@ -6396,9 +7668,9 @@ type GooglePrivacyDlpV2ListDiscoveryConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListDiscoveryConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListDiscoveryConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListDiscoveryConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListDlpJobsResponse: The response message for listing DLP
@@ -6424,9 +7696,37 @@ type GooglePrivacyDlpV2ListDlpJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListDlpJobsResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListDlpJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListDlpJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2ListFileStoreDataProfilesResponse: List of file store data
+// profiles generated for a given organization or project.
+type GooglePrivacyDlpV2ListFileStoreDataProfilesResponse struct {
+	// FileStoreDataProfiles: List of data profiles.
+	FileStoreDataProfiles []*GooglePrivacyDlpV2FileStoreDataProfile `json:"fileStoreDataProfiles,omitempty"`
+	// NextPageToken: The next page token.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "FileStoreDataProfiles") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FileStoreDataProfiles") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2ListFileStoreDataProfilesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2ListFileStoreDataProfilesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListInfoTypesResponse: Response to the ListInfoTypes
@@ -6450,9 +7750,9 @@ type GooglePrivacyDlpV2ListInfoTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListInfoTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListInfoTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListInfoTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListInspectTemplatesResponse: Response message for
@@ -6480,9 +7780,9 @@ type GooglePrivacyDlpV2ListInspectTemplatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListInspectTemplatesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListInspectTemplatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListInspectTemplatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListJobTriggersResponse: Response message for
@@ -6510,9 +7810,9 @@ type GooglePrivacyDlpV2ListJobTriggersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListJobTriggersResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListJobTriggersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListJobTriggersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListProjectDataProfilesResponse: List of profiles
@@ -6538,9 +7838,9 @@ type GooglePrivacyDlpV2ListProjectDataProfilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListProjectDataProfilesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListProjectDataProfilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListProjectDataProfilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListStoredInfoTypesResponse: Response message for
@@ -6568,9 +7868,9 @@ type GooglePrivacyDlpV2ListStoredInfoTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListStoredInfoTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListStoredInfoTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListStoredInfoTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ListTableDataProfilesResponse: List of profiles generated
@@ -6596,9 +7896,9 @@ type GooglePrivacyDlpV2ListTableDataProfilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ListTableDataProfilesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ListTableDataProfilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ListTableDataProfilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Location: Specifies the location of the finding.
@@ -6631,9 +7931,9 @@ type GooglePrivacyDlpV2Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Location) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Location) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Manual: Job trigger option for hybrid jobs. Jobs must be
@@ -6664,9 +7964,14 @@ type GooglePrivacyDlpV2MetadataLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2MetadataLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2MetadataLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2MetadataLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2MultiRegionProcessing: Processing will happen in a
+// multi-region that contains the current region if available.
+type GooglePrivacyDlpV2MultiRegionProcessing struct {
 }
 
 // GooglePrivacyDlpV2NumericalStatsConfig: Compute numerical stats over an
@@ -6688,9 +7993,9 @@ type GooglePrivacyDlpV2NumericalStatsConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2NumericalStatsConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2NumericalStatsConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2NumericalStatsConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2NumericalStatsResult: Result of the numerical stats
@@ -6716,9 +8021,9 @@ type GooglePrivacyDlpV2NumericalStatsResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2NumericalStatsResult) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2NumericalStatsResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2NumericalStatsResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2OrConditions: There is an OR relationship between these
@@ -6744,9 +8049,9 @@ type GooglePrivacyDlpV2OrConditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2OrConditions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2OrConditions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2OrConditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2OrgConfig: Project and scan location information. Only set
@@ -6756,7 +8061,7 @@ type GooglePrivacyDlpV2OrgConfig struct {
 	Location *GooglePrivacyDlpV2DiscoveryStartingLocation `json:"location,omitempty"`
 	// ProjectId: The project that will run the scan. The DLP service account that
 	// exists within this project must have access to all resources that are
-	// profiled, and the Cloud DLP API must be enabled.
+	// profiled, and the DLP API must be enabled.
 	ProjectId string `json:"projectId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Location") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -6771,9 +8076,168 @@ type GooglePrivacyDlpV2OrgConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2OrgConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2OrgConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2OrgConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2OtherCloudDiscoveryStartingLocation: The other cloud
+// starting location for discovery.
+type GooglePrivacyDlpV2OtherCloudDiscoveryStartingLocation struct {
+	// AwsLocation: The AWS starting location for discovery.
+	AwsLocation *GooglePrivacyDlpV2AwsDiscoveryStartingLocation `json:"awsLocation,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AwsLocation") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AwsLocation") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2OtherCloudDiscoveryStartingLocation) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2OtherCloudDiscoveryStartingLocation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2OtherCloudDiscoveryTarget: Target used to match against
+// for discovery of resources from other clouds. An AWS connector in Security
+// Command Center (Enterprise
+// (https://cloud.google.com/security-command-center/docs/connect-scc-to-aws)
+// is required to use this feature.
+type GooglePrivacyDlpV2OtherCloudDiscoveryTarget struct {
+	// Conditions: Optional. In addition to matching the filter, these conditions
+	// must be true before a profile is generated.
+	Conditions *GooglePrivacyDlpV2DiscoveryOtherCloudConditions `json:"conditions,omitempty"`
+	// DataSourceType: Required. The type of data profiles generated by this
+	// discovery target. Supported values are: * aws/s3/bucket
+	DataSourceType *GooglePrivacyDlpV2DataSourceType `json:"dataSourceType,omitempty"`
+	// Disabled: Disable profiling for resources that match this filter.
+	Disabled *GooglePrivacyDlpV2Disabled `json:"disabled,omitempty"`
+	// Filter: Required. The resources that the discovery cadence applies to. The
+	// first target with a matching filter will be the one to apply to a resource.
+	Filter *GooglePrivacyDlpV2DiscoveryOtherCloudFilter `json:"filter,omitempty"`
+	// GenerationCadence: How often and when to update data profiles. New resources
+	// that match both the filter and conditions are scanned as quickly as possible
+	// depending on system capacity.
+	GenerationCadence *GooglePrivacyDlpV2DiscoveryOtherCloudGenerationCadence `json:"generationCadence,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Conditions") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Conditions") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2OtherCloudDiscoveryTarget) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2OtherCloudDiscoveryTarget
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2OtherCloudResourceCollection: Match resources using regex
+// filters.
+type GooglePrivacyDlpV2OtherCloudResourceCollection struct {
+	// IncludeRegexes: A collection of regular expressions to match a resource
+	// against.
+	IncludeRegexes *GooglePrivacyDlpV2OtherCloudResourceRegexes `json:"includeRegexes,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "IncludeRegexes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IncludeRegexes") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2OtherCloudResourceCollection) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2OtherCloudResourceCollection
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2OtherCloudResourceRegex: A pattern to match against one or
+// more resources. At least one pattern must be specified. Regular expressions
+// use RE2 syntax (https://github.com/google/re2/wiki/Syntax); a guide can be
+// found under the google/re2 repository on GitHub.
+type GooglePrivacyDlpV2OtherCloudResourceRegex struct {
+	// AmazonS3BucketRegex: Regex for Amazon S3 buckets.
+	AmazonS3BucketRegex *GooglePrivacyDlpV2AmazonS3BucketRegex `json:"amazonS3BucketRegex,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AmazonS3BucketRegex") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AmazonS3BucketRegex") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2OtherCloudResourceRegex) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2OtherCloudResourceRegex
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2OtherCloudResourceRegexes: A collection of regular
+// expressions to determine what resources to match against.
+type GooglePrivacyDlpV2OtherCloudResourceRegexes struct {
+	// Patterns: A group of regular expression patterns to match against one or
+	// more resources. Maximum of 100 entries. The sum of all regular expression's
+	// length can't exceed 10 KiB.
+	Patterns []*GooglePrivacyDlpV2OtherCloudResourceRegex `json:"patterns,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Patterns") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Patterns") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2OtherCloudResourceRegexes) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2OtherCloudResourceRegexes
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2OtherCloudSingleResourceReference: Identifies a single
+// resource, like a single Amazon S3 bucket.
+type GooglePrivacyDlpV2OtherCloudSingleResourceReference struct {
+	// AmazonS3Bucket: Amazon S3 bucket.
+	AmazonS3Bucket *GooglePrivacyDlpV2AmazonS3Bucket `json:"amazonS3Bucket,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AmazonS3Bucket") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AmazonS3Bucket") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2OtherCloudSingleResourceReference) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2OtherCloudSingleResourceReference
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2OtherInfoTypeSummary: Infotype details for other infoTypes
@@ -6800,9 +8264,9 @@ type GooglePrivacyDlpV2OtherInfoTypeSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2OtherInfoTypeSummary) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2OtherInfoTypeSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2OtherInfoTypeSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2OutputStorageConfig: Cloud repository for storing output.
@@ -6851,9 +8315,9 @@ type GooglePrivacyDlpV2OutputStorageConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2OutputStorageConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2OutputStorageConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2OutputStorageConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2PartitionId: Datastore partition ID. A partition ID
@@ -6879,9 +8343,9 @@ type GooglePrivacyDlpV2PartitionId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2PartitionId) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2PartitionId) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2PartitionId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2PathElement: A (kind, ID/name) pair used to construct a
@@ -6912,9 +8376,9 @@ type GooglePrivacyDlpV2PathElement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2PathElement) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2PathElement) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2PathElement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2PrimitiveTransformation: A rule for transforming a value.
@@ -6927,7 +8391,9 @@ type GooglePrivacyDlpV2PrimitiveTransformation struct {
 	CryptoDeterministicConfig *GooglePrivacyDlpV2CryptoDeterministicConfig `json:"cryptoDeterministicConfig,omitempty"`
 	// CryptoHashConfig: Crypto
 	CryptoHashConfig *GooglePrivacyDlpV2CryptoHashConfig `json:"cryptoHashConfig,omitempty"`
-	// CryptoReplaceFfxFpeConfig: Ffx-Fpe
+	// CryptoReplaceFfxFpeConfig: Ffx-Fpe. Strongly discouraged, consider using
+	// CryptoDeterministicConfig instead. Fpe is computationally expensive
+	// incurring latency costs.
 	CryptoReplaceFfxFpeConfig *GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig `json:"cryptoReplaceFfxFpeConfig,omitempty"`
 	// DateShiftConfig: Date Shift
 	DateShiftConfig *GooglePrivacyDlpV2DateShiftConfig `json:"dateShiftConfig,omitempty"`
@@ -6957,9 +8423,9 @@ type GooglePrivacyDlpV2PrimitiveTransformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2PrimitiveTransformation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2PrimitiveTransformation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2PrimitiveTransformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2PrivacyMetric: Privacy metric to compute for
@@ -6990,9 +8456,35 @@ type GooglePrivacyDlpV2PrivacyMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2PrivacyMetric) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2PrivacyMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2PrivacyMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2ProcessingLocation: Configure processing location for
+// discovery and inspection. For example, image OCR is only provided in limited
+// regions but configuring ProcessingLocation will redirect OCR to a location
+// where OCR is provided.
+type GooglePrivacyDlpV2ProcessingLocation struct {
+	// ImageFallbackLocation: Image processing will fall back using this
+	// configuration.
+	ImageFallbackLocation *GooglePrivacyDlpV2ImageFallbackLocation `json:"imageFallbackLocation,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ImageFallbackLocation") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ImageFallbackLocation") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2ProcessingLocation) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2ProcessingLocation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ProfileStatus: Success or errors for the profile
@@ -7016,9 +8508,9 @@ type GooglePrivacyDlpV2ProfileStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ProfileStatus) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ProfileStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ProfileStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ProjectDataProfile: An aggregated profile for this
@@ -7026,6 +8518,9 @@ func (s *GooglePrivacyDlpV2ProfileStatus) MarshalJSON() ([]byte, error) {
 type GooglePrivacyDlpV2ProjectDataProfile struct {
 	// DataRiskLevel: The data risk level of this project.
 	DataRiskLevel *GooglePrivacyDlpV2DataRiskLevel `json:"dataRiskLevel,omitempty"`
+	// FileStoreDataProfileCount: The number of file store data profiles generated
+	// for this project.
+	FileStoreDataProfileCount int64 `json:"fileStoreDataProfileCount,omitempty,string"`
 	// Name: The resource name of the profile.
 	Name string `json:"name,omitempty"`
 	// ProfileLastGenerated: The last time the profile was generated.
@@ -7033,10 +8528,13 @@ type GooglePrivacyDlpV2ProjectDataProfile struct {
 	// ProfileStatus: Success or error status of the last attempt to profile the
 	// project.
 	ProfileStatus *GooglePrivacyDlpV2ProfileStatus `json:"profileStatus,omitempty"`
-	// ProjectId: Project ID that was profiled.
+	// ProjectId: Project ID or account that was profiled.
 	ProjectId string `json:"projectId,omitempty"`
 	// SensitivityScore: The sensitivity score of this project.
 	SensitivityScore *GooglePrivacyDlpV2SensitivityScore `json:"sensitivityScore,omitempty"`
+	// TableDataProfileCount: The number of table data profiles generated for this
+	// project.
+	TableDataProfileCount int64 `json:"tableDataProfileCount,omitempty,string"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -7053,9 +8551,9 @@ type GooglePrivacyDlpV2ProjectDataProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ProjectDataProfile) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ProjectDataProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ProjectDataProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Proximity: Message for specifying a window around a
@@ -7082,9 +8580,9 @@ type GooglePrivacyDlpV2Proximity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Proximity) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Proximity) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Proximity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2PubSubCondition: A condition consisting of a value.
@@ -7117,9 +8615,9 @@ type GooglePrivacyDlpV2PubSubCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2PubSubCondition) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2PubSubCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2PubSubCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2PubSubExpressions: An expression, consisting of an
@@ -7147,9 +8645,9 @@ type GooglePrivacyDlpV2PubSubExpressions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2PubSubExpressions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2PubSubExpressions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2PubSubExpressions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2PubSubNotification: Send a Pub/Sub message into the given
@@ -7165,6 +8663,7 @@ type GooglePrivacyDlpV2PubSubNotification struct {
 	//   "DETAIL_LEVEL_UNSPECIFIED" - Unused.
 	//   "TABLE_PROFILE" - The full table data profile.
 	//   "RESOURCE_NAME" - The name of the profiled resource.
+	//   "FILE_STORE_PROFILE" - The full file store data profile.
 	DetailOfMessage string `json:"detailOfMessage,omitempty"`
 	// Event: The type of event that triggers a Pub/Sub. At most one
 	// `PubSubNotification` per EventType is permitted.
@@ -7197,9 +8696,9 @@ type GooglePrivacyDlpV2PubSubNotification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2PubSubNotification) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2PubSubNotification) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2PubSubNotification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2PublishFindingsToCloudDataCatalog: Publish findings of a
@@ -7231,6 +8730,11 @@ type GooglePrivacyDlpV2PublishFindingsToCloudDataCatalog struct {
 type GooglePrivacyDlpV2PublishSummaryToCscc struct {
 }
 
+// GooglePrivacyDlpV2PublishToChronicle: Message expressing intention to
+// publish to Google Security Operations.
+type GooglePrivacyDlpV2PublishToChronicle struct {
+}
+
 // GooglePrivacyDlpV2PublishToPubSub: Publish a message into a given Pub/Sub
 // topic when DlpJob has completed. The message contains a single field,
 // `DlpJobName`, which is equal to the finished job's `DlpJob.name`
@@ -7255,9 +8759,14 @@ type GooglePrivacyDlpV2PublishToPubSub struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2PublishToPubSub) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2PublishToPubSub) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2PublishToPubSub
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2PublishToSecurityCommandCenter: If set, a summary finding
+// will be created or updated in Security Command Center for each profile.
+type GooglePrivacyDlpV2PublishToSecurityCommandCenter struct {
 }
 
 // GooglePrivacyDlpV2PublishToStackdriver: Enable Stackdriver metric
@@ -7298,9 +8807,9 @@ type GooglePrivacyDlpV2QuasiId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2QuasiId) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2QuasiId) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2QuasiId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2QuasiIdField: A quasi-identifier column has a custom_tag,
@@ -7324,9 +8833,9 @@ type GooglePrivacyDlpV2QuasiIdField struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2QuasiIdField) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2QuasiIdField) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2QuasiIdField
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2QuasiIdentifierField: A quasi-identifier column has a
@@ -7352,9 +8861,9 @@ type GooglePrivacyDlpV2QuasiIdentifierField struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2QuasiIdentifierField) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2QuasiIdentifierField) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2QuasiIdentifierField
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2QuoteInfo: Message for infoType-dependent details parsed
@@ -7375,9 +8884,9 @@ type GooglePrivacyDlpV2QuoteInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2QuoteInfo) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2QuoteInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2QuoteInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Range: Generic half-open interval [start, end)
@@ -7399,9 +8908,9 @@ type GooglePrivacyDlpV2Range struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Range) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Range) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Range
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RecordCondition: A condition for determining whether a
@@ -7422,9 +8931,9 @@ type GooglePrivacyDlpV2RecordCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RecordCondition) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RecordCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RecordCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RecordKey: Message for a unique key indicating a record
@@ -7450,9 +8959,9 @@ type GooglePrivacyDlpV2RecordKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RecordKey) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RecordKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RecordKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RecordLocation: Location of a finding within a row or
@@ -7477,9 +8986,9 @@ type GooglePrivacyDlpV2RecordLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RecordLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RecordLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RecordLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RecordSuppression: Configuration to suppress records whose
@@ -7501,9 +9010,9 @@ type GooglePrivacyDlpV2RecordSuppression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RecordSuppression) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RecordSuppression) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RecordSuppression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RecordTransformation: The field in a record to transform.
@@ -7529,9 +9038,9 @@ type GooglePrivacyDlpV2RecordTransformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RecordTransformation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RecordTransformation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RecordTransformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RecordTransformations: A type of transformation that is
@@ -7557,9 +9066,9 @@ type GooglePrivacyDlpV2RecordTransformations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RecordTransformations) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RecordTransformations) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RecordTransformations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RedactConfig: Redact a given value. For example, if used
@@ -7597,9 +9106,9 @@ type GooglePrivacyDlpV2RedactImageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RedactImageRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RedactImageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RedactImageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RedactImageResponse: Results of redacting an image.
@@ -7630,9 +9139,9 @@ type GooglePrivacyDlpV2RedactImageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RedactImageResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RedactImageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RedactImageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Regex: Message defining a custom regular expression.
@@ -7657,9 +9166,9 @@ type GooglePrivacyDlpV2Regex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Regex) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Regex) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Regex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ReidentifyContentRequest: Request to re-identify an item.
@@ -7706,9 +9215,9 @@ type GooglePrivacyDlpV2ReidentifyContentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ReidentifyContentRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ReidentifyContentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ReidentifyContentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ReidentifyContentResponse: Results of re-identifying an
@@ -7734,9 +9243,33 @@ type GooglePrivacyDlpV2ReidentifyContentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ReidentifyContentResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ReidentifyContentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ReidentifyContentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2RelatedResource: A related resource. Examples: * The
+// source BigQuery table for a Vertex AI dataset. * The source Cloud Storage
+// bucket for a Vertex AI dataset.
+type GooglePrivacyDlpV2RelatedResource struct {
+	// FullResource: The full resource name of the related resource.
+	FullResource string `json:"fullResource,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FullResource") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FullResource") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2RelatedResource) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2RelatedResource
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ReplaceDictionaryConfig: Replace each input value with a
@@ -7759,9 +9292,9 @@ type GooglePrivacyDlpV2ReplaceDictionaryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ReplaceDictionaryConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ReplaceDictionaryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ReplaceDictionaryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ReplaceValueConfig: Replace each input value with a given
@@ -7782,9 +9315,9 @@ type GooglePrivacyDlpV2ReplaceValueConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ReplaceValueConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ReplaceValueConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ReplaceValueConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ReplaceWithInfoTypeConfig: Replace each matching finding
@@ -7819,9 +9352,9 @@ type GooglePrivacyDlpV2RequestedDeidentifyOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RequestedDeidentifyOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RequestedDeidentifyOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RequestedDeidentifyOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RequestedOptions: Snapshot of the inspection
@@ -7845,9 +9378,9 @@ type GooglePrivacyDlpV2RequestedOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RequestedOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RequestedOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RequestedOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RequestedRiskAnalysisOptions: Risk analysis options.
@@ -7867,9 +9400,9 @@ type GooglePrivacyDlpV2RequestedRiskAnalysisOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RequestedRiskAnalysisOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RequestedRiskAnalysisOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RequestedRiskAnalysisOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Result: All result fields mentioned below are updated
@@ -7900,9 +9433,9 @@ type GooglePrivacyDlpV2Result struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Result) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Result) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Result
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2RiskAnalysisJobConfig: Configuration for a risk analysis
@@ -7930,9 +9463,9 @@ type GooglePrivacyDlpV2RiskAnalysisJobConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2RiskAnalysisJobConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2RiskAnalysisJobConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2RiskAnalysisJobConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Row: Values of the row.
@@ -7952,9 +9485,9 @@ type GooglePrivacyDlpV2Row struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Row) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Row) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Row
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2SaveFindings: If set, the detailed findings will be
@@ -7976,9 +9509,9 @@ type GooglePrivacyDlpV2SaveFindings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2SaveFindings) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2SaveFindings) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2SaveFindings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Schedule: Schedule for inspect job triggers.
@@ -8002,9 +9535,9 @@ type GooglePrivacyDlpV2Schedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Schedule) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Schedule) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Schedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2SchemaModifiedCadence: How frequently to modify the
@@ -8043,9 +9576,9 @@ type GooglePrivacyDlpV2SchemaModifiedCadence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2SchemaModifiedCadence) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2SchemaModifiedCadence) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2SchemaModifiedCadence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2SearchConnectionsResponse: Response message for
@@ -8074,9 +9607,9 @@ type GooglePrivacyDlpV2SearchConnectionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2SearchConnectionsResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2SearchConnectionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2SearchConnectionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2SecretManagerCredential: A credential consisting of a
@@ -8103,9 +9636,9 @@ type GooglePrivacyDlpV2SecretManagerCredential struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2SecretManagerCredential) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2SecretManagerCredential) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2SecretManagerCredential
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2SecretsDiscoveryTarget: Discovery target for credentials
@@ -8139,9 +9672,9 @@ type GooglePrivacyDlpV2SelectedInfoTypes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2SelectedInfoTypes) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2SelectedInfoTypes) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2SelectedInfoTypes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2SensitivityScore: Score is calculated from of all elements
@@ -8153,6 +9686,7 @@ type GooglePrivacyDlpV2SensitivityScore struct {
 	//   "SENSITIVITY_SCORE_UNSPECIFIED" - Unused.
 	//   "SENSITIVITY_LOW" - No sensitive information detected. The resource isn't
 	// publicly accessible.
+	//   "SENSITIVITY_UNKNOWN" - Unable to determine sensitivity.
 	//   "SENSITIVITY_MODERATE" - Medium risk. Contains personally identifiable
 	// information (PII), potentially sensitive data, or fields with free-text data
 	// that are at a higher risk of having intermittent sensitive data. Consider
@@ -8175,9 +9709,9 @@ type GooglePrivacyDlpV2SensitivityScore struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2SensitivityScore) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2SensitivityScore) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2SensitivityScore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2StatisticalTable: An auxiliary table containing
@@ -8209,9 +9743,9 @@ type GooglePrivacyDlpV2StatisticalTable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2StatisticalTable) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2StatisticalTable) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2StatisticalTable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2StorageConfig: Shared message indicating Cloud storage
@@ -8241,9 +9775,9 @@ type GooglePrivacyDlpV2StorageConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2StorageConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2StorageConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2StorageConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2StorageMetadataLabel: Storage metadata label to indicate
@@ -8264,9 +9798,9 @@ type GooglePrivacyDlpV2StorageMetadataLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2StorageMetadataLabel) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2StorageMetadataLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2StorageMetadataLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2StoredInfoType: StoredInfoType resource message that
@@ -8295,9 +9829,9 @@ type GooglePrivacyDlpV2StoredInfoType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2StoredInfoType) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2StoredInfoType) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2StoredInfoType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2StoredInfoTypeConfig: Configuration for stored infoTypes.
@@ -8328,9 +9862,9 @@ type GooglePrivacyDlpV2StoredInfoTypeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2StoredInfoTypeConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2StoredInfoTypeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2StoredInfoTypeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2StoredInfoTypeStats: Statistics for a StoredInfoType.
@@ -8351,9 +9885,9 @@ type GooglePrivacyDlpV2StoredInfoTypeStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2StoredInfoTypeStats) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2StoredInfoTypeStats) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2StoredInfoTypeStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2StoredInfoTypeVersion: Version of a StoredInfoType,
@@ -8404,9 +9938,9 @@ type GooglePrivacyDlpV2StoredInfoTypeVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2StoredInfoTypeVersion) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2StoredInfoTypeVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2StoredInfoTypeVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2StoredType: A reference to a StoredInfoType to use with
@@ -8432,9 +9966,9 @@ type GooglePrivacyDlpV2StoredType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2StoredType) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2StoredType) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2StoredType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2SummaryResult: A collection that informs the user the
@@ -8466,9 +10000,9 @@ type GooglePrivacyDlpV2SummaryResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2SummaryResult) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2SummaryResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2SummaryResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2SurrogateType: Message for detecting output from
@@ -8504,9 +10038,9 @@ type GooglePrivacyDlpV2Table struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Table) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Table) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Table
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TableDataProfile: The profile for a scanned table.
@@ -8541,7 +10075,8 @@ type GooglePrivacyDlpV2TableDataProfile struct {
 	// FailedColumnCount: The number of columns skipped in the table because of an
 	// error.
 	FailedColumnCount int64 `json:"failedColumnCount,omitempty,string"`
-	// FullResource: The resource name of the resource profiled.
+	// FullResource: The Cloud Asset Inventory resource that was profiled in order
+	// to generate this TableDataProfile.
 	// https://cloud.google.com/apis/design/resource_names#full_resource_name
 	FullResource string `json:"fullResource,omitempty"`
 	// LastModifiedTime: The time when this table was last modified
@@ -8557,9 +10092,11 @@ type GooglePrivacyDlpV2TableDataProfile struct {
 	// ProfileStatus: Success or error status from the most recent profile
 	// generation attempt. May be empty if the profile is still being generated.
 	ProfileStatus *GooglePrivacyDlpV2ProfileStatus `json:"profileStatus,omitempty"`
-	// ProjectDataProfile: The resource name to the project data profile for this
+	// ProjectDataProfile: The resource name of the project data profile for this
 	// table.
 	ProjectDataProfile string `json:"projectDataProfile,omitempty"`
+	// RelatedResources: Resources related to this profile.
+	RelatedResources []*GooglePrivacyDlpV2RelatedResource `json:"relatedResources,omitempty"`
 	// ResourceLabels: The labels applied to the resource at the time the profile
 	// was generated.
 	ResourceLabels map[string]string `json:"resourceLabels,omitempty"`
@@ -8570,12 +10107,15 @@ type GooglePrivacyDlpV2TableDataProfile struct {
 	//   "RESOURCE_VISIBILITY_PUBLIC" - Visible to any user.
 	//   "RESOURCE_VISIBILITY_INCONCLUSIVE" - May contain public items. For
 	// example, if a Cloud Storage bucket has uniform bucket level access disabled,
-	// some objects inside it may be public.
+	// some objects inside it may be public, but none are known yet.
 	//   "RESOURCE_VISIBILITY_RESTRICTED" - Visible only to specific users.
 	ResourceVisibility string `json:"resourceVisibility,omitempty"`
 	// RowCount: Number of rows in the table when the profile was generated. This
 	// will not be populated for BigLake tables.
 	RowCount int64 `json:"rowCount,omitempty,string"`
+	// SampleFindingsTable: The BigQuery table to which the sample findings are
+	// written.
+	SampleFindingsTable *GooglePrivacyDlpV2BigQueryTable `json:"sampleFindingsTable,omitempty"`
 	// ScannedColumnCount: The number of columns profiled in the table.
 	ScannedColumnCount int64 `json:"scannedColumnCount,omitempty,string"`
 	// SensitivityScore: The sensitivity score of this table.
@@ -8590,10 +10130,14 @@ type GooglePrivacyDlpV2TableDataProfile struct {
 	// profile_status.status.code is 0, the profile succeeded, otherwise, it
 	// failed.
 	State string `json:"state,omitempty"`
-	// TableId: If the resource is BigQuery, the BigQuery table ID.
+	// TableId: The table ID.
 	TableId string `json:"tableId,omitempty"`
 	// TableSizeBytes: The size of the table when the profile was generated.
 	TableSizeBytes int64 `json:"tableSizeBytes,omitempty,string"`
+	// Tags: The tags attached to the table, including any tags attached during
+	// profiling. Because tags are attached to Cloud SQL instances rather than
+	// Cloud SQL tables, this field is empty for Cloud SQL table profiles.
+	Tags []*GooglePrivacyDlpV2Tag `json:"tags,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -8610,9 +10154,9 @@ type GooglePrivacyDlpV2TableDataProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TableDataProfile) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TableDataProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TableDataProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TableLocation: Location of a finding within a table.
@@ -8637,9 +10181,9 @@ type GooglePrivacyDlpV2TableLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TableLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TableLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TableLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TableOptions: Instructions regarding the table content
@@ -8663,9 +10207,9 @@ type GooglePrivacyDlpV2TableOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TableOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TableOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TableOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TableReference: Message defining the location of a
@@ -8688,9 +10232,142 @@ type GooglePrivacyDlpV2TableReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TableReference) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TableReference) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TableReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2Tag: A tag associated with a resource.
+type GooglePrivacyDlpV2Tag struct {
+	// Key: The key of a tag key-value pair. For Google Cloud resources, this is
+	// the resource name of the key, for example, "tagKeys/123456".
+	Key string `json:"key,omitempty"`
+	// NamespacedTagValue: The namespaced name for the tag value to attach to
+	// Google Cloud resources. Must be in the format
+	// `{parent_id}/{tag_key_short_name}/{short_name}`, for example,
+	// "123456/environment/prod". This is only set for Google Cloud resources.
+	NamespacedTagValue string `json:"namespacedTagValue,omitempty"`
+	// Value: The value of a tag key-value pair. For Google Cloud resources, this
+	// is the resource name of the value, for example, "tagValues/123456".
+	Value string `json:"value,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Key") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Key") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2Tag) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2Tag
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2TagCondition: The tag to attach to profiles matching the
+// condition. At most one `TagCondition` can be specified per sensitivity
+// level.
+type GooglePrivacyDlpV2TagCondition struct {
+	// SensitivityScore: Conditions attaching the tag to a resource on its profile
+	// having this sensitivity score.
+	SensitivityScore *GooglePrivacyDlpV2SensitivityScore `json:"sensitivityScore,omitempty"`
+	// Tag: The tag value to attach to resources.
+	Tag *GooglePrivacyDlpV2TagValue `json:"tag,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SensitivityScore") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SensitivityScore") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2TagCondition) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2TagCondition
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2TagResources: If set, attaches the [tags]
+// (https://cloud.google.com/resource-manager/docs/tags/tags-overview) provided
+// to profiled resources. Tags support access control
+// (https://cloud.google.com/iam/docs/tags-access-control). You can
+// conditionally grant or deny access to a resource based on whether the
+// resource has a specific tag.
+type GooglePrivacyDlpV2TagResources struct {
+	// LowerDataRiskToLow: Whether applying a tag to a resource should lower the
+	// risk of the profile for that resource. For example, in conjunction with an
+	// IAM deny policy (https://cloud.google.com/iam/docs/deny-overview), you can
+	// deny all principals a permission if a tag value is present, mitigating the
+	// risk of the resource. This also lowers the data risk of resources at the
+	// lower levels of the resource hierarchy. For example, reducing the data risk
+	// of a table data profile also reduces the data risk of the constituent column
+	// data profiles.
+	LowerDataRiskToLow bool `json:"lowerDataRiskToLow,omitempty"`
+	// ProfileGenerationsToTag: The profile generations for which the tag should be
+	// attached to resources. If you attach a tag to only new profiles, then if the
+	// sensitivity score of a profile subsequently changes, its tag doesn't change.
+	// By default, this field includes only new profiles. To include both new and
+	// updated profiles for tagging, this field should explicitly include both
+	// `PROFILE_GENERATION_NEW` and `PROFILE_GENERATION_UPDATE`.
+	//
+	// Possible values:
+	//   "PROFILE_GENERATION_UNSPECIFIED" - Unused.
+	//   "PROFILE_GENERATION_NEW" - The profile is the first profile for the
+	// resource.
+	//   "PROFILE_GENERATION_UPDATE" - The profile is an update to a previous
+	// profile.
+	ProfileGenerationsToTag []string `json:"profileGenerationsToTag,omitempty"`
+	// TagConditions: The tags to associate with different conditions.
+	TagConditions []*GooglePrivacyDlpV2TagCondition `json:"tagConditions,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "LowerDataRiskToLow") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "LowerDataRiskToLow") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2TagResources) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2TagResources
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2TagValue: A value of a tag.
+type GooglePrivacyDlpV2TagValue struct {
+	// NamespacedValue: The namespaced name for the tag value to attach to
+	// resources. Must be in the format
+	// `{parent_id}/{tag_key_short_name}/{short_name}`, for example,
+	// "123456/environment/prod".
+	NamespacedValue string `json:"namespacedValue,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "NamespacedValue") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NamespacedValue") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2TagValue) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2TagValue
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TaggedField: A column with a semantic tag attached.
@@ -8723,9 +10400,9 @@ type GooglePrivacyDlpV2TaggedField struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TaggedField) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TaggedField) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TaggedField
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2ThrowError: Throw an error and fail the request when a
@@ -8760,9 +10437,9 @@ type GooglePrivacyDlpV2TimePartConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TimePartConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TimePartConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TimePartConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TimeZone: Time zone of the date time object.
@@ -8783,9 +10460,9 @@ type GooglePrivacyDlpV2TimeZone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TimeZone) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TimeZone) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TimeZone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TimespanConfig: Configuration of the timespan of the items
@@ -8812,8 +10489,8 @@ type GooglePrivacyDlpV2TimespanConfig struct {
 	// no lower time limit is applied.
 	StartTime string `json:"startTime,omitempty"`
 	// TimestampField: Specification of the field containing the timestamp of
-	// scanned items. Used for data sources like Datastore and BigQuery. *For
-	// BigQuery* If this value is not specified and the table was modified between
+	// scanned items. Used for data sources like Datastore and BigQuery. **For
+	// BigQuery** If this value is not specified and the table was modified between
 	// the given start and end times, the entire table will be scanned. If this
 	// value is specified, then rows are filtered based on the given start and end
 	// times. Rows with a `NULL` value in the provided BigQuery column are skipped.
@@ -8823,11 +10500,12 @@ type GooglePrivacyDlpV2TimespanConfig struct {
 	// (https://cloud.google.com/bigquery/docs/partitioned-tables#ingestion_time),
 	// you can use any of the following pseudo-columns as your timestamp field.
 	// When used with Cloud DLP, these pseudo-column names are case sensitive. -
-	// _PARTITIONTIME - _PARTITIONDATE - _PARTITION_LOAD_TIME *For Datastore* If
-	// this value is specified, then entities are filtered based on the given start
-	// and end times. If an entity does not contain the provided timestamp property
-	// or contains empty or invalid values, then it is included. Valid data types
-	// of the provided timestamp property are: `TIMESTAMP`. See the known issue
+	// `_PARTITIONTIME` - `_PARTITIONDATE` - `_PARTITION_LOAD_TIME` **For
+	// Datastore** If this value is specified, then entities are filtered based on
+	// the given start and end times. If an entity does not contain the provided
+	// timestamp property or contains empty or invalid values, then it is included.
+	// Valid data types of the provided timestamp property are: `TIMESTAMP`. See
+	// the known issue
 	// (https://cloud.google.com/sensitive-data-protection/docs/known-issues#bq-timespan)
 	// related to this operation.
 	TimestampField *GooglePrivacyDlpV2FieldId `json:"timestampField,omitempty"`
@@ -8846,9 +10524,9 @@ type GooglePrivacyDlpV2TimespanConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TimespanConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TimespanConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TimespanConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationConfig: User specified templates and configs
@@ -8888,9 +10566,9 @@ type GooglePrivacyDlpV2TransformationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationDescription: A flattened description of a
@@ -8942,9 +10620,9 @@ type GooglePrivacyDlpV2TransformationDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationDescription) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationDetails: Details about a single
@@ -8988,9 +10666,9 @@ type GooglePrivacyDlpV2TransformationDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationDetails) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationDetailsStorageConfig: Config for storing
@@ -9015,9 +10693,9 @@ type GooglePrivacyDlpV2TransformationDetailsStorageConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationDetailsStorageConfig) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationDetailsStorageConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationDetailsStorageConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationErrorHandling: How to handle transformation
@@ -9046,9 +10724,9 @@ type GooglePrivacyDlpV2TransformationErrorHandling struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationErrorHandling) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationErrorHandling) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationErrorHandling
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationLocation: Specifies the location of a
@@ -9085,9 +10763,9 @@ type GooglePrivacyDlpV2TransformationLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationLocation) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationOverview: Overview of the modifications that
@@ -9110,9 +10788,9 @@ type GooglePrivacyDlpV2TransformationOverview struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationOverview) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationOverview) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationOverview
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationResultStatus: The outcome of a
@@ -9150,9 +10828,9 @@ type GooglePrivacyDlpV2TransformationResultStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationResultStatus) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationResultStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationResultStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransformationSummary: Summary of a single transformation.
@@ -9188,9 +10866,9 @@ type GooglePrivacyDlpV2TransformationSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransformationSummary) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransformationSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransformationSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2TransientCryptoKey: Use this to have a random data crypto
@@ -9216,9 +10894,9 @@ type GooglePrivacyDlpV2TransientCryptoKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2TransientCryptoKey) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2TransientCryptoKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2TransientCryptoKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Trigger: What event needs to occur for a new job to be
@@ -9242,9 +10920,9 @@ type GooglePrivacyDlpV2Trigger struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Trigger) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Trigger) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Trigger
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2UnwrappedCryptoKey: Using raw keys is prone to security
@@ -9266,9 +10944,9 @@ type GooglePrivacyDlpV2UnwrappedCryptoKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2UnwrappedCryptoKey) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2UnwrappedCryptoKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2UnwrappedCryptoKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2UpdateConnectionRequest: Request message for
@@ -9292,9 +10970,9 @@ type GooglePrivacyDlpV2UpdateConnectionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2UpdateConnectionRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2UpdateConnectionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2UpdateConnectionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2UpdateDeidentifyTemplateRequest: Request message for
@@ -9317,9 +10995,9 @@ type GooglePrivacyDlpV2UpdateDeidentifyTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2UpdateDeidentifyTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2UpdateDeidentifyTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2UpdateDeidentifyTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2UpdateDiscoveryConfigRequest: Request message for
@@ -9342,9 +11020,9 @@ type GooglePrivacyDlpV2UpdateDiscoveryConfigRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2UpdateDiscoveryConfigRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2UpdateDiscoveryConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2UpdateDiscoveryConfigRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2UpdateInspectTemplateRequest: Request message for
@@ -9367,9 +11045,9 @@ type GooglePrivacyDlpV2UpdateInspectTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2UpdateInspectTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2UpdateInspectTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2UpdateInspectTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2UpdateJobTriggerRequest: Request message for
@@ -9392,9 +11070,9 @@ type GooglePrivacyDlpV2UpdateJobTriggerRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2UpdateJobTriggerRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2UpdateJobTriggerRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2UpdateJobTriggerRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2UpdateStoredInfoTypeRequest: Request message for
@@ -9419,9 +11097,9 @@ type GooglePrivacyDlpV2UpdateStoredInfoTypeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2UpdateStoredInfoTypeRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2UpdateStoredInfoTypeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2UpdateStoredInfoTypeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2Value: Set of primitive values supported by the system.
@@ -9470,9 +11148,9 @@ type GooglePrivacyDlpV2Value struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2Value) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2Value) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2Value
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GooglePrivacyDlpV2Value) UnmarshalJSON(data []byte) error {
@@ -9509,9 +11187,9 @@ type GooglePrivacyDlpV2ValueFrequency struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2ValueFrequency) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2ValueFrequency) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2ValueFrequency
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2VersionDescription: Details about each available version
@@ -9534,9 +11212,139 @@ type GooglePrivacyDlpV2VersionDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2VersionDescription) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2VersionDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2VersionDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2VertexDatasetCollection: Match dataset resources using
+// regex filters.
+type GooglePrivacyDlpV2VertexDatasetCollection struct {
+	// VertexDatasetRegexes: The regex used to filter dataset resources.
+	VertexDatasetRegexes *GooglePrivacyDlpV2VertexDatasetRegexes `json:"vertexDatasetRegexes,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "VertexDatasetRegexes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "VertexDatasetRegexes") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2VertexDatasetCollection) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2VertexDatasetCollection
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2VertexDatasetDiscoveryTarget: Target used to match against
+// for discovery with Vertex AI datasets.
+type GooglePrivacyDlpV2VertexDatasetDiscoveryTarget struct {
+	// Conditions: In addition to matching the filter, these conditions must be
+	// true before a profile is generated.
+	Conditions *GooglePrivacyDlpV2DiscoveryVertexDatasetConditions `json:"conditions,omitempty"`
+	// Disabled: Disable profiling for datasets that match this filter.
+	Disabled *GooglePrivacyDlpV2Disabled `json:"disabled,omitempty"`
+	// Filter: Required. The datasets the discovery cadence applies to. The first
+	// target with a matching filter will be the one to apply to a dataset.
+	Filter *GooglePrivacyDlpV2DiscoveryVertexDatasetFilter `json:"filter,omitempty"`
+	// GenerationCadence: How often and when to update profiles. New datasets that
+	// match both the filter and conditions are scanned as quickly as possible
+	// depending on system capacity.
+	GenerationCadence *GooglePrivacyDlpV2DiscoveryVertexDatasetGenerationCadence `json:"generationCadence,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Conditions") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Conditions") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2VertexDatasetDiscoveryTarget) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2VertexDatasetDiscoveryTarget
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2VertexDatasetRegex: A pattern to match against one or more
+// dataset resources.
+type GooglePrivacyDlpV2VertexDatasetRegex struct {
+	// ProjectIdRegex: For organizations, if unset, will match all projects. Has no
+	// effect for configurations created within a project.
+	ProjectIdRegex string `json:"projectIdRegex,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ProjectIdRegex") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ProjectIdRegex") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2VertexDatasetRegex) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2VertexDatasetRegex
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2VertexDatasetRegexes: A collection of regular expressions
+// to determine what datasets to match against.
+type GooglePrivacyDlpV2VertexDatasetRegexes struct {
+	// Patterns: Required. The group of regular expression patterns to match
+	// against one or more datasets. Maximum of 100 entries. The sum of the lengths
+	// of all regular expressions can't exceed 10 KiB.
+	Patterns []*GooglePrivacyDlpV2VertexDatasetRegex `json:"patterns,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Patterns") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Patterns") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2VertexDatasetRegexes) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2VertexDatasetRegexes
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePrivacyDlpV2VertexDatasetResourceReference: Identifies a single Vertex
+// AI dataset.
+type GooglePrivacyDlpV2VertexDatasetResourceReference struct {
+	// DatasetResourceName: Required. The name of the dataset resource. If set
+	// within a project-level configuration, the specified resource must be within
+	// the project.
+	DatasetResourceName string `json:"datasetResourceName,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DatasetResourceName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DatasetResourceName") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePrivacyDlpV2VertexDatasetResourceReference) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePrivacyDlpV2VertexDatasetResourceReference
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePrivacyDlpV2WordList: Message defining a list of words or phrases to
@@ -9559,9 +11367,9 @@ type GooglePrivacyDlpV2WordList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePrivacyDlpV2WordList) MarshalJSON() ([]byte, error) {
+func (s GooglePrivacyDlpV2WordList) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePrivacyDlpV2WordList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -9603,9 +11411,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDate: Represents a whole or partial calendar date, such as a
@@ -9641,9 +11449,9 @@ type GoogleTypeDate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeTimeOfDay: Represents a time of day. The date and time zone are
@@ -9651,16 +11459,19 @@ func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
 // allow leap seconds. Related types are google.type.Date and
 // `google.protobuf.Timestamp`.
 type GoogleTypeTimeOfDay struct {
-	// Hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-	// choose to allow the value "24:00:00" for scenarios like business closing
-	// time.
+	// Hours: Hours of a day in 24 hour format. Must be greater than or equal to 0
+	// and typically must be less than or equal to 23. An API may choose to allow
+	// the value "24:00:00" for scenarios like business closing time.
 	Hours int64 `json:"hours,omitempty"`
-	// Minutes: Minutes of hour of day. Must be from 0 to 59.
+	// Minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+	// than or equal to 59.
 	Minutes int64 `json:"minutes,omitempty"`
-	// Nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+	// Nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+	// to 0 and less than or equal to 999,999,999.
 	Nanos int64 `json:"nanos,omitempty"`
-	// Seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-	// API may allow the value 60 if it allows leap-seconds.
+	// Seconds: Seconds of a minute. Must be greater than or equal to 0 and
+	// typically must be less than or equal to 59. An API may allow the value 60 if
+	// it allows leap-seconds.
 	Seconds int64 `json:"seconds,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -9675,9 +11486,9 @@ type GoogleTypeTimeOfDay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeTimeOfDay) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeTimeOfDay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeTimeOfDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type InfoTypesListCall struct {
@@ -9688,7 +11499,7 @@ type InfoTypesListCall struct {
 	header_      http.Header
 }
 
-// List: Returns a list of the sensitive information types that DLP API
+// List: Returns a list of the sensitive information types that the DLP API
 // supports. See
 // https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference
 // to learn more.
@@ -9720,7 +11531,7 @@ func (c *InfoTypesListCall) LocationId(locationId string) *InfoTypesListCall {
 }
 
 // Parent sets the optional parameter "parent": The parent resource name. The
-// format of this value is as follows: locations/ LOCATION_ID
+// format of this value is as follows: `locations/{location_id}`
 func (c *InfoTypesListCall) Parent(parent string) *InfoTypesListCall {
 	c.urlParams_.Set("parent", parent)
 	return c
@@ -9762,16 +11573,16 @@ func (c *InfoTypesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/infoTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.infoTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9807,9 +11618,11 @@ func (c *InfoTypesListCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.infoTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9822,13 +11635,13 @@ type LocationsInfoTypesListCall struct {
 	header_      http.Header
 }
 
-// List: Returns a list of the sensitive information types that DLP API
+// List: Returns a list of the sensitive information types that the DLP API
 // supports. See
 // https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference
 // to learn more.
 //
 //   - parent: The parent resource name. The format of this value is as follows:
-//     locations/ LOCATION_ID.
+//     `locations/{location_id}`.
 func (r *LocationsInfoTypesService) List(parent string) *LocationsInfoTypesListCall {
 	c := &LocationsInfoTypesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -9893,12 +11706,11 @@ func (c *LocationsInfoTypesListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/infoTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9906,6 +11718,7 @@ func (c *LocationsInfoTypesListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.locations.infoTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9941,9 +11754,11 @@ func (c *LocationsInfoTypesListCall) Do(opts ...googleapi.CallOption) (*GooglePr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.locations.infoTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9966,11 +11781,11 @@ type OrganizationsDeidentifyTemplatesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -10007,8 +11822,7 @@ func (c *OrganizationsDeidentifyTemplatesCreateCall) Header() http.Header {
 
 func (c *OrganizationsDeidentifyTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createdeidentifytemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createdeidentifytemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10024,6 +11838,7 @@ func (c *OrganizationsDeidentifyTemplatesCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10059,9 +11874,11 @@ func (c *OrganizationsDeidentifyTemplatesCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10112,12 +11929,11 @@ func (c *OrganizationsDeidentifyTemplatesDeleteCall) Header() http.Header {
 
 func (c *OrganizationsDeidentifyTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10125,6 +11941,7 @@ func (c *OrganizationsDeidentifyTemplatesDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10160,9 +11977,11 @@ func (c *OrganizationsDeidentifyTemplatesDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10224,12 +12043,11 @@ func (c *OrganizationsDeidentifyTemplatesGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10237,6 +12055,7 @@ func (c *OrganizationsDeidentifyTemplatesGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10272,9 +12091,11 @@ func (c *OrganizationsDeidentifyTemplatesGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10296,11 +12117,11 @@ type OrganizationsDeidentifyTemplatesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -10318,7 +12139,7 @@ func (c *OrganizationsDeidentifyTemplatesListCall) LocationId(locationId string)
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -10382,12 +12203,11 @@ func (c *OrganizationsDeidentifyTemplatesListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/deidentifyTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10395,6 +12215,7 @@ func (c *OrganizationsDeidentifyTemplatesListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10430,9 +12251,11 @@ func (c *OrganizationsDeidentifyTemplatesListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10505,8 +12328,7 @@ func (c *OrganizationsDeidentifyTemplatesPatchCall) Header() http.Header {
 
 func (c *OrganizationsDeidentifyTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatedeidentifytemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatedeidentifytemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10522,6 +12344,7 @@ func (c *OrganizationsDeidentifyTemplatesPatchCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10557,9 +12380,11 @@ func (c *OrganizationsDeidentifyTemplatesPatchCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.deidentifyTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10582,11 +12407,11 @@ type OrganizationsInspectTemplatesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -10623,8 +12448,7 @@ func (c *OrganizationsInspectTemplatesCreateCall) Header() http.Header {
 
 func (c *OrganizationsInspectTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createinspecttemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createinspecttemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10640,6 +12464,7 @@ func (c *OrganizationsInspectTemplatesCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10675,9 +12500,11 @@ func (c *OrganizationsInspectTemplatesCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10727,12 +12554,11 @@ func (c *OrganizationsInspectTemplatesDeleteCall) Header() http.Header {
 
 func (c *OrganizationsInspectTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10740,6 +12566,7 @@ func (c *OrganizationsInspectTemplatesDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10775,9 +12602,11 @@ func (c *OrganizationsInspectTemplatesDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10839,12 +12668,11 @@ func (c *OrganizationsInspectTemplatesGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10852,6 +12680,7 @@ func (c *OrganizationsInspectTemplatesGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10887,9 +12716,11 @@ func (c *OrganizationsInspectTemplatesGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10911,11 +12742,11 @@ type OrganizationsInspectTemplatesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -10933,7 +12764,7 @@ func (c *OrganizationsInspectTemplatesListCall) LocationId(locationId string) *O
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -10997,12 +12828,11 @@ func (c *OrganizationsInspectTemplatesListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/inspectTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11010,6 +12840,7 @@ func (c *OrganizationsInspectTemplatesListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11045,9 +12876,11 @@ func (c *OrganizationsInspectTemplatesListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11120,8 +12953,7 @@ func (c *OrganizationsInspectTemplatesPatchCall) Header() http.Header {
 
 func (c *OrganizationsInspectTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updateinspecttemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updateinspecttemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11137,6 +12969,7 @@ func (c *OrganizationsInspectTemplatesPatchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11172,9 +13005,11 @@ func (c *OrganizationsInspectTemplatesPatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.inspectTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11233,12 +13068,11 @@ func (c *OrganizationsLocationsColumnDataProfilesGetCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11246,6 +13080,7 @@ func (c *OrganizationsLocationsColumnDataProfilesGetCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.columnDataProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11281,9 +13116,11 @@ func (c *OrganizationsLocationsColumnDataProfilesGetCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.columnDataProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11330,7 +13167,7 @@ func (c *OrganizationsLocationsColumnDataProfilesListCall) Filter(filter string)
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Only one order field at a time is allowed.
@@ -11397,12 +13234,11 @@ func (c *OrganizationsLocationsColumnDataProfilesListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/columnDataProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11410,6 +13246,7 @@ func (c *OrganizationsLocationsColumnDataProfilesListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.columnDataProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11445,9 +13282,11 @@ func (c *OrganizationsLocationsColumnDataProfilesListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.columnDataProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11472,6 +13311,584 @@ func (c *OrganizationsLocationsColumnDataProfilesListCall) Pages(ctx context.Con
 	}
 }
 
+type OrganizationsLocationsConnectionsCreateCall struct {
+	s                                         *Service
+	parent                                    string
+	googleprivacydlpv2createconnectionrequest *GooglePrivacyDlpV2CreateConnectionRequest
+	urlParams_                                gensupport.URLParams
+	ctx_                                      context.Context
+	header_                                   http.Header
+}
+
+// Create: Create a Connection to an external data source.
+//
+//   - parent: Parent resource name. The format of this value varies depending on
+//     the scope of the request (project or organization): + Projects scope:
+//     `projects/{project_id}/locations/{location_id}` + Organizations scope:
+//     `organizations/{org_id}/locations/{location_id}`.
+func (r *OrganizationsLocationsConnectionsService) Create(parent string, googleprivacydlpv2createconnectionrequest *GooglePrivacyDlpV2CreateConnectionRequest) *OrganizationsLocationsConnectionsCreateCall {
+	c := &OrganizationsLocationsConnectionsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.googleprivacydlpv2createconnectionrequest = googleprivacydlpv2createconnectionrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsConnectionsCreateCall) Fields(s ...googleapi.Field) *OrganizationsLocationsConnectionsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsConnectionsCreateCall) Context(ctx context.Context) *OrganizationsLocationsConnectionsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsConnectionsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsConnectionsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createconnectionrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/connections")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.connections.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2Connection.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsConnectionsCreateCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2Connection, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2Connection{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsConnectionsDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Delete a Connection.
+//
+//   - name: Resource name of the Connection to be deleted, in the format:
+//     `projects/{project}/locations/{location}/connections/{connection}`.
+func (r *OrganizationsLocationsConnectionsService) Delete(name string) *OrganizationsLocationsConnectionsDeleteCall {
+	c := &OrganizationsLocationsConnectionsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsConnectionsDeleteCall) Fields(s ...googleapi.Field) *OrganizationsLocationsConnectionsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsConnectionsDeleteCall) Context(ctx context.Context) *OrganizationsLocationsConnectionsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsConnectionsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsConnectionsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.connections.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleProtobufEmpty.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *OrganizationsLocationsConnectionsDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProtobufEmpty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleProtobufEmpty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsConnectionsGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Get a Connection by name.
+//
+//   - name: Resource name in the format:
+//     `projects/{project}/locations/{location}/connections/{connection}`.
+func (r *OrganizationsLocationsConnectionsService) Get(name string) *OrganizationsLocationsConnectionsGetCall {
+	c := &OrganizationsLocationsConnectionsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsConnectionsGetCall) Fields(s ...googleapi.Field) *OrganizationsLocationsConnectionsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *OrganizationsLocationsConnectionsGetCall) IfNoneMatch(entityTag string) *OrganizationsLocationsConnectionsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsConnectionsGetCall) Context(ctx context.Context) *OrganizationsLocationsConnectionsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsConnectionsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsConnectionsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.connections.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2Connection.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsConnectionsGetCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2Connection, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2Connection{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsConnectionsListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists Connections in a parent. Use SearchConnections to see all
+// connections within an organization.
+//
+//   - parent: Resource name of the organization or project, for example,
+//     `organizations/433245324/locations/europe` or
+//     `projects/project-id/locations/asia`.
+func (r *OrganizationsLocationsConnectionsService) List(parent string) *OrganizationsLocationsConnectionsListCall {
+	c := &OrganizationsLocationsConnectionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": Supported field/value: `state`
+// - MISSING|AVAILABLE|ERROR
+func (c *OrganizationsLocationsConnectionsListCall) Filter(filter string) *OrganizationsLocationsConnectionsListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Number of results per page,
+// max 1000.
+func (c *OrganizationsLocationsConnectionsListCall) PageSize(pageSize int64) *OrganizationsLocationsConnectionsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": Page token from a
+// previous page to return the next set of results. If set, all other request
+// fields must match the original request.
+func (c *OrganizationsLocationsConnectionsListCall) PageToken(pageToken string) *OrganizationsLocationsConnectionsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsConnectionsListCall) Fields(s ...googleapi.Field) *OrganizationsLocationsConnectionsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *OrganizationsLocationsConnectionsListCall) IfNoneMatch(entityTag string) *OrganizationsLocationsConnectionsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsConnectionsListCall) Context(ctx context.Context) *OrganizationsLocationsConnectionsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsConnectionsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsConnectionsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/connections")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.connections.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2ListConnectionsResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsConnectionsListCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2ListConnectionsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2ListConnectionsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *OrganizationsLocationsConnectionsListCall) Pages(ctx context.Context, f func(*GooglePrivacyDlpV2ListConnectionsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type OrganizationsLocationsConnectionsPatchCall struct {
+	s                                         *Service
+	name                                      string
+	googleprivacydlpv2updateconnectionrequest *GooglePrivacyDlpV2UpdateConnectionRequest
+	urlParams_                                gensupport.URLParams
+	ctx_                                      context.Context
+	header_                                   http.Header
+}
+
+// Patch: Update a Connection.
+//
+//   - name: Resource name in the format:
+//     `projects/{project}/locations/{location}/connections/{connection}`.
+func (r *OrganizationsLocationsConnectionsService) Patch(name string, googleprivacydlpv2updateconnectionrequest *GooglePrivacyDlpV2UpdateConnectionRequest) *OrganizationsLocationsConnectionsPatchCall {
+	c := &OrganizationsLocationsConnectionsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googleprivacydlpv2updateconnectionrequest = googleprivacydlpv2updateconnectionrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsConnectionsPatchCall) Fields(s ...googleapi.Field) *OrganizationsLocationsConnectionsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsConnectionsPatchCall) Context(ctx context.Context) *OrganizationsLocationsConnectionsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsConnectionsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsConnectionsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updateconnectionrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.connections.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2Connection.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsConnectionsPatchCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2Connection, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2Connection{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
 type OrganizationsLocationsConnectionsSearchCall struct {
 	s            *Service
 	parent       string
@@ -11483,8 +13900,9 @@ type OrganizationsLocationsConnectionsSearchCall struct {
 
 // Search: Searches for Connections in a parent.
 //
-//   - parent: Parent name, typically an organization, without location. For
-//     example: `organizations/12345678`.
+//   - parent: Resource name of the organization or project with a wildcard
+//     location, for example, `organizations/433245324/locations/-` or
+//     `projects/project-id/locations/-`.
 func (r *OrganizationsLocationsConnectionsService) Search(parent string) *OrganizationsLocationsConnectionsSearchCall {
 	c := &OrganizationsLocationsConnectionsSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -11549,12 +13967,11 @@ func (c *OrganizationsLocationsConnectionsSearchCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/connections:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11562,6 +13979,7 @@ func (c *OrganizationsLocationsConnectionsSearchCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11597,9 +14015,11 @@ func (c *OrganizationsLocationsConnectionsSearchCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.connections.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11643,11 +14063,11 @@ type OrganizationsLocationsDeidentifyTemplatesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -11684,8 +14104,7 @@ func (c *OrganizationsLocationsDeidentifyTemplatesCreateCall) Header() http.Head
 
 func (c *OrganizationsLocationsDeidentifyTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createdeidentifytemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createdeidentifytemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11701,6 +14120,7 @@ func (c *OrganizationsLocationsDeidentifyTemplatesCreateCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11736,9 +14156,11 @@ func (c *OrganizationsLocationsDeidentifyTemplatesCreateCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11789,12 +14211,11 @@ func (c *OrganizationsLocationsDeidentifyTemplatesDeleteCall) Header() http.Head
 
 func (c *OrganizationsLocationsDeidentifyTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11802,6 +14223,7 @@ func (c *OrganizationsLocationsDeidentifyTemplatesDeleteCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11837,9 +14259,11 @@ func (c *OrganizationsLocationsDeidentifyTemplatesDeleteCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11901,12 +14325,11 @@ func (c *OrganizationsLocationsDeidentifyTemplatesGetCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11914,6 +14337,7 @@ func (c *OrganizationsLocationsDeidentifyTemplatesGetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11949,9 +14373,11 @@ func (c *OrganizationsLocationsDeidentifyTemplatesGetCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11973,11 +14399,11 @@ type OrganizationsLocationsDeidentifyTemplatesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -11995,7 +14421,7 @@ func (c *OrganizationsLocationsDeidentifyTemplatesListCall) LocationId(locationI
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -12059,12 +14485,11 @@ func (c *OrganizationsLocationsDeidentifyTemplatesListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/deidentifyTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12072,6 +14497,7 @@ func (c *OrganizationsLocationsDeidentifyTemplatesListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12107,9 +14533,11 @@ func (c *OrganizationsLocationsDeidentifyTemplatesListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12182,8 +14610,7 @@ func (c *OrganizationsLocationsDeidentifyTemplatesPatchCall) Header() http.Heade
 
 func (c *OrganizationsLocationsDeidentifyTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatedeidentifytemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatedeidentifytemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12199,6 +14626,7 @@ func (c *OrganizationsLocationsDeidentifyTemplatesPatchCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12234,9 +14662,11 @@ func (c *OrganizationsLocationsDeidentifyTemplatesPatchCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.deidentifyTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12251,8 +14681,10 @@ type OrganizationsLocationsDiscoveryConfigsCreateCall struct {
 
 // Create: Creates a config for discovery to scan and profile storage.
 //
-//   - parent: Parent resource name. The format of this value is as follows:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID The following example
+//   - parent: Parent resource name. The format of this value varies depending on
+//     the scope of the request (project or organization): + Projects scope:
+//     `projects/{project_id}/locations/{location_id}` + Organizations scope:
+//     `organizations/{org_id}/locations/{location_id}` The following example
 //     `parent` string specifies a parent project with the identifier
 //     `example-project`, and specifies the `europe-west3` location for
 //     processing data: parent=projects/example-project/locations/europe-west3.
@@ -12288,8 +14720,7 @@ func (c *OrganizationsLocationsDiscoveryConfigsCreateCall) Header() http.Header 
 
 func (c *OrganizationsLocationsDiscoveryConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2creatediscoveryconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2creatediscoveryconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12305,6 +14736,7 @@ func (c *OrganizationsLocationsDiscoveryConfigsCreateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12340,9 +14772,11 @@ func (c *OrganizationsLocationsDiscoveryConfigsCreateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12389,12 +14823,11 @@ func (c *OrganizationsLocationsDiscoveryConfigsDeleteCall) Header() http.Header 
 
 func (c *OrganizationsLocationsDiscoveryConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12402,6 +14835,7 @@ func (c *OrganizationsLocationsDiscoveryConfigsDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12437,9 +14871,11 @@ func (c *OrganizationsLocationsDiscoveryConfigsDeleteCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12498,12 +14934,11 @@ func (c *OrganizationsLocationsDiscoveryConfigsGetCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12511,6 +14946,7 @@ func (c *OrganizationsLocationsDiscoveryConfigsGetCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12546,9 +14982,11 @@ func (c *OrganizationsLocationsDiscoveryConfigsGetCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12564,7 +15002,7 @@ type OrganizationsLocationsDiscoveryConfigsListCall struct {
 // List: Lists discovery configurations.
 //
 //   - parent: Parent resource name. The format of this value is as follows:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID The following example
+//     `projects/{project_id}/locations/{location_id}` The following example
 //     `parent` string specifies a parent project with the identifier
 //     `example-project`, and specifies the `europe-west3` location for
 //     processing data: parent=projects/example-project/locations/europe-west3.
@@ -12574,7 +15012,7 @@ func (r *OrganizationsLocationsDiscoveryConfigsService) List(parentid string) *O
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // config fields to order by, followed by `asc` or `desc` postfix. This list is
 // case insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -12637,12 +15075,11 @@ func (c *OrganizationsLocationsDiscoveryConfigsListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/discoveryConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12650,6 +15087,7 @@ func (c *OrganizationsLocationsDiscoveryConfigsListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12685,9 +15123,11 @@ func (c *OrganizationsLocationsDiscoveryConfigsListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12757,8 +15197,7 @@ func (c *OrganizationsLocationsDiscoveryConfigsPatchCall) Header() http.Header {
 
 func (c *OrganizationsLocationsDiscoveryConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatediscoveryconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatediscoveryconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12774,6 +15213,7 @@ func (c *OrganizationsLocationsDiscoveryConfigsPatchCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12809,9 +15249,11 @@ func (c *OrganizationsLocationsDiscoveryConfigsPatchCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.discoveryConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12834,8 +15276,8 @@ type OrganizationsLocationsDlpJobsListCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -12875,7 +15317,7 @@ func (c *OrganizationsLocationsDlpJobsListCall) LocationId(locationId string) *O
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc, end_time asc, create_time
@@ -12950,12 +15392,11 @@ func (c *OrganizationsLocationsDlpJobsListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/dlpJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12963,6 +15404,7 @@ func (c *OrganizationsLocationsDlpJobsListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.dlpJobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12998,9 +15440,11 @@ func (c *OrganizationsLocationsDlpJobsListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.dlpJobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13025,6 +15469,542 @@ func (c *OrganizationsLocationsDlpJobsListCall) Pages(ctx context.Context, f fun
 	}
 }
 
+type OrganizationsLocationsFileStoreDataProfilesDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Delete a FileStoreDataProfile. Will not prevent the profile from
+// being regenerated if the resource is still included in a discovery
+// configuration.
+//
+// - name: Resource name of the file store data profile.
+func (r *OrganizationsLocationsFileStoreDataProfilesService) Delete(name string) *OrganizationsLocationsFileStoreDataProfilesDeleteCall {
+	c := &OrganizationsLocationsFileStoreDataProfilesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsFileStoreDataProfilesDeleteCall) Fields(s ...googleapi.Field) *OrganizationsLocationsFileStoreDataProfilesDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsFileStoreDataProfilesDeleteCall) Context(ctx context.Context) *OrganizationsLocationsFileStoreDataProfilesDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsFileStoreDataProfilesDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsFileStoreDataProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.fileStoreDataProfiles.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.fileStoreDataProfiles.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleProtobufEmpty.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *OrganizationsLocationsFileStoreDataProfilesDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProtobufEmpty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleProtobufEmpty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.fileStoreDataProfiles.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsFileStoreDataProfilesGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets a file store data profile.
+//
+//   - name: Resource name, for example
+//     `organizations/12345/locations/us/fileStoreDataProfiles/53234423`.
+func (r *OrganizationsLocationsFileStoreDataProfilesService) Get(name string) *OrganizationsLocationsFileStoreDataProfilesGetCall {
+	c := &OrganizationsLocationsFileStoreDataProfilesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsFileStoreDataProfilesGetCall) Fields(s ...googleapi.Field) *OrganizationsLocationsFileStoreDataProfilesGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *OrganizationsLocationsFileStoreDataProfilesGetCall) IfNoneMatch(entityTag string) *OrganizationsLocationsFileStoreDataProfilesGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsFileStoreDataProfilesGetCall) Context(ctx context.Context) *OrganizationsLocationsFileStoreDataProfilesGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsFileStoreDataProfilesGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsFileStoreDataProfilesGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.fileStoreDataProfiles.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.fileStoreDataProfiles.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2FileStoreDataProfile.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsFileStoreDataProfilesGetCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2FileStoreDataProfile, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2FileStoreDataProfile{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.fileStoreDataProfiles.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsFileStoreDataProfilesListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists file store data profiles for an organization.
+//
+//   - parent: Resource name of the organization or project, for example
+//     `organizations/433245324/locations/europe` or
+//     `projects/project-id/locations/asia`.
+func (r *OrganizationsLocationsFileStoreDataProfilesService) List(parent string) *OrganizationsLocationsFileStoreDataProfilesListCall {
+	c := &OrganizationsLocationsFileStoreDataProfilesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": Allows filtering. Supported
+// syntax: * Filter expressions are made up of one or more restrictions. *
+// Restrictions can be combined by `AND` or `OR` logical operators. A sequence
+// of restrictions implicitly uses `AND`. * A restriction has the form of
+// `{field} {operator} {value}`. * Supported fields/values: - `project_id` -
+// The Google Cloud project ID. - `account_id` - The AWS account ID. -
+// `file_store_path` - The path like "gs://bucket". - `data_source_type` - The
+// profile's data source type, like "google/storage/bucket". -
+// `data_storage_location` - The location where the file store's data is
+// stored, like "us-central1". - `sensitivity_level` - HIGH|MODERATE|LOW -
+// `data_risk_level` - HIGH|MODERATE|LOW - `resource_visibility`:
+// PUBLIC|RESTRICTED - `status_code` - an RPC status code as defined in
+// https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto *
+// The operator must be `=` or `!=`. Examples: * `project_id = 12345 AND
+// status_code = 1` * `project_id = 12345 AND sensitivity_level = HIGH` *
+// `project_id = 12345 AND resource_visibility = PUBLIC` * `file_store_path =
+// "gs://mybucket" The length of this field should be no more than 500
+// characters.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) Filter(filter string) *OrganizationsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
+// fields to order by, followed by `asc` or `desc` postfix. This list is case
+// insensitive. The default sorting order is ascending. Redundant space
+// characters are insignificant. Only one order field at a time is allowed.
+// Examples: * `project_id asc` * `name` * `sensitivity_level desc` Supported
+// fields are: - `project_id`: The Google Cloud project ID. -
+// `sensitivity_level`: How sensitive the data in a table is, at most. -
+// `data_risk_level`: How much risk is associated with this data. -
+// `profile_last_generated`: When the profile was last updated in epoch
+// seconds. - `last_modified`: The last time the resource was modified. -
+// `resource_visibility`: Visibility restriction for this resource. - `name`:
+// The name of the profile. - `create_time`: The time the file store was first
+// created.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) OrderBy(orderBy string) *OrganizationsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("orderBy", orderBy)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Size of the page. This
+// value can be limited by the server. If zero, server returns a page of max
+// size 100.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) PageSize(pageSize int64) *OrganizationsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": Page token to continue
+// retrieval.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) PageToken(pageToken string) *OrganizationsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) Fields(s ...googleapi.Field) *OrganizationsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) IfNoneMatch(entityTag string) *OrganizationsLocationsFileStoreDataProfilesListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) Context(ctx context.Context) *OrganizationsLocationsFileStoreDataProfilesListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/fileStoreDataProfiles")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.fileStoreDataProfiles.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.fileStoreDataProfiles.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2ListFileStoreDataProfilesResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2ListFileStoreDataProfilesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2ListFileStoreDataProfilesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.fileStoreDataProfiles.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *OrganizationsLocationsFileStoreDataProfilesListCall) Pages(ctx context.Context, f func(*GooglePrivacyDlpV2ListFileStoreDataProfilesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type OrganizationsLocationsInfoTypesListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns a list of the sensitive information types that the DLP API
+// supports. See
+// https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference
+// to learn more.
+//
+//   - parent: The parent resource name. The format of this value is as follows:
+//     `locations/{location_id}`.
+func (r *OrganizationsLocationsInfoTypesService) List(parent string) *OrganizationsLocationsInfoTypesListCall {
+	c := &OrganizationsLocationsInfoTypesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": filter to only return infoTypes
+// supported by certain parts of the API. Defaults to supported_by=INSPECT.
+func (c *OrganizationsLocationsInfoTypesListCall) Filter(filter string) *OrganizationsLocationsInfoTypesListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// LanguageCode sets the optional parameter "languageCode": BCP-47 language
+// code for localized infoType friendly names. If omitted, or if localized
+// strings are not available, en-US strings will be returned.
+func (c *OrganizationsLocationsInfoTypesListCall) LanguageCode(languageCode string) *OrganizationsLocationsInfoTypesListCall {
+	c.urlParams_.Set("languageCode", languageCode)
+	return c
+}
+
+// LocationId sets the optional parameter "locationId": Deprecated. This field
+// has no effect.
+func (c *OrganizationsLocationsInfoTypesListCall) LocationId(locationId string) *OrganizationsLocationsInfoTypesListCall {
+	c.urlParams_.Set("locationId", locationId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsInfoTypesListCall) Fields(s ...googleapi.Field) *OrganizationsLocationsInfoTypesListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *OrganizationsLocationsInfoTypesListCall) IfNoneMatch(entityTag string) *OrganizationsLocationsInfoTypesListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsInfoTypesListCall) Context(ctx context.Context) *OrganizationsLocationsInfoTypesListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsInfoTypesListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsInfoTypesListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/infoTypes")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.infoTypes.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.organizations.locations.infoTypes.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2ListInfoTypesResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsInfoTypesListCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2ListInfoTypesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2ListInfoTypesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.infoTypes.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
 type OrganizationsLocationsInspectTemplatesCreateCall struct {
 	s                                              *Service
 	parentid                                       string
@@ -13044,11 +16024,11 @@ type OrganizationsLocationsInspectTemplatesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -13085,8 +16065,7 @@ func (c *OrganizationsLocationsInspectTemplatesCreateCall) Header() http.Header 
 
 func (c *OrganizationsLocationsInspectTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createinspecttemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createinspecttemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13102,6 +16081,7 @@ func (c *OrganizationsLocationsInspectTemplatesCreateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13137,9 +16117,11 @@ func (c *OrganizationsLocationsInspectTemplatesCreateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13189,12 +16171,11 @@ func (c *OrganizationsLocationsInspectTemplatesDeleteCall) Header() http.Header 
 
 func (c *OrganizationsLocationsInspectTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13202,6 +16183,7 @@ func (c *OrganizationsLocationsInspectTemplatesDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13237,9 +16219,11 @@ func (c *OrganizationsLocationsInspectTemplatesDeleteCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13301,12 +16285,11 @@ func (c *OrganizationsLocationsInspectTemplatesGetCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13314,6 +16297,7 @@ func (c *OrganizationsLocationsInspectTemplatesGetCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13349,9 +16333,11 @@ func (c *OrganizationsLocationsInspectTemplatesGetCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13373,11 +16359,11 @@ type OrganizationsLocationsInspectTemplatesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -13395,7 +16381,7 @@ func (c *OrganizationsLocationsInspectTemplatesListCall) LocationId(locationId s
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -13459,12 +16445,11 @@ func (c *OrganizationsLocationsInspectTemplatesListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/inspectTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13472,6 +16457,7 @@ func (c *OrganizationsLocationsInspectTemplatesListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13507,9 +16493,11 @@ func (c *OrganizationsLocationsInspectTemplatesListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13582,8 +16570,7 @@ func (c *OrganizationsLocationsInspectTemplatesPatchCall) Header() http.Header {
 
 func (c *OrganizationsLocationsInspectTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updateinspecttemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updateinspecttemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13599,6 +16586,7 @@ func (c *OrganizationsLocationsInspectTemplatesPatchCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13634,9 +16622,11 @@ func (c *OrganizationsLocationsInspectTemplatesPatchCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.inspectTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13658,8 +16648,8 @@ type OrganizationsLocationsJobTriggersCreateCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -13696,8 +16686,7 @@ func (c *OrganizationsLocationsJobTriggersCreateCall) Header() http.Header {
 
 func (c *OrganizationsLocationsJobTriggersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createjobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createjobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13713,6 +16702,7 @@ func (c *OrganizationsLocationsJobTriggersCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13748,9 +16738,11 @@ func (c *OrganizationsLocationsJobTriggersCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13799,12 +16791,11 @@ func (c *OrganizationsLocationsJobTriggersDeleteCall) Header() http.Header {
 
 func (c *OrganizationsLocationsJobTriggersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13812,6 +16803,7 @@ func (c *OrganizationsLocationsJobTriggersDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13847,9 +16839,11 @@ func (c *OrganizationsLocationsJobTriggersDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13910,12 +16904,11 @@ func (c *OrganizationsLocationsJobTriggersGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13923,6 +16916,7 @@ func (c *OrganizationsLocationsJobTriggersGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13958,9 +16952,11 @@ func (c *OrganizationsLocationsJobTriggersGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13981,8 +16977,8 @@ type OrganizationsLocationsJobTriggersListCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -14020,7 +17016,7 @@ func (c *OrganizationsLocationsJobTriggersListCall) LocationId(locationId string
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // triggeredJob fields to order by, followed by `asc` or `desc` postfix. This
 // list is case insensitive. The default sorting order is ascending. Redundant
 // space characters are insignificant. Example: `name asc,update_time,
@@ -14099,12 +17095,11 @@ func (c *OrganizationsLocationsJobTriggersListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/jobTriggers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14112,6 +17107,7 @@ func (c *OrganizationsLocationsJobTriggersListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14147,9 +17143,11 @@ func (c *OrganizationsLocationsJobTriggersListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14221,8 +17219,7 @@ func (c *OrganizationsLocationsJobTriggersPatchCall) Header() http.Header {
 
 func (c *OrganizationsLocationsJobTriggersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatejobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatejobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14238,6 +17235,7 @@ func (c *OrganizationsLocationsJobTriggersPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14273,9 +17271,11 @@ func (c *OrganizationsLocationsJobTriggersPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.jobTriggers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14334,12 +17334,11 @@ func (c *OrganizationsLocationsProjectDataProfilesGetCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14347,6 +17346,7 @@ func (c *OrganizationsLocationsProjectDataProfilesGetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.projectDataProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14382,9 +17382,11 @@ func (c *OrganizationsLocationsProjectDataProfilesGetCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.projectDataProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14422,7 +17424,7 @@ func (c *OrganizationsLocationsProjectDataProfilesListCall) Filter(filter string
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Only one order field at a time is allowed.
@@ -14487,12 +17489,11 @@ func (c *OrganizationsLocationsProjectDataProfilesListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/projectDataProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14500,6 +17501,7 @@ func (c *OrganizationsLocationsProjectDataProfilesListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.projectDataProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14535,9 +17537,11 @@ func (c *OrganizationsLocationsProjectDataProfilesListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.projectDataProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14580,11 +17584,11 @@ type OrganizationsLocationsStoredInfoTypesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -14621,8 +17625,7 @@ func (c *OrganizationsLocationsStoredInfoTypesCreateCall) Header() http.Header {
 
 func (c *OrganizationsLocationsStoredInfoTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createstoredinfotyperequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createstoredinfotyperequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14638,6 +17641,7 @@ func (c *OrganizationsLocationsStoredInfoTypesCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14673,9 +17677,11 @@ func (c *OrganizationsLocationsStoredInfoTypesCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14725,12 +17731,11 @@ func (c *OrganizationsLocationsStoredInfoTypesDeleteCall) Header() http.Header {
 
 func (c *OrganizationsLocationsStoredInfoTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14738,6 +17743,7 @@ func (c *OrganizationsLocationsStoredInfoTypesDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14773,9 +17779,11 @@ func (c *OrganizationsLocationsStoredInfoTypesDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14837,12 +17845,11 @@ func (c *OrganizationsLocationsStoredInfoTypesGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14850,6 +17857,7 @@ func (c *OrganizationsLocationsStoredInfoTypesGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14885,9 +17893,11 @@ func (c *OrganizationsLocationsStoredInfoTypesGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14909,8 +17919,8 @@ type OrganizationsLocationsStoredInfoTypesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -14928,7 +17938,7 @@ func (c *OrganizationsLocationsStoredInfoTypesListCall) LocationId(locationId st
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc, display_name, create_time
@@ -14992,12 +18002,11 @@ func (c *OrganizationsLocationsStoredInfoTypesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/storedInfoTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15005,6 +18014,7 @@ func (c *OrganizationsLocationsStoredInfoTypesListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15040,9 +18050,11 @@ func (c *OrganizationsLocationsStoredInfoTypesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15116,8 +18128,7 @@ func (c *OrganizationsLocationsStoredInfoTypesPatchCall) Header() http.Header {
 
 func (c *OrganizationsLocationsStoredInfoTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatestoredinfotyperequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatestoredinfotyperequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15133,6 +18144,7 @@ func (c *OrganizationsLocationsStoredInfoTypesPatchCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15168,9 +18180,11 @@ func (c *OrganizationsLocationsStoredInfoTypesPatchCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.storedInfoTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15217,12 +18231,11 @@ func (c *OrganizationsLocationsTableDataProfilesDeleteCall) Header() http.Header
 
 func (c *OrganizationsLocationsTableDataProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15230,6 +18243,7 @@ func (c *OrganizationsLocationsTableDataProfilesDeleteCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.tableDataProfiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15265,9 +18279,11 @@ func (c *OrganizationsLocationsTableDataProfilesDeleteCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.tableDataProfiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15326,12 +18342,11 @@ func (c *OrganizationsLocationsTableDataProfilesGetCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15339,6 +18354,7 @@ func (c *OrganizationsLocationsTableDataProfilesGetCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.tableDataProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15374,9 +18390,11 @@ func (c *OrganizationsLocationsTableDataProfilesGetCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.tableDataProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15420,7 +18438,7 @@ func (c *OrganizationsLocationsTableDataProfilesListCall) Filter(filter string) 
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Only one order field at a time is allowed.
@@ -15489,12 +18507,11 @@ func (c *OrganizationsLocationsTableDataProfilesListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/tableDataProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15502,6 +18519,7 @@ func (c *OrganizationsLocationsTableDataProfilesListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.locations.tableDataProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15537,9 +18555,11 @@ func (c *OrganizationsLocationsTableDataProfilesListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.locations.tableDataProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15582,11 +18602,11 @@ type OrganizationsStoredInfoTypesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -15623,8 +18643,7 @@ func (c *OrganizationsStoredInfoTypesCreateCall) Header() http.Header {
 
 func (c *OrganizationsStoredInfoTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createstoredinfotyperequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createstoredinfotyperequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15640,6 +18659,7 @@ func (c *OrganizationsStoredInfoTypesCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15675,9 +18695,11 @@ func (c *OrganizationsStoredInfoTypesCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15727,12 +18749,11 @@ func (c *OrganizationsStoredInfoTypesDeleteCall) Header() http.Header {
 
 func (c *OrganizationsStoredInfoTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15740,6 +18761,7 @@ func (c *OrganizationsStoredInfoTypesDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15775,9 +18797,11 @@ func (c *OrganizationsStoredInfoTypesDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15839,12 +18863,11 @@ func (c *OrganizationsStoredInfoTypesGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15852,6 +18875,7 @@ func (c *OrganizationsStoredInfoTypesGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15887,9 +18911,11 @@ func (c *OrganizationsStoredInfoTypesGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15911,8 +18937,8 @@ type OrganizationsStoredInfoTypesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -15930,7 +18956,7 @@ func (c *OrganizationsStoredInfoTypesListCall) LocationId(locationId string) *Or
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc, display_name, create_time
@@ -15994,12 +19020,11 @@ func (c *OrganizationsStoredInfoTypesListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/storedInfoTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16007,6 +19032,7 @@ func (c *OrganizationsStoredInfoTypesListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16042,9 +19068,11 @@ func (c *OrganizationsStoredInfoTypesListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16118,8 +19146,7 @@ func (c *OrganizationsStoredInfoTypesPatchCall) Header() http.Header {
 
 func (c *OrganizationsStoredInfoTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatestoredinfotyperequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatestoredinfotyperequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16135,6 +19162,7 @@ func (c *OrganizationsStoredInfoTypesPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16170,9 +19198,11 @@ func (c *OrganizationsStoredInfoTypesPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.organizations.storedInfoTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16197,8 +19227,8 @@ type ProjectsContentDeidentifyCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -16235,8 +19265,7 @@ func (c *ProjectsContentDeidentifyCall) Header() http.Header {
 
 func (c *ProjectsContentDeidentifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2deidentifycontentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2deidentifycontentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16252,6 +19281,7 @@ func (c *ProjectsContentDeidentifyCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.content.deidentify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16287,9 +19317,11 @@ func (c *ProjectsContentDeidentifyCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.content.deidentify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16314,8 +19346,8 @@ type ProjectsContentInspectCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -16352,8 +19384,7 @@ func (c *ProjectsContentInspectCall) Header() http.Header {
 
 func (c *ProjectsContentInspectCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2inspectcontentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2inspectcontentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16369,6 +19400,7 @@ func (c *ProjectsContentInspectCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.content.inspect", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16404,9 +19436,11 @@ func (c *ProjectsContentInspectCall) Do(opts ...googleapi.CallOption) (*GooglePr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.content.inspect", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16427,8 +19461,8 @@ type ProjectsContentReidentifyCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -16465,8 +19499,7 @@ func (c *ProjectsContentReidentifyCall) Header() http.Header {
 
 func (c *ProjectsContentReidentifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2reidentifycontentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2reidentifycontentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16482,6 +19515,7 @@ func (c *ProjectsContentReidentifyCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.content.reidentify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16517,9 +19551,11 @@ func (c *ProjectsContentReidentifyCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.content.reidentify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16542,11 +19578,11 @@ type ProjectsDeidentifyTemplatesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -16583,8 +19619,7 @@ func (c *ProjectsDeidentifyTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsDeidentifyTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createdeidentifytemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createdeidentifytemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16600,6 +19635,7 @@ func (c *ProjectsDeidentifyTemplatesCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16635,9 +19671,11 @@ func (c *ProjectsDeidentifyTemplatesCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16688,12 +19726,11 @@ func (c *ProjectsDeidentifyTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsDeidentifyTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16701,6 +19738,7 @@ func (c *ProjectsDeidentifyTemplatesDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16736,9 +19774,11 @@ func (c *ProjectsDeidentifyTemplatesDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16800,12 +19840,11 @@ func (c *ProjectsDeidentifyTemplatesGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16813,6 +19852,7 @@ func (c *ProjectsDeidentifyTemplatesGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16848,9 +19888,11 @@ func (c *ProjectsDeidentifyTemplatesGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16872,11 +19914,11 @@ type ProjectsDeidentifyTemplatesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -16894,7 +19936,7 @@ func (c *ProjectsDeidentifyTemplatesListCall) LocationId(locationId string) *Pro
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -16958,12 +20000,11 @@ func (c *ProjectsDeidentifyTemplatesListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/deidentifyTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16971,6 +20012,7 @@ func (c *ProjectsDeidentifyTemplatesListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17006,9 +20048,11 @@ func (c *ProjectsDeidentifyTemplatesListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17081,8 +20125,7 @@ func (c *ProjectsDeidentifyTemplatesPatchCall) Header() http.Header {
 
 func (c *ProjectsDeidentifyTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatedeidentifytemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatedeidentifytemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17098,6 +20141,7 @@ func (c *ProjectsDeidentifyTemplatesPatchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17133,9 +20177,11 @@ func (c *ProjectsDeidentifyTemplatesPatchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.deidentifyTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17189,8 +20235,7 @@ func (c *ProjectsDlpJobsCancelCall) Header() http.Header {
 
 func (c *ProjectsDlpJobsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2canceldlpjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2canceldlpjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17206,6 +20251,7 @@ func (c *ProjectsDlpJobsCancelCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17241,9 +20287,11 @@ func (c *ProjectsDlpJobsCancelCall) Do(opts ...googleapi.CallOption) (*GooglePro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17268,8 +20316,8 @@ type ProjectsDlpJobsCreateCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -17306,8 +20354,7 @@ func (c *ProjectsDlpJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsDlpJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createdlpjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createdlpjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17323,6 +20370,7 @@ func (c *ProjectsDlpJobsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17358,9 +20406,11 @@ func (c *ProjectsDlpJobsCreateCall) Do(opts ...googleapi.CallOption) (*GooglePri
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17412,12 +20462,11 @@ func (c *ProjectsDlpJobsDeleteCall) Header() http.Header {
 
 func (c *ProjectsDlpJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17425,6 +20474,7 @@ func (c *ProjectsDlpJobsDeleteCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17460,9 +20510,11 @@ func (c *ProjectsDlpJobsDeleteCall) Do(opts ...googleapi.CallOption) (*GooglePro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17524,12 +20576,11 @@ func (c *ProjectsDlpJobsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17537,6 +20588,7 @@ func (c *ProjectsDlpJobsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17572,9 +20624,11 @@ func (c *ProjectsDlpJobsGetCall) Do(opts ...googleapi.CallOption) (*GooglePrivac
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17597,8 +20651,8 @@ type ProjectsDlpJobsListCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -17638,7 +20692,7 @@ func (c *ProjectsDlpJobsListCall) LocationId(locationId string) *ProjectsDlpJobs
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc, end_time asc, create_time
@@ -17713,12 +20767,11 @@ func (c *ProjectsDlpJobsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/dlpJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17726,6 +20779,7 @@ func (c *ProjectsDlpJobsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17761,9 +20815,11 @@ func (c *ProjectsDlpJobsListCall) Do(opts ...googleapi.CallOption) (*GooglePriva
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.dlpJobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17803,14 +20859,15 @@ type ProjectsImageRedactCall struct {
 // to learn more. When no InfoTypes or CustomInfoTypes are specified in this
 // request, the system will automatically choose what detectors to run. By
 // default this may be all types, but may change over time as detectors are
-// updated.
+// updated. Only the first frame of each multiframe image is redacted. Metadata
+// and other frames are omitted in the response.
 //
 //   - parent: Parent resource name. The format of this value varies depending on
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -17847,8 +20904,7 @@ func (c *ProjectsImageRedactCall) Header() http.Header {
 
 func (c *ProjectsImageRedactCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2redactimagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2redactimagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17864,6 +20920,7 @@ func (c *ProjectsImageRedactCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.image.redact", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17899,9 +20956,11 @@ func (c *ProjectsImageRedactCall) Do(opts ...googleapi.CallOption) (*GooglePriva
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.image.redact", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17924,11 +20983,11 @@ type ProjectsInspectTemplatesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -17965,8 +21024,7 @@ func (c *ProjectsInspectTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsInspectTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createinspecttemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createinspecttemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17982,6 +21040,7 @@ func (c *ProjectsInspectTemplatesCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18017,9 +21076,11 @@ func (c *ProjectsInspectTemplatesCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18069,12 +21130,11 @@ func (c *ProjectsInspectTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsInspectTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18082,6 +21142,7 @@ func (c *ProjectsInspectTemplatesDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18117,9 +21178,11 @@ func (c *ProjectsInspectTemplatesDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18181,12 +21244,11 @@ func (c *ProjectsInspectTemplatesGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18194,6 +21256,7 @@ func (c *ProjectsInspectTemplatesGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18229,9 +21292,11 @@ func (c *ProjectsInspectTemplatesGetCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18253,11 +21318,11 @@ type ProjectsInspectTemplatesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -18275,7 +21340,7 @@ func (c *ProjectsInspectTemplatesListCall) LocationId(locationId string) *Projec
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -18339,12 +21404,11 @@ func (c *ProjectsInspectTemplatesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/inspectTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18352,6 +21416,7 @@ func (c *ProjectsInspectTemplatesListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18387,9 +21452,11 @@ func (c *ProjectsInspectTemplatesListCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18462,8 +21529,7 @@ func (c *ProjectsInspectTemplatesPatchCall) Header() http.Header {
 
 func (c *ProjectsInspectTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updateinspecttemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updateinspecttemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18479,6 +21545,7 @@ func (c *ProjectsInspectTemplatesPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18514,9 +21581,11 @@ func (c *ProjectsInspectTemplatesPatchCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.inspectTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18566,8 +21635,7 @@ func (c *ProjectsJobTriggersActivateCall) Header() http.Header {
 
 func (c *ProjectsJobTriggersActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2activatejobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2activatejobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18583,6 +21651,7 @@ func (c *ProjectsJobTriggersActivateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18618,9 +21687,11 @@ func (c *ProjectsJobTriggersActivateCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18642,8 +21713,8 @@ type ProjectsJobTriggersCreateCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -18680,8 +21751,7 @@ func (c *ProjectsJobTriggersCreateCall) Header() http.Header {
 
 func (c *ProjectsJobTriggersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createjobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createjobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18697,6 +21767,7 @@ func (c *ProjectsJobTriggersCreateCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18732,9 +21803,11 @@ func (c *ProjectsJobTriggersCreateCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18783,12 +21856,11 @@ func (c *ProjectsJobTriggersDeleteCall) Header() http.Header {
 
 func (c *ProjectsJobTriggersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18796,6 +21868,7 @@ func (c *ProjectsJobTriggersDeleteCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18831,9 +21904,11 @@ func (c *ProjectsJobTriggersDeleteCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18894,12 +21969,11 @@ func (c *ProjectsJobTriggersGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18907,6 +21981,7 @@ func (c *ProjectsJobTriggersGetCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18942,9 +22017,11 @@ func (c *ProjectsJobTriggersGetCall) Do(opts ...googleapi.CallOption) (*GooglePr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18965,8 +22042,8 @@ type ProjectsJobTriggersListCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -19004,7 +22081,7 @@ func (c *ProjectsJobTriggersListCall) LocationId(locationId string) *ProjectsJob
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // triggeredJob fields to order by, followed by `asc` or `desc` postfix. This
 // list is case insensitive. The default sorting order is ascending. Redundant
 // space characters are insignificant. Example: `name asc,update_time,
@@ -19083,12 +22160,11 @@ func (c *ProjectsJobTriggersListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/jobTriggers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19096,6 +22172,7 @@ func (c *ProjectsJobTriggersListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19131,9 +22208,11 @@ func (c *ProjectsJobTriggersListCall) Do(opts ...googleapi.CallOption) (*GoogleP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19205,8 +22284,7 @@ func (c *ProjectsJobTriggersPatchCall) Header() http.Header {
 
 func (c *ProjectsJobTriggersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatejobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatejobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -19222,6 +22300,7 @@ func (c *ProjectsJobTriggersPatchCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19257,9 +22336,11 @@ func (c *ProjectsJobTriggersPatchCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.jobTriggers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19318,12 +22399,11 @@ func (c *ProjectsLocationsColumnDataProfilesGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19331,6 +22411,7 @@ func (c *ProjectsLocationsColumnDataProfilesGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.columnDataProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19366,9 +22447,11 @@ func (c *ProjectsLocationsColumnDataProfilesGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.columnDataProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19415,7 +22498,7 @@ func (c *ProjectsLocationsColumnDataProfilesListCall) Filter(filter string) *Pro
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Only one order field at a time is allowed.
@@ -19482,12 +22565,11 @@ func (c *ProjectsLocationsColumnDataProfilesListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/columnDataProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19495,6 +22577,7 @@ func (c *ProjectsLocationsColumnDataProfilesListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.columnDataProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19530,9 +22613,11 @@ func (c *ProjectsLocationsColumnDataProfilesListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.columnDataProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19568,8 +22653,10 @@ type ProjectsLocationsConnectionsCreateCall struct {
 
 // Create: Create a Connection to an external data source.
 //
-//   - parent: Parent resource name in the format:
-//     `projects/{project}/locations/{location}`.
+//   - parent: Parent resource name. The format of this value varies depending on
+//     the scope of the request (project or organization): + Projects scope:
+//     `projects/{project_id}/locations/{location_id}` + Organizations scope:
+//     `organizations/{org_id}/locations/{location_id}`.
 func (r *ProjectsLocationsConnectionsService) Create(parent string, googleprivacydlpv2createconnectionrequest *GooglePrivacyDlpV2CreateConnectionRequest) *ProjectsLocationsConnectionsCreateCall {
 	c := &ProjectsLocationsConnectionsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -19602,8 +22689,7 @@ func (c *ProjectsLocationsConnectionsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createconnectionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createconnectionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -19619,6 +22705,7 @@ func (c *ProjectsLocationsConnectionsCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19654,9 +22741,11 @@ func (c *ProjectsLocationsConnectionsCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19703,12 +22792,11 @@ func (c *ProjectsLocationsConnectionsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19716,6 +22804,7 @@ func (c *ProjectsLocationsConnectionsDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19751,9 +22840,11 @@ func (c *ProjectsLocationsConnectionsDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19812,12 +22903,11 @@ func (c *ProjectsLocationsConnectionsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19825,6 +22915,7 @@ func (c *ProjectsLocationsConnectionsGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19860,9 +22951,11 @@ func (c *ProjectsLocationsConnectionsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19875,9 +22968,12 @@ type ProjectsLocationsConnectionsListCall struct {
 	header_      http.Header
 }
 
-// List: Lists Connections in a parent.
+// List: Lists Connections in a parent. Use SearchConnections to see all
+// connections within an organization.
 //
-// - parent: Parent name, for example: `projects/project-id/locations/global`.
+//   - parent: Resource name of the organization or project, for example,
+//     `organizations/433245324/locations/europe` or
+//     `projects/project-id/locations/asia`.
 func (r *ProjectsLocationsConnectionsService) List(parent string) *ProjectsLocationsConnectionsListCall {
 	c := &ProjectsLocationsConnectionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -19942,12 +23038,11 @@ func (c *ProjectsLocationsConnectionsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/connections")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19955,6 +23050,7 @@ func (c *ProjectsLocationsConnectionsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19990,9 +23086,11 @@ func (c *ProjectsLocationsConnectionsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20062,8 +23160,7 @@ func (c *ProjectsLocationsConnectionsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updateconnectionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updateconnectionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20079,6 +23176,7 @@ func (c *ProjectsLocationsConnectionsPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20114,9 +23212,11 @@ func (c *ProjectsLocationsConnectionsPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20131,8 +23231,9 @@ type ProjectsLocationsConnectionsSearchCall struct {
 
 // Search: Searches for Connections in a parent.
 //
-//   - parent: Parent name, typically an organization, without location. For
-//     example: `organizations/12345678`.
+//   - parent: Resource name of the organization or project with a wildcard
+//     location, for example, `organizations/433245324/locations/-` or
+//     `projects/project-id/locations/-`.
 func (r *ProjectsLocationsConnectionsService) Search(parent string) *ProjectsLocationsConnectionsSearchCall {
 	c := &ProjectsLocationsConnectionsSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -20197,12 +23298,11 @@ func (c *ProjectsLocationsConnectionsSearchCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/connections:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20210,6 +23310,7 @@ func (c *ProjectsLocationsConnectionsSearchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20245,9 +23346,11 @@ func (c *ProjectsLocationsConnectionsSearchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.connections.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20293,8 +23396,8 @@ type ProjectsLocationsContentDeidentifyCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -20331,8 +23434,7 @@ func (c *ProjectsLocationsContentDeidentifyCall) Header() http.Header {
 
 func (c *ProjectsLocationsContentDeidentifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2deidentifycontentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2deidentifycontentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20348,6 +23450,7 @@ func (c *ProjectsLocationsContentDeidentifyCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.content.deidentify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20383,9 +23486,11 @@ func (c *ProjectsLocationsContentDeidentifyCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.content.deidentify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20410,8 +23515,8 @@ type ProjectsLocationsContentInspectCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -20448,8 +23553,7 @@ func (c *ProjectsLocationsContentInspectCall) Header() http.Header {
 
 func (c *ProjectsLocationsContentInspectCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2inspectcontentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2inspectcontentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20465,6 +23569,7 @@ func (c *ProjectsLocationsContentInspectCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.content.inspect", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20500,9 +23605,11 @@ func (c *ProjectsLocationsContentInspectCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.content.inspect", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20523,8 +23630,8 @@ type ProjectsLocationsContentReidentifyCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -20561,8 +23668,7 @@ func (c *ProjectsLocationsContentReidentifyCall) Header() http.Header {
 
 func (c *ProjectsLocationsContentReidentifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2reidentifycontentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2reidentifycontentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20578,6 +23684,7 @@ func (c *ProjectsLocationsContentReidentifyCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.content.reidentify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20613,9 +23720,11 @@ func (c *ProjectsLocationsContentReidentifyCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.content.reidentify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20638,11 +23747,11 @@ type ProjectsLocationsDeidentifyTemplatesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -20679,8 +23788,7 @@ func (c *ProjectsLocationsDeidentifyTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDeidentifyTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createdeidentifytemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createdeidentifytemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20696,6 +23804,7 @@ func (c *ProjectsLocationsDeidentifyTemplatesCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20731,9 +23840,11 @@ func (c *ProjectsLocationsDeidentifyTemplatesCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20784,12 +23895,11 @@ func (c *ProjectsLocationsDeidentifyTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDeidentifyTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20797,6 +23907,7 @@ func (c *ProjectsLocationsDeidentifyTemplatesDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20832,9 +23943,11 @@ func (c *ProjectsLocationsDeidentifyTemplatesDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20896,12 +24009,11 @@ func (c *ProjectsLocationsDeidentifyTemplatesGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20909,6 +24021,7 @@ func (c *ProjectsLocationsDeidentifyTemplatesGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20944,9 +24057,11 @@ func (c *ProjectsLocationsDeidentifyTemplatesGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20968,11 +24083,11 @@ type ProjectsLocationsDeidentifyTemplatesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -20990,7 +24105,7 @@ func (c *ProjectsLocationsDeidentifyTemplatesListCall) LocationId(locationId str
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -21054,12 +24169,11 @@ func (c *ProjectsLocationsDeidentifyTemplatesListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/deidentifyTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21067,6 +24181,7 @@ func (c *ProjectsLocationsDeidentifyTemplatesListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21102,9 +24217,11 @@ func (c *ProjectsLocationsDeidentifyTemplatesListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21177,8 +24294,7 @@ func (c *ProjectsLocationsDeidentifyTemplatesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDeidentifyTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatedeidentifytemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatedeidentifytemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21194,6 +24310,7 @@ func (c *ProjectsLocationsDeidentifyTemplatesPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21229,9 +24346,11 @@ func (c *ProjectsLocationsDeidentifyTemplatesPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.deidentifyTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21246,8 +24365,10 @@ type ProjectsLocationsDiscoveryConfigsCreateCall struct {
 
 // Create: Creates a config for discovery to scan and profile storage.
 //
-//   - parent: Parent resource name. The format of this value is as follows:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID The following example
+//   - parent: Parent resource name. The format of this value varies depending on
+//     the scope of the request (project or organization): + Projects scope:
+//     `projects/{project_id}/locations/{location_id}` + Organizations scope:
+//     `organizations/{org_id}/locations/{location_id}` The following example
 //     `parent` string specifies a parent project with the identifier
 //     `example-project`, and specifies the `europe-west3` location for
 //     processing data: parent=projects/example-project/locations/europe-west3.
@@ -21283,8 +24404,7 @@ func (c *ProjectsLocationsDiscoveryConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDiscoveryConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2creatediscoveryconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2creatediscoveryconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21300,6 +24420,7 @@ func (c *ProjectsLocationsDiscoveryConfigsCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21335,9 +24456,11 @@ func (c *ProjectsLocationsDiscoveryConfigsCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21384,12 +24507,11 @@ func (c *ProjectsLocationsDiscoveryConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDiscoveryConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21397,6 +24519,7 @@ func (c *ProjectsLocationsDiscoveryConfigsDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21432,9 +24555,11 @@ func (c *ProjectsLocationsDiscoveryConfigsDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21493,12 +24618,11 @@ func (c *ProjectsLocationsDiscoveryConfigsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21506,6 +24630,7 @@ func (c *ProjectsLocationsDiscoveryConfigsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21541,9 +24666,11 @@ func (c *ProjectsLocationsDiscoveryConfigsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21559,7 +24686,7 @@ type ProjectsLocationsDiscoveryConfigsListCall struct {
 // List: Lists discovery configurations.
 //
 //   - parent: Parent resource name. The format of this value is as follows:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID The following example
+//     `projects/{project_id}/locations/{location_id}` The following example
 //     `parent` string specifies a parent project with the identifier
 //     `example-project`, and specifies the `europe-west3` location for
 //     processing data: parent=projects/example-project/locations/europe-west3.
@@ -21569,7 +24696,7 @@ func (r *ProjectsLocationsDiscoveryConfigsService) List(parentid string) *Projec
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // config fields to order by, followed by `asc` or `desc` postfix. This list is
 // case insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -21632,12 +24759,11 @@ func (c *ProjectsLocationsDiscoveryConfigsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/discoveryConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21645,6 +24771,7 @@ func (c *ProjectsLocationsDiscoveryConfigsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21680,9 +24807,11 @@ func (c *ProjectsLocationsDiscoveryConfigsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21752,8 +24881,7 @@ func (c *ProjectsLocationsDiscoveryConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDiscoveryConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatediscoveryconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatediscoveryconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21769,6 +24897,7 @@ func (c *ProjectsLocationsDiscoveryConfigsPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21804,9 +24933,11 @@ func (c *ProjectsLocationsDiscoveryConfigsPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.discoveryConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21860,8 +24991,7 @@ func (c *ProjectsLocationsDlpJobsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsDlpJobsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2canceldlpjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2canceldlpjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21877,6 +25007,7 @@ func (c *ProjectsLocationsDlpJobsCancelCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21912,9 +25043,11 @@ func (c *ProjectsLocationsDlpJobsCancelCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21939,8 +25072,8 @@ type ProjectsLocationsDlpJobsCreateCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -21977,8 +25110,7 @@ func (c *ProjectsLocationsDlpJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDlpJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createdlpjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createdlpjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21994,6 +25126,7 @@ func (c *ProjectsLocationsDlpJobsCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22029,9 +25162,11 @@ func (c *ProjectsLocationsDlpJobsCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22083,12 +25218,11 @@ func (c *ProjectsLocationsDlpJobsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDlpJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22096,6 +25230,7 @@ func (c *ProjectsLocationsDlpJobsDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22131,9 +25266,11 @@ func (c *ProjectsLocationsDlpJobsDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22182,8 +25319,7 @@ func (c *ProjectsLocationsDlpJobsFinishCall) Header() http.Header {
 
 func (c *ProjectsLocationsDlpJobsFinishCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2finishdlpjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2finishdlpjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -22199,6 +25335,7 @@ func (c *ProjectsLocationsDlpJobsFinishCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.finish", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22234,9 +25371,11 @@ func (c *ProjectsLocationsDlpJobsFinishCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.finish", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22298,12 +25437,11 @@ func (c *ProjectsLocationsDlpJobsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22311,6 +25449,7 @@ func (c *ProjectsLocationsDlpJobsGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22346,9 +25485,11 @@ func (c *ProjectsLocationsDlpJobsGetCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22398,8 +25539,7 @@ func (c *ProjectsLocationsDlpJobsHybridInspectCall) Header() http.Header {
 
 func (c *ProjectsLocationsDlpJobsHybridInspectCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2hybridinspectdlpjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2hybridinspectdlpjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -22415,6 +25555,7 @@ func (c *ProjectsLocationsDlpJobsHybridInspectCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.hybridInspect", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22450,9 +25591,11 @@ func (c *ProjectsLocationsDlpJobsHybridInspectCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.hybridInspect", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22475,8 +25618,8 @@ type ProjectsLocationsDlpJobsListCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -22516,7 +25659,7 @@ func (c *ProjectsLocationsDlpJobsListCall) LocationId(locationId string) *Projec
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc, end_time asc, create_time
@@ -22591,12 +25734,11 @@ func (c *ProjectsLocationsDlpJobsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/dlpJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22604,6 +25746,7 @@ func (c *ProjectsLocationsDlpJobsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22639,9 +25782,11 @@ func (c *ProjectsLocationsDlpJobsListCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.dlpJobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22649,6 +25794,406 @@ func (c *ProjectsLocationsDlpJobsListCall) Do(opts ...googleapi.CallOption) (*Go
 // A non-nil error returned from f will halt the iteration.
 // The provided context supersedes any context provided to the Context method.
 func (c *ProjectsLocationsDlpJobsListCall) Pages(ctx context.Context, f func(*GooglePrivacyDlpV2ListDlpJobsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsFileStoreDataProfilesDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Delete a FileStoreDataProfile. Will not prevent the profile from
+// being regenerated if the resource is still included in a discovery
+// configuration.
+//
+// - name: Resource name of the file store data profile.
+func (r *ProjectsLocationsFileStoreDataProfilesService) Delete(name string) *ProjectsLocationsFileStoreDataProfilesDeleteCall {
+	c := &ProjectsLocationsFileStoreDataProfilesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsFileStoreDataProfilesDeleteCall) Fields(s ...googleapi.Field) *ProjectsLocationsFileStoreDataProfilesDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsFileStoreDataProfilesDeleteCall) Context(ctx context.Context) *ProjectsLocationsFileStoreDataProfilesDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsFileStoreDataProfilesDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsFileStoreDataProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.fileStoreDataProfiles.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.projects.locations.fileStoreDataProfiles.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleProtobufEmpty.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsFileStoreDataProfilesDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProtobufEmpty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleProtobufEmpty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.fileStoreDataProfiles.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsFileStoreDataProfilesGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets a file store data profile.
+//
+//   - name: Resource name, for example
+//     `organizations/12345/locations/us/fileStoreDataProfiles/53234423`.
+func (r *ProjectsLocationsFileStoreDataProfilesService) Get(name string) *ProjectsLocationsFileStoreDataProfilesGetCall {
+	c := &ProjectsLocationsFileStoreDataProfilesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsFileStoreDataProfilesGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsFileStoreDataProfilesGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsFileStoreDataProfilesGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsFileStoreDataProfilesGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsFileStoreDataProfilesGetCall) Context(ctx context.Context) *ProjectsLocationsFileStoreDataProfilesGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsFileStoreDataProfilesGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsFileStoreDataProfilesGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.fileStoreDataProfiles.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.projects.locations.fileStoreDataProfiles.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2FileStoreDataProfile.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsFileStoreDataProfilesGetCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2FileStoreDataProfile, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2FileStoreDataProfile{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.fileStoreDataProfiles.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsFileStoreDataProfilesListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists file store data profiles for an organization.
+//
+//   - parent: Resource name of the organization or project, for example
+//     `organizations/433245324/locations/europe` or
+//     `projects/project-id/locations/asia`.
+func (r *ProjectsLocationsFileStoreDataProfilesService) List(parent string) *ProjectsLocationsFileStoreDataProfilesListCall {
+	c := &ProjectsLocationsFileStoreDataProfilesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": Allows filtering. Supported
+// syntax: * Filter expressions are made up of one or more restrictions. *
+// Restrictions can be combined by `AND` or `OR` logical operators. A sequence
+// of restrictions implicitly uses `AND`. * A restriction has the form of
+// `{field} {operator} {value}`. * Supported fields/values: - `project_id` -
+// The Google Cloud project ID. - `account_id` - The AWS account ID. -
+// `file_store_path` - The path like "gs://bucket". - `data_source_type` - The
+// profile's data source type, like "google/storage/bucket". -
+// `data_storage_location` - The location where the file store's data is
+// stored, like "us-central1". - `sensitivity_level` - HIGH|MODERATE|LOW -
+// `data_risk_level` - HIGH|MODERATE|LOW - `resource_visibility`:
+// PUBLIC|RESTRICTED - `status_code` - an RPC status code as defined in
+// https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto *
+// The operator must be `=` or `!=`. Examples: * `project_id = 12345 AND
+// status_code = 1` * `project_id = 12345 AND sensitivity_level = HIGH` *
+// `project_id = 12345 AND resource_visibility = PUBLIC` * `file_store_path =
+// "gs://mybucket" The length of this field should be no more than 500
+// characters.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) Filter(filter string) *ProjectsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
+// fields to order by, followed by `asc` or `desc` postfix. This list is case
+// insensitive. The default sorting order is ascending. Redundant space
+// characters are insignificant. Only one order field at a time is allowed.
+// Examples: * `project_id asc` * `name` * `sensitivity_level desc` Supported
+// fields are: - `project_id`: The Google Cloud project ID. -
+// `sensitivity_level`: How sensitive the data in a table is, at most. -
+// `data_risk_level`: How much risk is associated with this data. -
+// `profile_last_generated`: When the profile was last updated in epoch
+// seconds. - `last_modified`: The last time the resource was modified. -
+// `resource_visibility`: Visibility restriction for this resource. - `name`:
+// The name of the profile. - `create_time`: The time the file store was first
+// created.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) OrderBy(orderBy string) *ProjectsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("orderBy", orderBy)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Size of the page. This
+// value can be limited by the server. If zero, server returns a page of max
+// size 100.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) PageSize(pageSize int64) *ProjectsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": Page token to continue
+// retrieval.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) PageToken(pageToken string) *ProjectsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) Fields(s ...googleapi.Field) *ProjectsLocationsFileStoreDataProfilesListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) IfNoneMatch(entityTag string) *ProjectsLocationsFileStoreDataProfilesListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) Context(ctx context.Context) *ProjectsLocationsFileStoreDataProfilesListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/fileStoreDataProfiles")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.fileStoreDataProfiles.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.projects.locations.fileStoreDataProfiles.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2ListFileStoreDataProfilesResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2ListFileStoreDataProfilesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2ListFileStoreDataProfilesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.fileStoreDataProfiles.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsFileStoreDataProfilesListCall) Pages(ctx context.Context, f func(*GooglePrivacyDlpV2ListFileStoreDataProfilesResponse) error) error {
 	c.ctx_ = ctx
 	defer c.PageToken(c.urlParams_.Get("pageToken"))
 	for {
@@ -22681,14 +26226,15 @@ type ProjectsLocationsImageRedactCall struct {
 // to learn more. When no InfoTypes or CustomInfoTypes are specified in this
 // request, the system will automatically choose what detectors to run. By
 // default this may be all types, but may change over time as detectors are
-// updated.
+// updated. Only the first frame of each multiframe image is redacted. Metadata
+// and other frames are omitted in the response.
 //
 //   - parent: Parent resource name. The format of this value varies depending on
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -22725,8 +26271,7 @@ func (c *ProjectsLocationsImageRedactCall) Header() http.Header {
 
 func (c *ProjectsLocationsImageRedactCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2redactimagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2redactimagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -22742,6 +26287,7 @@ func (c *ProjectsLocationsImageRedactCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.image.redact", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22777,9 +26323,147 @@ func (c *ProjectsLocationsImageRedactCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.image.redact", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsInfoTypesListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns a list of the sensitive information types that the DLP API
+// supports. See
+// https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference
+// to learn more.
+//
+//   - parent: The parent resource name. The format of this value is as follows:
+//     `locations/{location_id}`.
+func (r *ProjectsLocationsInfoTypesService) List(parent string) *ProjectsLocationsInfoTypesListCall {
+	c := &ProjectsLocationsInfoTypesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": filter to only return infoTypes
+// supported by certain parts of the API. Defaults to supported_by=INSPECT.
+func (c *ProjectsLocationsInfoTypesListCall) Filter(filter string) *ProjectsLocationsInfoTypesListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// LanguageCode sets the optional parameter "languageCode": BCP-47 language
+// code for localized infoType friendly names. If omitted, or if localized
+// strings are not available, en-US strings will be returned.
+func (c *ProjectsLocationsInfoTypesListCall) LanguageCode(languageCode string) *ProjectsLocationsInfoTypesListCall {
+	c.urlParams_.Set("languageCode", languageCode)
+	return c
+}
+
+// LocationId sets the optional parameter "locationId": Deprecated. This field
+// has no effect.
+func (c *ProjectsLocationsInfoTypesListCall) LocationId(locationId string) *ProjectsLocationsInfoTypesListCall {
+	c.urlParams_.Set("locationId", locationId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsInfoTypesListCall) Fields(s ...googleapi.Field) *ProjectsLocationsInfoTypesListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsInfoTypesListCall) IfNoneMatch(entityTag string) *ProjectsLocationsInfoTypesListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsInfoTypesListCall) Context(ctx context.Context) *ProjectsLocationsInfoTypesListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsInfoTypesListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsInfoTypesListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/infoTypes")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.infoTypes.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dlp.projects.locations.infoTypes.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePrivacyDlpV2ListInfoTypesResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsInfoTypesListCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV2ListInfoTypesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePrivacyDlpV2ListInfoTypesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.infoTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22802,11 +26486,11 @@ type ProjectsLocationsInspectTemplatesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -22843,8 +26527,7 @@ func (c *ProjectsLocationsInspectTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsInspectTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createinspecttemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createinspecttemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -22860,6 +26543,7 @@ func (c *ProjectsLocationsInspectTemplatesCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22895,9 +26579,11 @@ func (c *ProjectsLocationsInspectTemplatesCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22947,12 +26633,11 @@ func (c *ProjectsLocationsInspectTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsInspectTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22960,6 +26645,7 @@ func (c *ProjectsLocationsInspectTemplatesDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22995,9 +26681,11 @@ func (c *ProjectsLocationsInspectTemplatesDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23059,12 +26747,11 @@ func (c *ProjectsLocationsInspectTemplatesGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23072,6 +26759,7 @@ func (c *ProjectsLocationsInspectTemplatesGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23107,9 +26795,11 @@ func (c *ProjectsLocationsInspectTemplatesGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23131,11 +26821,11 @@ type ProjectsLocationsInspectTemplatesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -23153,7 +26843,7 @@ func (c *ProjectsLocationsInspectTemplatesListCall) LocationId(locationId string
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc,update_time, create_time
@@ -23217,12 +26907,11 @@ func (c *ProjectsLocationsInspectTemplatesListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/inspectTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23230,6 +26919,7 @@ func (c *ProjectsLocationsInspectTemplatesListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23265,9 +26955,11 @@ func (c *ProjectsLocationsInspectTemplatesListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23340,8 +27032,7 @@ func (c *ProjectsLocationsInspectTemplatesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsInspectTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updateinspecttemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updateinspecttemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -23357,6 +27048,7 @@ func (c *ProjectsLocationsInspectTemplatesPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23392,9 +27084,11 @@ func (c *ProjectsLocationsInspectTemplatesPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.inspectTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23444,8 +27138,7 @@ func (c *ProjectsLocationsJobTriggersActivateCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobTriggersActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2activatejobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2activatejobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -23461,6 +27154,7 @@ func (c *ProjectsLocationsJobTriggersActivateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23496,9 +27190,11 @@ func (c *ProjectsLocationsJobTriggersActivateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23520,8 +27216,8 @@ type ProjectsLocationsJobTriggersCreateCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -23558,8 +27254,7 @@ func (c *ProjectsLocationsJobTriggersCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobTriggersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createjobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createjobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -23575,6 +27270,7 @@ func (c *ProjectsLocationsJobTriggersCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23610,9 +27306,11 @@ func (c *ProjectsLocationsJobTriggersCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23661,12 +27359,11 @@ func (c *ProjectsLocationsJobTriggersDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobTriggersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23674,6 +27371,7 @@ func (c *ProjectsLocationsJobTriggersDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23709,9 +27407,11 @@ func (c *ProjectsLocationsJobTriggersDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23772,12 +27472,11 @@ func (c *ProjectsLocationsJobTriggersGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23785,6 +27484,7 @@ func (c *ProjectsLocationsJobTriggersGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23820,9 +27520,11 @@ func (c *ProjectsLocationsJobTriggersGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23873,8 +27575,7 @@ func (c *ProjectsLocationsJobTriggersHybridInspectCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobTriggersHybridInspectCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2hybridinspectjobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2hybridinspectjobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -23890,6 +27591,7 @@ func (c *ProjectsLocationsJobTriggersHybridInspectCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.hybridInspect", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23925,9 +27627,11 @@ func (c *ProjectsLocationsJobTriggersHybridInspectCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.hybridInspect", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23948,8 +27652,8 @@ type ProjectsLocationsJobTriggersListCall struct {
 //     whether you have specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -23987,7 +27691,7 @@ func (c *ProjectsLocationsJobTriggersListCall) LocationId(locationId string) *Pr
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // triggeredJob fields to order by, followed by `asc` or `desc` postfix. This
 // list is case insensitive. The default sorting order is ascending. Redundant
 // space characters are insignificant. Example: `name asc,update_time,
@@ -24066,12 +27770,11 @@ func (c *ProjectsLocationsJobTriggersListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/jobTriggers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24079,6 +27782,7 @@ func (c *ProjectsLocationsJobTriggersListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24114,9 +27818,11 @@ func (c *ProjectsLocationsJobTriggersListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24188,8 +27894,7 @@ func (c *ProjectsLocationsJobTriggersPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobTriggersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatejobtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatejobtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -24205,6 +27910,7 @@ func (c *ProjectsLocationsJobTriggersPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24240,9 +27946,11 @@ func (c *ProjectsLocationsJobTriggersPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.jobTriggers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24301,12 +28009,11 @@ func (c *ProjectsLocationsProjectDataProfilesGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24314,6 +28021,7 @@ func (c *ProjectsLocationsProjectDataProfilesGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.projectDataProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24349,9 +28057,11 @@ func (c *ProjectsLocationsProjectDataProfilesGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.projectDataProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24389,7 +28099,7 @@ func (c *ProjectsLocationsProjectDataProfilesListCall) Filter(filter string) *Pr
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Only one order field at a time is allowed.
@@ -24454,12 +28164,11 @@ func (c *ProjectsLocationsProjectDataProfilesListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/projectDataProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24467,6 +28176,7 @@ func (c *ProjectsLocationsProjectDataProfilesListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.projectDataProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24502,9 +28212,11 @@ func (c *ProjectsLocationsProjectDataProfilesListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.projectDataProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24547,11 +28259,11 @@ type ProjectsLocationsStoredInfoTypesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -24588,8 +28300,7 @@ func (c *ProjectsLocationsStoredInfoTypesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsStoredInfoTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createstoredinfotyperequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createstoredinfotyperequest)
 	if err != nil {
 		return nil, err
 	}
@@ -24605,6 +28316,7 @@ func (c *ProjectsLocationsStoredInfoTypesCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24640,9 +28352,11 @@ func (c *ProjectsLocationsStoredInfoTypesCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24692,12 +28406,11 @@ func (c *ProjectsLocationsStoredInfoTypesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsStoredInfoTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24705,6 +28418,7 @@ func (c *ProjectsLocationsStoredInfoTypesDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24740,9 +28454,11 @@ func (c *ProjectsLocationsStoredInfoTypesDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24804,12 +28520,11 @@ func (c *ProjectsLocationsStoredInfoTypesGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24817,6 +28532,7 @@ func (c *ProjectsLocationsStoredInfoTypesGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24852,9 +28568,11 @@ func (c *ProjectsLocationsStoredInfoTypesGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24876,8 +28594,8 @@ type ProjectsLocationsStoredInfoTypesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -24895,7 +28613,7 @@ func (c *ProjectsLocationsStoredInfoTypesListCall) LocationId(locationId string)
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc, display_name, create_time
@@ -24959,12 +28677,11 @@ func (c *ProjectsLocationsStoredInfoTypesListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/storedInfoTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24972,6 +28689,7 @@ func (c *ProjectsLocationsStoredInfoTypesListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25007,9 +28725,11 @@ func (c *ProjectsLocationsStoredInfoTypesListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25083,8 +28803,7 @@ func (c *ProjectsLocationsStoredInfoTypesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsStoredInfoTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatestoredinfotyperequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatestoredinfotyperequest)
 	if err != nil {
 		return nil, err
 	}
@@ -25100,6 +28819,7 @@ func (c *ProjectsLocationsStoredInfoTypesPatchCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25135,9 +28855,11 @@ func (c *ProjectsLocationsStoredInfoTypesPatchCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.storedInfoTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25184,12 +28906,11 @@ func (c *ProjectsLocationsTableDataProfilesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsTableDataProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25197,6 +28918,7 @@ func (c *ProjectsLocationsTableDataProfilesDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.tableDataProfiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25232,9 +28954,11 @@ func (c *ProjectsLocationsTableDataProfilesDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.tableDataProfiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25293,12 +29017,11 @@ func (c *ProjectsLocationsTableDataProfilesGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25306,6 +29029,7 @@ func (c *ProjectsLocationsTableDataProfilesGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.tableDataProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25341,9 +29065,11 @@ func (c *ProjectsLocationsTableDataProfilesGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.tableDataProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25387,7 +29113,7 @@ func (c *ProjectsLocationsTableDataProfilesListCall) Filter(filter string) *Proj
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Only one order field at a time is allowed.
@@ -25456,12 +29182,11 @@ func (c *ProjectsLocationsTableDataProfilesListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/tableDataProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25469,6 +29194,7 @@ func (c *ProjectsLocationsTableDataProfilesListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.locations.tableDataProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25504,9 +29230,11 @@ func (c *ProjectsLocationsTableDataProfilesListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.locations.tableDataProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25549,11 +29277,11 @@ type ProjectsStoredInfoTypesCreateCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID +
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` +
 //     Organizations scope, location specified:
-//     `organizations/`ORG_ID`/locations/`LOCATION_ID + Organizations scope, no
-//     location specified (defaults to global): `organizations/`ORG_ID The
+//     `organizations/{org_id}/locations/{location_id}` + Organizations scope, no
+//     location specified (defaults to global): `organizations/{org_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -25590,8 +29318,7 @@ func (c *ProjectsStoredInfoTypesCreateCall) Header() http.Header {
 
 func (c *ProjectsStoredInfoTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2createstoredinfotyperequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2createstoredinfotyperequest)
 	if err != nil {
 		return nil, err
 	}
@@ -25607,6 +29334,7 @@ func (c *ProjectsStoredInfoTypesCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25642,9 +29370,11 @@ func (c *ProjectsStoredInfoTypesCreateCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25694,12 +29424,11 @@ func (c *ProjectsStoredInfoTypesDeleteCall) Header() http.Header {
 
 func (c *ProjectsStoredInfoTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25707,6 +29436,7 @@ func (c *ProjectsStoredInfoTypesDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25742,9 +29472,11 @@ func (c *ProjectsStoredInfoTypesDeleteCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25806,12 +29538,11 @@ func (c *ProjectsStoredInfoTypesGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25819,6 +29550,7 @@ func (c *ProjectsStoredInfoTypesGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25854,9 +29586,11 @@ func (c *ProjectsStoredInfoTypesGetCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25878,8 +29612,8 @@ type ProjectsStoredInfoTypesListCall struct {
 //     specified a processing location
 //     (https://cloud.google.com/sensitive-data-protection/docs/specifying-location):
 //   - Projects scope, location specified:
-//     `projects/`PROJECT_ID`/locations/`LOCATION_ID + Projects scope, no
-//     location specified (defaults to global): `projects/`PROJECT_ID The
+//     `projects/{project_id}/locations/{location_id}` + Projects scope, no
+//     location specified (defaults to global): `projects/{project_id}` The
 //     following example `parent` string specifies a parent project with the
 //     identifier `example-project`, and specifies the `europe-west3` location
 //     for processing data:
@@ -25897,7 +29631,7 @@ func (c *ProjectsStoredInfoTypesListCall) LocationId(locationId string) *Project
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Comma separated list of
+// OrderBy sets the optional parameter "orderBy": Comma-separated list of
 // fields to order by, followed by `asc` or `desc` postfix. This list is case
 // insensitive. The default sorting order is ascending. Redundant space
 // characters are insignificant. Example: `name asc, display_name, create_time
@@ -25961,12 +29695,11 @@ func (c *ProjectsStoredInfoTypesListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/storedInfoTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25974,6 +29707,7 @@ func (c *ProjectsStoredInfoTypesListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26009,9 +29743,11 @@ func (c *ProjectsStoredInfoTypesListCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26085,8 +29821,7 @@ func (c *ProjectsStoredInfoTypesPatchCall) Header() http.Header {
 
 func (c *ProjectsStoredInfoTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleprivacydlpv2updatestoredinfotyperequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleprivacydlpv2updatestoredinfotyperequest)
 	if err != nil {
 		return nil, err
 	}
@@ -26102,6 +29837,7 @@ func (c *ProjectsStoredInfoTypesPatchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26137,8 +29873,10 @@ func (c *ProjectsStoredInfoTypesPatchCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dlp.projects.storedInfoTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

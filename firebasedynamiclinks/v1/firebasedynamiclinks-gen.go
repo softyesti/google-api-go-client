@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "firebasedynamiclinks:v1"
 const apiName = "firebasedynamiclinks"
@@ -114,7 +117,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.ManagedShortLinks = NewManagedShortLinksService(s)
+	s.ShortLinks = NewShortLinksService(s)
+	s.V1 = NewV1Service(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,15 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.ManagedShortLinks = NewManagedShortLinksService(s)
-	s.ShortLinks = NewShortLinksService(s)
-	s.V1 = NewV1Service(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -205,9 +208,9 @@ type AnalyticsInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyticsInfo) MarshalJSON() ([]byte, error) {
+func (s AnalyticsInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyticsInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidInfo: Android related attributes to the Dynamic Link.
@@ -236,9 +239,9 @@ type AndroidInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidInfo) MarshalJSON() ([]byte, error) {
+func (s AndroidInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateManagedShortLinkRequest: Request to create a managed Short Dynamic
@@ -276,9 +279,9 @@ type CreateManagedShortLinkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateManagedShortLinkRequest) MarshalJSON() ([]byte, error) {
+func (s CreateManagedShortLinkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateManagedShortLinkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateManagedShortLinkResponse: Response to create a short Dynamic Link.
@@ -306,9 +309,9 @@ type CreateManagedShortLinkResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateManagedShortLinkResponse) MarshalJSON() ([]byte, error) {
+func (s CreateManagedShortLinkResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateManagedShortLinkResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateShortDynamicLinkRequest: Request to create a short Dynamic Link.
@@ -341,9 +344,9 @@ type CreateShortDynamicLinkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateShortDynamicLinkRequest) MarshalJSON() ([]byte, error) {
+func (s CreateShortDynamicLinkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateShortDynamicLinkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateShortDynamicLinkResponse: Response to create a short Dynamic Link.
@@ -370,9 +373,9 @@ type CreateShortDynamicLinkResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateShortDynamicLinkResponse) MarshalJSON() ([]byte, error) {
+func (s CreateShortDynamicLinkResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateShortDynamicLinkResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DesktopInfo: Desktop related attributes to the Dynamic Link.
@@ -392,9 +395,9 @@ type DesktopInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DesktopInfo) MarshalJSON() ([]byte, error) {
+func (s DesktopInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DesktopInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceInfo: Signals associated with the device making the request.
@@ -430,9 +433,9 @@ type DeviceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceInfo) MarshalJSON() ([]byte, error) {
+func (s DeviceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DynamicLinkEventStat: Dynamic Link event stat.
@@ -477,9 +480,9 @@ type DynamicLinkEventStat struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DynamicLinkEventStat) MarshalJSON() ([]byte, error) {
+func (s DynamicLinkEventStat) MarshalJSON() ([]byte, error) {
 	type NoMethod DynamicLinkEventStat
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DynamicLinkInfo: Information about a Dynamic Link.
@@ -535,15 +538,17 @@ type DynamicLinkInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DynamicLinkInfo) MarshalJSON() ([]byte, error) {
+func (s DynamicLinkInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DynamicLinkInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DynamicLinkStats: Analytics stats of a Dynamic Link for a given timeframe.
 type DynamicLinkStats struct {
 	// LinkEventStats: Dynamic Link event stats.
 	LinkEventStats []*DynamicLinkEventStat `json:"linkEventStats,omitempty"`
+	// Warnings: Optional warnings associated this API request.
+	Warnings []*DynamicLinkWarning `json:"warnings,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -560,9 +565,9 @@ type DynamicLinkStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DynamicLinkStats) MarshalJSON() ([]byte, error) {
+func (s DynamicLinkStats) MarshalJSON() ([]byte, error) {
 	type NoMethod DynamicLinkStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DynamicLinkWarning: Dynamic Links warning messages.
@@ -602,8 +607,8 @@ type DynamicLinkWarning struct {
 	//   "BAD_DEBUG_PARAM" - Debug param format is incorrect.
 	//   "BAD_AD_PARAM" - isAd param format is incorrect.
 	//   "DEPRECATED_PARAM" - Indicates a certain param is deprecated.
-	//   "UNRECOGNIZED_PARAM" - Indicates certain paramater is not recognized.
-	//   "TOO_LONG_PARAM" - Indicates certain paramater is too long.
+	//   "UNRECOGNIZED_PARAM" - Indicates certain parameter is not recognized.
+	//   "TOO_LONG_PARAM" - Indicates certain parameter is too long.
 	//   "NOT_URI_SOCIAL_IMAGE_LINK" - Social meta tag image link is not a valid
 	// URI.
 	//   "BAD_URI_SCHEME_SOCIAL_IMAGE_LINK" - Social meta tag image link has an
@@ -614,6 +619,7 @@ type DynamicLinkWarning struct {
 	//   "LINK_WITH_FRAGMENTS" - Dynamic Link URL contains fragments.
 	//   "NOT_MATCHING_IOS_BUNDLE_ID_AND_STORE_ID" - The iOS bundle ID does not
 	// match with the given iOS store ID.
+	//   "API_DEPRECATED" - The API is deprecated.
 	WarningCode string `json:"warningCode,omitempty"`
 	// WarningDocumentLink: The document describing the warning, and helps resolve.
 	WarningDocumentLink string `json:"warningDocumentLink,omitempty"`
@@ -633,9 +639,9 @@ type DynamicLinkWarning struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DynamicLinkWarning) MarshalJSON() ([]byte, error) {
+func (s DynamicLinkWarning) MarshalJSON() ([]byte, error) {
 	type NoMethod DynamicLinkWarning
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIosPostInstallAttributionRequest: Request for iSDK to execute strong
@@ -694,9 +700,9 @@ type GetIosPostInstallAttributionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIosPostInstallAttributionRequest) MarshalJSON() ([]byte, error) {
+func (s GetIosPostInstallAttributionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIosPostInstallAttributionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIosPostInstallAttributionResponse: Response for iSDK to execute strong
@@ -787,9 +793,9 @@ type GetIosPostInstallAttributionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIosPostInstallAttributionResponse) MarshalJSON() ([]byte, error) {
+func (s GetIosPostInstallAttributionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIosPostInstallAttributionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIosReopenAttributionRequest: Request for iSDK to get reopen attribution
@@ -818,9 +824,9 @@ type GetIosReopenAttributionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIosReopenAttributionRequest) MarshalJSON() ([]byte, error) {
+func (s GetIosReopenAttributionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIosReopenAttributionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIosReopenAttributionResponse: Response for iSDK to get reopen attribution
@@ -853,6 +859,8 @@ type GetIosReopenAttributionResponse struct {
 	UtmSource string `json:"utmSource,omitempty"`
 	// UtmTerm: Scion term value to be propagated by iSDK to Scion at app-reopen.
 	UtmTerm string `json:"utmTerm,omitempty"`
+	// Warning: Optional warnings associated this API request.
+	Warning []*DynamicLinkWarning `json:"warning,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -869,9 +877,9 @@ type GetIosReopenAttributionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIosReopenAttributionResponse) MarshalJSON() ([]byte, error) {
+func (s GetIosReopenAttributionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIosReopenAttributionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayAnalytics: Parameters for Google Play Campaign Measurements. Learn
@@ -908,9 +916,9 @@ type GooglePlayAnalytics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayAnalytics) MarshalJSON() ([]byte, error) {
+func (s GooglePlayAnalytics) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayAnalytics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ITunesConnectAnalytics: Parameters for iTunes Connect App Analytics.
@@ -938,9 +946,9 @@ type ITunesConnectAnalytics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ITunesConnectAnalytics) MarshalJSON() ([]byte, error) {
+func (s ITunesConnectAnalytics) MarshalJSON() ([]byte, error) {
 	type NoMethod ITunesConnectAnalytics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosInfo: iOS related attributes to the Dynamic Link..
@@ -975,9 +983,9 @@ type IosInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosInfo) MarshalJSON() ([]byte, error) {
+func (s IosInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod IosInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManagedShortLink: Managed Short Link.
@@ -989,8 +997,7 @@ type ManagedShortLink struct {
 	// Possible values:
 	//   "UNSPECIFIED_ATTRIBUTE" - Indicates that no attributes were found for this
 	// short url.
-	//   "SPAM" - Indicates that short url has been flagged by AbuseIAm team as
-	// spam.
+	//   "SPAM" - Indicates that short url has been flagged as spam.
 	FlaggedAttribute []string `json:"flaggedAttribute,omitempty"`
 	// Info: Full Dyamic Link info
 	Info *DynamicLinkInfo `json:"info,omitempty"`
@@ -1022,9 +1029,9 @@ type ManagedShortLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedShortLink) MarshalJSON() ([]byte, error) {
+func (s ManagedShortLink) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedShortLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NavigationInfo: Information of navigation behavior.
@@ -1045,9 +1052,9 @@ type NavigationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NavigationInfo) MarshalJSON() ([]byte, error) {
+func (s NavigationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod NavigationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SocialMetaTagInfo: Parameters for social meta tag params. Used to set meta
@@ -1072,9 +1079,9 @@ type SocialMetaTagInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SocialMetaTagInfo) MarshalJSON() ([]byte, error) {
+func (s SocialMetaTagInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SocialMetaTagInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Suffix: Short Dynamic Link suffix.
@@ -1111,9 +1118,9 @@ type Suffix struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Suffix) MarshalJSON() ([]byte, error) {
+func (s Suffix) MarshalJSON() ([]byte, error) {
 	type NoMethod Suffix
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ManagedShortLinksCreateCall struct {
@@ -1164,8 +1171,7 @@ func (c *ManagedShortLinksCreateCall) Header() http.Header {
 
 func (c *ManagedShortLinksCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createmanagedshortlinkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createmanagedshortlinkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1178,6 +1184,7 @@ func (c *ManagedShortLinksCreateCall) doRequest(alt string) (*http.Response, err
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebasedynamiclinks.managedShortLinks.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1213,9 +1220,11 @@ func (c *ManagedShortLinksCreateCall) Do(opts ...googleapi.CallOption) (*CreateM
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebasedynamiclinks.managedShortLinks.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1264,8 +1273,7 @@ func (c *ShortLinksCreateCall) Header() http.Header {
 
 func (c *ShortLinksCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createshortdynamiclinkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createshortdynamiclinkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1278,6 +1286,7 @@ func (c *ShortLinksCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebasedynamiclinks.shortLinks.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1313,9 +1322,11 @@ func (c *ShortLinksCreateCall) Do(opts ...googleapi.CallOption) (*CreateShortDyn
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebasedynamiclinks.shortLinks.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1389,12 +1400,11 @@ func (c *V1GetLinkStatsCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{dynamicLink}/linkStats")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1402,6 +1412,7 @@ func (c *V1GetLinkStatsCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"dynamicLink": c.dynamicLink,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebasedynamiclinks.getLinkStats", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1437,9 +1448,11 @@ func (c *V1GetLinkStatsCall) Do(opts ...googleapi.CallOption) (*DynamicLinkStats
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebasedynamiclinks.getLinkStats", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1484,8 +1497,7 @@ func (c *V1InstallAttributionCall) Header() http.Header {
 
 func (c *V1InstallAttributionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiospostinstallattributionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiospostinstallattributionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1498,6 +1510,7 @@ func (c *V1InstallAttributionCall) doRequest(alt string) (*http.Response, error)
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebasedynamiclinks.installAttribution", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1533,9 +1546,11 @@ func (c *V1InstallAttributionCall) Do(opts ...googleapi.CallOption) (*GetIosPost
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebasedynamiclinks.installAttribution", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1580,8 +1595,7 @@ func (c *V1ReopenAttributionCall) Header() http.Header {
 
 func (c *V1ReopenAttributionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiosreopenattributionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiosreopenattributionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1594,6 +1608,7 @@ func (c *V1ReopenAttributionCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebasedynamiclinks.reopenAttribution", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1629,8 +1644,10 @@ func (c *V1ReopenAttributionCall) Do(opts ...googleapi.CallOption) (*GetIosReope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebasedynamiclinks.reopenAttribution", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

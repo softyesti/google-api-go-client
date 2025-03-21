@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "playdeveloperreporting:v1alpha1"
 const apiName = "playdeveloperreporting"
@@ -114,7 +117,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Anomalies = NewAnomaliesService(s)
+	s.Apps = NewAppsService(s)
+	s.Vitals = NewVitalsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,15 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Anomalies = NewAnomaliesService(s)
-	s.Apps = NewAppsService(s)
-	s.Vitals = NewVitalsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -183,6 +186,7 @@ func NewVitalsService(s *Service) *VitalsService {
 	rs.Crashrate = NewVitalsCrashrateService(s)
 	rs.Errors = NewVitalsErrorsService(s)
 	rs.Excessivewakeuprate = NewVitalsExcessivewakeuprateService(s)
+	rs.Lmkrate = NewVitalsLmkrateService(s)
 	rs.Slowrenderingrate = NewVitalsSlowrenderingrateService(s)
 	rs.Slowstartrate = NewVitalsSlowstartrateService(s)
 	rs.Stuckbackgroundwakelockrate = NewVitalsStuckbackgroundwakelockrateService(s)
@@ -199,6 +203,8 @@ type VitalsService struct {
 	Errors *VitalsErrorsService
 
 	Excessivewakeuprate *VitalsExcessivewakeuprateService
+
+	Lmkrate *VitalsLmkrateService
 
 	Slowrenderingrate *VitalsSlowrenderingrateService
 
@@ -279,6 +285,15 @@ type VitalsExcessivewakeuprateService struct {
 	s *Service
 }
 
+func NewVitalsLmkrateService(s *Service) *VitalsLmkrateService {
+	rs := &VitalsLmkrateService{s: s}
+	return rs
+}
+
+type VitalsLmkrateService struct {
+	s *Service
+}
+
 func NewVitalsSlowrenderingrateService(s *Service) *VitalsSlowrenderingrateService {
 	rs := &VitalsSlowrenderingrateService{s: s}
 	return rs
@@ -345,9 +360,9 @@ type GooglePlayDeveloperReportingV1alpha1Anomaly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1Anomaly) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1Anomaly) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1Anomaly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1AnrRateMetricSet: Singleton resource
@@ -435,9 +450,9 @@ type GooglePlayDeveloperReportingV1alpha1AnrRateMetricSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1AnrRateMetricSet) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1AnrRateMetricSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1AnrRateMetricSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1App: A representation of an app in the
@@ -464,9 +479,9 @@ type GooglePlayDeveloperReportingV1alpha1App struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1App) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1App) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1App
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1AppVersion: Representations of an app
@@ -488,9 +503,9 @@ type GooglePlayDeveloperReportingV1alpha1AppVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1AppVersion) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1AppVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1AppVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1CrashRateMetricSet: Singleton resource
@@ -581,9 +596,9 @@ type GooglePlayDeveloperReportingV1alpha1CrashRateMetricSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1CrashRateMetricSet) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1CrashRateMetricSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1CrashRateMetricSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1DecimalConfidenceInterval: Represents
@@ -606,9 +621,9 @@ type GooglePlayDeveloperReportingV1alpha1DecimalConfidenceInterval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1DecimalConfidenceInterval) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1DecimalConfidenceInterval) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1DecimalConfidenceInterval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1DeviceId: Identifier of a device.
@@ -630,9 +645,9 @@ type GooglePlayDeveloperReportingV1alpha1DeviceId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1DeviceId) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1DeviceId) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1DeviceId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1DeviceModelSummary: Summary of a device
@@ -656,9 +671,9 @@ type GooglePlayDeveloperReportingV1alpha1DeviceModelSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1DeviceModelSummary) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1DeviceModelSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1DeviceModelSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1DimensionValue: Represents the value of
@@ -689,9 +704,9 @@ type GooglePlayDeveloperReportingV1alpha1DimensionValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1DimensionValue) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1DimensionValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1DimensionValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1ErrorCountMetricSet: Singleton resource
@@ -760,9 +775,9 @@ type GooglePlayDeveloperReportingV1alpha1ErrorCountMetricSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1ErrorCountMetricSet) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1ErrorCountMetricSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1ErrorCountMetricSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1ErrorIssue: A group of related
@@ -775,6 +790,9 @@ func (s *GooglePlayDeveloperReportingV1alpha1ErrorCountMetricSet) MarshalJSON() 
 // resource, the calling user needs the _View app information (read-only)_
 // permission for the app.
 type GooglePlayDeveloperReportingV1alpha1ErrorIssue struct {
+	// Annotations: List of annotations for an issue. Annotations provide
+	// additional information that may help in diagnosing and fixing the issue.
+	Annotations []*GooglePlayDeveloperReportingV1alpha1IssueAnnotation `json:"annotations,omitempty"`
 	// Cause: Cause of the issue. Depending on the type this can be either: *
 	// APPLICATION_NOT_RESPONDING: the type of ANR that occurred, e.g., 'Input
 	// dispatching timed out'. * CRASH: for Java unhandled exception errors, the
@@ -835,23 +853,25 @@ type GooglePlayDeveloperReportingV1alpha1ErrorIssue struct {
 	// Developers documentation.
 	//   "CRASH" - Crash caused by an unhandled exception in Java (or Kotlin or any
 	// other JVM language) or a signal in native code such as SIGSEGV.
+	//   "NON_FATAL" - Non-fatal caused by events that do not immediately cause
+	// crashes, but is likely to lead to one.
 	Type string `json:"type,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Cause") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "Annotations") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Cause") to include in API
+	// NullFields is a list of field names (e.g. "Annotations") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1ErrorIssue) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1ErrorIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1ErrorIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1ErrorReport: An error report received
@@ -896,6 +916,8 @@ type GooglePlayDeveloperReportingV1alpha1ErrorReport struct {
 	// Developers documentation.
 	//   "CRASH" - Crash caused by an unhandled exception in Java (or Kotlin or any
 	// other JVM language) or a signal in native code such as SIGSEGV.
+	//   "NON_FATAL" - Non-fatal caused by events that do not immediately cause
+	// crashes, but is likely to lead to one.
 	Type string `json:"type,omitempty"`
 	// VcsInformation: Version control system information from
 	// BUNDLE-METADATA/version-control-info.textproto or
@@ -915,9 +937,9 @@ type GooglePlayDeveloperReportingV1alpha1ErrorReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1ErrorReport) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1ErrorReport) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1ErrorReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1ExcessiveWakeupRateMetricSet: Singleton
@@ -994,9 +1016,9 @@ type GooglePlayDeveloperReportingV1alpha1ExcessiveWakeupRateMetricSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1ExcessiveWakeupRateMetricSet) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1ExcessiveWakeupRateMetricSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1ExcessiveWakeupRateMetricSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1FreshnessInfo: Represents the latest
@@ -1022,9 +1044,9 @@ type GooglePlayDeveloperReportingV1alpha1FreshnessInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1FreshnessInfo) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1FreshnessInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1FreshnessInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1FreshnessInfoFreshness: Information
@@ -1060,9 +1082,37 @@ type GooglePlayDeveloperReportingV1alpha1FreshnessInfoFreshness struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1FreshnessInfoFreshness) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1FreshnessInfoFreshness) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1FreshnessInfoFreshness
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePlayDeveloperReportingV1alpha1IssueAnnotation: Representation of an
+// annotation message for an issue.
+type GooglePlayDeveloperReportingV1alpha1IssueAnnotation struct {
+	// Body: Contains the contents of the annotation message.
+	Body string `json:"body,omitempty"`
+	// Category: Category that the annotation belongs to. An annotation will belong
+	// to a single category. Example categories: "Potential fix", "Insight".
+	Category string `json:"category,omitempty"`
+	// Title: Title for the annotation.
+	Title string `json:"title,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Body") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Body") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePlayDeveloperReportingV1alpha1IssueAnnotation) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePlayDeveloperReportingV1alpha1IssueAnnotation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1ListAnomaliesResponse: Response with a
@@ -1088,9 +1138,91 @@ type GooglePlayDeveloperReportingV1alpha1ListAnomaliesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1ListAnomaliesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1ListAnomaliesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1ListAnomaliesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePlayDeveloperReportingV1alpha1LmkRateMetricSet: Singleton resource
+// representing the set of LMK (Low Memory Kill) metrics. This metric set
+// contains LMKs data combined with usage data to produce a normalized metric
+// independent of user counts. **Supported aggregation periods:** * DAILY:
+// metrics are aggregated in calendar date intervals. Due to historical
+// constraints, the only supported timezone is `America/Los_Angeles`.
+// **Supported metrics:** * `userPerceivedLmkRate` (`google.type.Decimal`):
+// Percentage of distinct users in the aggregation period that experienced at
+// least one LMK while they were actively using your app (a user-perceived
+// LMK). An app is considered to be in active use if it is displaying any
+// activity or executing any foreground service. *
+// `userPerceivedLmkRate7dUserWeighted` (`google.type.Decimal`): Rolling
+// average value of `userPerceivedLmkRate` in the last 7 days. The daily values
+// are weighted by the count of distinct users for the day. *
+// `userPerceivedLmkRate28dUserWeighted` (`google.type.Decimal`): Rolling
+// average value of `userPerceivedLmkRate` in the last 28 days. The daily
+// values are weighted by the count of distinct users for the day. *
+// `distinctUsers` (`google.type.Decimal`): Count of distinct users in the
+// aggregation period that were used as normalization value for the
+// `userPerceivedLmkRate` metrics. A user is counted in this metric if they
+// used the app in the foreground during the aggregation period. Care must be
+// taken not to aggregate this count further, as it may result in users being
+// counted multiple times. The value is rounded to the nearest multiple of 10,
+// 100, 1,000 or 1,000,000, depending on the magnitude of the value.
+// **Supported dimensions:** * `apiLevel` (string): the API level of Android
+// that was running on the user's device, e.g., 26. * `versionCode` (int64):
+// version of the app that was running on the user's device. * `deviceModel`
+// (string): unique identifier of the user's device model. The form of the
+// identifier is 'deviceBrand/device', where deviceBrand corresponds to
+// Build.BRAND and device corresponds to Build.DEVICE, e.g., google/coral. *
+// `deviceBrand` (string): unique identifier of the user's device brand, e.g.,
+// google. * `deviceType` (string): the type (also known as form factor) of the
+// user's device, e.g., PHONE. * `countryCode` (string): the country or region
+// of the user's device based on their IP address, represented as a 2-letter
+// ISO-3166 code (e.g. US for the United States). * `deviceRamBucket` (int64):
+// RAM of the device, in MB, in buckets (3GB, 4GB, etc.). * `deviceSocMake`
+// (string): Make of the device's primary system-on-chip, e.g., Samsung.
+// Reference
+// (https://developer.android.com/reference/android/os/Build#SOC_MANUFACTURER)
+// * `deviceSocModel` (string): Model of the device's primary system-on-chip,
+// e.g., "Exynos 2100". Reference
+// (https://developer.android.com/reference/android/os/Build#SOC_MODEL) *
+// `deviceCpuMake` (string): Make of the device's CPU, e.g., Qualcomm. *
+// `deviceCpuModel` (string): Model of the device's CPU, e.g., "Kryo 240". *
+// `deviceGpuMake` (string): Make of the device's GPU, e.g., ARM. *
+// `deviceGpuModel` (string): Model of the device's GPU, e.g., Mali. *
+// `deviceGpuVersion` (string): Version of the device's GPU, e.g., T750. *
+// `deviceVulkanVersion` (string): Vulkan version of the device, e.g.,
+// "4198400". * `deviceGlEsVersion` (string): OpenGL ES version of the device,
+// e.g., "196610". * `deviceScreenSize` (string): Screen size of the device,
+// e.g., NORMAL, LARGE. * `deviceScreenDpi` (string): Screen density of the
+// device, e.g., mdpi, hdpi. **Required permissions**: to access this resource,
+// the calling user needs the _View app information (read-only)_ permission for
+// the app. **Related metric sets:** * vitals.errors contains normalized
+// metrics about crashes, another stability metric. * vitals.errors contains
+// normalized metrics about ANRs, another stability metric.
+type GooglePlayDeveloperReportingV1alpha1LmkRateMetricSet struct {
+	// FreshnessInfo: Summary about data freshness in this resource.
+	FreshnessInfo *GooglePlayDeveloperReportingV1alpha1FreshnessInfo `json:"freshnessInfo,omitempty"`
+	// Name: Identifier. The resource name. Format: apps/{app}/lmkRateMetricSet
+	Name string `json:"name,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "FreshnessInfo") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FreshnessInfo") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePlayDeveloperReportingV1alpha1LmkRateMetricSet) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePlayDeveloperReportingV1alpha1LmkRateMetricSet
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1MetricValue: Represents the value of a
@@ -1116,9 +1248,9 @@ type GooglePlayDeveloperReportingV1alpha1MetricValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1MetricValue) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1MetricValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1MetricValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1MetricsRow: Represents a row of
@@ -1153,9 +1285,9 @@ type GooglePlayDeveloperReportingV1alpha1MetricsRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1MetricsRow) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1MetricsRow) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1MetricsRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1OsVersion: Representation of an OS
@@ -1176,9 +1308,9 @@ type GooglePlayDeveloperReportingV1alpha1OsVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1OsVersion) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1OsVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1OsVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetRequest: Request
@@ -1292,9 +1424,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetResponse: Response
@@ -1320,9 +1452,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryAnrRateMetricSetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetRequest: Request
@@ -1438,9 +1570,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetResponse:
@@ -1466,9 +1598,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetResponse struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryCrashRateMetricSetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetRequest: Request
@@ -1483,13 +1615,11 @@ type GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetRequest struct 
 	// identifier of the user's device model. * `deviceType` (string): identifier
 	// of the device's form factor, e.g., PHONE. * `reportType` (string): the type
 	// of error. The value should correspond to one of the possible values in
-	// ErrorType. * `isUserPerceived` (string): denotes whether error is user
-	// perceived or not, USER_PERCEIVED or NOT_USER_PERCEIVED. * `issueId`
-	// (string): the id an error was assigned to. The value should correspond to
-	// the `{issue}` component of the issue name. * `deviceRamBucket` (int64): RAM
-	// of the device, in MB, in buckets (3GB, 4GB, etc.). * `deviceSocMake`
-	// (string): Make of the device's primary system-on-chip, e.g., Samsung.
-	// Reference
+	// ErrorType. * `issueId` (string): the id an error was assigned to. The value
+	// should correspond to the `{issue}` component of the issue name. *
+	// `deviceRamBucket` (int64): RAM of the device, in MB, in buckets (3GB, 4GB,
+	// etc.). * `deviceSocMake` (string): Make of the device's primary
+	// system-on-chip, e.g., Samsung. Reference
 	// (https://developer.android.com/reference/android/os/Build#SOC_MANUFACTURER)
 	// * `deviceSocModel` (string): Model of the device's primary system-on-chip,
 	// e.g., "Exynos 2100". Reference
@@ -1507,7 +1637,8 @@ type GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetRequest struct 
 	Dimensions []string `json:"dimensions,omitempty"`
 	// Filter: Filters to apply to data. The filtering expression follows AIP-160
 	// (https://google.aip.dev/160) standard and supports filtering by equality of
-	// all breakdown dimensions.
+	// all breakdown dimensions and: * `isUserPerceived` (string): denotes whether
+	// error is user perceived or not, USER_PERCEIVED or NOT_USER_PERCEIVED.
 	Filter string `json:"filter,omitempty"`
 	// Metrics: Metrics to aggregate. **Supported metrics:** * `errorReportCount`
 	// (`google.type.Decimal`): Absolute count of individual error reports that
@@ -1543,9 +1674,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetRequest struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetResponse: Error
@@ -1571,9 +1702,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetResponse struct
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryErrorCountMetricSetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetRequest:
@@ -1645,14 +1776,7 @@ type GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetReques
 	// timezone is `America/Los_Angeles`.
 	TimelineSpec *GooglePlayDeveloperReportingV1alpha1TimelineSpec `json:"timelineSpec,omitempty"`
 	// UserCohort: User view to select. The output data will correspond to the
-	// selected view. **Supported values:** * `OS_PUBLIC` To select data from all
-	// publicly released Android versions. This is the default. Supports all the
-	// above dimensions. * `APP_TESTERS` To select data from users who have opted
-	// in to be testers. Supports all the above dimensions. * `OS_BETA` To select
-	// data from beta android versions only, excluding data from released android
-	// versions. Only the following dimensions are supported: * `versionCode`
-	// (int64): version of the app that was running on the user's device. *
-	// `osBuild` (string): OS build of the user's device, e.g., "T1B2.220916.004".
+	// selected view. The only supported value is `OS_PUBLIC`.
 	//
 	// Possible values:
 	//   "USER_COHORT_UNSPECIFIED" - Unspecified User cohort. This will
@@ -1677,9 +1801,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetReques
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetResponse
@@ -1705,9 +1829,144 @@ type GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetRespon
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryExcessiveWakeupRateMetricSetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetRequest: Request
+// message for QueryLmkRateMetricSet.
+type GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetRequest struct {
+	// Dimensions: Optional. Dimensions to slice the metrics by. **Supported
+	// dimensions:** * `apiLevel` (string): the API level of Android that was
+	// running on the user's device, e.g., 26. * `versionCode` (int64): version of
+	// the app that was running on the user's device. * `deviceModel` (string):
+	// unique identifier of the user's device model. The form of the identifier is
+	// 'deviceBrand/device', where deviceBrand corresponds to Build.BRAND and
+	// device corresponds to Build.DEVICE, e.g., google/coral. * `deviceBrand`
+	// (string): unique identifier of the user's device brand, e.g., google. *
+	// `deviceType` (string): the type (also known as form factor) of the user's
+	// device, e.g., PHONE. * `countryCode` (string): the country or region of the
+	// user's device based on their IP address, represented as a 2-letter ISO-3166
+	// code (e.g. US for the United States). * `deviceRamBucket` (int64): RAM of
+	// the device, in MB, in buckets (3GB, 4GB, etc.). * `deviceSocMake` (string):
+	// Make of the device's primary system-on-chip, e.g., Samsung. Reference
+	// (https://developer.android.com/reference/android/os/Build#SOC_MANUFACTURER)
+	// * `deviceSocModel` (string): Model of the device's primary system-on-chip,
+	// e.g., "Exynos 2100". Reference
+	// (https://developer.android.com/reference/android/os/Build#SOC_MODEL) *
+	// `deviceCpuMake` (string): Make of the device's CPU, e.g., Qualcomm. *
+	// `deviceCpuModel` (string): Model of the device's CPU, e.g., "Kryo 240". *
+	// `deviceGpuMake` (string): Make of the device's GPU, e.g., ARM. *
+	// `deviceGpuModel` (string): Model of the device's GPU, e.g., Mali. *
+	// `deviceGpuVersion` (string): Version of the device's GPU, e.g., T750. *
+	// `deviceVulkanVersion` (string): Vulkan version of the device, e.g.,
+	// "4198400". * `deviceGlEsVersion` (string): OpenGL ES version of the device,
+	// e.g., "196610". * `deviceScreenSize` (string): Screen size of the device,
+	// e.g., NORMAL, LARGE. * `deviceScreenDpi` (string): Screen density of the
+	// device, e.g., mdpi, hdpi.
+	Dimensions []string `json:"dimensions,omitempty"`
+	// Filter: Optional. Filters to apply to data. The filtering expression follows
+	// AIP-160 (https://google.aip.dev/160) standard and supports filtering by
+	// equality of all breakdown dimensions.
+	Filter string `json:"filter,omitempty"`
+	// Metrics: Optional. Metrics to aggregate. **Supported metrics:** *
+	// `userPerceivedLmkRate` (`google.type.Decimal`): Percentage of distinct users
+	// in the aggregation period that experienced at least one LMK while they were
+	// actively using your app (a user-perceived LMK). An app is considered to be
+	// in active use if it is displaying any activity or executing any foreground
+	// service. * `userPerceivedLmkRate7dUserWeighted` (`google.type.Decimal`):
+	// Rolling average value of `userPerceivedLmkRate` in the last 7 days. The
+	// daily values are weighted by the count of distinct users for the day. *
+	// `userPerceivedLmkRate28dUserWeighted` (`google.type.Decimal`): Rolling
+	// average value of `userPerceivedLmkRate` in the last 28 days. The daily
+	// values are weighted by the count of distinct users for the day. *
+	// `distinctUsers` (`google.type.Decimal`): Count of distinct users in the
+	// aggregation period that were used as normalization value for the
+	// `userPerceivedLmkRate` metrics. A user is counted in this metric if they
+	// used the app in the foreground during the aggregation period. Care must be
+	// taken not to aggregate this count further, as it may result in users being
+	// counted multiple times. The value is rounded to the nearest multiple of 10,
+	// 100, 1,000 or 1,000,000, depending on the magnitude of the value.
+	Metrics []string `json:"metrics,omitempty"`
+	// PageSize: Optional. Maximum size of the returned data. If unspecified, at
+	// most 1000 rows will be returned. The maximum value is 100,000; values above
+	// 100,000 will be coerced to 100,000.
+	PageSize int64 `json:"pageSize,omitempty"`
+	// PageToken: Optional. A page token, received from a previous call. Provide
+	// this to retrieve the subsequent page. When paginating, all other parameters
+	// provided to the request must match the call that provided the page token.
+	PageToken string `json:"pageToken,omitempty"`
+	// TimelineSpec: Optional. Specification of the timeline aggregation
+	// parameters. **Supported aggregation periods:** * DAILY: metrics are
+	// aggregated in calendar date intervals. Due to historical constraints, the
+	// default and only supported timezone is `America/Los_Angeles`.
+	TimelineSpec *GooglePlayDeveloperReportingV1alpha1TimelineSpec `json:"timelineSpec,omitempty"`
+	// UserCohort: Optional. User view to select. The output data will correspond
+	// to the selected view. **Supported values:** * `OS_PUBLIC` To select data
+	// from all publicly released Android versions. This is the default. Supports
+	// all the above dimensions. * `APP_TESTERS` To select data from users who have
+	// opted in to be testers. Supports all the above dimensions. * `OS_BETA` To
+	// select data from beta android versions only, excluding data from released
+	// android versions. Only the following dimensions are supported: *
+	// `versionCode` (int64): version of the app that was running on the user's
+	// device. * `osBuild` (string): OS build of the user's device, e.g.,
+	// "T1B2.220916.004".
+	//
+	// Possible values:
+	//   "USER_COHORT_UNSPECIFIED" - Unspecified User cohort. This will
+	// automatically choose the default value.
+	//   "OS_PUBLIC" - This is default view. Contains data from public released
+	// android versions only.
+	//   "OS_BETA" - This is the view with just android beta data excluding
+	// released OS version data.
+	//   "APP_TESTERS" - This is the view with data only from users who have opted
+	// in to be testers for a given app, excluding OS beta data.
+	UserCohort string `json:"userCohort,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Dimensions") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Dimensions") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetResponse: Response
+// message for QueryLmkRateMetricSet.
+type GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetResponse struct {
+	// NextPageToken: Continuation token to fetch the next page of data.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// Rows: Returned rows of data.
+	Rows []*GooglePlayDeveloperReportingV1alpha1MetricsRow `json:"rows,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetRequest:
@@ -1785,14 +2044,7 @@ type GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetRequest 
 	// timezone is `America/Los_Angeles`.
 	TimelineSpec *GooglePlayDeveloperReportingV1alpha1TimelineSpec `json:"timelineSpec,omitempty"`
 	// UserCohort: User view to select. The output data will correspond to the
-	// selected view. **Supported values:** * `OS_PUBLIC` To select data from all
-	// publicly released Android versions. This is the default. Supports all the
-	// above dimensions. * `APP_TESTERS` To select data from users who have opted
-	// in to be testers. Supports all the above dimensions. * `OS_BETA` To select
-	// data from beta Android versions only, excluding data from released Android
-	// versions. Only the following dimensions are supported: * `versionCode`
-	// (int64): version of the app that was running on the user's device. *
-	// `osBuild` (string): OS build of the user's device, e.g., "T1B2.220916.004".
+	// selected view. The only supported value is `OS_PUBLIC`.
 	//
 	// Possible values:
 	//   "USER_COHORT_UNSPECIFIED" - Unspecified User cohort. This will
@@ -1817,9 +2069,9 @@ type GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetRequest 
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetResponse:
@@ -1845,9 +2097,9 @@ type GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetResponse
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QuerySlowRenderingRateMetricSetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetRequest:
@@ -1916,14 +2168,7 @@ type GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetRequest stru
 	// timezone is `America/Los_Angeles`.
 	TimelineSpec *GooglePlayDeveloperReportingV1alpha1TimelineSpec `json:"timelineSpec,omitempty"`
 	// UserCohort: User view to select. The output data will correspond to the
-	// selected view. **Supported values:** * `OS_PUBLIC` To select data from all
-	// publicly released Android versions. This is the default. Supports all the
-	// above dimensions. * `APP_TESTERS` To select data from users who have opted
-	// in to be testers. Supports all the above dimensions. * `OS_BETA` To select
-	// data from beta Android versions only, excluding data from released Android
-	// versions. Only the following dimensions are supported: * `versionCode`
-	// (int64): version of the app that was running on the user's device. *
-	// `osBuild` (string): OS build of the user's device, e.g., "T1B2.220916.004".
+	// selected view. The only supported value is `OS_PUBLIC`.
 	//
 	// Possible values:
 	//   "USER_COHORT_UNSPECIFIED" - Unspecified User cohort. This will
@@ -1948,9 +2193,9 @@ type GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetRequest stru
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetResponse:
@@ -1976,9 +2221,9 @@ type GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetResponse str
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QuerySlowStartRateMetricSetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricSet
@@ -2049,14 +2294,7 @@ type GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricS
 	// timezone is `America/Los_Angeles`.
 	TimelineSpec *GooglePlayDeveloperReportingV1alpha1TimelineSpec `json:"timelineSpec,omitempty"`
 	// UserCohort: User view to select. The output data will correspond to the
-	// selected view. **Supported values:** * `OS_PUBLIC` To select data from all
-	// publicly released Android versions. This is the default. Supports all the
-	// above dimensions. * `APP_TESTERS` To select data from users who have opted
-	// in to be testers. Supports all the above dimensions. * `OS_BETA` To select
-	// data from beta android versions only, excluding data from released android
-	// versions. Only the following dimensions are supported: * `versionCode`
-	// (int64): version of the app that was running on the user's device. *
-	// `osBuild` (string): OS build of the user's device, e.g., "T1B2.220916.004".
+	// selected view. The only supported value is `OS_PUBLIC`.
 	//
 	// Possible values:
 	//   "USER_COHORT_UNSPECIFIED" - Unspecified User cohort. This will
@@ -2081,9 +2319,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricS
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricSetRequest) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricSet
@@ -2109,9 +2347,9 @@ type GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricS
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricSetResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricSetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1QueryStuckBackgroundWakelockRateMetricSetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1Release: A representation of an app
@@ -2134,9 +2372,9 @@ type GooglePlayDeveloperReportingV1alpha1Release struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1Release) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1Release) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1Release
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1ReleaseFilterOptions: A set of filtering
@@ -2161,9 +2399,9 @@ type GooglePlayDeveloperReportingV1alpha1ReleaseFilterOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1ReleaseFilterOptions) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1ReleaseFilterOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1ReleaseFilterOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1SearchAccessibleAppsResponse: Response
@@ -2190,9 +2428,9 @@ type GooglePlayDeveloperReportingV1alpha1SearchAccessibleAppsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1SearchAccessibleAppsResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1SearchAccessibleAppsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1SearchAccessibleAppsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1SearchErrorIssuesResponse: Response with
@@ -2218,9 +2456,9 @@ type GooglePlayDeveloperReportingV1alpha1SearchErrorIssuesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1SearchErrorIssuesResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1SearchErrorIssuesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1SearchErrorIssuesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1SearchErrorReportsResponse: Response
@@ -2246,9 +2484,9 @@ type GooglePlayDeveloperReportingV1alpha1SearchErrorReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1SearchErrorReportsResponse) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1SearchErrorReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1SearchErrorReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1SlowRenderingRateMetricSet: Singleton
@@ -2335,9 +2573,9 @@ type GooglePlayDeveloperReportingV1alpha1SlowRenderingRateMetricSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1SlowRenderingRateMetricSet) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1SlowRenderingRateMetricSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1SlowRenderingRateMetricSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1SlowStartRateMetricSet: Singleton
@@ -2413,9 +2651,9 @@ type GooglePlayDeveloperReportingV1alpha1SlowStartRateMetricSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1SlowStartRateMetricSet) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1SlowStartRateMetricSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1SlowStartRateMetricSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1StuckBackgroundWakelockRateMetricSet:
@@ -2492,9 +2730,9 @@ type GooglePlayDeveloperReportingV1alpha1StuckBackgroundWakelockRateMetricSet st
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1StuckBackgroundWakelockRateMetricSet) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1StuckBackgroundWakelockRateMetricSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1StuckBackgroundWakelockRateMetricSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1TimelineSpec: Specification of the
@@ -2551,9 +2789,9 @@ type GooglePlayDeveloperReportingV1alpha1TimelineSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1TimelineSpec) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1TimelineSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1TimelineSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooglePlayDeveloperReportingV1alpha1Track: A representation of a Play
@@ -2578,9 +2816,9 @@ type GooglePlayDeveloperReportingV1alpha1Track struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooglePlayDeveloperReportingV1alpha1Track) MarshalJSON() ([]byte, error) {
+func (s GooglePlayDeveloperReportingV1alpha1Track) MarshalJSON() ([]byte, error) {
 	type NoMethod GooglePlayDeveloperReportingV1alpha1Track
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDateTime: Represents civil time (or occasionally physical time).
@@ -2641,16 +2879,17 @@ type GoogleTypeDateTime struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDateTime) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDateTime) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDateTime
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDecimal: A representation of a decimal value, such as 2.5. Clients
 // may convert values into language-native decimal formats, such as Java's
-// BigDecimal or Python's decimal.Decimal. [BigDecimal]:
-// https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigDecimal.html
-// [decimal.Decimal]: https://docs.python.org/3/library/decimal.html
+// BigDecimal
+// (https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigDecimal.html)
+// or Python's decimal.Decimal
+// (https://docs.python.org/3/library/decimal.html).
 type GoogleTypeDecimal struct {
 	// Value: The decimal value, as a string. The string representation consists of
 	// an optional sign, `+` (`U+002B`) or `-` (`U+002D`), followed by a sequence
@@ -2702,17 +2941,18 @@ type GoogleTypeDecimal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDecimal) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDecimal) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDecimal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeTimeZone: Represents a time zone from the IANA Time Zone Database
 // (https://www.iana.org/time-zones).
 type GoogleTypeTimeZone struct {
-	// Id: IANA Time Zone Database time zone, e.g. "America/New_York".
+	// Id: IANA Time Zone Database time zone. For example "America/New_York".
 	Id string `json:"id,omitempty"`
-	// Version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+	// Version: Optional. IANA Time Zone Database version number. For example
+	// "2019a".
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -2727,9 +2967,9 @@ type GoogleTypeTimeZone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeTimeZone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AnomaliesListCall struct {
@@ -2820,12 +3060,11 @@ func (c *AnomaliesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/anomalies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2833,6 +3072,7 @@ func (c *AnomaliesListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.anomalies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2868,9 +3108,11 @@ func (c *AnomaliesListCall) Do(opts ...googleapi.CallOption) (*GooglePlayDevelop
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.anomalies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2950,12 +3192,11 @@ func (c *AppsFetchReleaseFilterOptionsCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}:fetchReleaseFilterOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2963,6 +3204,7 @@ func (c *AppsFetchReleaseFilterOptionsCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.apps.fetchReleaseFilterOptions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2998,9 +3240,11 @@ func (c *AppsFetchReleaseFilterOptionsCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.apps.fetchReleaseFilterOptions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3072,16 +3316,16 @@ func (c *AppsSearchCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/apps:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.apps.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3117,9 +3361,11 @@ func (c *AppsSearchCall) Do(opts ...googleapi.CallOption) (*GooglePlayDeveloperR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.apps.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3198,12 +3444,11 @@ func (c *VitalsAnrrateGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3211,6 +3456,7 @@ func (c *VitalsAnrrateGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.anrrate.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3246,9 +3492,11 @@ func (c *VitalsAnrrateGetCall) Do(opts ...googleapi.CallOption) (*GooglePlayDeve
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.anrrate.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3296,8 +3544,7 @@ func (c *VitalsAnrrateQueryCall) Header() http.Header {
 
 func (c *VitalsAnrrateQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleplaydeveloperreportingv1alpha1queryanrratemetricsetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleplaydeveloperreportingv1alpha1queryanrratemetricsetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3313,6 +3560,7 @@ func (c *VitalsAnrrateQueryCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.anrrate.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3348,9 +3596,11 @@ func (c *VitalsAnrrateQueryCall) Do(opts ...googleapi.CallOption) (*GooglePlayDe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.anrrate.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3429,12 +3679,11 @@ func (c *VitalsCrashrateGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3442,6 +3691,7 @@ func (c *VitalsCrashrateGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.crashrate.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3479,9 +3729,11 @@ func (c *VitalsCrashrateGetCall) Do(opts ...googleapi.CallOption) (*GooglePlayDe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.crashrate.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3529,8 +3781,7 @@ func (c *VitalsCrashrateQueryCall) Header() http.Header {
 
 func (c *VitalsCrashrateQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleplaydeveloperreportingv1alpha1querycrashratemetricsetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleplaydeveloperreportingv1alpha1querycrashratemetricsetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3546,6 +3797,7 @@ func (c *VitalsCrashrateQueryCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.crashrate.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3581,9 +3833,11 @@ func (c *VitalsCrashrateQueryCall) Do(opts ...googleapi.CallOption) (*GooglePlay
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.crashrate.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3663,12 +3917,11 @@ func (c *VitalsErrorsCountsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3676,6 +3929,7 @@ func (c *VitalsErrorsCountsGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.errors.counts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3711,9 +3965,11 @@ func (c *VitalsErrorsCountsGetCall) Do(opts ...googleapi.CallOption) (*GooglePla
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.errors.counts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3761,8 +4017,7 @@ func (c *VitalsErrorsCountsQueryCall) Header() http.Header {
 
 func (c *VitalsErrorsCountsQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleplaydeveloperreportingv1alpha1queryerrorcountmetricsetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleplaydeveloperreportingv1alpha1queryerrorcountmetricsetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3778,6 +4033,7 @@ func (c *VitalsErrorsCountsQueryCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.errors.counts.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3813,9 +4069,11 @@ func (c *VitalsErrorsCountsQueryCall) Do(opts ...googleapi.CallOption) (*GoogleP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.errors.counts.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3874,9 +4132,9 @@ func (r *VitalsErrorsIssuesService) Search(parent string) *VitalsErrorsIssuesSea
 // "Google". * `deviceType`: Matches error issues that occurred in the
 // requested device types. Example: `deviceType = "PHONE". * `errorIssueType`:
 // Matches error issues of the requested types only. Valid candidates: `CRASH`,
-// `ANR`. Example: `errorIssueType = CRASH OR errorIssueType = ANR`. *
-// `appProcessState`: Matches error issues on the process state of an app,
-// indicating whether an app runs in the foreground (user-visible) or
+// `ANR`, `NON_FATAL`. Example: `errorIssueType = CRASH OR errorIssueType =
+// ANR`. * `appProcessState`: Matches error issues on the process state of an
+// app, indicating whether an app runs in the foreground (user-visible) or
 // background. Valid candidates: `FOREGROUND`, `BACKGROUND`. Example:
 // `appProcessState = FOREGROUND`. * `isUserPerceived`: Matches error issues
 // that are user-perceived. It is not accompanied by any operators. Example:
@@ -3948,16 +4206,16 @@ func (c *VitalsErrorsIssuesSearchCall) IntervalEndTimeSeconds(intervalEndTimeSec
 }
 
 // IntervalEndTimeTimeZoneId sets the optional parameter
-// "interval.endTime.timeZone.id": IANA Time Zone Database time zone, e.g.
-// "America/New_York".
+// "interval.endTime.timeZone.id": IANA Time Zone Database time zone. For
+// example "America/New_York".
 func (c *VitalsErrorsIssuesSearchCall) IntervalEndTimeTimeZoneId(intervalEndTimeTimeZoneId string) *VitalsErrorsIssuesSearchCall {
 	c.urlParams_.Set("interval.endTime.timeZone.id", intervalEndTimeTimeZoneId)
 	return c
 }
 
 // IntervalEndTimeTimeZoneVersion sets the optional parameter
-// "interval.endTime.timeZone.version": IANA Time Zone Database version number,
-// e.g. "2019a".
+// "interval.endTime.timeZone.version": IANA Time Zone Database version number.
+// For example "2019a".
 func (c *VitalsErrorsIssuesSearchCall) IntervalEndTimeTimeZoneVersion(intervalEndTimeTimeZoneVersion string) *VitalsErrorsIssuesSearchCall {
 	c.urlParams_.Set("interval.endTime.timeZone.version", intervalEndTimeTimeZoneVersion)
 	return c
@@ -4031,8 +4289,8 @@ func (c *VitalsErrorsIssuesSearchCall) IntervalStartTimeSeconds(intervalStartTim
 }
 
 // IntervalStartTimeTimeZoneId sets the optional parameter
-// "interval.startTime.timeZone.id": IANA Time Zone Database time zone, e.g.
-// "America/New_York".
+// "interval.startTime.timeZone.id": IANA Time Zone Database time zone. For
+// example "America/New_York".
 func (c *VitalsErrorsIssuesSearchCall) IntervalStartTimeTimeZoneId(intervalStartTimeTimeZoneId string) *VitalsErrorsIssuesSearchCall {
 	c.urlParams_.Set("interval.startTime.timeZone.id", intervalStartTimeTimeZoneId)
 	return c
@@ -4040,7 +4298,7 @@ func (c *VitalsErrorsIssuesSearchCall) IntervalStartTimeTimeZoneId(intervalStart
 
 // IntervalStartTimeTimeZoneVersion sets the optional parameter
 // "interval.startTime.timeZone.version": IANA Time Zone Database version
-// number, e.g. "2019a".
+// number. For example "2019a".
 func (c *VitalsErrorsIssuesSearchCall) IntervalStartTimeTimeZoneVersion(intervalStartTimeTimeZoneVersion string) *VitalsErrorsIssuesSearchCall {
 	c.urlParams_.Set("interval.startTime.timeZone.version", intervalStartTimeTimeZoneVersion)
 	return c
@@ -4137,12 +4395,11 @@ func (c *VitalsErrorsIssuesSearchCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/errorIssues:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4150,6 +4407,7 @@ func (c *VitalsErrorsIssuesSearchCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.errors.issues.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4185,9 +4443,11 @@ func (c *VitalsErrorsIssuesSearchCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.errors.issues.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4244,30 +4504,30 @@ func (r *VitalsErrorsReportsService) Search(parent string) *VitalsErrorsReportsS
 // occurred in the requested device brands. Example: `deviceBrand = "Google". *
 // `deviceType`: Matches error reports that occurred in the requested device
 // types. Example: `deviceType = "PHONE". * `errorIssueType`: Matches error
-// reports of the requested types only. Valid candidates: `JAVA_CRASH`,
-// `NATIVE_CRASH`, `ANR`. Example: `errorIssueType = JAVA_CRASH OR
-// errorIssueType = NATIVE_CRASH`. * `errorIssueId`: Matches error reports
-// belonging to the requested error issue ids only. Example: `errorIssueId =
-// 1234 OR errorIssueId = 4567`. * `errorReportId`: Matches error reports with
-// the requested error report id. Example: `errorReportId = 1234 OR
-// errorReportId = 4567`. * `appProcessState`: Matches error reports on the
-// process state of an app, indicating whether an app runs in the foreground
-// (user-visible) or background. Valid candidates: `FOREGROUND`, `BACKGROUND`.
-// Example: `appProcessState = FOREGROUND`. * `isUserPerceived`: Matches error
-// reports that are user-perceived. It is not accompanied by any operators.
-// Example: `isUserPerceived`. ** Supported operators:** * Comparison
-// operators: The only supported comparison operator is equality. The filtered
-// field must appear on the left hand side of the comparison. * Logical
-// Operators: Logical operators `AND` and `OR` can be used to build complex
-// filters following a conjunctive normal form (CNF), i.e., conjunctions of
-// disjunctions. The `OR` operator takes precedence over `AND` so the use of
-// parenthesis is not necessary when building CNF. The `OR` operator is only
-// supported to build disjunctions that apply to the same field, e.g.,
-// `versionCode = 123 OR versionCode = ANR`. The filter expression `versionCode
-// = 123 OR errorIssueType = ANR` is not valid. ** Examples ** Some valid
-// filtering expressions: * `versionCode = 123 AND errorIssueType = ANR` *
-// `versionCode = 123 AND errorIssueType = OR errorIssueType = CRASH` *
-// `versionCode = 123 AND (errorIssueType = OR errorIssueType = CRASH)`
+// reports of the requested types only. Valid candidates: `CRASH`, `ANR`,
+// `NON_FATAL`. Example: `errorIssueType = CRASH OR errorIssueType = ANR`. *
+// `errorIssueId`: Matches error reports belonging to the requested error issue
+// ids only. Example: `errorIssueId = 1234 OR errorIssueId = 4567`. *
+// `errorReportId`: Matches error reports with the requested error report id.
+// Example: `errorReportId = 1234 OR errorReportId = 4567`. *
+// `appProcessState`: Matches error reports on the process state of an app,
+// indicating whether an app runs in the foreground (user-visible) or
+// background. Valid candidates: `FOREGROUND`, `BACKGROUND`. Example:
+// `appProcessState = FOREGROUND`. * `isUserPerceived`: Matches error reports
+// that are user-perceived. It is not accompanied by any operators. Example:
+// `isUserPerceived`. ** Supported operators:** * Comparison operators: The
+// only supported comparison operator is equality. The filtered field must
+// appear on the left hand side of the comparison. * Logical Operators: Logical
+// operators `AND` and `OR` can be used to build complex filters following a
+// conjunctive normal form (CNF), i.e., conjunctions of disjunctions. The `OR`
+// operator takes precedence over `AND` so the use of parenthesis is not
+// necessary when building CNF. The `OR` operator is only supported to build
+// disjunctions that apply to the same field, e.g., `versionCode = 123 OR
+// versionCode = ANR`. The filter expression `versionCode = 123 OR
+// errorIssueType = ANR` is not valid. ** Examples ** Some valid filtering
+// expressions: * `versionCode = 123 AND errorIssueType = ANR` * `versionCode =
+// 123 AND errorIssueType = OR errorIssueType = CRASH` * `versionCode = 123 AND
+// (errorIssueType = OR errorIssueType = CRASH)`
 func (c *VitalsErrorsReportsSearchCall) Filter(filter string) *VitalsErrorsReportsSearchCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -4324,16 +4584,16 @@ func (c *VitalsErrorsReportsSearchCall) IntervalEndTimeSeconds(intervalEndTimeSe
 }
 
 // IntervalEndTimeTimeZoneId sets the optional parameter
-// "interval.endTime.timeZone.id": IANA Time Zone Database time zone, e.g.
-// "America/New_York".
+// "interval.endTime.timeZone.id": IANA Time Zone Database time zone. For
+// example "America/New_York".
 func (c *VitalsErrorsReportsSearchCall) IntervalEndTimeTimeZoneId(intervalEndTimeTimeZoneId string) *VitalsErrorsReportsSearchCall {
 	c.urlParams_.Set("interval.endTime.timeZone.id", intervalEndTimeTimeZoneId)
 	return c
 }
 
 // IntervalEndTimeTimeZoneVersion sets the optional parameter
-// "interval.endTime.timeZone.version": IANA Time Zone Database version number,
-// e.g. "2019a".
+// "interval.endTime.timeZone.version": IANA Time Zone Database version number.
+// For example "2019a".
 func (c *VitalsErrorsReportsSearchCall) IntervalEndTimeTimeZoneVersion(intervalEndTimeTimeZoneVersion string) *VitalsErrorsReportsSearchCall {
 	c.urlParams_.Set("interval.endTime.timeZone.version", intervalEndTimeTimeZoneVersion)
 	return c
@@ -4407,8 +4667,8 @@ func (c *VitalsErrorsReportsSearchCall) IntervalStartTimeSeconds(intervalStartTi
 }
 
 // IntervalStartTimeTimeZoneId sets the optional parameter
-// "interval.startTime.timeZone.id": IANA Time Zone Database time zone, e.g.
-// "America/New_York".
+// "interval.startTime.timeZone.id": IANA Time Zone Database time zone. For
+// example "America/New_York".
 func (c *VitalsErrorsReportsSearchCall) IntervalStartTimeTimeZoneId(intervalStartTimeTimeZoneId string) *VitalsErrorsReportsSearchCall {
 	c.urlParams_.Set("interval.startTime.timeZone.id", intervalStartTimeTimeZoneId)
 	return c
@@ -4416,7 +4676,7 @@ func (c *VitalsErrorsReportsSearchCall) IntervalStartTimeTimeZoneId(intervalStar
 
 // IntervalStartTimeTimeZoneVersion sets the optional parameter
 // "interval.startTime.timeZone.version": IANA Time Zone Database version
-// number, e.g. "2019a".
+// number. For example "2019a".
 func (c *VitalsErrorsReportsSearchCall) IntervalStartTimeTimeZoneVersion(intervalStartTimeTimeZoneVersion string) *VitalsErrorsReportsSearchCall {
 	c.urlParams_.Set("interval.startTime.timeZone.version", intervalStartTimeTimeZoneVersion)
 	return c
@@ -4493,12 +4753,11 @@ func (c *VitalsErrorsReportsSearchCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/errorReports:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4506,6 +4765,7 @@ func (c *VitalsErrorsReportsSearchCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.errors.reports.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4541,9 +4801,11 @@ func (c *VitalsErrorsReportsSearchCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.errors.reports.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4622,12 +4884,11 @@ func (c *VitalsExcessivewakeuprateGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4635,6 +4896,7 @@ func (c *VitalsExcessivewakeuprateGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.excessivewakeuprate.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4670,9 +4932,11 @@ func (c *VitalsExcessivewakeuprateGetCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.excessivewakeuprate.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4720,8 +4984,7 @@ func (c *VitalsExcessivewakeuprateQueryCall) Header() http.Header {
 
 func (c *VitalsExcessivewakeuprateQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleplaydeveloperreportingv1alpha1queryexcessivewakeupratemetricsetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleplaydeveloperreportingv1alpha1queryexcessivewakeupratemetricsetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4737,6 +5000,7 @@ func (c *VitalsExcessivewakeuprateQueryCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.excessivewakeuprate.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4772,9 +5036,11 @@ func (c *VitalsExcessivewakeuprateQueryCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.excessivewakeuprate.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4798,6 +5064,241 @@ func (c *VitalsExcessivewakeuprateQueryCall) Pages(ctx context.Context, f func(*
 			return nil
 		}
 		c.googleplaydeveloperreportingv1alpha1queryexcessivewakeupratemetricsetrequest.PageToken = x.NextPageToken
+	}
+}
+
+type VitalsLmkrateGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Describes the properties of the metric set.
+//
+// - name: The resource name. Format: apps/{app}/lmkRateMetricSet.
+func (r *VitalsLmkrateService) Get(name string) *VitalsLmkrateGetCall {
+	c := &VitalsLmkrateGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *VitalsLmkrateGetCall) Fields(s ...googleapi.Field) *VitalsLmkrateGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *VitalsLmkrateGetCall) IfNoneMatch(entityTag string) *VitalsLmkrateGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *VitalsLmkrateGetCall) Context(ctx context.Context) *VitalsLmkrateGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *VitalsLmkrateGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *VitalsLmkrateGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.lmkrate.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "playdeveloperreporting.vitals.lmkrate.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePlayDeveloperReportingV1alpha1LmkRateMetricSet.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *VitalsLmkrateGetCall) Do(opts ...googleapi.CallOption) (*GooglePlayDeveloperReportingV1alpha1LmkRateMetricSet, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePlayDeveloperReportingV1alpha1LmkRateMetricSet{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.lmkrate.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type VitalsLmkrateQueryCall struct {
+	s                                                                *Service
+	name                                                             string
+	googleplaydeveloperreportingv1alpha1querylmkratemetricsetrequest *GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetRequest
+	urlParams_                                                       gensupport.URLParams
+	ctx_                                                             context.Context
+	header_                                                          http.Header
+}
+
+// Query: Queries the metrics in the metric set.
+//
+// - name: The resource name. Format: apps/{app}/lmkRateMetricSet.
+func (r *VitalsLmkrateService) Query(name string, googleplaydeveloperreportingv1alpha1querylmkratemetricsetrequest *GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetRequest) *VitalsLmkrateQueryCall {
+	c := &VitalsLmkrateQueryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googleplaydeveloperreportingv1alpha1querylmkratemetricsetrequest = googleplaydeveloperreportingv1alpha1querylmkratemetricsetrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *VitalsLmkrateQueryCall) Fields(s ...googleapi.Field) *VitalsLmkrateQueryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *VitalsLmkrateQueryCall) Context(ctx context.Context) *VitalsLmkrateQueryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *VitalsLmkrateQueryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *VitalsLmkrateQueryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleplaydeveloperreportingv1alpha1querylmkratemetricsetrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}:query")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.lmkrate.query", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "playdeveloperreporting.vitals.lmkrate.query" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetResponse.ServerResp
+// onse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *VitalsLmkrateQueryCall) Do(opts ...googleapi.CallOption) (*GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.lmkrate.query", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *VitalsLmkrateQueryCall) Pages(ctx context.Context, f func(*GooglePlayDeveloperReportingV1alpha1QueryLmkRateMetricSetResponse) error) error {
+	c.ctx_ = ctx
+	defer func(pt string) { c.googleplaydeveloperreportingv1alpha1querylmkratemetricsetrequest.PageToken = pt }(c.googleplaydeveloperreportingv1alpha1querylmkratemetricsetrequest.PageToken)
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.googleplaydeveloperreportingv1alpha1querylmkratemetricsetrequest.PageToken = x.NextPageToken
 	}
 }
 
@@ -4855,12 +5356,11 @@ func (c *VitalsSlowrenderingrateGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4868,6 +5368,7 @@ func (c *VitalsSlowrenderingrateGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.slowrenderingrate.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4903,9 +5404,11 @@ func (c *VitalsSlowrenderingrateGetCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.slowrenderingrate.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4953,8 +5456,7 @@ func (c *VitalsSlowrenderingrateQueryCall) Header() http.Header {
 
 func (c *VitalsSlowrenderingrateQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleplaydeveloperreportingv1alpha1queryslowrenderingratemetricsetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleplaydeveloperreportingv1alpha1queryslowrenderingratemetricsetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4970,6 +5472,7 @@ func (c *VitalsSlowrenderingrateQueryCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.slowrenderingrate.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5005,9 +5508,11 @@ func (c *VitalsSlowrenderingrateQueryCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.slowrenderingrate.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5088,12 +5593,11 @@ func (c *VitalsSlowstartrateGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5101,6 +5605,7 @@ func (c *VitalsSlowstartrateGetCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.slowstartrate.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5136,9 +5641,11 @@ func (c *VitalsSlowstartrateGetCall) Do(opts ...googleapi.CallOption) (*GooglePl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.slowstartrate.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5186,8 +5693,7 @@ func (c *VitalsSlowstartrateQueryCall) Header() http.Header {
 
 func (c *VitalsSlowstartrateQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleplaydeveloperreportingv1alpha1queryslowstartratemetricsetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleplaydeveloperreportingv1alpha1queryslowstartratemetricsetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5203,6 +5709,7 @@ func (c *VitalsSlowstartrateQueryCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.slowstartrate.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5238,9 +5745,11 @@ func (c *VitalsSlowstartrateQueryCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.slowstartrate.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5322,12 +5831,11 @@ func (c *VitalsStuckbackgroundwakelockrateGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5335,6 +5843,7 @@ func (c *VitalsStuckbackgroundwakelockrateGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.stuckbackgroundwakelockrate.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5370,9 +5879,11 @@ func (c *VitalsStuckbackgroundwakelockrateGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.stuckbackgroundwakelockrate.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5421,8 +5932,7 @@ func (c *VitalsStuckbackgroundwakelockrateQueryCall) Header() http.Header {
 
 func (c *VitalsStuckbackgroundwakelockrateQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleplaydeveloperreportingv1alpha1querystuckbackgroundwakelockratemetricsetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleplaydeveloperreportingv1alpha1querystuckbackgroundwakelockratemetricsetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5438,6 +5948,7 @@ func (c *VitalsStuckbackgroundwakelockrateQueryCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.stuckbackgroundwakelockrate.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5473,9 +5984,11 @@ func (c *VitalsStuckbackgroundwakelockrateQueryCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "playdeveloperreporting.vitals.stuckbackgroundwakelockrate.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

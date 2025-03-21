@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,7 +6,7 @@
 
 // Package forms provides access to the Google Forms API.
 //
-// For product documentation, see: https://developers.google.com/forms/api
+// For product documentation, see: https://developers.google.com/workspace/forms/api
 //
 // # Library status
 //
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "forms:v1"
 const apiName = "forms"
@@ -140,7 +143,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Forms = NewFormsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -159,13 +163,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Forms = NewFormsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -235,9 +238,9 @@ type Answer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Answer) MarshalJSON() ([]byte, error) {
+func (s Answer) MarshalJSON() ([]byte, error) {
 	type NoMethod Answer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateFormRequest: A batch of updates to perform on a form. All the
@@ -263,9 +266,9 @@ type BatchUpdateFormRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateFormRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateFormRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateFormRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateFormResponse: Response to a BatchUpdateFormRequest.
@@ -295,9 +298,9 @@ type BatchUpdateFormResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateFormResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateFormResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateFormResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ChoiceQuestion: A radio/checkbox/dropdown question.
@@ -335,9 +338,9 @@ type ChoiceQuestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ChoiceQuestion) MarshalJSON() ([]byte, error) {
+func (s ChoiceQuestion) MarshalJSON() ([]byte, error) {
 	type NoMethod ChoiceQuestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudPubsubTopic: A Pub/Sub topic.
@@ -359,9 +362,9 @@ type CloudPubsubTopic struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudPubsubTopic) MarshalJSON() ([]byte, error) {
+func (s CloudPubsubTopic) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudPubsubTopic
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CorrectAnswer: A single correct answer for a question. For multiple-valued
@@ -384,9 +387,9 @@ type CorrectAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CorrectAnswer) MarshalJSON() ([]byte, error) {
+func (s CorrectAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod CorrectAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CorrectAnswers: The answer key for a question.
@@ -411,9 +414,9 @@ type CorrectAnswers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CorrectAnswers) MarshalJSON() ([]byte, error) {
+func (s CorrectAnswers) MarshalJSON() ([]byte, error) {
 	type NoMethod CorrectAnswers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateItemRequest: Create an item in a form.
@@ -435,9 +438,9 @@ type CreateItemRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateItemRequest) MarshalJSON() ([]byte, error) {
+func (s CreateItemRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateItemRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateItemResponse: The result of creating an item.
@@ -460,9 +463,9 @@ type CreateItemResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateItemResponse) MarshalJSON() ([]byte, error) {
+func (s CreateItemResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateItemResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateWatchRequest: Create a new watch.
@@ -487,9 +490,9 @@ type CreateWatchRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateWatchRequest) MarshalJSON() ([]byte, error) {
+func (s CreateWatchRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateWatchRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DateQuestion: A date question. Date questions default to just month + day.
@@ -511,9 +514,9 @@ type DateQuestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DateQuestion) MarshalJSON() ([]byte, error) {
+func (s DateQuestion) MarshalJSON() ([]byte, error) {
 	type NoMethod DateQuestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeleteItemRequest: Delete an item in a form.
@@ -533,9 +536,9 @@ type DeleteItemRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeleteItemRequest) MarshalJSON() ([]byte, error) {
+func (s DeleteItemRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DeleteItemRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -566,9 +569,9 @@ type ExtraMaterial struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExtraMaterial) MarshalJSON() ([]byte, error) {
+func (s ExtraMaterial) MarshalJSON() ([]byte, error) {
 	type NoMethod ExtraMaterial
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Feedback: Feedback for a respondent about their response to a question.
@@ -591,9 +594,9 @@ type Feedback struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Feedback) MarshalJSON() ([]byte, error) {
+func (s Feedback) MarshalJSON() ([]byte, error) {
 	type NoMethod Feedback
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileUploadAnswer: Info for a single file submitted to a file upload
@@ -619,9 +622,9 @@ type FileUploadAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileUploadAnswer) MarshalJSON() ([]byte, error) {
+func (s FileUploadAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod FileUploadAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileUploadAnswers: All submitted files for a FileUpload question.
@@ -641,9 +644,9 @@ type FileUploadAnswers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileUploadAnswers) MarshalJSON() ([]byte, error) {
+func (s FileUploadAnswers) MarshalJSON() ([]byte, error) {
 	type NoMethod FileUploadAnswers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileUploadQuestion: A file upload question. The API currently does not
@@ -685,9 +688,9 @@ type FileUploadQuestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileUploadQuestion) MarshalJSON() ([]byte, error) {
+func (s FileUploadQuestion) MarshalJSON() ([]byte, error) {
 	type NoMethod FileUploadQuestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Form: A Google Forms document. A form is created in Drive, and deleting a
@@ -704,6 +707,12 @@ type Form struct {
 	// LinkedSheetId: Output only. The ID of the linked Google Sheet which is
 	// accumulating responses from this Form (if such a Sheet exists).
 	LinkedSheetId string `json:"linkedSheetId,omitempty"`
+	// PublishSettings: Output only. The publishing settings for a form. This field
+	// isn't set for legacy forms because they don't have the `publish_settings`
+	// field. All newly created forms support publish settings. Forms with
+	// `publish_settings` value set can call UpdatePublishSettings API to publish
+	// or unpublish the form.
+	PublishSettings *PublishSettings `json:"publishSettings,omitempty"`
 	// ResponderUri: Output only. The form URI to share with responders. This opens
 	// a page that allows the user to submit responses but not edit the questions.
 	ResponderUri string `json:"responderUri,omitempty"`
@@ -737,9 +746,9 @@ type Form struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Form) MarshalJSON() ([]byte, error) {
+func (s Form) MarshalJSON() ([]byte, error) {
 	type NoMethod Form
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FormResponse: A form response.
@@ -781,9 +790,9 @@ type FormResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FormResponse) MarshalJSON() ([]byte, error) {
+func (s FormResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FormResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *FormResponse) UnmarshalJSON(data []byte) error {
@@ -802,24 +811,37 @@ func (s *FormResponse) UnmarshalJSON(data []byte) error {
 
 // FormSettings: A form's settings.
 type FormSettings struct {
+	// EmailCollectionType: Optional. The setting that determines whether the form
+	// collects email addresses from respondents.
+	//
+	// Possible values:
+	//   "EMAIL_COLLECTION_TYPE_UNSPECIFIED" - Unspecified. This value is unused.
+	//   "DO_NOT_COLLECT" - The form doesn't collect email addresses. Default value
+	// if the form owner uses a Google account.
+	//   "VERIFIED" - The form collects email addresses automatically based on the
+	// account of the signed-in user. Default value if the form owner uses a Google
+	// Workspace account.
+	//   "RESPONDER_INPUT" - The form collects email addresses using a field that
+	// the respondent completes on the form.
+	EmailCollectionType string `json:"emailCollectionType,omitempty"`
 	// QuizSettings: Settings related to quiz forms and grading.
 	QuizSettings *QuizSettings `json:"quizSettings,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "QuizSettings") to
+	// ForceSendFields is a list of field names (e.g. "EmailCollectionType") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "QuizSettings") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "EmailCollectionType") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *FormSettings) MarshalJSON() ([]byte, error) {
+func (s FormSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod FormSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Grade: Grade information associated with a respondent's answer to a
@@ -846,9 +868,9 @@ type Grade struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Grade) MarshalJSON() ([]byte, error) {
+func (s Grade) MarshalJSON() ([]byte, error) {
 	type NoMethod Grade
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Grade) UnmarshalJSON(data []byte) error {
@@ -900,9 +922,9 @@ type Grading struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Grading) MarshalJSON() ([]byte, error) {
+func (s Grading) MarshalJSON() ([]byte, error) {
 	type NoMethod Grading
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Grid: A grid of choices (radio or check boxes) with each row constituting a
@@ -929,9 +951,9 @@ type Grid struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Grid) MarshalJSON() ([]byte, error) {
+func (s Grid) MarshalJSON() ([]byte, error) {
 	type NoMethod Grid
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Image: Data representing an image.
@@ -960,9 +982,9 @@ type Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Image) MarshalJSON() ([]byte, error) {
+func (s Image) MarshalJSON() ([]byte, error) {
 	type NoMethod Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageItem: An item containing an image.
@@ -982,9 +1004,9 @@ type ImageItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageItem) MarshalJSON() ([]byte, error) {
+func (s ImageItem) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Info: The general information for a form.
@@ -1014,9 +1036,9 @@ type Info struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Info) MarshalJSON() ([]byte, error) {
+func (s Info) MarshalJSON() ([]byte, error) {
 	type NoMethod Info
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Item: A single item of the form. `kind` defines which kind of item it is.
@@ -1054,9 +1076,9 @@ type Item struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Item) MarshalJSON() ([]byte, error) {
+func (s Item) MarshalJSON() ([]byte, error) {
 	type NoMethod Item
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFormResponsesResponse: Response to a ListFormResponsesRequest.
@@ -1083,9 +1105,9 @@ type ListFormResponsesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFormResponsesResponse) MarshalJSON() ([]byte, error) {
+func (s ListFormResponsesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFormResponsesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWatchesResponse: The response of a ListWatchesRequest.
@@ -1108,9 +1130,9 @@ type ListWatchesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWatchesResponse) MarshalJSON() ([]byte, error) {
+func (s ListWatchesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWatchesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A specific location in a form.
@@ -1131,9 +1153,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MediaProperties: Properties of the media.
@@ -1166,9 +1188,9 @@ type MediaProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MediaProperties) MarshalJSON() ([]byte, error) {
+func (s MediaProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod MediaProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MoveItemRequest: Move an item in a form.
@@ -1190,9 +1212,9 @@ type MoveItemRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MoveItemRequest) MarshalJSON() ([]byte, error) {
+func (s MoveItemRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MoveItemRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Option: An option for a Choice question.
@@ -1227,14 +1249,64 @@ type Option struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Option) MarshalJSON() ([]byte, error) {
+func (s Option) MarshalJSON() ([]byte, error) {
 	type NoMethod Option
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PageBreakItem: A page break. The title and description of this item are
 // shown at the top of the new page.
 type PageBreakItem struct {
+}
+
+// PublishSettings: The publishing settings of a form.
+type PublishSettings struct {
+	// PublishState: Optional. The publishing state of a form. When updating
+	// `publish_state`, both `is_published` and `is_accepting_responses` must be
+	// set. However, setting `is_accepting_responses` to `true` and `is_published`
+	// to `false` isn't supported and returns an error.
+	PublishState *PublishState `json:"publishState,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PublishState") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PublishState") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PublishSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod PublishSettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PublishState: The publishing state of a form.
+type PublishState struct {
+	// IsAcceptingResponses: Required. Whether the form accepts responses. If
+	// `is_published` is set to `false`, this field is forced to `false`.
+	IsAcceptingResponses bool `json:"isAcceptingResponses,omitempty"`
+	// IsPublished: Required. Whether the form is published and visible to others.
+	IsPublished bool `json:"isPublished,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "IsAcceptingResponses") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IsAcceptingResponses") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PublishState) MarshalJSON() ([]byte, error) {
+	type NoMethod PublishState
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Question: Any question. The specific type of question is known by its
@@ -1252,6 +1324,9 @@ type Question struct {
 	// the ID must not be already used in the form. If not provided, a new ID is
 	// assigned.
 	QuestionId string `json:"questionId,omitempty"`
+	// RatingQuestion: A respondent can choose a rating from a pre-defined set of
+	// icons.
+	RatingQuestion *RatingQuestion `json:"ratingQuestion,omitempty"`
 	// Required: Whether the question must be answered in order for a respondent to
 	// submit their response.
 	Required bool `json:"required,omitempty"`
@@ -1276,9 +1351,9 @@ type Question struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Question) MarshalJSON() ([]byte, error) {
+func (s Question) MarshalJSON() ([]byte, error) {
 	type NoMethod Question
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QuestionGroupItem: Defines a question that comprises multiple questions
@@ -1308,9 +1383,9 @@ type QuestionGroupItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QuestionGroupItem) MarshalJSON() ([]byte, error) {
+func (s QuestionGroupItem) MarshalJSON() ([]byte, error) {
 	type NoMethod QuestionGroupItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QuestionItem: A form item containing a single question.
@@ -1332,9 +1407,9 @@ type QuestionItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QuestionItem) MarshalJSON() ([]byte, error) {
+func (s QuestionItem) MarshalJSON() ([]byte, error) {
 	type NoMethod QuestionItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QuizSettings: Settings related to quiz forms and grading. These must be
@@ -1357,9 +1432,40 @@ type QuizSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QuizSettings) MarshalJSON() ([]byte, error) {
+func (s QuizSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod QuizSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RatingQuestion: A rating question. The user has a range of icons to choose
+// from.
+type RatingQuestion struct {
+	// IconType: Required. The icon type to use for the rating.
+	//
+	// Possible values:
+	//   "RATING_ICON_TYPE_UNSPECIFIED" - Default value. Unused.
+	//   "STAR" - A star icon.
+	//   "HEART" - A heart icon.
+	//   "THUMB_UP" - A thumbs down icon.
+	IconType string `json:"iconType,omitempty"`
+	// RatingScaleLevel: Required. The rating scale level of the rating question.
+	RatingScaleLevel int64 `json:"ratingScaleLevel,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "IconType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IconType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RatingQuestion) MarshalJSON() ([]byte, error) {
+	type NoMethod RatingQuestion
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RenewWatchRequest: Renew an existing Watch for seven days.
@@ -1393,9 +1499,9 @@ type Request struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Request) MarshalJSON() ([]byte, error) {
+func (s Request) MarshalJSON() ([]byte, error) {
 	type NoMethod Request
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Response: A single response from an update.
@@ -1415,9 +1521,9 @@ type Response struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Response) MarshalJSON() ([]byte, error) {
+func (s Response) MarshalJSON() ([]byte, error) {
 	type NoMethod Response
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RowQuestion: Configuration for a question that is part of a question group.
@@ -1437,9 +1543,9 @@ type RowQuestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RowQuestion) MarshalJSON() ([]byte, error) {
+func (s RowQuestion) MarshalJSON() ([]byte, error) {
 	type NoMethod RowQuestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScaleQuestion: A scale question. The user has a range of numeric values to
@@ -1466,9 +1572,65 @@ type ScaleQuestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScaleQuestion) MarshalJSON() ([]byte, error) {
+func (s ScaleQuestion) MarshalJSON() ([]byte, error) {
 	type NoMethod ScaleQuestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SetPublishSettingsRequest: Updates the publish settings of a Form.
+type SetPublishSettingsRequest struct {
+	// PublishSettings: Required. The desired publish settings to apply to the
+	// form.
+	PublishSettings *PublishSettings `json:"publishSettings,omitempty"`
+	// UpdateMask: Optional. The `publish_settings` fields to update. This field
+	// mask accepts the following values: * `publish_state`: Updates or replaces
+	// all `publish_state` settings. * "*": Updates or replaces all
+	// `publish_settings` fields.
+	UpdateMask string `json:"updateMask,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PublishSettings") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PublishSettings") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SetPublishSettingsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod SetPublishSettingsRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SetPublishSettingsResponse: The response of a `SetPublishSettings` request.
+type SetPublishSettingsResponse struct {
+	// FormId: Required. The ID of the Form. This is same as the `Form.form_id`
+	// field.
+	FormId string `json:"formId,omitempty"`
+	// PublishSettings: The publish settings of the form.
+	PublishSettings *PublishSettings `json:"publishSettings,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "FormId") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FormId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SetPublishSettingsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SetPublishSettingsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextAnswer: An answer to a question represented as text.
@@ -1499,9 +1661,9 @@ type TextAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextAnswer) MarshalJSON() ([]byte, error) {
+func (s TextAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod TextAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextAnswers: A question's answers as text.
@@ -1522,9 +1684,9 @@ type TextAnswers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextAnswers) MarshalJSON() ([]byte, error) {
+func (s TextAnswers) MarshalJSON() ([]byte, error) {
 	type NoMethod TextAnswers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextItem: A text item.
@@ -1550,9 +1712,9 @@ type TextLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextLink) MarshalJSON() ([]byte, error) {
+func (s TextLink) MarshalJSON() ([]byte, error) {
 	type NoMethod TextLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextQuestion: A text-based question.
@@ -1573,9 +1735,9 @@ type TextQuestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextQuestion) MarshalJSON() ([]byte, error) {
+func (s TextQuestion) MarshalJSON() ([]byte, error) {
 	type NoMethod TextQuestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeQuestion: A time question.
@@ -1596,9 +1758,9 @@ type TimeQuestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeQuestion) MarshalJSON() ([]byte, error) {
+func (s TimeQuestion) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeQuestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateFormInfoRequest: Update Form's Info.
@@ -1623,9 +1785,9 @@ type UpdateFormInfoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateFormInfoRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateFormInfoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateFormInfoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateItemRequest: Update an item in a form.
@@ -1654,9 +1816,9 @@ type UpdateItemRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateItemRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateItemRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateItemRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateSettingsRequest: Update Form's FormSettings.
@@ -1681,9 +1843,9 @@ type UpdateSettingsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateSettingsRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateSettingsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateSettingsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Video: Data representing a video.
@@ -1705,9 +1867,9 @@ type Video struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Video) MarshalJSON() ([]byte, error) {
+func (s Video) MarshalJSON() ([]byte, error) {
 	type NoMethod Video
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoItem: An item containing a video.
@@ -1729,9 +1891,9 @@ type VideoItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoItem) MarshalJSON() ([]byte, error) {
+func (s VideoItem) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoLink: Link to a video.
@@ -1753,9 +1915,9 @@ type VideoLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoLink) MarshalJSON() ([]byte, error) {
+func (s VideoLink) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Watch: A watch for events for a form. When the designated event happens, a
@@ -1831,9 +1993,9 @@ type Watch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Watch) MarshalJSON() ([]byte, error) {
+func (s Watch) MarshalJSON() ([]byte, error) {
 	type NoMethod Watch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WatchTarget: The target for notification delivery.
@@ -1857,9 +2019,9 @@ type WatchTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WatchTarget) MarshalJSON() ([]byte, error) {
+func (s WatchTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod WatchTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WriteControl: Provides control over how write requests are executed.
@@ -1893,9 +2055,9 @@ type WriteControl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WriteControl) MarshalJSON() ([]byte, error) {
+func (s WriteControl) MarshalJSON() ([]byte, error) {
 	type NoMethod WriteControl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FormsBatchUpdateCall struct {
@@ -1942,8 +2104,7 @@ func (c *FormsBatchUpdateCall) Header() http.Header {
 
 func (c *FormsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdateformrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdateformrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1959,6 +2120,7 @@ func (c *FormsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"formId": c.formId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1994,9 +2156,11 @@ func (c *FormsBatchUpdateCall) Do(opts ...googleapi.CallOption) (*BatchUpdateFor
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2018,6 +2182,14 @@ type FormsCreateCall struct {
 func (r *FormsService) Create(form *Form) *FormsCreateCall {
 	c := &FormsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.form = form
+	return c
+}
+
+// Unpublished sets the optional parameter "unpublished": Whether the form is
+// unpublished. If set to `true`, the form doesn't accept responses. If set to
+// `false` or unset, the form is published and accepts responses.
+func (c *FormsCreateCall) Unpublished(unpublished bool) *FormsCreateCall {
+	c.urlParams_.Set("unpublished", fmt.Sprint(unpublished))
 	return c
 }
 
@@ -2046,8 +2218,7 @@ func (c *FormsCreateCall) Header() http.Header {
 
 func (c *FormsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.form)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.form)
 	if err != nil {
 		return nil, err
 	}
@@ -2060,6 +2231,7 @@ func (c *FormsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2094,9 +2266,11 @@ func (c *FormsCreateCall) Do(opts ...googleapi.CallOption) (*Form, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2154,12 +2328,11 @@ func (c *FormsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/forms/{formId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2167,6 +2340,7 @@ func (c *FormsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"formId": c.formId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2201,9 +2375,116 @@ func (c *FormsGetCall) Do(opts ...googleapi.CallOption) (*Form, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type FormsSetPublishSettingsCall struct {
+	s                         *Service
+	formId                    string
+	setpublishsettingsrequest *SetPublishSettingsRequest
+	urlParams_                gensupport.URLParams
+	ctx_                      context.Context
+	header_                   http.Header
+}
+
+// SetPublishSettings: Updates the publish settings of a form. Legacy forms
+// aren't supported because they don't have the `publish_settings` field.
+//
+// - formId: The ID of the form. You can get the id from `Form.form_id` field.
+func (r *FormsService) SetPublishSettings(formId string, setpublishsettingsrequest *SetPublishSettingsRequest) *FormsSetPublishSettingsCall {
+	c := &FormsSetPublishSettingsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.formId = formId
+	c.setpublishsettingsrequest = setpublishsettingsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *FormsSetPublishSettingsCall) Fields(s ...googleapi.Field) *FormsSetPublishSettingsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *FormsSetPublishSettingsCall) Context(ctx context.Context) *FormsSetPublishSettingsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *FormsSetPublishSettingsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *FormsSetPublishSettingsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setpublishsettingsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/forms/{formId}:setPublishSettings")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"formId": c.formId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.setPublishSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "forms.forms.setPublishSettings" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SetPublishSettingsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *FormsSetPublishSettingsCall) Do(opts ...googleapi.CallOption) (*SetPublishSettingsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SetPublishSettingsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.setPublishSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2264,12 +2545,11 @@ func (c *FormsResponsesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/forms/{formId}/responses/{responseId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2278,6 +2558,7 @@ func (c *FormsResponsesGetCall) doRequest(alt string) (*http.Response, error) {
 		"formId":     c.formId,
 		"responseId": c.responseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.responses.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2312,9 +2593,11 @@ func (c *FormsResponsesGetCall) Do(opts ...googleapi.CallOption) (*FormResponse,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.responses.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2400,12 +2683,11 @@ func (c *FormsResponsesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/forms/{formId}/responses")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2413,6 +2695,7 @@ func (c *FormsResponsesListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"formId": c.formId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.responses.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2448,9 +2731,11 @@ func (c *FormsResponsesListCall) Do(opts ...googleapi.CallOption) (*ListFormResp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.responses.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2522,8 +2807,7 @@ func (c *FormsWatchesCreateCall) Header() http.Header {
 
 func (c *FormsWatchesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createwatchrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createwatchrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2539,6 +2823,7 @@ func (c *FormsWatchesCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"formId": c.formId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.watches.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2573,9 +2858,11 @@ func (c *FormsWatchesCreateCall) Do(opts ...googleapi.CallOption) (*Watch, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.watches.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2624,12 +2911,11 @@ func (c *FormsWatchesDeleteCall) Header() http.Header {
 
 func (c *FormsWatchesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/forms/{formId}/watches/{watchId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2638,6 +2924,7 @@ func (c *FormsWatchesDeleteCall) doRequest(alt string) (*http.Response, error) {
 		"formId":  c.formId,
 		"watchId": c.watchId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.watches.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2672,9 +2959,11 @@ func (c *FormsWatchesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.watches.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2734,12 +3023,11 @@ func (c *FormsWatchesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/forms/{formId}/watches")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2747,6 +3035,7 @@ func (c *FormsWatchesListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"formId": c.formId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.watches.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2782,9 +3071,11 @@ func (c *FormsWatchesListCall) Do(opts ...googleapi.CallOption) (*ListWatchesRes
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.watches.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2839,8 +3130,7 @@ func (c *FormsWatchesRenewCall) Header() http.Header {
 
 func (c *FormsWatchesRenewCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.renewwatchrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.renewwatchrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2857,6 +3147,7 @@ func (c *FormsWatchesRenewCall) doRequest(alt string) (*http.Response, error) {
 		"formId":  c.formId,
 		"watchId": c.watchId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "forms.forms.watches.renew", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2891,8 +3182,10 @@ func (c *FormsWatchesRenewCall) Do(opts ...googleapi.CallOption) (*Watch, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "forms.forms.watches.renew", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

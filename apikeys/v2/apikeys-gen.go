@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "apikeys:v2"
 const apiName = "apikeys"
@@ -125,7 +128,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Keys = NewKeysService(s)
+	s.Operations = NewOperationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,15 +150,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Keys = NewKeysService(s)
-	s.Operations = NewOperationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -263,9 +266,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -297,9 +300,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2AndroidApplication: Identifier of an Android application for key use.
@@ -324,9 +327,9 @@ type V2AndroidApplication struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2AndroidApplication) MarshalJSON() ([]byte, error) {
+func (s V2AndroidApplication) MarshalJSON() ([]byte, error) {
 	type NoMethod V2AndroidApplication
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2AndroidKeyRestrictions: The Android apps that are allowed to use the key.
@@ -347,9 +350,9 @@ type V2AndroidKeyRestrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2AndroidKeyRestrictions) MarshalJSON() ([]byte, error) {
+func (s V2AndroidKeyRestrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod V2AndroidKeyRestrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2ApiTarget: A restriction for a specific service and optionally one or
@@ -363,8 +366,8 @@ type V2ApiTarget struct {
 	Methods []string `json:"methods,omitempty"`
 	// Service: The service for this restriction. It should be the canonical
 	// service name, for example: `translate.googleapis.com`. You can use `gcloud
-	// services list` (/sdk/gcloud/reference/services/list) to get a list of
-	// services that are enabled in the project.
+	// services list` (https://cloud.google.com/sdk/gcloud/reference/services/list)
+	// to get a list of services that are enabled in the project.
 	Service string `json:"service,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Methods") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -379,9 +382,9 @@ type V2ApiTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2ApiTarget) MarshalJSON() ([]byte, error) {
+func (s V2ApiTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod V2ApiTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2BrowserKeyRestrictions: The HTTP referrers (websites) that are allowed to
@@ -403,9 +406,9 @@ type V2BrowserKeyRestrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2BrowserKeyRestrictions) MarshalJSON() ([]byte, error) {
+func (s V2BrowserKeyRestrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod V2BrowserKeyRestrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2GetKeyStringResponse: Response message for `GetKeyString` method.
@@ -428,9 +431,9 @@ type V2GetKeyStringResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2GetKeyStringResponse) MarshalJSON() ([]byte, error) {
+func (s V2GetKeyStringResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod V2GetKeyStringResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2IosKeyRestrictions: The iOS apps that are allowed to use the key.
@@ -451,9 +454,9 @@ type V2IosKeyRestrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2IosKeyRestrictions) MarshalJSON() ([]byte, error) {
+func (s V2IosKeyRestrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod V2IosKeyRestrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2Key: The representation of a key managed by the API Keys API.
@@ -488,6 +491,9 @@ type V2Key struct {
 	Name string `json:"name,omitempty"`
 	// Restrictions: Key restrictions.
 	Restrictions *V2Restrictions `json:"restrictions,omitempty"`
+	// ServiceAccountEmail: Optional. The email address of the service account
+	// (https://cloud.google.com/iam/docs/service-accounts) the key is bound to.
+	ServiceAccountEmail string `json:"serviceAccountEmail,omitempty"`
 	// Uid: Output only. Unique id in UUID4 format.
 	Uid string `json:"uid,omitempty"`
 	// UpdateTime: Output only. A timestamp identifying the time this key was last
@@ -509,9 +515,9 @@ type V2Key struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2Key) MarshalJSON() ([]byte, error) {
+func (s V2Key) MarshalJSON() ([]byte, error) {
 	type NoMethod V2Key
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2ListKeysResponse: Response message for `ListKeys` method.
@@ -536,9 +542,9 @@ type V2ListKeysResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2ListKeysResponse) MarshalJSON() ([]byte, error) {
+func (s V2ListKeysResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod V2ListKeysResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2LookupKeyResponse: Response message for `LookupKey` method.
@@ -565,9 +571,9 @@ type V2LookupKeyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2LookupKeyResponse) MarshalJSON() ([]byte, error) {
+func (s V2LookupKeyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod V2LookupKeyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2Restrictions: Describes the restrictions on the key.
@@ -599,9 +605,9 @@ type V2Restrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2Restrictions) MarshalJSON() ([]byte, error) {
+func (s V2Restrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod V2Restrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2ServerKeyRestrictions: The IP addresses of callers that are allowed to use
@@ -623,9 +629,9 @@ type V2ServerKeyRestrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2ServerKeyRestrictions) MarshalJSON() ([]byte, error) {
+func (s V2ServerKeyRestrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod V2ServerKeyRestrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2UndeleteKeyRequest: Request message for `UndeleteKey` method.
@@ -692,16 +698,16 @@ func (c *KeysLookupKeyCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/keys:lookupKey")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.keys.lookupKey", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -737,9 +743,11 @@ func (c *KeysLookupKeyCall) Do(opts ...googleapi.CallOption) (*V2LookupKeyRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.keys.lookupKey", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -799,12 +807,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -812,6 +819,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -846,9 +854,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -908,8 +918,7 @@ func (c *ProjectsLocationsKeysCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsKeysCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.v2key)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.v2key)
 	if err != nil {
 		return nil, err
 	}
@@ -925,6 +934,7 @@ func (c *ProjectsLocationsKeysCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -959,9 +969,11 @@ func (c *ProjectsLocationsKeysCreateCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1017,12 +1029,11 @@ func (c *ProjectsLocationsKeysDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsKeysDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1030,6 +1041,7 @@ func (c *ProjectsLocationsKeysDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1064,9 +1076,11 @@ func (c *ProjectsLocationsKeysDeleteCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1126,12 +1140,11 @@ func (c *ProjectsLocationsKeysGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1139,6 +1152,7 @@ func (c *ProjectsLocationsKeysGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1173,9 +1187,11 @@ func (c *ProjectsLocationsKeysGetCall) Do(opts ...googleapi.CallOption) (*V2Key,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1234,12 +1250,11 @@ func (c *ProjectsLocationsKeysGetKeyStringCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/keyString")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1247,6 +1262,7 @@ func (c *ProjectsLocationsKeysGetKeyStringCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.getKeyString", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1282,9 +1298,11 @@ func (c *ProjectsLocationsKeysGetKeyStringCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.getKeyString", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1365,12 +1383,11 @@ func (c *ProjectsLocationsKeysListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/keys")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1378,6 +1395,7 @@ func (c *ProjectsLocationsKeysListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1413,9 +1431,11 @@ func (c *ProjectsLocationsKeysListCall) Do(opts ...googleapi.CallOption) (*V2Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1502,8 +1522,7 @@ func (c *ProjectsLocationsKeysPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsKeysPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.v2key)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.v2key)
 	if err != nil {
 		return nil, err
 	}
@@ -1519,6 +1538,7 @@ func (c *ProjectsLocationsKeysPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1553,9 +1573,11 @@ func (c *ProjectsLocationsKeysPatchCall) Do(opts ...googleapi.CallOption) (*Oper
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1605,8 +1627,7 @@ func (c *ProjectsLocationsKeysUndeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsKeysUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.v2undeletekeyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.v2undeletekeyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1622,6 +1643,7 @@ func (c *ProjectsLocationsKeysUndeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1656,8 +1678,10 @@ func (c *ProjectsLocationsKeysUndeleteCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "apikeys.projects.locations.keys.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

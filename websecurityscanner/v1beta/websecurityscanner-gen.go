@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "websecurityscanner:v1beta"
 const apiName = "websecurityscanner"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -244,9 +247,9 @@ type Authentication struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Authentication) MarshalJSON() ([]byte, error) {
+func (s Authentication) MarshalJSON() ([]byte, error) {
 	type NoMethod Authentication
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CrawledUrl: A CrawledUrl resource represents a URL that was crawled during a
@@ -273,9 +276,9 @@ type CrawledUrl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CrawledUrl) MarshalJSON() ([]byte, error) {
+func (s CrawledUrl) MarshalJSON() ([]byte, error) {
 	type NoMethod CrawledUrl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomAccount: Describes authentication configuration that uses a custom
@@ -302,9 +305,9 @@ type CustomAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomAccount) MarshalJSON() ([]byte, error) {
+func (s CustomAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -393,9 +396,9 @@ type Finding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Finding) MarshalJSON() ([]byte, error) {
+func (s Finding) MarshalJSON() ([]byte, error) {
 	type NoMethod Finding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FindingTypeStats: A FindingTypeStats resource represents stats regarding a
@@ -418,9 +421,9 @@ type FindingTypeStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FindingTypeStats) MarshalJSON() ([]byte, error) {
+func (s FindingTypeStats) MarshalJSON() ([]byte, error) {
 	type NoMethod FindingTypeStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Form: ! Information about a vulnerability with an HTML.
@@ -442,9 +445,9 @@ type Form struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Form) MarshalJSON() ([]byte, error) {
+func (s Form) MarshalJSON() ([]byte, error) {
 	type NoMethod Form
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAccount: Describes authentication configuration that uses a Google
@@ -469,9 +472,9 @@ type GoogleAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAccount) MarshalJSON() ([]byte, error) {
+func (s GoogleAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Header: Describes a HTTP Header.
@@ -493,9 +496,9 @@ type Header struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Header) MarshalJSON() ([]byte, error) {
+func (s Header) MarshalJSON() ([]byte, error) {
 	type NoMethod Header
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IapCredential: Describes authentication configuration for
@@ -518,9 +521,9 @@ type IapCredential struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IapCredential) MarshalJSON() ([]byte, error) {
+func (s IapCredential) MarshalJSON() ([]byte, error) {
 	type NoMethod IapCredential
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IapTestServiceAccountInfo: Describes authentication configuration when
@@ -543,9 +546,9 @@ type IapTestServiceAccountInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IapTestServiceAccountInfo) MarshalJSON() ([]byte, error) {
+func (s IapTestServiceAccountInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod IapTestServiceAccountInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCrawledUrlsResponse: Response for the `ListCrawledUrls` method.
@@ -571,9 +574,9 @@ type ListCrawledUrlsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCrawledUrlsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCrawledUrlsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCrawledUrlsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFindingTypeStatsResponse: Response for the `ListFindingTypeStats`
@@ -597,9 +600,9 @@ type ListFindingTypeStatsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFindingTypeStatsResponse) MarshalJSON() ([]byte, error) {
+func (s ListFindingTypeStatsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFindingTypeStatsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFindingsResponse: Response for the `ListFindings` method.
@@ -625,9 +628,9 @@ type ListFindingsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFindingsResponse) MarshalJSON() ([]byte, error) {
+func (s ListFindingsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFindingsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListScanConfigsResponse: Response for the `ListScanConfigs` method.
@@ -653,9 +656,9 @@ type ListScanConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListScanConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListScanConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListScanConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListScanRunsResponse: Response for the `ListScanRuns` method.
@@ -681,9 +684,9 @@ type ListScanRunsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListScanRunsResponse) MarshalJSON() ([]byte, error) {
+func (s ListScanRunsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListScanRunsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OutdatedLibrary: Information reported for an outdated library.
@@ -708,9 +711,9 @@ type OutdatedLibrary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OutdatedLibrary) MarshalJSON() ([]byte, error) {
+func (s OutdatedLibrary) MarshalJSON() ([]byte, error) {
 	type NoMethod OutdatedLibrary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScanConfig: A ScanConfig resource contains the configurations to launch a
@@ -804,9 +807,9 @@ type ScanConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScanConfig) MarshalJSON() ([]byte, error) {
+func (s ScanConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ScanConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScanConfigError: Defines a custom error message used by CreateScanConfig and
@@ -914,9 +917,9 @@ type ScanConfigError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScanConfigError) MarshalJSON() ([]byte, error) {
+func (s ScanConfigError) MarshalJSON() ([]byte, error) {
 	type NoMethod ScanConfigError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScanRun: A ScanRun is a output-only resource representing an actual run of
@@ -987,9 +990,9 @@ type ScanRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScanRun) MarshalJSON() ([]byte, error) {
+func (s ScanRun) MarshalJSON() ([]byte, error) {
 	type NoMethod ScanRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScanRunErrorTrace: Output only. Defines an error trace message for a
@@ -1039,9 +1042,9 @@ type ScanRunErrorTrace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScanRunErrorTrace) MarshalJSON() ([]byte, error) {
+func (s ScanRunErrorTrace) MarshalJSON() ([]byte, error) {
 	type NoMethod ScanRunErrorTrace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScanRunWarningTrace: Output only. Defines a warning trace message for
@@ -1078,9 +1081,9 @@ type ScanRunWarningTrace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScanRunWarningTrace) MarshalJSON() ([]byte, error) {
+func (s ScanRunWarningTrace) MarshalJSON() ([]byte, error) {
 	type NoMethod ScanRunWarningTrace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Schedule: Scan schedule configuration.
@@ -1106,9 +1109,9 @@ type Schedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Schedule) MarshalJSON() ([]byte, error) {
+func (s Schedule) MarshalJSON() ([]byte, error) {
 	type NoMethod Schedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartScanRunRequest: Request for the `StartScanRun` method.
@@ -1139,9 +1142,9 @@ type ViolatingResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ViolatingResource) MarshalJSON() ([]byte, error) {
+func (s ViolatingResource) MarshalJSON() ([]byte, error) {
 	type NoMethod ViolatingResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VulnerableHeaders: Information about vulnerable or missing HTTP Headers.
@@ -1163,9 +1166,9 @@ type VulnerableHeaders struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VulnerableHeaders) MarshalJSON() ([]byte, error) {
+func (s VulnerableHeaders) MarshalJSON() ([]byte, error) {
 	type NoMethod VulnerableHeaders
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VulnerableParameters: Information about vulnerable request parameters.
@@ -1185,9 +1188,9 @@ type VulnerableParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VulnerableParameters) MarshalJSON() ([]byte, error) {
+func (s VulnerableParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod VulnerableParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Xss: Information reported for an XSS.
@@ -1209,9 +1212,9 @@ type Xss struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Xss) MarshalJSON() ([]byte, error) {
+func (s Xss) MarshalJSON() ([]byte, error) {
 	type NoMethod Xss
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Xxe: Information reported for an XXE.
@@ -1239,9 +1242,9 @@ type Xxe struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Xxe) MarshalJSON() ([]byte, error) {
+func (s Xxe) MarshalJSON() ([]byte, error) {
 	type NoMethod Xxe
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsScanConfigsCreateCall struct {
@@ -1289,8 +1292,7 @@ func (c *ProjectsScanConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsScanConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.scanconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.scanconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1306,6 +1308,7 @@ func (c *ProjectsScanConfigsCreateCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1340,9 +1343,11 @@ func (c *ProjectsScanConfigsCreateCall) Do(opts ...googleapi.CallOption) (*ScanC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1389,12 +1394,11 @@ func (c *ProjectsScanConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsScanConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1402,6 +1406,7 @@ func (c *ProjectsScanConfigsDeleteCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1436,9 +1441,11 @@ func (c *ProjectsScanConfigsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1497,12 +1504,11 @@ func (c *ProjectsScanConfigsGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1510,6 +1516,7 @@ func (c *ProjectsScanConfigsGetCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1544,9 +1551,11 @@ func (c *ProjectsScanConfigsGetCall) Do(opts ...googleapi.CallOption) (*ScanConf
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1622,12 +1631,11 @@ func (c *ProjectsScanConfigsListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/scanConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1635,6 +1643,7 @@ func (c *ProjectsScanConfigsListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1670,9 +1679,11 @@ func (c *ProjectsScanConfigsListCall) Do(opts ...googleapi.CallOption) (*ListSca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1752,8 +1763,7 @@ func (c *ProjectsScanConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsScanConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.scanconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.scanconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1769,6 +1779,7 @@ func (c *ProjectsScanConfigsPatchCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1803,9 +1814,11 @@ func (c *ProjectsScanConfigsPatchCall) Do(opts ...googleapi.CallOption) (*ScanCo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1854,8 +1867,7 @@ func (c *ProjectsScanConfigsStartCall) Header() http.Header {
 
 func (c *ProjectsScanConfigsStartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.startscanrunrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.startscanrunrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1871,6 +1883,7 @@ func (c *ProjectsScanConfigsStartCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.start", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1905,9 +1918,11 @@ func (c *ProjectsScanConfigsStartCall) Do(opts ...googleapi.CallOption) (*ScanRu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.start", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1967,12 +1982,11 @@ func (c *ProjectsScanConfigsScanRunsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1980,6 +1994,7 @@ func (c *ProjectsScanConfigsScanRunsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2014,9 +2029,11 @@ func (c *ProjectsScanConfigsScanRunsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2093,12 +2110,11 @@ func (c *ProjectsScanConfigsScanRunsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/scanRuns")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2106,6 +2122,7 @@ func (c *ProjectsScanConfigsScanRunsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2141,9 +2158,11 @@ func (c *ProjectsScanConfigsScanRunsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2214,8 +2233,7 @@ func (c *ProjectsScanConfigsScanRunsStopCall) Header() http.Header {
 
 func (c *ProjectsScanConfigsScanRunsStopCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.stopscanrunrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.stopscanrunrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2231,6 +2249,7 @@ func (c *ProjectsScanConfigsScanRunsStopCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.stop", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2265,9 +2284,11 @@ func (c *ProjectsScanConfigsScanRunsStopCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.stop", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2344,12 +2365,11 @@ func (c *ProjectsScanConfigsScanRunsCrawledUrlsListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/crawledUrls")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2357,6 +2377,7 @@ func (c *ProjectsScanConfigsScanRunsCrawledUrlsListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.crawledUrls.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2392,9 +2413,11 @@ func (c *ProjectsScanConfigsScanRunsCrawledUrlsListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.crawledUrls.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2475,12 +2498,11 @@ func (c *ProjectsScanConfigsScanRunsFindingTypeStatsListCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/findingTypeStats")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2488,6 +2510,7 @@ func (c *ProjectsScanConfigsScanRunsFindingTypeStatsListCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.findingTypeStats.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2523,9 +2546,11 @@ func (c *ProjectsScanConfigsScanRunsFindingTypeStatsListCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.findingTypeStats.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2586,12 +2611,11 @@ func (c *ProjectsScanConfigsScanRunsFindingsGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2599,6 +2623,7 @@ func (c *ProjectsScanConfigsScanRunsFindingsGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.findings.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2633,9 +2658,11 @@ func (c *ProjectsScanConfigsScanRunsFindingsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.findings.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2720,12 +2747,11 @@ func (c *ProjectsScanConfigsScanRunsFindingsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/findings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2733,6 +2759,7 @@ func (c *ProjectsScanConfigsScanRunsFindingsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.findings.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2768,9 +2795,11 @@ func (c *ProjectsScanConfigsScanRunsFindingsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "websecurityscanner.projects.scanConfigs.scanRuns.findings.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

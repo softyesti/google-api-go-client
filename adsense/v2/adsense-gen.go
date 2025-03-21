@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "adsense:v2"
 const apiName = "adsense"
@@ -123,7 +126,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -142,13 +146,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -334,9 +337,9 @@ type Account struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Account) MarshalJSON() ([]byte, error) {
+func (s Account) MarshalJSON() ([]byte, error) {
 	type NoMethod Account
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdBlockingRecoveryTag: Representation of an ad blocking recovery tag. See
@@ -368,9 +371,9 @@ type AdBlockingRecoveryTag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdBlockingRecoveryTag) MarshalJSON() ([]byte, error) {
+func (s AdBlockingRecoveryTag) MarshalJSON() ([]byte, error) {
 	type NoMethod AdBlockingRecoveryTag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdClient: Representation of an ad client. An ad client represents a user's
@@ -413,9 +416,9 @@ type AdClient struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdClient) MarshalJSON() ([]byte, error) {
+func (s AdClient) MarshalJSON() ([]byte, error) {
 	type NoMethod AdClient
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdClientAdCode: Representation of the AdSense code for a given ad client.
@@ -447,9 +450,9 @@ type AdClientAdCode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdClientAdCode) MarshalJSON() ([]byte, error) {
+func (s AdClientAdCode) MarshalJSON() ([]byte, error) {
 	type NoMethod AdClientAdCode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdUnit: Representation of an ad unit. An ad unit represents a saved ad unit
@@ -492,9 +495,9 @@ type AdUnit struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdUnit) MarshalJSON() ([]byte, error) {
+func (s AdUnit) MarshalJSON() ([]byte, error) {
 	type NoMethod AdUnit
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdUnitAdCode: Representation of the ad unit code for a given ad unit. For
@@ -520,9 +523,9 @@ type AdUnitAdCode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdUnitAdCode) MarshalJSON() ([]byte, error) {
+func (s AdUnitAdCode) MarshalJSON() ([]byte, error) {
 	type NoMethod AdUnitAdCode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Alert: Representation of an alert.
@@ -558,9 +561,9 @@ type Alert struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Alert) MarshalJSON() ([]byte, error) {
+func (s Alert) MarshalJSON() ([]byte, error) {
 	type NoMethod Alert
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Cell: Cell representation.
@@ -581,9 +584,9 @@ type Cell struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Cell) MarshalJSON() ([]byte, error) {
+func (s Cell) MarshalJSON() ([]byte, error) {
 	type NoMethod Cell
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentAdsSettings: Settings specific to content ads (AFC).
@@ -615,9 +618,9 @@ type ContentAdsSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentAdsSettings) MarshalJSON() ([]byte, error) {
+func (s ContentAdsSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentAdsSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomChannel: Representation of a custom channel.
@@ -649,9 +652,9 @@ type CustomChannel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomChannel) MarshalJSON() ([]byte, error) {
+func (s CustomChannel) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomChannel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -687,9 +690,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -733,9 +736,9 @@ type Header struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Header) MarshalJSON() ([]byte, error) {
+func (s Header) MarshalJSON() ([]byte, error) {
 	type NoMethod Header
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HttpBody: Message that represents an arbitrary HTTP body. It should only be
@@ -780,9 +783,9 @@ type HttpBody struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HttpBody) MarshalJSON() ([]byte, error) {
+func (s HttpBody) MarshalJSON() ([]byte, error) {
 	type NoMethod HttpBody
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccountsResponse: Response definition for the account list rpc.
@@ -809,9 +812,9 @@ type ListAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAdClientsResponse: Response definition for the ad client list rpc.
@@ -838,9 +841,9 @@ type ListAdClientsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAdClientsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAdClientsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAdClientsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAdUnitsResponse: Response definition for the adunit list rpc.
@@ -867,9 +870,9 @@ type ListAdUnitsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAdUnitsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAdUnitsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAdUnitsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAlertsResponse: Response definition for the alerts list rpc.
@@ -892,9 +895,9 @@ type ListAlertsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAlertsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAlertsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAlertsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListChildAccountsResponse: Response definition for the child account list
@@ -922,9 +925,9 @@ type ListChildAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListChildAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s ListChildAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListChildAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCustomChannelsResponse: Response definition for the custom channel list
@@ -952,9 +955,9 @@ type ListCustomChannelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCustomChannelsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCustomChannelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCustomChannelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLinkedAdUnitsResponse: Response definition for the ad units linked to a
@@ -982,9 +985,9 @@ type ListLinkedAdUnitsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLinkedAdUnitsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLinkedAdUnitsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLinkedAdUnitsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLinkedCustomChannelsResponse: Response definition for the custom
@@ -1012,9 +1015,9 @@ type ListLinkedCustomChannelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLinkedCustomChannelsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLinkedCustomChannelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLinkedCustomChannelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPaymentsResponse: Response definition for the payments list rpc.
@@ -1037,9 +1040,9 @@ type ListPaymentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPaymentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPaymentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPaymentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPolicyIssuesResponse: Response definition for the policy issues list
@@ -1069,9 +1072,9 @@ type ListPolicyIssuesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPolicyIssuesResponse) MarshalJSON() ([]byte, error) {
+func (s ListPolicyIssuesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPolicyIssuesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSavedReportsResponse: Response definition for the saved reports list
@@ -1099,9 +1102,9 @@ type ListSavedReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSavedReportsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSavedReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSavedReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSitesResponse: Response definition for the sites list rpc.
@@ -1128,9 +1131,9 @@ type ListSitesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSitesResponse) MarshalJSON() ([]byte, error) {
+func (s ListSitesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSitesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUrlChannelsResponse: Response definition for the url channels list rpc.
@@ -1157,9 +1160,9 @@ type ListUrlChannelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUrlChannelsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUrlChannelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUrlChannelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Payment: Representation of an unpaid or paid payment. See Payment timelines
@@ -1195,9 +1198,9 @@ type Payment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Payment) MarshalJSON() ([]byte, error) {
+func (s Payment) MarshalJSON() ([]byte, error) {
 	type NoMethod Payment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PolicyIssue: Representation of a policy issue for a single entity (site,
@@ -1224,7 +1227,7 @@ type PolicyIssue struct {
 	// the ad requests coming from the EEA and UK do not have a TCF string or the
 	// Consent Management Platform (CMP) indicated by the TCF string is not Google
 	// certified. As a result, basic/limited ads will be served. See
-	// https://support.google.com/adsense/answer/13554116
+	// https://support.google.com/adsense/answer/13554116.
 	Action string `json:"action,omitempty"`
 	// AdClients: Optional. List of ad clients associated with the policy issue
 	// (either as the primary ad client or an associated host/secondary ad client).
@@ -1289,9 +1292,9 @@ type PolicyIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyIssue) MarshalJSON() ([]byte, error) {
+func (s PolicyIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PolicyTopic: Information about a particular policy topic. A policy topic
@@ -1300,15 +1303,28 @@ func (s *PolicyIssue) MarshalJSON() ([]byte, error) {
 // content. A single policy issue can have multiple policy topics for a single
 // entity.
 type PolicyTopic struct {
-	// MustFix: Required. Indicates if this is a policy violation or not. When the
-	// value is true, issues that are instances of this topic must be addressed to
-	// remain in compliance with the partner's agreements with Google. A false
-	// value indicates that it's not mandatory to fix the issues but advertising
-	// demand might be restricted.
+	// MustFix: Required. Deprecated. Policy topics no longer have a "must-fix"
+	// classification.
 	MustFix bool `json:"mustFix,omitempty"`
 	// Topic: Required. The policy topic. For example, "sexual-content" or
 	// "ads-obscuring-content"."
 	Topic string `json:"topic,omitempty"`
+	// Type: Optional. The type of policy topic. For example, "POLICY" represents
+	// all the policy topics that are related to the Google Publisher Policy (GPP).
+	// See https://support.google.com/adsense/answer/15689616.
+	//
+	// Possible values:
+	//   "POLICY_TOPIC_TYPE_UNSPECIFIED" - The type is unspecified.
+	//   "POLICY" - Topics that are primarily related to the Google Publisher
+	// Policy (GPP) (https://support.google.com/publisherpolicies/answer/10502938)
+	// or the Google Publisher Restrictions (GPR) policies
+	// (https://support.google.com/publisherpolicies/answer/10437795).
+	//   "ADVERTISER_PREFERENCE" - Topics that are related to advertiser
+	// preferences. Certain advertisers may choose not to bid on content that are
+	// labeled with certain policies.
+	//   "REGULATORY" - Any topics that are a result of a country or regional
+	// regulatory requirement body.
+	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "MustFix") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
@@ -1322,9 +1338,9 @@ type PolicyTopic struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyTopic) MarshalJSON() ([]byte, error) {
+func (s PolicyTopic) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyTopic
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportResult: Result of a generated report.
@@ -1367,9 +1383,9 @@ type ReportResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportResult) MarshalJSON() ([]byte, error) {
+func (s ReportResult) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Row: Row representation.
@@ -1389,9 +1405,9 @@ type Row struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Row) MarshalJSON() ([]byte, error) {
+func (s Row) MarshalJSON() ([]byte, error) {
 	type NoMethod Row
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SavedReport: Representation of a saved report.
@@ -1417,9 +1433,9 @@ type SavedReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SavedReport) MarshalJSON() ([]byte, error) {
+func (s SavedReport) MarshalJSON() ([]byte, error) {
 	type NoMethod SavedReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Site: Representation of a Site.
@@ -1468,17 +1484,18 @@ type Site struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Site) MarshalJSON() ([]byte, error) {
+func (s Site) MarshalJSON() ([]byte, error) {
 	type NoMethod Site
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeZone: Represents a time zone from the IANA Time Zone Database
 // (https://www.iana.org/time-zones).
 type TimeZone struct {
-	// Id: IANA Time Zone Database time zone, e.g. "America/New_York".
+	// Id: IANA Time Zone Database time zone. For example "America/New_York".
 	Id string `json:"id,omitempty"`
-	// Version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+	// Version: Optional. IANA Time Zone Database version number. For example
+	// "2019a".
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1493,9 +1510,9 @@ type TimeZone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeZone) MarshalJSON() ([]byte, error) {
+func (s TimeZone) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeZone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UrlChannel: Representation of a URL channel. URL channels allow you to track
@@ -1527,9 +1544,9 @@ type UrlChannel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UrlChannel) MarshalJSON() ([]byte, error) {
+func (s UrlChannel) MarshalJSON() ([]byte, error) {
 	type NoMethod UrlChannel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountsGetCall struct {
@@ -1586,12 +1603,11 @@ func (c *AccountsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1599,6 +1615,7 @@ func (c *AccountsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1633,9 +1650,11 @@ func (c *AccountsGetCall) Do(opts ...googleapi.CallOption) (*Account, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1694,12 +1713,11 @@ func (c *AccountsGetAdBlockingRecoveryTagCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/adBlockingRecoveryTag")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1707,6 +1725,7 @@ func (c *AccountsGetAdBlockingRecoveryTagCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.getAdBlockingRecoveryTag", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1742,9 +1761,11 @@ func (c *AccountsGetAdBlockingRecoveryTagCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.getAdBlockingRecoveryTag", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1816,16 +1837,16 @@ func (c *AccountsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/accounts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1861,9 +1882,11 @@ func (c *AccountsListCall) Do(opts ...googleapi.CallOption) (*ListAccountsRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1962,12 +1985,11 @@ func (c *AccountsListChildAccountsCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}:listChildAccounts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1975,6 +1997,7 @@ func (c *AccountsListChildAccountsCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.listChildAccounts", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2010,9 +2033,11 @@ func (c *AccountsListChildAccountsCall) Do(opts ...googleapi.CallOption) (*ListC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.listChildAccounts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2092,12 +2117,11 @@ func (c *AccountsAdclientsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2105,6 +2129,7 @@ func (c *AccountsAdclientsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2139,9 +2164,11 @@ func (c *AccountsAdclientsGetCall) Do(opts ...googleapi.CallOption) (*AdClient, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2203,12 +2230,11 @@ func (c *AccountsAdclientsGetAdcodeCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/adcode")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2216,6 +2242,7 @@ func (c *AccountsAdclientsGetAdcodeCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.getAdcode", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2250,9 +2277,11 @@ func (c *AccountsAdclientsGetAdcodeCall) Do(opts ...googleapi.CallOption) (*AdCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.getAdcode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2329,12 +2358,11 @@ func (c *AccountsAdclientsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/adclients")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2342,6 +2370,7 @@ func (c *AccountsAdclientsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2377,9 +2406,11 @@ func (c *AccountsAdclientsListCall) Do(opts ...googleapi.CallOption) (*ListAdCli
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2457,8 +2488,7 @@ func (c *AccountsAdclientsAdunitsCreateCall) Header() http.Header {
 
 func (c *AccountsAdclientsAdunitsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.adunit)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.adunit)
 	if err != nil {
 		return nil, err
 	}
@@ -2474,6 +2504,7 @@ func (c *AccountsAdclientsAdunitsCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2508,9 +2539,11 @@ func (c *AccountsAdclientsAdunitsCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2569,12 +2602,11 @@ func (c *AccountsAdclientsAdunitsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2582,6 +2614,7 @@ func (c *AccountsAdclientsAdunitsGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2616,9 +2649,11 @@ func (c *AccountsAdclientsAdunitsGetCall) Do(opts ...googleapi.CallOption) (*AdU
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2680,12 +2715,11 @@ func (c *AccountsAdclientsAdunitsGetAdcodeCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/adcode")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2693,6 +2727,7 @@ func (c *AccountsAdclientsAdunitsGetAdcodeCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.getAdcode", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2727,9 +2762,11 @@ func (c *AccountsAdclientsAdunitsGetAdcodeCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.getAdcode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2806,12 +2843,11 @@ func (c *AccountsAdclientsAdunitsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/adunits")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2819,6 +2855,7 @@ func (c *AccountsAdclientsAdunitsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2854,9 +2891,11 @@ func (c *AccountsAdclientsAdunitsListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2955,12 +2994,11 @@ func (c *AccountsAdclientsAdunitsListLinkedCustomChannelsCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}:listLinkedCustomChannels")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2968,6 +3006,7 @@ func (c *AccountsAdclientsAdunitsListLinkedCustomChannelsCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.listLinkedCustomChannels", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3003,9 +3042,11 @@ func (c *AccountsAdclientsAdunitsListLinkedCustomChannelsCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.listLinkedCustomChannels", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3087,8 +3128,7 @@ func (c *AccountsAdclientsAdunitsPatchCall) Header() http.Header {
 
 func (c *AccountsAdclientsAdunitsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.adunit)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.adunit)
 	if err != nil {
 		return nil, err
 	}
@@ -3104,6 +3144,7 @@ func (c *AccountsAdclientsAdunitsPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3138,9 +3179,11 @@ func (c *AccountsAdclientsAdunitsPatchCall) Do(opts ...googleapi.CallOption) (*A
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.adunits.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3192,8 +3235,7 @@ func (c *AccountsAdclientsCustomchannelsCreateCall) Header() http.Header {
 
 func (c *AccountsAdclientsCustomchannelsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customchannel)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customchannel)
 	if err != nil {
 		return nil, err
 	}
@@ -3209,6 +3251,7 @@ func (c *AccountsAdclientsCustomchannelsCreateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3243,9 +3286,11 @@ func (c *AccountsAdclientsCustomchannelsCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3295,12 +3340,11 @@ func (c *AccountsAdclientsCustomchannelsDeleteCall) Header() http.Header {
 
 func (c *AccountsAdclientsCustomchannelsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3308,6 +3352,7 @@ func (c *AccountsAdclientsCustomchannelsDeleteCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3342,9 +3387,11 @@ func (c *AccountsAdclientsCustomchannelsDeleteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3403,12 +3450,11 @@ func (c *AccountsAdclientsCustomchannelsGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3416,6 +3462,7 @@ func (c *AccountsAdclientsCustomchannelsGetCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3450,9 +3497,11 @@ func (c *AccountsAdclientsCustomchannelsGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3529,12 +3578,11 @@ func (c *AccountsAdclientsCustomchannelsListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/customchannels")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3542,6 +3590,7 @@ func (c *AccountsAdclientsCustomchannelsListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3577,9 +3626,11 @@ func (c *AccountsAdclientsCustomchannelsListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3677,12 +3728,11 @@ func (c *AccountsAdclientsCustomchannelsListLinkedAdUnitsCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}:listLinkedAdUnits")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3690,6 +3740,7 @@ func (c *AccountsAdclientsCustomchannelsListLinkedAdUnitsCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.listLinkedAdUnits", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3725,9 +3776,11 @@ func (c *AccountsAdclientsCustomchannelsListLinkedAdUnitsCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.listLinkedAdUnits", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3807,8 +3860,7 @@ func (c *AccountsAdclientsCustomchannelsPatchCall) Header() http.Header {
 
 func (c *AccountsAdclientsCustomchannelsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customchannel)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customchannel)
 	if err != nil {
 		return nil, err
 	}
@@ -3824,6 +3876,7 @@ func (c *AccountsAdclientsCustomchannelsPatchCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3858,9 +3911,11 @@ func (c *AccountsAdclientsCustomchannelsPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.customchannels.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3919,12 +3974,11 @@ func (c *AccountsAdclientsUrlchannelsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3932,6 +3986,7 @@ func (c *AccountsAdclientsUrlchannelsGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.urlchannels.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3966,9 +4021,11 @@ func (c *AccountsAdclientsUrlchannelsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.urlchannels.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4045,12 +4102,11 @@ func (c *AccountsAdclientsUrlchannelsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/urlchannels")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4058,6 +4114,7 @@ func (c *AccountsAdclientsUrlchannelsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.urlchannels.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4093,9 +4150,11 @@ func (c *AccountsAdclientsUrlchannelsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.adclients.urlchannels.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4185,12 +4244,11 @@ func (c *AccountsAlertsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/alerts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4198,6 +4256,7 @@ func (c *AccountsAlertsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.alerts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4233,9 +4292,11 @@ func (c *AccountsAlertsListCall) Do(opts ...googleapi.CallOption) (*ListAlertsRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.alerts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4294,12 +4355,11 @@ func (c *AccountsPaymentsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/payments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4307,6 +4367,7 @@ func (c *AccountsPaymentsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.payments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4342,9 +4403,11 @@ func (c *AccountsPaymentsListCall) Do(opts ...googleapi.CallOption) (*ListPaymen
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.payments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4403,12 +4466,11 @@ func (c *AccountsPolicyIssuesGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4416,6 +4478,7 @@ func (c *AccountsPolicyIssuesGetCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.policyIssues.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4450,9 +4513,11 @@ func (c *AccountsPolicyIssuesGetCall) Do(opts ...googleapi.CallOption) (*PolicyI
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.policyIssues.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4530,12 +4595,11 @@ func (c *AccountsPolicyIssuesListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/policyIssues")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4543,6 +4607,7 @@ func (c *AccountsPolicyIssuesListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.policyIssues.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4578,9 +4643,11 @@ func (c *AccountsPolicyIssuesListCall) Do(opts ...googleapi.CallOption) (*ListPo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.policyIssues.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4721,6 +4788,7 @@ func (c *AccountsReportsGenerateCall) DateRange(dateRange string) *AccountsRepor
 //
 // dimension match the values from CustomChannel.reporting_dimension_id.
 //
+//	"HOSTED_CUSTOM_CHANNEL_ID" - Not supported.
 //	"OWNED_SITE_DOMAIN_NAME" - Domain name of a verified site (e.g.
 //
 // "example.com"). The members of this dimension match the values from
@@ -5133,12 +5201,11 @@ func (c *AccountsReportsGenerateCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+account}/reports:generate")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5146,6 +5213,7 @@ func (c *AccountsReportsGenerateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"account": c.account,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.reports.generate", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5180,9 +5248,11 @@ func (c *AccountsReportsGenerateCall) Do(opts ...googleapi.CallOption) (*ReportR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.reports.generate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5302,6 +5372,7 @@ func (c *AccountsReportsGenerateCsvCall) DateRange(dateRange string) *AccountsRe
 //
 // dimension match the values from CustomChannel.reporting_dimension_id.
 //
+//	"HOSTED_CUSTOM_CHANNEL_ID" - Not supported.
 //	"OWNED_SITE_DOMAIN_NAME" - Domain name of a verified site (e.g.
 //
 // "example.com"). The members of this dimension match the values from
@@ -5714,12 +5785,11 @@ func (c *AccountsReportsGenerateCsvCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+account}/reports:generateCsv")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5727,6 +5797,7 @@ func (c *AccountsReportsGenerateCsvCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"account": c.account,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.reports.generateCsv", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5761,9 +5832,11 @@ func (c *AccountsReportsGenerateCsvCall) Do(opts ...googleapi.CallOption) (*Http
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.reports.generateCsv", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5822,12 +5895,11 @@ func (c *AccountsReportsGetSavedCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/saved")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5835,6 +5907,7 @@ func (c *AccountsReportsGetSavedCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.reports.getSaved", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5869,9 +5942,11 @@ func (c *AccountsReportsGetSavedCall) Do(opts ...googleapi.CallOption) (*SavedRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.reports.getSaved", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6038,12 +6113,11 @@ func (c *AccountsReportsSavedGenerateCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/saved:generate")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6051,6 +6125,7 @@ func (c *AccountsReportsSavedGenerateCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.reports.saved.generate", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6085,9 +6160,11 @@ func (c *AccountsReportsSavedGenerateCall) Do(opts ...googleapi.CallOption) (*Re
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.reports.saved.generate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6254,12 +6331,11 @@ func (c *AccountsReportsSavedGenerateCsvCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/saved:generateCsv")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6267,6 +6343,7 @@ func (c *AccountsReportsSavedGenerateCsvCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.reports.saved.generateCsv", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6301,9 +6378,11 @@ func (c *AccountsReportsSavedGenerateCsvCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.reports.saved.generateCsv", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6380,12 +6459,11 @@ func (c *AccountsReportsSavedListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/reports/saved")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6393,6 +6471,7 @@ func (c *AccountsReportsSavedListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.reports.saved.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6428,9 +6507,11 @@ func (c *AccountsReportsSavedListCall) Do(opts ...googleapi.CallOption) (*ListSa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.reports.saved.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6509,12 +6590,11 @@ func (c *AccountsSitesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6522,6 +6602,7 @@ func (c *AccountsSitesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.sites.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6556,9 +6637,11 @@ func (c *AccountsSitesGetCall) Do(opts ...googleapi.CallOption) (*Site, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.sites.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6635,12 +6718,11 @@ func (c *AccountsSitesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/sites")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6648,6 +6730,7 @@ func (c *AccountsSitesListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adsense.accounts.sites.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6683,9 +6766,11 @@ func (c *AccountsSitesListCall) Do(opts ...googleapi.CallOption) (*ListSitesResp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adsense.accounts.sites.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "vision:v1p1beta1"
 const apiName = "vision"
@@ -126,7 +129,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Files = NewFilesService(s)
+	s.Images = NewImagesService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -145,15 +151,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Files = NewFilesService(s)
-	s.Images = NewImagesService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -285,9 +288,9 @@ type AnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s AnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnnotateImageResponse: Response to an image annotation request.
@@ -343,9 +346,9 @@ type AnnotateImageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotateImageResponse) MarshalJSON() ([]byte, error) {
+func (s AnnotateImageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotateImageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AsyncAnnotateFileResponse: The response for a single offline file annotation
@@ -367,9 +370,9 @@ type AsyncAnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AsyncAnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AsyncBatchAnnotateFilesResponse: Response to an async batch file annotation
@@ -391,9 +394,9 @@ type AsyncBatchAnnotateFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
+func (s AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AsyncBatchAnnotateFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AsyncBatchAnnotateImagesResponse: Response to an async batch image
@@ -415,9 +418,9 @@ type AsyncBatchAnnotateImagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AsyncBatchAnnotateImagesResponse) MarshalJSON() ([]byte, error) {
+func (s AsyncBatchAnnotateImagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AsyncBatchAnnotateImagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchAnnotateFilesResponse: A list of file annotation responses.
@@ -438,9 +441,9 @@ type BatchAnnotateFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
+func (s BatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchAnnotateFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchOperationMetadata: Metadata for the batch operations such as the
@@ -480,9 +483,9 @@ type BatchOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s BatchOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Block: Logical element on the page.
@@ -525,9 +528,9 @@ type Block struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Block) MarshalJSON() ([]byte, error) {
+func (s Block) MarshalJSON() ([]byte, error) {
 	type NoMethod Block
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Block) UnmarshalJSON(data []byte) error {
@@ -563,9 +566,9 @@ type BoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BoundingPoly) MarshalJSON() ([]byte, error) {
+func (s BoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod BoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Color: Represents a color in the RGBA color space. This representation is
@@ -646,9 +649,9 @@ type Color struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Color) MarshalJSON() ([]byte, error) {
+func (s Color) MarshalJSON() ([]byte, error) {
 	type NoMethod Color
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Color) UnmarshalJSON(data []byte) error {
@@ -694,9 +697,9 @@ type ColorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ColorInfo) MarshalJSON() ([]byte, error) {
+func (s ColorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ColorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ColorInfo) UnmarshalJSON(data []byte) error {
@@ -739,9 +742,9 @@ type CropHint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CropHint) MarshalJSON() ([]byte, error) {
+func (s CropHint) MarshalJSON() ([]byte, error) {
 	type NoMethod CropHint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *CropHint) UnmarshalJSON(data []byte) error {
@@ -778,9 +781,9 @@ type CropHintsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CropHintsAnnotation) MarshalJSON() ([]byte, error) {
+func (s CropHintsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod CropHintsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetectedBreak: Detected start or end of a structural component.
@@ -811,9 +814,9 @@ type DetectedBreak struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectedBreak) MarshalJSON() ([]byte, error) {
+func (s DetectedBreak) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectedBreak
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetectedLanguage: Detected language for a structural component.
@@ -837,9 +840,9 @@ type DetectedLanguage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectedLanguage) MarshalJSON() ([]byte, error) {
+func (s DetectedLanguage) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectedLanguage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DetectedLanguage) UnmarshalJSON(data []byte) error {
@@ -874,9 +877,9 @@ type DominantColorsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
+func (s DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod DominantColorsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityAnnotation: Set of detected entity features.
@@ -927,9 +930,9 @@ type EntityAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityAnnotation) MarshalJSON() ([]byte, error) {
+func (s EntityAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *EntityAnnotation) UnmarshalJSON(data []byte) error {
@@ -1067,9 +1070,9 @@ type FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *FaceAnnotation) UnmarshalJSON(data []byte) error {
@@ -1126,9 +1129,9 @@ type GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsSource: The Google Cloud Storage location where the input will be read
@@ -1150,9 +1153,9 @@ type GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsSource) MarshalJSON() ([]byte, error) {
+func (s GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AnnotateFileRequest: A request to annotate one
@@ -1186,9 +1189,9 @@ type GoogleCloudVisionV1p1beta1AnnotateFileRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AnnotateFileRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AnnotateFileRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AnnotateFileRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AnnotateFileResponse: Response to a single file
@@ -1219,9 +1222,9 @@ type GoogleCloudVisionV1p1beta1AnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AnnotateImageRequest: Request for performing
@@ -1247,9 +1250,9 @@ type GoogleCloudVisionV1p1beta1AnnotateImageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AnnotateImageRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AnnotateImageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AnnotateImageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AnnotateImageResponse: Response to an image
@@ -1306,9 +1309,9 @@ type GoogleCloudVisionV1p1beta1AnnotateImageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AnnotateImageResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AnnotateImageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AnnotateImageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AsyncAnnotateFileRequest: An offline file
@@ -1337,9 +1340,9 @@ type GoogleCloudVisionV1p1beta1AsyncAnnotateFileRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AsyncAnnotateFileRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AsyncAnnotateFileRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AsyncAnnotateFileRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AsyncAnnotateFileResponse: The response for a
@@ -1361,9 +1364,9 @@ type GoogleCloudVisionV1p1beta1AsyncAnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AsyncAnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesRequest: Multiple async
@@ -1397,9 +1400,9 @@ type GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesResponse: Response to an
@@ -1421,9 +1424,9 @@ type GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AsyncBatchAnnotateFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1AsyncBatchAnnotateImagesRequest: Request for async
@@ -1459,9 +1462,9 @@ type GoogleCloudVisionV1p1beta1AsyncBatchAnnotateImagesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1AsyncBatchAnnotateImagesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1AsyncBatchAnnotateImagesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1AsyncBatchAnnotateImagesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1BatchAnnotateFilesRequest: A list of requests to
@@ -1495,9 +1498,9 @@ type GoogleCloudVisionV1p1beta1BatchAnnotateFilesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1BatchAnnotateFilesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1BatchAnnotateFilesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1BatchAnnotateFilesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1BatchAnnotateFilesResponse: A list of file
@@ -1522,9 +1525,9 @@ type GoogleCloudVisionV1p1beta1BatchAnnotateFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1BatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1BatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1BatchAnnotateFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1BatchAnnotateImagesRequest: Multiple image
@@ -1557,9 +1560,9 @@ type GoogleCloudVisionV1p1beta1BatchAnnotateImagesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1BatchAnnotateImagesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1BatchAnnotateImagesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1BatchAnnotateImagesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1BatchAnnotateImagesResponse: Response to a batch
@@ -1584,9 +1587,9 @@ type GoogleCloudVisionV1p1beta1BatchAnnotateImagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1BatchAnnotateImagesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1BatchAnnotateImagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1BatchAnnotateImagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1Block: Logical element on the page.
@@ -1629,9 +1632,9 @@ type GoogleCloudVisionV1p1beta1Block struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Block) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Block) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Block
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1Block) UnmarshalJSON(data []byte) error {
@@ -1668,9 +1671,9 @@ type GoogleCloudVisionV1p1beta1BoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1BoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1BoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1BoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ColorInfo: Color information consists of RGB
@@ -1697,9 +1700,9 @@ type GoogleCloudVisionV1p1beta1ColorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ColorInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ColorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ColorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1ColorInfo) UnmarshalJSON(data []byte) error {
@@ -1742,9 +1745,9 @@ type GoogleCloudVisionV1p1beta1CropHint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1CropHint) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1CropHint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1CropHint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1CropHint) UnmarshalJSON(data []byte) error {
@@ -1781,9 +1784,9 @@ type GoogleCloudVisionV1p1beta1CropHintsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1CropHintsAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1CropHintsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1CropHintsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1CropHintsParams: Parameters for crop hints
@@ -1808,9 +1811,9 @@ type GoogleCloudVisionV1p1beta1CropHintsParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1CropHintsParams) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1CropHintsParams) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1CropHintsParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1CropHintsParams) UnmarshalJSON(data []byte) error {
@@ -1848,9 +1851,9 @@ type GoogleCloudVisionV1p1beta1DominantColorsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1DominantColorsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1EntityAnnotation: Set of detected entity features.
@@ -1901,9 +1904,9 @@ type GoogleCloudVisionV1p1beta1EntityAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1EntityAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1EntityAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1EntityAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1EntityAnnotation) UnmarshalJSON(data []byte) error {
@@ -2041,9 +2044,9 @@ type GoogleCloudVisionV1p1beta1FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1FaceAnnotation) UnmarshalJSON(data []byte) error {
@@ -2069,7 +2072,9 @@ func (s *GoogleCloudVisionV1p1beta1FaceAnnotation) UnmarshalJSON(data []byte) er
 }
 
 // GoogleCloudVisionV1p1beta1FaceAnnotationLandmark: A face-specific landmark
-// (for example, a face feature).
+// (for example, a face feature). Landmark positions may fall outside the
+// bounds of the image if the face is near one or more edges of the image.
+// Therefore it is NOT guaranteed that `0 <= x < width` or `0 <= y < height`.
 type GoogleCloudVisionV1p1beta1FaceAnnotationLandmark struct {
 	// Position: Face landmark position.
 	Position *GoogleCloudVisionV1p1beta1Position `json:"position,omitempty"`
@@ -2127,9 +2132,9 @@ type GoogleCloudVisionV1p1beta1FaceAnnotationLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1FaceAnnotationLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1FaceAnnotationLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1FaceAnnotationLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1Feature: The type of Google Cloud Vision API
@@ -2179,9 +2184,9 @@ type GoogleCloudVisionV1p1beta1Feature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Feature) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Feature) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Feature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1GcsDestination: The Google Cloud Storage location
@@ -2216,9 +2221,9 @@ type GoogleCloudVisionV1p1beta1GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1GcsSource: The Google Cloud Storage location where
@@ -2240,9 +2245,9 @@ type GoogleCloudVisionV1p1beta1GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1GcsSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1Image: Client image to perform Google Cloud Vision
@@ -2271,9 +2276,9 @@ type GoogleCloudVisionV1p1beta1Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Image) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Image) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ImageAnnotationContext: If an image was produced
@@ -2298,9 +2303,9 @@ type GoogleCloudVisionV1p1beta1ImageAnnotationContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ImageAnnotationContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ImageAnnotationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ImageAnnotationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ImageContext: Image context and/or
@@ -2339,9 +2344,9 @@ type GoogleCloudVisionV1p1beta1ImageContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ImageContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ImageContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ImageContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ImageProperties: Stores image properties, such as
@@ -2362,9 +2367,9 @@ type GoogleCloudVisionV1p1beta1ImageProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ImageProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ImageProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ImageProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ImageSource: External image source (Google Cloud
@@ -2400,9 +2405,9 @@ type GoogleCloudVisionV1p1beta1ImageSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ImageSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ImageSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ImageSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1InputConfig: The desired input location and
@@ -2432,9 +2437,9 @@ type GoogleCloudVisionV1p1beta1InputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1InputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1InputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1InputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1LatLongRect: Rectangle determined by min and max
@@ -2457,9 +2462,9 @@ type GoogleCloudVisionV1p1beta1LatLongRect struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1LatLongRect) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1LatLongRect) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1LatLongRect
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1LocalizedObjectAnnotation: Set of detected objects
@@ -2491,9 +2496,9 @@ type GoogleCloudVisionV1p1beta1LocalizedObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1LocalizedObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1LocalizedObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -2528,9 +2533,9 @@ type GoogleCloudVisionV1p1beta1LocationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1LocationInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1LocationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1LocationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1NormalizedVertex: A vertex represents a 2D point
@@ -2554,9 +2559,9 @@ type GoogleCloudVisionV1p1beta1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -2604,9 +2609,9 @@ type GoogleCloudVisionV1p1beta1OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1OutputConfig: The desired output location and
@@ -2636,9 +2641,9 @@ type GoogleCloudVisionV1p1beta1OutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1OutputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1OutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1OutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1Page: Detected page from OCR.
@@ -2668,9 +2673,9 @@ type GoogleCloudVisionV1p1beta1Page struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Page) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Page) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Page
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1Page) UnmarshalJSON(data []byte) error {
@@ -2718,9 +2723,9 @@ type GoogleCloudVisionV1p1beta1Paragraph struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Paragraph) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Paragraph) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Paragraph
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1Paragraph) UnmarshalJSON(data []byte) error {
@@ -2761,9 +2766,9 @@ type GoogleCloudVisionV1p1beta1Position struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Position) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Position) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Position
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1Position) UnmarshalJSON(data []byte) error {
@@ -2825,9 +2830,9 @@ type GoogleCloudVisionV1p1beta1Product struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Product) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Product) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Product
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ProductKeyValue: A product label represented as a
@@ -2852,9 +2857,9 @@ type GoogleCloudVisionV1p1beta1ProductKeyValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ProductKeyValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ProductKeyValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ProductKeyValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ProductSearchParams: Parameters for a product
@@ -2897,9 +2902,9 @@ type GoogleCloudVisionV1p1beta1ProductSearchParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ProductSearchParams) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ProductSearchParams) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ProductSearchParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ProductSearchResults: Results for a product search
@@ -2929,9 +2934,9 @@ type GoogleCloudVisionV1p1beta1ProductSearchResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ProductSearchResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ProductSearchResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ProductSearchResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ProductSearchResultsGroupedResult: Information
@@ -2958,9 +2963,9 @@ type GoogleCloudVisionV1p1beta1ProductSearchResultsGroupedResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ProductSearchResultsGroupedResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ProductSearchResultsGroupedResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ProductSearchResultsGroupedResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1ProductSearchResultsObjectAnnotation: Prediction
@@ -2989,9 +2994,9 @@ type GoogleCloudVisionV1p1beta1ProductSearchResultsObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ProductSearchResultsObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ProductSearchResultsObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ProductSearchResultsObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1ProductSearchResultsObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -3032,9 +3037,9 @@ type GoogleCloudVisionV1p1beta1ProductSearchResultsResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1ProductSearchResultsResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1ProductSearchResultsResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1ProductSearchResultsResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1ProductSearchResultsResult) UnmarshalJSON(data []byte) error {
@@ -3073,9 +3078,9 @@ type GoogleCloudVisionV1p1beta1Property struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Property) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Property) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Property
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1SafeSearchAnnotation: Set of features pertaining
@@ -3153,9 +3158,9 @@ type GoogleCloudVisionV1p1beta1SafeSearchAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1SafeSearchAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1Symbol: A single symbol representation.
@@ -3187,9 +3192,9 @@ type GoogleCloudVisionV1p1beta1Symbol struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Symbol) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Symbol) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Symbol
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1Symbol) UnmarshalJSON(data []byte) error {
@@ -3231,9 +3236,9 @@ type GoogleCloudVisionV1p1beta1TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1TextAnnotationDetectedBreak: Detected start or end
@@ -3265,9 +3270,9 @@ type GoogleCloudVisionV1p1beta1TextAnnotationDetectedBreak struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1TextAnnotationDetectedBreak) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1TextAnnotationDetectedBreak) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1TextAnnotationDetectedBreak
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1TextAnnotationDetectedLanguage: Detected language
@@ -3292,9 +3297,9 @@ type GoogleCloudVisionV1p1beta1TextAnnotationDetectedLanguage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1TextAnnotationDetectedLanguage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1TextAnnotationDetectedLanguage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1TextAnnotationDetectedLanguage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1TextAnnotationDetectedLanguage) UnmarshalJSON(data []byte) error {
@@ -3331,9 +3336,9 @@ type GoogleCloudVisionV1p1beta1TextAnnotationTextProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1TextAnnotationTextProperty) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1TextAnnotationTextProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1TextAnnotationTextProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1TextDetectionParams: Parameters for text
@@ -3363,9 +3368,9 @@ type GoogleCloudVisionV1p1beta1TextDetectionParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1TextDetectionParams) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1TextDetectionParams) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1TextDetectionParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1Vertex: A vertex represents a 2D point in the
@@ -3389,9 +3394,9 @@ type GoogleCloudVisionV1p1beta1Vertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Vertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Vertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Vertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1WebDetection: Relevant information for the image
@@ -3427,9 +3432,9 @@ type GoogleCloudVisionV1p1beta1WebDetection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1WebDetection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1WebDetection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1WebDetection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1WebDetectionParams: Parameters for web detection
@@ -3450,9 +3455,9 @@ type GoogleCloudVisionV1p1beta1WebDetectionParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1WebDetectionParams) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1WebDetectionParams) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1WebDetectionParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1WebDetectionWebEntity: Entity deduced from similar
@@ -3478,9 +3483,9 @@ type GoogleCloudVisionV1p1beta1WebDetectionWebEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1WebDetectionWebEntity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1WebDetectionWebEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1WebDetectionWebEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1WebDetectionWebEntity) UnmarshalJSON(data []byte) error {
@@ -3516,9 +3521,9 @@ type GoogleCloudVisionV1p1beta1WebDetectionWebImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1WebDetectionWebImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1WebDetectionWebImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1WebDetectionWebImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1WebDetectionWebImage) UnmarshalJSON(data []byte) error {
@@ -3557,9 +3562,9 @@ type GoogleCloudVisionV1p1beta1WebDetectionWebLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1WebDetectionWebLabel) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1WebDetectionWebLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1WebDetectionWebLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p1beta1WebDetectionWebPage: Metadata for web pages.
@@ -3590,9 +3595,9 @@ type GoogleCloudVisionV1p1beta1WebDetectionWebPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1WebDetectionWebPage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1WebDetectionWebPage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1WebDetectionWebPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1WebDetectionWebPage) UnmarshalJSON(data []byte) error {
@@ -3639,9 +3644,9 @@ type GoogleCloudVisionV1p1beta1Word struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p1beta1Word) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p1beta1Word) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p1beta1Word
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p1beta1Word) UnmarshalJSON(data []byte) error {
@@ -3686,9 +3691,9 @@ type GoogleCloudVisionV1p2beta1AnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1AnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1AnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1AnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1AnnotateImageResponse: Response to an image
@@ -3745,9 +3750,9 @@ type GoogleCloudVisionV1p2beta1AnnotateImageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1AnnotateImageResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1AnnotateImageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1AnnotateImageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1AsyncAnnotateFileResponse: The response for a
@@ -3769,9 +3774,9 @@ type GoogleCloudVisionV1p2beta1AsyncAnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1AsyncAnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1AsyncBatchAnnotateFilesResponse: Response to an
@@ -3793,9 +3798,9 @@ type GoogleCloudVisionV1p2beta1AsyncBatchAnnotateFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1AsyncBatchAnnotateFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1Block: Logical element on the page.
@@ -3838,9 +3843,9 @@ type GoogleCloudVisionV1p2beta1Block struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Block) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Block) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Block
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1Block) UnmarshalJSON(data []byte) error {
@@ -3877,9 +3882,9 @@ type GoogleCloudVisionV1p2beta1BoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1BoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1BoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1BoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1ColorInfo: Color information consists of RGB
@@ -3906,9 +3911,9 @@ type GoogleCloudVisionV1p2beta1ColorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1ColorInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1ColorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1ColorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1ColorInfo) UnmarshalJSON(data []byte) error {
@@ -3951,9 +3956,9 @@ type GoogleCloudVisionV1p2beta1CropHint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1CropHint) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1CropHint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1CropHint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1CropHint) UnmarshalJSON(data []byte) error {
@@ -3990,9 +3995,9 @@ type GoogleCloudVisionV1p2beta1CropHintsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1CropHintsAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1CropHintsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1CropHintsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1DominantColorsAnnotation: Set of dominant colors
@@ -4013,9 +4018,9 @@ type GoogleCloudVisionV1p2beta1DominantColorsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1DominantColorsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1EntityAnnotation: Set of detected entity features.
@@ -4066,9 +4071,9 @@ type GoogleCloudVisionV1p2beta1EntityAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1EntityAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1EntityAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1EntityAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1EntityAnnotation) UnmarshalJSON(data []byte) error {
@@ -4206,9 +4211,9 @@ type GoogleCloudVisionV1p2beta1FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1FaceAnnotation) UnmarshalJSON(data []byte) error {
@@ -4234,7 +4239,9 @@ func (s *GoogleCloudVisionV1p2beta1FaceAnnotation) UnmarshalJSON(data []byte) er
 }
 
 // GoogleCloudVisionV1p2beta1FaceAnnotationLandmark: A face-specific landmark
-// (for example, a face feature).
+// (for example, a face feature). Landmark positions may fall outside the
+// bounds of the image if the face is near one or more edges of the image.
+// Therefore it is NOT guaranteed that `0 <= x < width` or `0 <= y < height`.
 type GoogleCloudVisionV1p2beta1FaceAnnotationLandmark struct {
 	// Position: Face landmark position.
 	Position *GoogleCloudVisionV1p2beta1Position `json:"position,omitempty"`
@@ -4292,9 +4299,9 @@ type GoogleCloudVisionV1p2beta1FaceAnnotationLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1FaceAnnotationLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1FaceAnnotationLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1FaceAnnotationLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1GcsDestination: The Google Cloud Storage location
@@ -4329,9 +4336,9 @@ type GoogleCloudVisionV1p2beta1GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1GcsSource: The Google Cloud Storage location where
@@ -4353,9 +4360,9 @@ type GoogleCloudVisionV1p2beta1GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1GcsSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1ImageAnnotationContext: If an image was produced
@@ -4380,9 +4387,9 @@ type GoogleCloudVisionV1p2beta1ImageAnnotationContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1ImageAnnotationContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1ImageAnnotationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1ImageAnnotationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1ImageProperties: Stores image properties, such as
@@ -4403,9 +4410,9 @@ type GoogleCloudVisionV1p2beta1ImageProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1ImageProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1ImageProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1ImageProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1InputConfig: The desired input location and
@@ -4435,9 +4442,9 @@ type GoogleCloudVisionV1p2beta1InputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1InputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1InputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1InputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1LocalizedObjectAnnotation: Set of detected objects
@@ -4469,9 +4476,9 @@ type GoogleCloudVisionV1p2beta1LocalizedObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1LocalizedObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1LocalizedObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -4506,9 +4513,9 @@ type GoogleCloudVisionV1p2beta1LocationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1LocationInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1LocationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1LocationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1NormalizedVertex: A vertex represents a 2D point
@@ -4532,9 +4539,9 @@ type GoogleCloudVisionV1p2beta1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -4582,9 +4589,9 @@ type GoogleCloudVisionV1p2beta1OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1OutputConfig: The desired output location and
@@ -4614,9 +4621,9 @@ type GoogleCloudVisionV1p2beta1OutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1OutputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1OutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1OutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1Page: Detected page from OCR.
@@ -4646,9 +4653,9 @@ type GoogleCloudVisionV1p2beta1Page struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Page) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Page) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Page
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1Page) UnmarshalJSON(data []byte) error {
@@ -4696,9 +4703,9 @@ type GoogleCloudVisionV1p2beta1Paragraph struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Paragraph) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Paragraph) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Paragraph
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1Paragraph) UnmarshalJSON(data []byte) error {
@@ -4739,9 +4746,9 @@ type GoogleCloudVisionV1p2beta1Position struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Position) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Position) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Position
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1Position) UnmarshalJSON(data []byte) error {
@@ -4803,9 +4810,9 @@ type GoogleCloudVisionV1p2beta1Product struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Product) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Product) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Product
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1ProductKeyValue: A product label represented as a
@@ -4830,9 +4837,9 @@ type GoogleCloudVisionV1p2beta1ProductKeyValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1ProductKeyValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1ProductKeyValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1ProductKeyValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1ProductSearchResults: Results for a product search
@@ -4862,9 +4869,9 @@ type GoogleCloudVisionV1p2beta1ProductSearchResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1ProductSearchResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1ProductSearchResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1ProductSearchResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1ProductSearchResultsGroupedResult: Information
@@ -4891,9 +4898,9 @@ type GoogleCloudVisionV1p2beta1ProductSearchResultsGroupedResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1ProductSearchResultsGroupedResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1ProductSearchResultsGroupedResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1ProductSearchResultsGroupedResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1ProductSearchResultsObjectAnnotation: Prediction
@@ -4922,9 +4929,9 @@ type GoogleCloudVisionV1p2beta1ProductSearchResultsObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1ProductSearchResultsObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1ProductSearchResultsObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1ProductSearchResultsObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1ProductSearchResultsObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -4965,9 +4972,9 @@ type GoogleCloudVisionV1p2beta1ProductSearchResultsResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1ProductSearchResultsResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1ProductSearchResultsResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1ProductSearchResultsResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1ProductSearchResultsResult) UnmarshalJSON(data []byte) error {
@@ -5006,9 +5013,9 @@ type GoogleCloudVisionV1p2beta1Property struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Property) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Property) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Property
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1SafeSearchAnnotation: Set of features pertaining
@@ -5086,9 +5093,9 @@ type GoogleCloudVisionV1p2beta1SafeSearchAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1SafeSearchAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1Symbol: A single symbol representation.
@@ -5120,9 +5127,9 @@ type GoogleCloudVisionV1p2beta1Symbol struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Symbol) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Symbol) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Symbol
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1Symbol) UnmarshalJSON(data []byte) error {
@@ -5164,9 +5171,9 @@ type GoogleCloudVisionV1p2beta1TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1TextAnnotationDetectedBreak: Detected start or end
@@ -5198,9 +5205,9 @@ type GoogleCloudVisionV1p2beta1TextAnnotationDetectedBreak struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1TextAnnotationDetectedBreak) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1TextAnnotationDetectedBreak) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1TextAnnotationDetectedBreak
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1TextAnnotationDetectedLanguage: Detected language
@@ -5225,9 +5232,9 @@ type GoogleCloudVisionV1p2beta1TextAnnotationDetectedLanguage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1TextAnnotationDetectedLanguage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1TextAnnotationDetectedLanguage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1TextAnnotationDetectedLanguage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1TextAnnotationDetectedLanguage) UnmarshalJSON(data []byte) error {
@@ -5264,9 +5271,9 @@ type GoogleCloudVisionV1p2beta1TextAnnotationTextProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1TextAnnotationTextProperty) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1TextAnnotationTextProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1TextAnnotationTextProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1Vertex: A vertex represents a 2D point in the
@@ -5290,9 +5297,9 @@ type GoogleCloudVisionV1p2beta1Vertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Vertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Vertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Vertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1WebDetection: Relevant information for the image
@@ -5328,9 +5335,9 @@ type GoogleCloudVisionV1p2beta1WebDetection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1WebDetection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1WebDetection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1WebDetection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1WebDetectionWebEntity: Entity deduced from similar
@@ -5356,9 +5363,9 @@ type GoogleCloudVisionV1p2beta1WebDetectionWebEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1WebDetectionWebEntity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1WebDetectionWebEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1WebDetectionWebEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1WebDetectionWebEntity) UnmarshalJSON(data []byte) error {
@@ -5394,9 +5401,9 @@ type GoogleCloudVisionV1p2beta1WebDetectionWebImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1WebDetectionWebImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1WebDetectionWebImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1WebDetectionWebImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1WebDetectionWebImage) UnmarshalJSON(data []byte) error {
@@ -5435,9 +5442,9 @@ type GoogleCloudVisionV1p2beta1WebDetectionWebLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1WebDetectionWebLabel) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1WebDetectionWebLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1WebDetectionWebLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p2beta1WebDetectionWebPage: Metadata for web pages.
@@ -5468,9 +5475,9 @@ type GoogleCloudVisionV1p2beta1WebDetectionWebPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1WebDetectionWebPage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1WebDetectionWebPage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1WebDetectionWebPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1WebDetectionWebPage) UnmarshalJSON(data []byte) error {
@@ -5517,9 +5524,9 @@ type GoogleCloudVisionV1p2beta1Word struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p2beta1Word) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p2beta1Word) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p2beta1Word
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p2beta1Word) UnmarshalJSON(data []byte) error {
@@ -5564,9 +5571,9 @@ type GoogleCloudVisionV1p3beta1AnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1AnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1AnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1AnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1AnnotateImageResponse: Response to an image
@@ -5623,9 +5630,9 @@ type GoogleCloudVisionV1p3beta1AnnotateImageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1AnnotateImageResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1AnnotateImageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1AnnotateImageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1AsyncAnnotateFileResponse: The response for a
@@ -5647,9 +5654,9 @@ type GoogleCloudVisionV1p3beta1AsyncAnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1AsyncAnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1AsyncBatchAnnotateFilesResponse: Response to an
@@ -5671,9 +5678,9 @@ type GoogleCloudVisionV1p3beta1AsyncBatchAnnotateFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1AsyncBatchAnnotateFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1BatchOperationMetadata: Metadata for the batch
@@ -5713,9 +5720,9 @@ type GoogleCloudVisionV1p3beta1BatchOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1BatchOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1BatchOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1BatchOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1Block: Logical element on the page.
@@ -5758,9 +5765,9 @@ type GoogleCloudVisionV1p3beta1Block struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Block) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Block) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Block
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1Block) UnmarshalJSON(data []byte) error {
@@ -5797,9 +5804,9 @@ type GoogleCloudVisionV1p3beta1BoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1BoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1BoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1BoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ColorInfo: Color information consists of RGB
@@ -5826,9 +5833,9 @@ type GoogleCloudVisionV1p3beta1ColorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ColorInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ColorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ColorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1ColorInfo) UnmarshalJSON(data []byte) error {
@@ -5871,9 +5878,9 @@ type GoogleCloudVisionV1p3beta1CropHint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1CropHint) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1CropHint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1CropHint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1CropHint) UnmarshalJSON(data []byte) error {
@@ -5910,9 +5917,9 @@ type GoogleCloudVisionV1p3beta1CropHintsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1CropHintsAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1CropHintsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1CropHintsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1DominantColorsAnnotation: Set of dominant colors
@@ -5933,9 +5940,9 @@ type GoogleCloudVisionV1p3beta1DominantColorsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1DominantColorsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1EntityAnnotation: Set of detected entity features.
@@ -5986,9 +5993,9 @@ type GoogleCloudVisionV1p3beta1EntityAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1EntityAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1EntityAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1EntityAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1EntityAnnotation) UnmarshalJSON(data []byte) error {
@@ -6126,9 +6133,9 @@ type GoogleCloudVisionV1p3beta1FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1FaceAnnotation) UnmarshalJSON(data []byte) error {
@@ -6154,7 +6161,9 @@ func (s *GoogleCloudVisionV1p3beta1FaceAnnotation) UnmarshalJSON(data []byte) er
 }
 
 // GoogleCloudVisionV1p3beta1FaceAnnotationLandmark: A face-specific landmark
-// (for example, a face feature).
+// (for example, a face feature). Landmark positions may fall outside the
+// bounds of the image if the face is near one or more edges of the image.
+// Therefore it is NOT guaranteed that `0 <= x < width` or `0 <= y < height`.
 type GoogleCloudVisionV1p3beta1FaceAnnotationLandmark struct {
 	// Position: Face landmark position.
 	Position *GoogleCloudVisionV1p3beta1Position `json:"position,omitempty"`
@@ -6212,9 +6221,9 @@ type GoogleCloudVisionV1p3beta1FaceAnnotationLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1FaceAnnotationLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1FaceAnnotationLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1FaceAnnotationLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1GcsDestination: The Google Cloud Storage location
@@ -6249,9 +6258,9 @@ type GoogleCloudVisionV1p3beta1GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1GcsSource: The Google Cloud Storage location where
@@ -6273,9 +6282,9 @@ type GoogleCloudVisionV1p3beta1GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1GcsSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ImageAnnotationContext: If an image was produced
@@ -6300,9 +6309,9 @@ type GoogleCloudVisionV1p3beta1ImageAnnotationContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ImageAnnotationContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ImageAnnotationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ImageAnnotationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ImageProperties: Stores image properties, such as
@@ -6323,9 +6332,9 @@ type GoogleCloudVisionV1p3beta1ImageProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ImageProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ImageProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ImageProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ImportProductSetsResponse: Response message for
@@ -6354,9 +6363,9 @@ type GoogleCloudVisionV1p3beta1ImportProductSetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ImportProductSetsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ImportProductSetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ImportProductSetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1InputConfig: The desired input location and
@@ -6386,9 +6395,9 @@ type GoogleCloudVisionV1p3beta1InputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1InputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1InputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1InputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1LocalizedObjectAnnotation: Set of detected objects
@@ -6420,9 +6429,9 @@ type GoogleCloudVisionV1p3beta1LocalizedObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1LocalizedObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1LocalizedObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -6457,9 +6466,9 @@ type GoogleCloudVisionV1p3beta1LocationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1LocationInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1LocationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1LocationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1NormalizedVertex: A vertex represents a 2D point
@@ -6483,9 +6492,9 @@ type GoogleCloudVisionV1p3beta1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -6533,9 +6542,9 @@ type GoogleCloudVisionV1p3beta1OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1OutputConfig: The desired output location and
@@ -6565,9 +6574,9 @@ type GoogleCloudVisionV1p3beta1OutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1OutputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1OutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1OutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1Page: Detected page from OCR.
@@ -6597,9 +6606,9 @@ type GoogleCloudVisionV1p3beta1Page struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Page) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Page) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Page
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1Page) UnmarshalJSON(data []byte) error {
@@ -6647,9 +6656,9 @@ type GoogleCloudVisionV1p3beta1Paragraph struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Paragraph) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Paragraph) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Paragraph
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1Paragraph) UnmarshalJSON(data []byte) error {
@@ -6690,9 +6699,9 @@ type GoogleCloudVisionV1p3beta1Position struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Position) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Position) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Position
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1Position) UnmarshalJSON(data []byte) error {
@@ -6754,9 +6763,9 @@ type GoogleCloudVisionV1p3beta1Product struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Product) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Product) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Product
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ProductKeyValue: A product label represented as a
@@ -6781,9 +6790,9 @@ type GoogleCloudVisionV1p3beta1ProductKeyValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ProductKeyValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ProductKeyValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ProductKeyValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ProductSearchResults: Results for a product search
@@ -6813,9 +6822,9 @@ type GoogleCloudVisionV1p3beta1ProductSearchResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ProductSearchResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ProductSearchResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ProductSearchResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ProductSearchResultsGroupedResult: Information
@@ -6842,9 +6851,9 @@ type GoogleCloudVisionV1p3beta1ProductSearchResultsGroupedResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ProductSearchResultsGroupedResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ProductSearchResultsGroupedResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ProductSearchResultsGroupedResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ProductSearchResultsObjectAnnotation: Prediction
@@ -6873,9 +6882,9 @@ type GoogleCloudVisionV1p3beta1ProductSearchResultsObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ProductSearchResultsObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ProductSearchResultsObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ProductSearchResultsObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1ProductSearchResultsObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -6916,9 +6925,9 @@ type GoogleCloudVisionV1p3beta1ProductSearchResultsResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ProductSearchResultsResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ProductSearchResultsResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ProductSearchResultsResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1ProductSearchResultsResult) UnmarshalJSON(data []byte) error {
@@ -6957,9 +6966,9 @@ type GoogleCloudVisionV1p3beta1Property struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Property) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Property) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Property
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1ReferenceImage: A `ReferenceImage` represents a
@@ -6992,9 +7001,9 @@ type GoogleCloudVisionV1p3beta1ReferenceImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1ReferenceImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1ReferenceImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1ReferenceImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1SafeSearchAnnotation: Set of features pertaining
@@ -7072,9 +7081,9 @@ type GoogleCloudVisionV1p3beta1SafeSearchAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1SafeSearchAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1Symbol: A single symbol representation.
@@ -7106,9 +7115,9 @@ type GoogleCloudVisionV1p3beta1Symbol struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Symbol) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Symbol) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Symbol
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1Symbol) UnmarshalJSON(data []byte) error {
@@ -7150,9 +7159,9 @@ type GoogleCloudVisionV1p3beta1TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1TextAnnotationDetectedBreak: Detected start or end
@@ -7184,9 +7193,9 @@ type GoogleCloudVisionV1p3beta1TextAnnotationDetectedBreak struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1TextAnnotationDetectedBreak) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1TextAnnotationDetectedBreak) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1TextAnnotationDetectedBreak
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1TextAnnotationDetectedLanguage: Detected language
@@ -7211,9 +7220,9 @@ type GoogleCloudVisionV1p3beta1TextAnnotationDetectedLanguage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1TextAnnotationDetectedLanguage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1TextAnnotationDetectedLanguage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1TextAnnotationDetectedLanguage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1TextAnnotationDetectedLanguage) UnmarshalJSON(data []byte) error {
@@ -7250,9 +7259,9 @@ type GoogleCloudVisionV1p3beta1TextAnnotationTextProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1TextAnnotationTextProperty) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1TextAnnotationTextProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1TextAnnotationTextProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1Vertex: A vertex represents a 2D point in the
@@ -7276,9 +7285,9 @@ type GoogleCloudVisionV1p3beta1Vertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Vertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Vertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Vertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1WebDetection: Relevant information for the image
@@ -7314,9 +7323,9 @@ type GoogleCloudVisionV1p3beta1WebDetection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1WebDetection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1WebDetection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1WebDetection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1WebDetectionWebEntity: Entity deduced from similar
@@ -7342,9 +7351,9 @@ type GoogleCloudVisionV1p3beta1WebDetectionWebEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1WebDetectionWebEntity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1WebDetectionWebEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1WebDetectionWebEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1WebDetectionWebEntity) UnmarshalJSON(data []byte) error {
@@ -7380,9 +7389,9 @@ type GoogleCloudVisionV1p3beta1WebDetectionWebImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1WebDetectionWebImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1WebDetectionWebImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1WebDetectionWebImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1WebDetectionWebImage) UnmarshalJSON(data []byte) error {
@@ -7421,9 +7430,9 @@ type GoogleCloudVisionV1p3beta1WebDetectionWebLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1WebDetectionWebLabel) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1WebDetectionWebLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1WebDetectionWebLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p3beta1WebDetectionWebPage: Metadata for web pages.
@@ -7454,9 +7463,9 @@ type GoogleCloudVisionV1p3beta1WebDetectionWebPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1WebDetectionWebPage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1WebDetectionWebPage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1WebDetectionWebPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1WebDetectionWebPage) UnmarshalJSON(data []byte) error {
@@ -7503,9 +7512,9 @@ type GoogleCloudVisionV1p3beta1Word struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p3beta1Word) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p3beta1Word) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p3beta1Word
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p3beta1Word) UnmarshalJSON(data []byte) error {
@@ -7550,9 +7559,9 @@ type GoogleCloudVisionV1p4beta1AnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1AnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1AnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1AnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1AnnotateImageResponse: Response to an image
@@ -7609,9 +7618,9 @@ type GoogleCloudVisionV1p4beta1AnnotateImageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1AnnotateImageResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1AnnotateImageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1AnnotateImageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1AsyncAnnotateFileResponse: The response for a
@@ -7633,9 +7642,9 @@ type GoogleCloudVisionV1p4beta1AsyncAnnotateFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1AsyncAnnotateFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1AsyncAnnotateFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1AsyncBatchAnnotateFilesResponse: Response to an
@@ -7657,9 +7666,9 @@ type GoogleCloudVisionV1p4beta1AsyncBatchAnnotateFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1AsyncBatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1AsyncBatchAnnotateFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1AsyncBatchAnnotateImagesResponse: Response to an
@@ -7681,9 +7690,9 @@ type GoogleCloudVisionV1p4beta1AsyncBatchAnnotateImagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1AsyncBatchAnnotateImagesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1AsyncBatchAnnotateImagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1AsyncBatchAnnotateImagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1BatchAnnotateFilesResponse: A list of file
@@ -7705,9 +7714,9 @@ type GoogleCloudVisionV1p4beta1BatchAnnotateFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1BatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1BatchAnnotateFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1BatchAnnotateFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1BatchOperationMetadata: Metadata for the batch
@@ -7747,9 +7756,9 @@ type GoogleCloudVisionV1p4beta1BatchOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1BatchOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1BatchOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1BatchOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1Block: Logical element on the page.
@@ -7792,9 +7801,9 @@ type GoogleCloudVisionV1p4beta1Block struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Block) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Block) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Block
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1Block) UnmarshalJSON(data []byte) error {
@@ -7831,9 +7840,9 @@ type GoogleCloudVisionV1p4beta1BoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1BoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1BoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1BoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1Celebrity: A Celebrity is a group of Faces with an
@@ -7859,9 +7868,9 @@ type GoogleCloudVisionV1p4beta1Celebrity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Celebrity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Celebrity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Celebrity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ColorInfo: Color information consists of RGB
@@ -7888,9 +7897,9 @@ type GoogleCloudVisionV1p4beta1ColorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ColorInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ColorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ColorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1ColorInfo) UnmarshalJSON(data []byte) error {
@@ -7933,9 +7942,9 @@ type GoogleCloudVisionV1p4beta1CropHint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1CropHint) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1CropHint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1CropHint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1CropHint) UnmarshalJSON(data []byte) error {
@@ -7972,9 +7981,9 @@ type GoogleCloudVisionV1p4beta1CropHintsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1CropHintsAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1CropHintsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1CropHintsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1DominantColorsAnnotation: Set of dominant colors
@@ -7995,9 +8004,9 @@ type GoogleCloudVisionV1p4beta1DominantColorsAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1DominantColorsAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1EntityAnnotation: Set of detected entity features.
@@ -8048,9 +8057,9 @@ type GoogleCloudVisionV1p4beta1EntityAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1EntityAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1EntityAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1EntityAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1EntityAnnotation) UnmarshalJSON(data []byte) error {
@@ -8193,9 +8202,9 @@ type GoogleCloudVisionV1p4beta1FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1FaceAnnotation) UnmarshalJSON(data []byte) error {
@@ -8221,7 +8230,9 @@ func (s *GoogleCloudVisionV1p4beta1FaceAnnotation) UnmarshalJSON(data []byte) er
 }
 
 // GoogleCloudVisionV1p4beta1FaceAnnotationLandmark: A face-specific landmark
-// (for example, a face feature).
+// (for example, a face feature). Landmark positions may fall outside the
+// bounds of the image if the face is near one or more edges of the image.
+// Therefore it is NOT guaranteed that `0 <= x < width` or `0 <= y < height`.
 type GoogleCloudVisionV1p4beta1FaceAnnotationLandmark struct {
 	// Position: Face landmark position.
 	Position *GoogleCloudVisionV1p4beta1Position `json:"position,omitempty"`
@@ -8279,9 +8290,9 @@ type GoogleCloudVisionV1p4beta1FaceAnnotationLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1FaceAnnotationLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1FaceAnnotationLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1FaceAnnotationLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1FaceRecognitionResult: Information about a face's
@@ -8304,9 +8315,9 @@ type GoogleCloudVisionV1p4beta1FaceRecognitionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1FaceRecognitionResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1FaceRecognitionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1FaceRecognitionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1FaceRecognitionResult) UnmarshalJSON(data []byte) error {
@@ -8355,9 +8366,9 @@ type GoogleCloudVisionV1p4beta1GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1GcsSource: The Google Cloud Storage location where
@@ -8379,9 +8390,9 @@ type GoogleCloudVisionV1p4beta1GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1GcsSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ImageAnnotationContext: If an image was produced
@@ -8406,9 +8417,9 @@ type GoogleCloudVisionV1p4beta1ImageAnnotationContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ImageAnnotationContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ImageAnnotationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ImageAnnotationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ImageProperties: Stores image properties, such as
@@ -8429,9 +8440,9 @@ type GoogleCloudVisionV1p4beta1ImageProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ImageProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ImageProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ImageProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ImportProductSetsResponse: Response message for
@@ -8460,9 +8471,9 @@ type GoogleCloudVisionV1p4beta1ImportProductSetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ImportProductSetsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ImportProductSetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ImportProductSetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1InputConfig: The desired input location and
@@ -8492,9 +8503,9 @@ type GoogleCloudVisionV1p4beta1InputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1InputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1InputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1InputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1LocalizedObjectAnnotation: Set of detected objects
@@ -8526,9 +8537,9 @@ type GoogleCloudVisionV1p4beta1LocalizedObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1LocalizedObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1LocalizedObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -8563,9 +8574,9 @@ type GoogleCloudVisionV1p4beta1LocationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1LocationInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1LocationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1LocationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1NormalizedVertex: A vertex represents a 2D point
@@ -8589,9 +8600,9 @@ type GoogleCloudVisionV1p4beta1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -8639,9 +8650,9 @@ type GoogleCloudVisionV1p4beta1OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1OutputConfig: The desired output location and
@@ -8671,9 +8682,9 @@ type GoogleCloudVisionV1p4beta1OutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1OutputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1OutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1OutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1Page: Detected page from OCR.
@@ -8703,9 +8714,9 @@ type GoogleCloudVisionV1p4beta1Page struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Page) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Page) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Page
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1Page) UnmarshalJSON(data []byte) error {
@@ -8753,9 +8764,9 @@ type GoogleCloudVisionV1p4beta1Paragraph struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Paragraph) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Paragraph) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Paragraph
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1Paragraph) UnmarshalJSON(data []byte) error {
@@ -8796,9 +8807,9 @@ type GoogleCloudVisionV1p4beta1Position struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Position) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Position) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Position
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1Position) UnmarshalJSON(data []byte) error {
@@ -8860,9 +8871,9 @@ type GoogleCloudVisionV1p4beta1Product struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Product) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Product) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Product
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ProductKeyValue: A product label represented as a
@@ -8887,9 +8898,9 @@ type GoogleCloudVisionV1p4beta1ProductKeyValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ProductKeyValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ProductKeyValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ProductKeyValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ProductSearchResults: Results for a product search
@@ -8919,9 +8930,9 @@ type GoogleCloudVisionV1p4beta1ProductSearchResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ProductSearchResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ProductSearchResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ProductSearchResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ProductSearchResultsGroupedResult: Information
@@ -8948,9 +8959,9 @@ type GoogleCloudVisionV1p4beta1ProductSearchResultsGroupedResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ProductSearchResultsGroupedResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ProductSearchResultsGroupedResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ProductSearchResultsGroupedResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ProductSearchResultsObjectAnnotation: Prediction
@@ -8979,9 +8990,9 @@ type GoogleCloudVisionV1p4beta1ProductSearchResultsObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ProductSearchResultsObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ProductSearchResultsObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ProductSearchResultsObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1ProductSearchResultsObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -9022,9 +9033,9 @@ type GoogleCloudVisionV1p4beta1ProductSearchResultsResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ProductSearchResultsResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ProductSearchResultsResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ProductSearchResultsResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1ProductSearchResultsResult) UnmarshalJSON(data []byte) error {
@@ -9063,9 +9074,9 @@ type GoogleCloudVisionV1p4beta1Property struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Property) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Property) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Property
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1ReferenceImage: A `ReferenceImage` represents a
@@ -9098,9 +9109,9 @@ type GoogleCloudVisionV1p4beta1ReferenceImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1ReferenceImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1ReferenceImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1ReferenceImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1SafeSearchAnnotation: Set of features pertaining
@@ -9178,9 +9189,9 @@ type GoogleCloudVisionV1p4beta1SafeSearchAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1SafeSearchAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1Symbol: A single symbol representation.
@@ -9212,9 +9223,9 @@ type GoogleCloudVisionV1p4beta1Symbol struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Symbol) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Symbol) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Symbol
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1Symbol) UnmarshalJSON(data []byte) error {
@@ -9256,9 +9267,9 @@ type GoogleCloudVisionV1p4beta1TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1TextAnnotationDetectedBreak: Detected start or end
@@ -9290,9 +9301,9 @@ type GoogleCloudVisionV1p4beta1TextAnnotationDetectedBreak struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1TextAnnotationDetectedBreak) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1TextAnnotationDetectedBreak) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1TextAnnotationDetectedBreak
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1TextAnnotationDetectedLanguage: Detected language
@@ -9317,9 +9328,9 @@ type GoogleCloudVisionV1p4beta1TextAnnotationDetectedLanguage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1TextAnnotationDetectedLanguage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1TextAnnotationDetectedLanguage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1TextAnnotationDetectedLanguage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1TextAnnotationDetectedLanguage) UnmarshalJSON(data []byte) error {
@@ -9356,9 +9367,9 @@ type GoogleCloudVisionV1p4beta1TextAnnotationTextProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1TextAnnotationTextProperty) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1TextAnnotationTextProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1TextAnnotationTextProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1Vertex: A vertex represents a 2D point in the
@@ -9382,9 +9393,9 @@ type GoogleCloudVisionV1p4beta1Vertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Vertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Vertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Vertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1WebDetection: Relevant information for the image
@@ -9420,9 +9431,9 @@ type GoogleCloudVisionV1p4beta1WebDetection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1WebDetection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1WebDetection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1WebDetection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1WebDetectionWebEntity: Entity deduced from similar
@@ -9448,9 +9459,9 @@ type GoogleCloudVisionV1p4beta1WebDetectionWebEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1WebDetectionWebEntity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1WebDetectionWebEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1WebDetectionWebEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1WebDetectionWebEntity) UnmarshalJSON(data []byte) error {
@@ -9486,9 +9497,9 @@ type GoogleCloudVisionV1p4beta1WebDetectionWebImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1WebDetectionWebImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1WebDetectionWebImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1WebDetectionWebImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1WebDetectionWebImage) UnmarshalJSON(data []byte) error {
@@ -9527,9 +9538,9 @@ type GoogleCloudVisionV1p4beta1WebDetectionWebLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1WebDetectionWebLabel) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1WebDetectionWebLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1WebDetectionWebLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVisionV1p4beta1WebDetectionWebPage: Metadata for web pages.
@@ -9560,9 +9571,9 @@ type GoogleCloudVisionV1p4beta1WebDetectionWebPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1WebDetectionWebPage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1WebDetectionWebPage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1WebDetectionWebPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1WebDetectionWebPage) UnmarshalJSON(data []byte) error {
@@ -9609,9 +9620,9 @@ type GoogleCloudVisionV1p4beta1Word struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVisionV1p4beta1Word) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVisionV1p4beta1Word) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVisionV1p4beta1Word
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVisionV1p4beta1Word) UnmarshalJSON(data []byte) error {
@@ -9652,9 +9663,9 @@ type GroupedResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GroupedResult) MarshalJSON() ([]byte, error) {
+func (s GroupedResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GroupedResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageAnnotationContext: If an image was produced from a file (e.g. a PDF),
@@ -9678,9 +9689,9 @@ type ImageAnnotationContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageAnnotationContext) MarshalJSON() ([]byte, error) {
+func (s ImageAnnotationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageAnnotationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageProperties: Stores image properties, such as dominant colors.
@@ -9700,9 +9711,9 @@ type ImageProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageProperties) MarshalJSON() ([]byte, error) {
+func (s ImageProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportProductSetsResponse: Response message for the `ImportProductSets`
@@ -9731,9 +9742,9 @@ type ImportProductSetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportProductSetsResponse) MarshalJSON() ([]byte, error) {
+func (s ImportProductSetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportProductSetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InputConfig: The desired input location and metadata.
@@ -9762,9 +9773,9 @@ type InputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InputConfig) MarshalJSON() ([]byte, error) {
+func (s InputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyValue: A product label represented as a key-value pair.
@@ -9788,12 +9799,15 @@ type KeyValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyValue) MarshalJSON() ([]byte, error) {
+func (s KeyValue) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Landmark: A face-specific landmark (for example, a face feature).
+// Landmark: A face-specific landmark (for example, a face feature). Landmark
+// positions may fall outside the bounds of the image if the face is near one
+// or more edges of the image. Therefore it is NOT guaranteed that `0 <= x <
+// width` or `0 <= y < height`.
 type Landmark struct {
 	// Position: Face landmark position.
 	Position *Position `json:"position,omitempty"`
@@ -9851,9 +9865,9 @@ type Landmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Landmark) MarshalJSON() ([]byte, error) {
+func (s Landmark) MarshalJSON() ([]byte, error) {
 	type NoMethod Landmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LatLng: An object that represents a latitude/longitude pair. This is
@@ -9879,9 +9893,9 @@ type LatLng struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatLng) MarshalJSON() ([]byte, error) {
+func (s LatLng) MarshalJSON() ([]byte, error) {
 	type NoMethod LatLng
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LatLng) UnmarshalJSON(data []byte) error {
@@ -9928,9 +9942,9 @@ type LocalizedObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s LocalizedObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod LocalizedObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LocalizedObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -9964,9 +9978,9 @@ type LocationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LocationInfo) MarshalJSON() ([]byte, error) {
+func (s LocationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod LocationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NormalizedVertex: A vertex represents a 2D point in the image. NOTE: the
@@ -9990,9 +10004,9 @@ type NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -10036,9 +10050,9 @@ type ObjectAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectAnnotation) MarshalJSON() ([]byte, error) {
+func (s ObjectAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ObjectAnnotation) UnmarshalJSON(data []byte) error {
@@ -10097,9 +10111,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Contains metadata for the BatchAnnotateImages operation.
@@ -10130,9 +10144,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OutputConfig: The desired output location and metadata.
@@ -10161,9 +10175,9 @@ type OutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OutputConfig) MarshalJSON() ([]byte, error) {
+func (s OutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod OutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Page: Detected page from OCR.
@@ -10193,9 +10207,9 @@ type Page struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Page) MarshalJSON() ([]byte, error) {
+func (s Page) MarshalJSON() ([]byte, error) {
 	type NoMethod Page
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Page) UnmarshalJSON(data []byte) error {
@@ -10243,9 +10257,9 @@ type Paragraph struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Paragraph) MarshalJSON() ([]byte, error) {
+func (s Paragraph) MarshalJSON() ([]byte, error) {
 	type NoMethod Paragraph
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Paragraph) UnmarshalJSON(data []byte) error {
@@ -10285,9 +10299,9 @@ type Position struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Position) MarshalJSON() ([]byte, error) {
+func (s Position) MarshalJSON() ([]byte, error) {
 	type NoMethod Position
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Position) UnmarshalJSON(data []byte) error {
@@ -10349,9 +10363,9 @@ type Product struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Product) MarshalJSON() ([]byte, error) {
+func (s Product) MarshalJSON() ([]byte, error) {
 	type NoMethod Product
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProductSearchResults: Results for a product search request.
@@ -10380,9 +10394,9 @@ type ProductSearchResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProductSearchResults) MarshalJSON() ([]byte, error) {
+func (s ProductSearchResults) MarshalJSON() ([]byte, error) {
 	type NoMethod ProductSearchResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Property: A `Property` consists of a user-supplied name/value pair.
@@ -10406,9 +10420,9 @@ type Property struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Property) MarshalJSON() ([]byte, error) {
+func (s Property) MarshalJSON() ([]byte, error) {
 	type NoMethod Property
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReferenceImage: A `ReferenceImage` represents a product image and its
@@ -10441,9 +10455,9 @@ type ReferenceImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReferenceImage) MarshalJSON() ([]byte, error) {
+func (s ReferenceImage) MarshalJSON() ([]byte, error) {
 	type NoMethod ReferenceImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Result: Information about a product.
@@ -10469,9 +10483,9 @@ type Result struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Result) MarshalJSON() ([]byte, error) {
+func (s Result) MarshalJSON() ([]byte, error) {
 	type NoMethod Result
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Result) UnmarshalJSON(data []byte) error {
@@ -10563,9 +10577,9 @@ type SafeSearchAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
+func (s SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod SafeSearchAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -10597,9 +10611,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Symbol: A single symbol representation.
@@ -10631,9 +10645,9 @@ type Symbol struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Symbol) MarshalJSON() ([]byte, error) {
+func (s Symbol) MarshalJSON() ([]byte, error) {
 	type NoMethod Symbol
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Symbol) UnmarshalJSON(data []byte) error {
@@ -10675,9 +10689,9 @@ type TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextProperty: Additional information detected on the structural component.
@@ -10699,9 +10713,9 @@ type TextProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextProperty) MarshalJSON() ([]byte, error) {
+func (s TextProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod TextProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Vertex: A vertex represents a 2D point in the image. NOTE: the vertex
@@ -10724,9 +10738,9 @@ type Vertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Vertex) MarshalJSON() ([]byte, error) {
+func (s Vertex) MarshalJSON() ([]byte, error) {
 	type NoMethod Vertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebDetection: Relevant information for the image from the Internet.
@@ -10761,9 +10775,9 @@ type WebDetection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebDetection) MarshalJSON() ([]byte, error) {
+func (s WebDetection) MarshalJSON() ([]byte, error) {
 	type NoMethod WebDetection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebEntity: Entity deduced from similar images on the Internet.
@@ -10788,9 +10802,9 @@ type WebEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebEntity) MarshalJSON() ([]byte, error) {
+func (s WebEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod WebEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *WebEntity) UnmarshalJSON(data []byte) error {
@@ -10826,9 +10840,9 @@ type WebImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebImage) MarshalJSON() ([]byte, error) {
+func (s WebImage) MarshalJSON() ([]byte, error) {
 	type NoMethod WebImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *WebImage) UnmarshalJSON(data []byte) error {
@@ -10866,9 +10880,9 @@ type WebLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebLabel) MarshalJSON() ([]byte, error) {
+func (s WebLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod WebLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebPage: Metadata for web pages.
@@ -10899,9 +10913,9 @@ type WebPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebPage) MarshalJSON() ([]byte, error) {
+func (s WebPage) MarshalJSON() ([]byte, error) {
 	type NoMethod WebPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *WebPage) UnmarshalJSON(data []byte) error {
@@ -10948,9 +10962,9 @@ type Word struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Word) MarshalJSON() ([]byte, error) {
+func (s Word) MarshalJSON() ([]byte, error) {
 	type NoMethod Word
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Word) UnmarshalJSON(data []byte) error {
@@ -11012,8 +11026,7 @@ func (c *FilesAnnotateCall) Header() http.Header {
 
 func (c *FilesAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1batchannotatefilesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1batchannotatefilesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11026,6 +11039,7 @@ func (c *FilesAnnotateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.files.annotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11061,9 +11075,11 @@ func (c *FilesAnnotateCall) Do(opts ...googleapi.CallOption) (*GoogleCloudVision
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.files.annotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11112,8 +11128,7 @@ func (c *FilesAsyncBatchAnnotateCall) Header() http.Header {
 
 func (c *FilesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1asyncbatchannotatefilesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1asyncbatchannotatefilesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11126,6 +11141,7 @@ func (c *FilesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Response, err
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.files.asyncBatchAnnotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11160,9 +11176,11 @@ func (c *FilesAsyncBatchAnnotateCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.files.asyncBatchAnnotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11206,8 +11224,7 @@ func (c *ImagesAnnotateCall) Header() http.Header {
 
 func (c *ImagesAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1batchannotateimagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1batchannotateimagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11220,6 +11237,7 @@ func (c *ImagesAnnotateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.images.annotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11255,9 +11273,11 @@ func (c *ImagesAnnotateCall) Do(opts ...googleapi.CallOption) (*GoogleCloudVisio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.images.annotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11307,8 +11327,7 @@ func (c *ImagesAsyncBatchAnnotateCall) Header() http.Header {
 
 func (c *ImagesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1asyncbatchannotateimagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1asyncbatchannotateimagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11321,6 +11340,7 @@ func (c *ImagesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Response, er
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.images.asyncBatchAnnotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11355,9 +11375,11 @@ func (c *ImagesAsyncBatchAnnotateCall) Do(opts ...googleapi.CallOption) (*Operat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.images.asyncBatchAnnotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11414,8 +11436,7 @@ func (c *ProjectsFilesAnnotateCall) Header() http.Header {
 
 func (c *ProjectsFilesAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1batchannotatefilesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1batchannotatefilesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11431,6 +11452,7 @@ func (c *ProjectsFilesAnnotateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.projects.files.annotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11466,9 +11488,11 @@ func (c *ProjectsFilesAnnotateCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.projects.files.annotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11525,8 +11549,7 @@ func (c *ProjectsFilesAsyncBatchAnnotateCall) Header() http.Header {
 
 func (c *ProjectsFilesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1asyncbatchannotatefilesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1asyncbatchannotatefilesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11542,6 +11565,7 @@ func (c *ProjectsFilesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.projects.files.asyncBatchAnnotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11576,9 +11600,11 @@ func (c *ProjectsFilesAsyncBatchAnnotateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.projects.files.asyncBatchAnnotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11630,8 +11656,7 @@ func (c *ProjectsImagesAnnotateCall) Header() http.Header {
 
 func (c *ProjectsImagesAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1batchannotateimagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1batchannotateimagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11647,6 +11672,7 @@ func (c *ProjectsImagesAnnotateCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.projects.images.annotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11682,9 +11708,11 @@ func (c *ProjectsImagesAnnotateCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.projects.images.annotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11742,8 +11770,7 @@ func (c *ProjectsImagesAsyncBatchAnnotateCall) Header() http.Header {
 
 func (c *ProjectsImagesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1asyncbatchannotateimagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1asyncbatchannotateimagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11759,6 +11786,7 @@ func (c *ProjectsImagesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.projects.images.asyncBatchAnnotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11793,9 +11821,11 @@ func (c *ProjectsImagesAsyncBatchAnnotateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.projects.images.asyncBatchAnnotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11852,8 +11882,7 @@ func (c *ProjectsLocationsFilesAnnotateCall) Header() http.Header {
 
 func (c *ProjectsLocationsFilesAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1batchannotatefilesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1batchannotatefilesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11869,6 +11898,7 @@ func (c *ProjectsLocationsFilesAnnotateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.projects.locations.files.annotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11904,9 +11934,11 @@ func (c *ProjectsLocationsFilesAnnotateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.projects.locations.files.annotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11963,8 +11995,7 @@ func (c *ProjectsLocationsFilesAsyncBatchAnnotateCall) Header() http.Header {
 
 func (c *ProjectsLocationsFilesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1asyncbatchannotatefilesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1asyncbatchannotatefilesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11980,6 +12011,7 @@ func (c *ProjectsLocationsFilesAsyncBatchAnnotateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.projects.locations.files.asyncBatchAnnotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12014,9 +12046,11 @@ func (c *ProjectsLocationsFilesAsyncBatchAnnotateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.projects.locations.files.asyncBatchAnnotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12068,8 +12102,7 @@ func (c *ProjectsLocationsImagesAnnotateCall) Header() http.Header {
 
 func (c *ProjectsLocationsImagesAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1batchannotateimagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1batchannotateimagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12085,6 +12118,7 @@ func (c *ProjectsLocationsImagesAnnotateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.projects.locations.images.annotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12120,9 +12154,11 @@ func (c *ProjectsLocationsImagesAnnotateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.projects.locations.images.annotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12180,8 +12216,7 @@ func (c *ProjectsLocationsImagesAsyncBatchAnnotateCall) Header() http.Header {
 
 func (c *ProjectsLocationsImagesAsyncBatchAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvisionv1p1beta1asyncbatchannotateimagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvisionv1p1beta1asyncbatchannotateimagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12197,6 +12232,7 @@ func (c *ProjectsLocationsImagesAsyncBatchAnnotateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vision.projects.locations.images.asyncBatchAnnotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12231,8 +12267,10 @@ func (c *ProjectsLocationsImagesAsyncBatchAnnotateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vision.projects.locations.images.asyncBatchAnnotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

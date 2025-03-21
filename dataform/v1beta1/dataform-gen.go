@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -34,6 +34,11 @@
 //
 // # Other authentication options
 //
+// By default, all available scopes (see "Constants") are used to authenticate.
+// To restrict scopes, use [google.golang.org/api/option.WithScopes]:
+//
+//	dataformService, err := dataform.NewService(ctx, option.WithScopes(dataform.CloudPlatformScope))
+//
 // To use an API key for authentication (note: some APIs do not support API
 // keys), use [google.golang.org/api/option.WithAPIKey]:
 //
@@ -57,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "dataform:v1beta1"
 const apiName = "dataform"
@@ -95,6 +103,10 @@ const mtlsBasePath = "https://dataform.mtls.googleapis.com/"
 
 // OAuth2 scopes used by this API.
 const (
+	// View and manage your data in Google BigQuery and see the email address for
+	// your Google Account
+	BigqueryScope = "https://www.googleapis.com/auth/bigquery"
+
 	// See, edit, configure, and delete your Google Cloud data and see the email
 	// address for your Google Account.
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
@@ -103,6 +115,7 @@ const (
 // NewService creates a new Service.
 func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
 	scopesOption := internaloption.WithDefaultScopes(
+		"https://www.googleapis.com/auth/bigquery",
 		"https://www.googleapis.com/auth/cloud-platform",
 	)
 	// NOTE: prepend, so we don't override user-specified scopes.
@@ -115,7 +128,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +148,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -168,7 +181,6 @@ type ProjectsService struct {
 
 func NewProjectsLocationsService(s *Service) *ProjectsLocationsService {
 	rs := &ProjectsLocationsService{s: s}
-	rs.Collections = NewProjectsLocationsCollectionsService(s)
 	rs.Repositories = NewProjectsLocationsRepositoriesService(s)
 	return rs
 }
@@ -176,23 +188,11 @@ func NewProjectsLocationsService(s *Service) *ProjectsLocationsService {
 type ProjectsLocationsService struct {
 	s *Service
 
-	Collections *ProjectsLocationsCollectionsService
-
 	Repositories *ProjectsLocationsRepositoriesService
-}
-
-func NewProjectsLocationsCollectionsService(s *Service) *ProjectsLocationsCollectionsService {
-	rs := &ProjectsLocationsCollectionsService{s: s}
-	return rs
-}
-
-type ProjectsLocationsCollectionsService struct {
-	s *Service
 }
 
 func NewProjectsLocationsRepositoriesService(s *Service) *ProjectsLocationsRepositoriesService {
 	rs := &ProjectsLocationsRepositoriesService{s: s}
-	rs.CommentThreads = NewProjectsLocationsRepositoriesCommentThreadsService(s)
 	rs.CompilationResults = NewProjectsLocationsRepositoriesCompilationResultsService(s)
 	rs.ReleaseConfigs = NewProjectsLocationsRepositoriesReleaseConfigsService(s)
 	rs.WorkflowConfigs = NewProjectsLocationsRepositoriesWorkflowConfigsService(s)
@@ -204,8 +204,6 @@ func NewProjectsLocationsRepositoriesService(s *Service) *ProjectsLocationsRepos
 type ProjectsLocationsRepositoriesService struct {
 	s *Service
 
-	CommentThreads *ProjectsLocationsRepositoriesCommentThreadsService
-
 	CompilationResults *ProjectsLocationsRepositoriesCompilationResultsService
 
 	ReleaseConfigs *ProjectsLocationsRepositoriesReleaseConfigsService
@@ -215,15 +213,6 @@ type ProjectsLocationsRepositoriesService struct {
 	WorkflowInvocations *ProjectsLocationsRepositoriesWorkflowInvocationsService
 
 	Workspaces *ProjectsLocationsRepositoriesWorkspacesService
-}
-
-func NewProjectsLocationsRepositoriesCommentThreadsService(s *Service) *ProjectsLocationsRepositoriesCommentThreadsService {
-	rs := &ProjectsLocationsRepositoriesCommentThreadsService{s: s}
-	return rs
-}
-
-type ProjectsLocationsRepositoriesCommentThreadsService struct {
-	s *Service
 }
 
 func NewProjectsLocationsRepositoriesCompilationResultsService(s *Service) *ProjectsLocationsRepositoriesCompilationResultsService {
@@ -302,9 +291,9 @@ type Assertion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Assertion) MarshalJSON() ([]byte, error) {
+func (s Assertion) MarshalJSON() ([]byte, error) {
 	type NoMethod Assertion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BigQueryAction: Represents a workflow action that will run against BigQuery.
@@ -328,9 +317,9 @@ type BigQueryAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BigQueryAction) MarshalJSON() ([]byte, error) {
+func (s BigQueryAction) MarshalJSON() ([]byte, error) {
 	type NoMethod BigQueryAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -427,13 +416,20 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelWorkflowInvocationRequest: `CancelWorkflowInvocation` request message.
 type CancelWorkflowInvocationRequest struct {
+}
+
+// CancelWorkflowInvocationResponse: `CancelWorkflowInvocation` response
+// message.
+type CancelWorkflowInvocationResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // CodeCompilationConfig: Configures various aspects of Dataform code
@@ -450,7 +446,9 @@ type CodeCompilationConfig struct {
 	// DefaultLocation: Optional. The default BigQuery location to use. Defaults to
 	// "US". See the BigQuery docs for a full list of locations:
 	// https://cloud.google.com/bigquery/docs/locations.
-	DefaultLocation               string                  `json:"defaultLocation,omitempty"`
+	DefaultLocation string `json:"defaultLocation,omitempty"`
+	// DefaultNotebookRuntimeOptions: Optional. The default notebook runtime
+	// options.
 	DefaultNotebookRuntimeOptions *NotebookRuntimeOptions `json:"defaultNotebookRuntimeOptions,omitempty"`
 	// DefaultSchema: Optional. The default schema (BigQuery dataset ID).
 	DefaultSchema string `json:"defaultSchema,omitempty"`
@@ -476,9 +474,9 @@ type CodeCompilationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CodeCompilationConfig) MarshalJSON() ([]byte, error) {
+func (s CodeCompilationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CodeCompilationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ColumnDescriptor: Describes a column.
@@ -504,9 +502,9 @@ type ColumnDescriptor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ColumnDescriptor) MarshalJSON() ([]byte, error) {
+func (s ColumnDescriptor) MarshalJSON() ([]byte, error) {
 	type NoMethod ColumnDescriptor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitAuthor: Represents the author of a Git commit.
@@ -528,9 +526,9 @@ type CommitAuthor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitAuthor) MarshalJSON() ([]byte, error) {
+func (s CommitAuthor) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitAuthor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitLogEntry: Represents a single commit log.
@@ -556,9 +554,9 @@ type CommitLogEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitLogEntry) MarshalJSON() ([]byte, error) {
+func (s CommitLogEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitLogEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitMetadata: Represents a Dataform Git commit.
@@ -580,17 +578,17 @@ type CommitMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitMetadata) MarshalJSON() ([]byte, error) {
+func (s CommitMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitRepositoryChangesRequest: `CommitRepositoryChanges` request message.
 type CommitRepositoryChangesRequest struct {
 	// CommitMetadata: Required. The changes to commit to the repository.
 	CommitMetadata *CommitMetadata `json:"commitMetadata,omitempty"`
-	// FileOperations: A map to the path of the file to the operation. The path is
-	// the full file path including filename, from repository root.
+	// FileOperations: Optional. A map to the path of the file to the operation.
+	// The path is the full file path including filename, from repository root.
 	FileOperations map[string]FileOperation `json:"fileOperations,omitempty"`
 	// RequiredHeadCommitSha: Optional. The commit SHA which must be the
 	// repository's current HEAD before applying this commit; otherwise this
@@ -610,9 +608,9 @@ type CommitRepositoryChangesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitRepositoryChangesRequest) MarshalJSON() ([]byte, error) {
+func (s CommitRepositoryChangesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitRepositoryChangesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitRepositoryChangesResponse: `CommitRepositoryChanges` response message.
@@ -635,9 +633,9 @@ type CommitRepositoryChangesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitRepositoryChangesResponse) MarshalJSON() ([]byte, error) {
+func (s CommitRepositoryChangesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitRepositoryChangesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitWorkspaceChangesRequest: `CommitWorkspaceChanges` request message.
@@ -662,9 +660,15 @@ type CommitWorkspaceChangesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitWorkspaceChangesRequest) MarshalJSON() ([]byte, error) {
+func (s CommitWorkspaceChangesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitWorkspaceChangesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CommitWorkspaceChangesResponse: `CommitWorkspaceChanges` response message.
+type CommitWorkspaceChangesResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // CompilationError: An error encountered when attempting to compile a Dataform
@@ -693,9 +697,9 @@ type CompilationError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompilationError) MarshalJSON() ([]byte, error) {
+func (s CompilationError) MarshalJSON() ([]byte, error) {
 	type NoMethod CompilationError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompilationResult: Represents the result of compiling a Dataform project.
@@ -707,6 +711,9 @@ type CompilationResult struct {
 	// CompilationErrors: Output only. Errors encountered during project
 	// compilation.
 	CompilationErrors []*CompilationError `json:"compilationErrors,omitempty"`
+	// CreateTime: Output only. The timestamp of when the compilation result was
+	// created.
+	CreateTime string `json:"createTime,omitempty"`
 	// DataEncryptionState: Output only. Only set if the repository has a KMS Key.
 	DataEncryptionState *DataEncryptionState `json:"dataEncryptionState,omitempty"`
 	// DataformCoreVersion: Output only. The version of `@dataform/core` that was
@@ -716,6 +723,10 @@ type CompilationResult struct {
 	// should be compiled. Must exist in the remote repository. Examples: - a
 	// commit SHA: `12ade345` - a tag: `tag1` - a branch name: `branch1`
 	GitCommitish string `json:"gitCommitish,omitempty"`
+	// InternalMetadata: Output only. All the metadata information that is used
+	// internally to serve the resource. For example: timestamps, flags, status
+	// fields, etc. The format of this field is a JSON string.
+	InternalMetadata string `json:"internalMetadata,omitempty"`
 	// Name: Output only. The compilation result's name.
 	Name string `json:"name,omitempty"`
 	// ReleaseConfig: Immutable. The name of the release config to compile. Must be
@@ -744,9 +755,9 @@ type CompilationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompilationResult) MarshalJSON() ([]byte, error) {
+func (s CompilationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod CompilationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompilationResultAction: Represents a single Dataform action in a
@@ -762,6 +773,10 @@ type CompilationResultAction struct {
 	// FilePath: The full path including filename in which this action is located,
 	// relative to the workspace root.
 	FilePath string `json:"filePath,omitempty"`
+	// InternalMetadata: Output only. All the metadata information that is used
+	// internally to serve the resource. For example: timestamps, flags, status
+	// fields, etc. The format of this field is a JSON string.
+	InternalMetadata string `json:"internalMetadata,omitempty"`
 	// Notebook: The notebook executed by this action.
 	Notebook *Notebook `json:"notebook,omitempty"`
 	// Operations: The database operations executed by this action.
@@ -783,9 +798,9 @@ type CompilationResultAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompilationResultAction) MarshalJSON() ([]byte, error) {
+func (s CompilationResultAction) MarshalJSON() ([]byte, error) {
 	type NoMethod CompilationResultAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComputeRepositoryAccessTokenStatusResponse:
@@ -818,15 +833,43 @@ type ComputeRepositoryAccessTokenStatusResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputeRepositoryAccessTokenStatusResponse) MarshalJSON() ([]byte, error) {
+func (s ComputeRepositoryAccessTokenStatusResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputeRepositoryAccessTokenStatusResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Config: Config for all repositories in a given project and location.
+type Config struct {
+	// DefaultKmsKeyName: Optional. The default KMS key that is used if no
+	// encryption key is provided when a repository is created.
+	DefaultKmsKeyName string `json:"defaultKmsKeyName,omitempty"`
+	// Name: Identifier. The config name.
+	Name string `json:"name,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "DefaultKmsKeyName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DefaultKmsKeyName") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Config) MarshalJSON() ([]byte, error) {
+	type NoMethod Config
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataEncryptionState: Describes encryption state of a resource.
 type DataEncryptionState struct {
-	// KmsKeyVersionName: The KMS key version name with which data of a resource is
-	// encrypted.
+	// KmsKeyVersionName: Required. The KMS key version name with which data of a
+	// resource is encrypted.
 	KmsKeyVersionName string `json:"kmsKeyVersionName,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "KmsKeyVersionName") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -841,9 +884,9 @@ type DataEncryptionState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataEncryptionState) MarshalJSON() ([]byte, error) {
+func (s DataEncryptionState) MarshalJSON() ([]byte, error) {
 	type NoMethod DataEncryptionState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Declaration: Represents a relation which is not managed by Dataform but
@@ -866,9 +909,9 @@ type Declaration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Declaration) MarshalJSON() ([]byte, error) {
+func (s Declaration) MarshalJSON() ([]byte, error) {
 	type NoMethod Declaration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeleteFile: Represents the delete file operation.
@@ -894,9 +937,9 @@ type DirectoryEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DirectoryEntry) MarshalJSON() ([]byte, error) {
+func (s DirectoryEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod DirectoryEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DirectorySearchResult: Client-facing representation of a directory entry in
@@ -917,9 +960,9 @@ type DirectorySearchResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DirectorySearchResult) MarshalJSON() ([]byte, error) {
+func (s DirectorySearchResult) MarshalJSON() ([]byte, error) {
 	type NoMethod DirectorySearchResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -974,9 +1017,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchFileDiffResponse: `FetchFileDiff` response message.
@@ -999,9 +1042,9 @@ type FetchFileDiffResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchFileDiffResponse) MarshalJSON() ([]byte, error) {
+func (s FetchFileDiffResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchFileDiffResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchFileGitStatusesResponse: `FetchFileGitStatuses` response message.
@@ -1025,9 +1068,9 @@ type FetchFileGitStatusesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchFileGitStatusesResponse) MarshalJSON() ([]byte, error) {
+func (s FetchFileGitStatusesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchFileGitStatusesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchGitAheadBehindResponse: `FetchGitAheadBehind` response message.
@@ -1054,9 +1097,9 @@ type FetchGitAheadBehindResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchGitAheadBehindResponse) MarshalJSON() ([]byte, error) {
+func (s FetchGitAheadBehindResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchGitAheadBehindResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchRemoteBranchesResponse: `FetchRemoteBranches` response message.
@@ -1079,9 +1122,9 @@ type FetchRemoteBranchesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchRemoteBranchesResponse) MarshalJSON() ([]byte, error) {
+func (s FetchRemoteBranchesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchRemoteBranchesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchRepositoryHistoryResponse: `FetchRepositoryHistory` response message.
@@ -1107,9 +1150,9 @@ type FetchRepositoryHistoryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchRepositoryHistoryResponse) MarshalJSON() ([]byte, error) {
+func (s FetchRepositoryHistoryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchRepositoryHistoryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileOperation: Represents a single file operation to the repository.
@@ -1131,9 +1174,9 @@ type FileOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileOperation) MarshalJSON() ([]byte, error) {
+func (s FileOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod FileOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileSearchResult: Client-facing representation of a file entry in search
@@ -1154,9 +1197,9 @@ type FileSearchResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileSearchResult) MarshalJSON() ([]byte, error) {
+func (s FileSearchResult) MarshalJSON() ([]byte, error) {
 	type NoMethod FileSearchResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GitRemoteSettings: Controls Git remote configuration for a repository.
@@ -1200,9 +1243,9 @@ type GitRemoteSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GitRemoteSettings) MarshalJSON() ([]byte, error) {
+func (s GitRemoteSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GitRemoteSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IncrementalTableConfig: Contains settings for relations of type
@@ -1242,9 +1285,9 @@ type IncrementalTableConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IncrementalTableConfig) MarshalJSON() ([]byte, error) {
+func (s IncrementalTableConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod IncrementalTableConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstallNpmPackagesRequest: `InstallNpmPackages` request message.
@@ -1283,9 +1326,9 @@ type Interval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Interval) MarshalJSON() ([]byte, error) {
+func (s Interval) MarshalJSON() ([]byte, error) {
 	type NoMethod Interval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InvocationConfig: Includes various configuration options for a workflow
@@ -1323,9 +1366,9 @@ type InvocationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InvocationConfig) MarshalJSON() ([]byte, error) {
+func (s InvocationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InvocationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCompilationResultsResponse: `ListCompilationResults` response message.
@@ -1353,9 +1396,9 @@ type ListCompilationResultsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCompilationResultsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCompilationResultsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCompilationResultsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -1381,9 +1424,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListReleaseConfigsResponse: `ListReleaseConfigs` response message.
@@ -1411,9 +1454,9 @@ type ListReleaseConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListReleaseConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListReleaseConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListReleaseConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListRepositoriesResponse: `ListRepositories` response message.
@@ -1441,9 +1484,9 @@ type ListRepositoriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListRepositoriesResponse) MarshalJSON() ([]byte, error) {
+func (s ListRepositoriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListRepositoriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkflowConfigsResponse: `ListWorkflowConfigs` response message.
@@ -1471,9 +1514,9 @@ type ListWorkflowConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkflowConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkflowConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkflowConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkflowInvocationsResponse: `ListWorkflowInvocations` response message.
@@ -1501,9 +1544,9 @@ type ListWorkflowInvocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkflowInvocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkflowInvocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkflowInvocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkspacesResponse: `ListWorkspaces` response message.
@@ -1531,9 +1574,9 @@ type ListWorkspacesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkspacesResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkspacesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkspacesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -1569,9 +1612,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MakeDirectoryRequest: `MakeDirectory` request message.
@@ -1592,9 +1635,9 @@ type MakeDirectoryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MakeDirectoryRequest) MarshalJSON() ([]byte, error) {
+func (s MakeDirectoryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MakeDirectoryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MakeDirectoryResponse: `MakeDirectory` response message.
@@ -1624,9 +1667,9 @@ type MoveDirectoryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MoveDirectoryRequest) MarshalJSON() ([]byte, error) {
+func (s MoveDirectoryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MoveDirectoryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MoveDirectoryResponse: `MoveDirectory` response message.
@@ -1656,9 +1699,9 @@ type MoveFileRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MoveFileRequest) MarshalJSON() ([]byte, error) {
+func (s MoveFileRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MoveFileRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MoveFileResponse: `MoveFile` response message.
@@ -1667,6 +1710,7 @@ type MoveFileResponse struct {
 	googleapi.ServerResponse `json:"-"`
 }
 
+// Notebook: Represents a notebook.
 type Notebook struct {
 	// Contents: The contents of the notebook.
 	Contents string `json:"contents,omitempty"`
@@ -1689,9 +1733,9 @@ type Notebook struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Notebook) MarshalJSON() ([]byte, error) {
+func (s Notebook) MarshalJSON() ([]byte, error) {
 	type NoMethod Notebook
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NotebookAction: Represents a workflow action that will run against a
@@ -1700,8 +1744,8 @@ type NotebookAction struct {
 	// Contents: Output only. The code contents of a Notebook to be run.
 	Contents string `json:"contents,omitempty"`
 	// JobId: Output only. The ID of the Vertex job that executed the notebook in
-	// contents and also the ID used for the outputs created in GCS buckets. Only
-	// set once the job has started to run.
+	// contents and also the ID used for the outputs created in Google Cloud
+	// Storage buckets. Only set once the job has started to run.
 	JobId string `json:"jobId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Contents") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1716,14 +1760,16 @@ type NotebookAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NotebookAction) MarshalJSON() ([]byte, error) {
+func (s NotebookAction) MarshalJSON() ([]byte, error) {
 	type NoMethod NotebookAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
+// NotebookRuntimeOptions: Configures various aspects of Dataform notebook
+// runtime.
 type NotebookRuntimeOptions struct {
-	// GcsOutputBucket: Optional. The GCS location to upload the result to. Format:
-	// `gs://bucket-name`.
+	// GcsOutputBucket: Optional. The Google Cloud Storage location to upload the
+	// result to. Format: `gs://bucket-name`.
 	GcsOutputBucket string `json:"gcsOutputBucket,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "GcsOutputBucket") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1738,9 +1784,9 @@ type NotebookRuntimeOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NotebookRuntimeOptions) MarshalJSON() ([]byte, error) {
+func (s NotebookRuntimeOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod NotebookRuntimeOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of the long-running operation.
@@ -1749,8 +1795,8 @@ type OperationMetadata struct {
 	ApiVersion string `json:"apiVersion,omitempty"`
 	// CancelRequested: Output only. Identifies whether the user has requested
 	// cancellation of the operation. Operations that have been cancelled
-	// successfully have Operation.error value with a google.rpc.Status.code of 1,
-	// corresponding to `Code.CANCELLED`.
+	// successfully have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 	CancelRequested bool `json:"cancelRequested,omitempty"`
 	// CreateTime: Output only. The time the operation was created.
 	CreateTime string `json:"createTime,omitempty"`
@@ -1776,9 +1822,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operations: Represents a list of arbitrary database operations.
@@ -1810,9 +1856,9 @@ type Operations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operations) MarshalJSON() ([]byte, error) {
+func (s Operations) MarshalJSON() ([]byte, error) {
 	type NoMethod Operations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -1900,9 +1946,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PullGitCommitsRequest: `PullGitCommits` request message.
@@ -1927,9 +1973,15 @@ type PullGitCommitsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PullGitCommitsRequest) MarshalJSON() ([]byte, error) {
+func (s PullGitCommitsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PullGitCommitsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PullGitCommitsResponse: `PullGitCommits` response message.
+type PullGitCommitsResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // PushGitCommitsRequest: `PushGitCommits` request message.
@@ -1951,9 +2003,15 @@ type PushGitCommitsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PushGitCommitsRequest) MarshalJSON() ([]byte, error) {
+func (s PushGitCommitsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PushGitCommitsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PushGitCommitsResponse: `PushGitCommits` response message.
+type PushGitCommitsResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // QueryCompilationResultActionsResponse: `QueryCompilationResultActions`
@@ -1980,9 +2038,9 @@ type QueryCompilationResultActionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryCompilationResultActionsResponse) MarshalJSON() ([]byte, error) {
+func (s QueryCompilationResultActionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryCompilationResultActionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryDirectoryContentsResponse: `QueryDirectoryContents` response message.
@@ -2008,9 +2066,9 @@ type QueryDirectoryContentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryDirectoryContentsResponse) MarshalJSON() ([]byte, error) {
+func (s QueryDirectoryContentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryDirectoryContentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryRepositoryDirectoryContentsResponse: `QueryRepositoryDirectoryContents`
@@ -2037,9 +2095,9 @@ type QueryRepositoryDirectoryContentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryRepositoryDirectoryContentsResponse) MarshalJSON() ([]byte, error) {
+func (s QueryRepositoryDirectoryContentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryRepositoryDirectoryContentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryWorkflowInvocationActionsResponse: `QueryWorkflowInvocationActions`
@@ -2066,9 +2124,9 @@ type QueryWorkflowInvocationActionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryWorkflowInvocationActionsResponse) MarshalJSON() ([]byte, error) {
+func (s QueryWorkflowInvocationActionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryWorkflowInvocationActionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadFileResponse: `ReadFile` response message.
@@ -2091,9 +2149,9 @@ type ReadFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadFileResponse) MarshalJSON() ([]byte, error) {
+func (s ReadFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadRepositoryFileResponse: `ReadRepositoryFile` response message.
@@ -2116,9 +2174,9 @@ type ReadRepositoryFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadRepositoryFileResponse) MarshalJSON() ([]byte, error) {
+func (s ReadRepositoryFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadRepositoryFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Relation: Represents a database relation.
@@ -2178,9 +2236,9 @@ type Relation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Relation) MarshalJSON() ([]byte, error) {
+func (s Relation) MarshalJSON() ([]byte, error) {
 	type NoMethod Relation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RelationDescriptor: Describes a relation and its columns.
@@ -2205,9 +2263,9 @@ type RelationDescriptor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RelationDescriptor) MarshalJSON() ([]byte, error) {
+func (s RelationDescriptor) MarshalJSON() ([]byte, error) {
 	type NoMethod RelationDescriptor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReleaseConfig: Represents a Dataform release configuration.
@@ -2225,12 +2283,16 @@ type ReleaseConfig struct {
 	// should be compiled. Must exist in the remote repository. Examples: - a
 	// commit SHA: `12ade345` - a tag: `tag1` - a branch name: `branch1`
 	GitCommitish string `json:"gitCommitish,omitempty"`
+	// InternalMetadata: Output only. All the metadata information that is used
+	// internally to serve the resource. For example: timestamps, flags, status
+	// fields, etc. The format of this field is a JSON string.
+	InternalMetadata string `json:"internalMetadata,omitempty"`
 	// Name: Identifier. The release config's name.
 	Name string `json:"name,omitempty"`
 	// RecentScheduledReleaseRecords: Output only. Records of the 10 most recent
-	// scheduled release attempts, ordered in in descending order of
-	// `release_time`. Updated whenever automatic creation of a compilation result
-	// is triggered by cron_schedule.
+	// scheduled release attempts, ordered in descending order of `release_time`.
+	// Updated whenever automatic creation of a compilation result is triggered by
+	// cron_schedule.
 	RecentScheduledReleaseRecords []*ScheduledReleaseRecord `json:"recentScheduledReleaseRecords,omitempty"`
 	// ReleaseCompilationResult: Optional. The name of the currently released
 	// compilation result for this release config. This value is updated when a
@@ -2261,9 +2323,9 @@ type ReleaseConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReleaseConfig) MarshalJSON() ([]byte, error) {
+func (s ReleaseConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ReleaseConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveDirectoryRequest: `RemoveDirectory` request message.
@@ -2284,9 +2346,15 @@ type RemoveDirectoryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveDirectoryRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveDirectoryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveDirectoryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RemoveDirectoryResponse: `RemoveDirectory` response message.
+type RemoveDirectoryResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // RemoveFileRequest: `RemoveFile` request message.
@@ -2307,9 +2375,15 @@ type RemoveFileRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveFileRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveFileRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveFileRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RemoveFileResponse: `RemoveFile` response message.
+type RemoveFileResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // Repository: Represents a Dataform Git repository.
@@ -2324,12 +2398,16 @@ type Repository struct {
 	// GitRemoteSettings: Optional. If set, configures this repository to be linked
 	// to a Git remote.
 	GitRemoteSettings *GitRemoteSettings `json:"gitRemoteSettings,omitempty"`
+	// InternalMetadata: Output only. All the metadata information that is used
+	// internally to serve the resource. For example: timestamps, flags, status
+	// fields, etc. The format of this field is a JSON string.
+	InternalMetadata string `json:"internalMetadata,omitempty"`
 	// KmsKeyName: Optional. The reference to a KMS encryption key. If provided, it
 	// will be used to encrypt user data in the repository and all child resources.
 	// It is not possible to add or update the encryption key after the repository
 	// is created. Example:
-	// `projects/[kms_project_id]/locations/[region]/keyRings/[key_region]/cryptoKey
-	// s/[key]`
+	// `projects/{kms_project}/locations/{location}/keyRings/{key_location}/cryptoKe
+	// ys/{key}`
 	KmsKeyName string `json:"kmsKeyName,omitempty"`
 	// Labels: Optional. Repository user labels.
 	Labels map[string]string `json:"labels,omitempty"`
@@ -2371,9 +2449,9 @@ type Repository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Repository) MarshalJSON() ([]byte, error) {
+func (s Repository) MarshalJSON() ([]byte, error) {
 	type NoMethod Repository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResetWorkspaceChangesRequest: `ResetWorkspaceChanges` request message.
@@ -2397,9 +2475,15 @@ type ResetWorkspaceChangesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResetWorkspaceChangesRequest) MarshalJSON() ([]byte, error) {
+func (s ResetWorkspaceChangesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ResetWorkspaceChangesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ResetWorkspaceChangesResponse: `ResetWorkspaceChanges` response message.
+type ResetWorkspaceChangesResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // ScheduledExecutionRecord: A record of an attempt to create a workflow
@@ -2408,7 +2492,7 @@ type ScheduledExecutionRecord struct {
 	// ErrorStatus: The error status encountered upon this attempt to create the
 	// workflow invocation, if the attempt was unsuccessful.
 	ErrorStatus *Status `json:"errorStatus,omitempty"`
-	// ExecutionTime: The timestamp of this execution attempt.
+	// ExecutionTime: Output only. The timestamp of this execution attempt.
 	ExecutionTime string `json:"executionTime,omitempty"`
 	// WorkflowInvocation: The name of the created workflow invocation, if one was
 	// successfully created. Must be in the format
@@ -2427,9 +2511,9 @@ type ScheduledExecutionRecord struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScheduledExecutionRecord) MarshalJSON() ([]byte, error) {
+func (s ScheduledExecutionRecord) MarshalJSON() ([]byte, error) {
 	type NoMethod ScheduledExecutionRecord
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScheduledReleaseRecord: A record of an attempt to create a compilation
@@ -2442,7 +2526,7 @@ type ScheduledReleaseRecord struct {
 	// ErrorStatus: The error status encountered upon this attempt to create the
 	// compilation result, if the attempt was unsuccessful.
 	ErrorStatus *Status `json:"errorStatus,omitempty"`
-	// ReleaseTime: The timestamp of this release attempt.
+	// ReleaseTime: Output only. The timestamp of this release attempt.
 	ReleaseTime string `json:"releaseTime,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CompilationResult") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2457,9 +2541,9 @@ type ScheduledReleaseRecord struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScheduledReleaseRecord) MarshalJSON() ([]byte, error) {
+func (s ScheduledReleaseRecord) MarshalJSON() ([]byte, error) {
 	type NoMethod ScheduledReleaseRecord
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchFilesResponse: Client-facing representation of a file search response.
@@ -2486,9 +2570,9 @@ type SearchFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchFilesResponse) MarshalJSON() ([]byte, error) {
+func (s SearchFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchResult: Client-facing representation of a search result entry.
@@ -2510,9 +2594,9 @@ type SearchResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchResult) MarshalJSON() ([]byte, error) {
+func (s SearchResult) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -2535,9 +2619,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SshAuthenticationConfig: Configures fields for performing SSH
@@ -2563,9 +2647,9 @@ type SshAuthenticationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SshAuthenticationConfig) MarshalJSON() ([]byte, error) {
+func (s SshAuthenticationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SshAuthenticationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2597,19 +2681,20 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Target: Represents an action identifier. If the action writes output, the
 // output will be written to the referenced database object.
 type Target struct {
-	// Database: The action's database (Google Cloud project ID) .
+	// Database: Optional. The action's database (Google Cloud project ID) .
 	Database string `json:"database,omitempty"`
-	// Name: The action's name, within `database` and `schema`.
+	// Name: Optional. The action's name, within `database` and `schema`.
 	Name string `json:"name,omitempty"`
-	// Schema: The action's schema (BigQuery dataset ID), within `database`.
+	// Schema: Optional. The action's schema (BigQuery dataset ID), within
+	// `database`.
 	Schema string `json:"schema,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Database") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2624,9 +2709,9 @@ type Target struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Target) MarshalJSON() ([]byte, error) {
+func (s Target) MarshalJSON() ([]byte, error) {
 	type NoMethod Target
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -2649,9 +2734,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -2676,9 +2761,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UncommittedFileChange: Represents the Git state of a file with uncommitted
@@ -2687,7 +2772,7 @@ type UncommittedFileChange struct {
 	// Path: The file's full path including filename, relative to the workspace
 	// root.
 	Path string `json:"path,omitempty"`
-	// State: Indicates the status of the file.
+	// State: Output only. Indicates the status of the file.
 	//
 	// Possible values:
 	//   "STATE_UNSPECIFIED" - Default value. This value is unused.
@@ -2709,23 +2794,30 @@ type UncommittedFileChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UncommittedFileChange) MarshalJSON() ([]byte, error) {
+func (s UncommittedFileChange) MarshalJSON() ([]byte, error) {
 	type NoMethod UncommittedFileChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowConfig: Represents a Dataform workflow configuration.
 type WorkflowConfig struct {
+	// CreateTime: Output only. The timestamp of when the WorkflowConfig was
+	// created.
+	CreateTime string `json:"createTime,omitempty"`
 	// CronSchedule: Optional. Optional schedule (in cron format) for automatic
 	// execution of this workflow config.
 	CronSchedule string `json:"cronSchedule,omitempty"`
+	// InternalMetadata: Output only. All the metadata information that is used
+	// internally to serve the resource. For example: timestamps, flags, status
+	// fields, etc. The format of this field is a JSON string.
+	InternalMetadata string `json:"internalMetadata,omitempty"`
 	// InvocationConfig: Optional. If left unset, a default InvocationConfig will
 	// be used.
 	InvocationConfig *InvocationConfig `json:"invocationConfig,omitempty"`
 	// Name: Identifier. The workflow config's name.
 	Name string `json:"name,omitempty"`
 	// RecentScheduledExecutionRecords: Output only. Records of the 10 most recent
-	// scheduled execution attempts, ordered in in descending order of
+	// scheduled execution attempts, ordered in descending order of
 	// `execution_time`. Updated whenever automatic creation of a workflow
 	// invocation is triggered by cron_schedule.
 	RecentScheduledExecutionRecords []*ScheduledExecutionRecord `json:"recentScheduledExecutionRecords,omitempty"`
@@ -2738,25 +2830,28 @@ type WorkflowConfig struct {
 	// (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). If left
 	// unspecified, the default is UTC.
 	TimeZone string `json:"timeZone,omitempty"`
+	// UpdateTime: Output only. The timestamp of when the WorkflowConfig was last
+	// updated.
+	UpdateTime string `json:"updateTime,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "CronSchedule") to
+	// ForceSendFields is a list of field names (e.g. "CreateTime") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CronSchedule") to include in API
+	// NullFields is a list of field names (e.g. "CreateTime") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowConfig) MarshalJSON() ([]byte, error) {
+func (s WorkflowConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowInvocation: Represents a single invocation of a compilation result.
@@ -2767,6 +2862,10 @@ type WorkflowInvocation struct {
 	CompilationResult string `json:"compilationResult,omitempty"`
 	// DataEncryptionState: Output only. Only set if the repository has a KMS Key.
 	DataEncryptionState *DataEncryptionState `json:"dataEncryptionState,omitempty"`
+	// InternalMetadata: Output only. All the metadata information that is used
+	// internally to serve the resource. For example: timestamps, flags, status
+	// fields, etc. The format of this field is a JSON string.
+	InternalMetadata string `json:"internalMetadata,omitempty"`
 	// InvocationConfig: Immutable. If left unset, a default InvocationConfig will
 	// be used.
 	InvocationConfig *InvocationConfig `json:"invocationConfig,omitempty"`
@@ -2808,9 +2907,9 @@ type WorkflowInvocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowInvocation) MarshalJSON() ([]byte, error) {
+func (s WorkflowInvocation) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowInvocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowInvocationAction: Represents a single action in a workflow
@@ -2825,6 +2924,10 @@ type WorkflowInvocationAction struct {
 	// FailureReason: Output only. If and only if action's state is FAILED a
 	// failure reason is set.
 	FailureReason string `json:"failureReason,omitempty"`
+	// InternalMetadata: Output only. All the metadata information that is used
+	// internally to serve the resource. For example: timestamps, flags, status
+	// fields, etc. The format of this field is a JSON string.
+	InternalMetadata string `json:"internalMetadata,omitempty"`
 	// InvocationTiming: Output only. This action's timing details. `start_time`
 	// will be set if the action is in [RUNNING, SUCCEEDED, CANCELLED, FAILED]
 	// state. `end_time` will be set if the action is in [SUCCEEDED, CANCELLED,
@@ -2861,37 +2964,43 @@ type WorkflowInvocationAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowInvocationAction) MarshalJSON() ([]byte, error) {
+func (s WorkflowInvocationAction) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowInvocationAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Workspace: Represents a Dataform Git workspace.
 type Workspace struct {
+	// CreateTime: Output only. The timestamp of when the workspace was created.
+	CreateTime string `json:"createTime,omitempty"`
 	// DataEncryptionState: Output only. A data encryption state of a Git
 	// repository if this Workspace is protected by a KMS key.
 	DataEncryptionState *DataEncryptionState `json:"dataEncryptionState,omitempty"`
+	// InternalMetadata: Output only. All the metadata information that is used
+	// internally to serve the resource. For example: timestamps, flags, status
+	// fields, etc. The format of this field is a JSON string.
+	InternalMetadata string `json:"internalMetadata,omitempty"`
 	// Name: Identifier. The workspace's name.
 	Name string `json:"name,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "DataEncryptionState") to
+	// ForceSendFields is a list of field names (e.g. "CreateTime") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "DataEncryptionState") to include
-	// in API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "CreateTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *Workspace) MarshalJSON() ([]byte, error) {
+func (s Workspace) MarshalJSON() ([]byte, error) {
 	type NoMethod Workspace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkspaceCompilationOverrides: Configures workspace compilation overrides
@@ -2925,9 +3034,9 @@ type WorkspaceCompilationOverrides struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkspaceCompilationOverrides) MarshalJSON() ([]byte, error) {
+func (s WorkspaceCompilationOverrides) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkspaceCompilationOverrides
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WriteFile: Represents the write file operation (for files added or
@@ -2948,9 +3057,9 @@ type WriteFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WriteFile) MarshalJSON() ([]byte, error) {
+func (s WriteFile) MarshalJSON() ([]byte, error) {
 	type NoMethod WriteFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WriteFileRequest: `WriteFile` request message.
@@ -2972,9 +3081,9 @@ type WriteFileRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WriteFileRequest) MarshalJSON() ([]byte, error) {
+func (s WriteFileRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod WriteFileRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WriteFileResponse: `WriteFile` response message.
@@ -3037,12 +3146,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3050,6 +3158,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3084,9 +3193,120 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsGetConfigCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetConfig: Get default config for a given project and location.
+//
+// - name: The config name.
+func (r *ProjectsLocationsService) GetConfig(name string) *ProjectsLocationsGetConfigCall {
+	c := &ProjectsLocationsGetConfigCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsGetConfigCall) Fields(s ...googleapi.Field) *ProjectsLocationsGetConfigCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsGetConfigCall) IfNoneMatch(entityTag string) *ProjectsLocationsGetConfigCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsGetConfigCall) Context(ctx context.Context) *ProjectsLocationsGetConfigCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsGetConfigCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsGetConfigCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.getConfig", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataform.projects.locations.getConfig" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Config.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsGetConfigCall) Do(opts ...googleapi.CallOption) (*Config, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Config{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3168,12 +3388,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3181,6 +3400,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3216,9 +3436,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3243,102 +3465,87 @@ func (c *ProjectsLocationsListCall) Pages(ctx context.Context, f func(*ListLocat
 	}
 }
 
-type ProjectsLocationsCollectionsGetIamPolicyCall struct {
-	s            *Service
-	resource     string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
+type ProjectsLocationsUpdateConfigCall struct {
+	s          *Service
+	name       string
+	config     *Config
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
 }
 
-// GetIamPolicy: Gets the access control policy for a resource. Returns an
-// empty policy if the resource exists and does not have a policy set.
+// UpdateConfig: Update default config for a given project and location.
+// **Note:** *This method does not fully implement AIP/134
+// (https://google.aip.dev/134). The wildcard entry (\*) is treated as a bad
+// request, and when the `field_mask` is omitted, the request is treated as a
+// full update on all modifiable fields.*
 //
-//   - resource: REQUIRED: The resource for which the policy is being requested.
-//     See Resource names (https://cloud.google.com/apis/design/resource_names)
-//     for the appropriate value for this field.
-func (r *ProjectsLocationsCollectionsService) GetIamPolicy(resource string) *ProjectsLocationsCollectionsGetIamPolicyCall {
-	c := &ProjectsLocationsCollectionsGetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.resource = resource
+// - name: Identifier. The config name.
+func (r *ProjectsLocationsService) UpdateConfig(name string, config *Config) *ProjectsLocationsUpdateConfigCall {
+	c := &ProjectsLocationsUpdateConfigCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.config = config
 	return c
 }
 
-// OptionsRequestedPolicyVersion sets the optional parameter
-// "options.requestedPolicyVersion": The maximum policy version that will be
-// used to format the policy. Valid values are 0, 1, and 3. Requests specifying
-// an invalid value will be rejected. Requests for policies with any
-// conditional role bindings must specify version 3. Policies with no
-// conditional role bindings may specify any valid value or leave the field
-// unset. The policy in the response might use the policy version that you
-// specified, or it might use a lower policy version. For example, if you
-// specify version 3, but the policy has no conditional role bindings, the
-// response uses version 1. To learn which resources support conditions in
-// their IAM policies, see the IAM documentation
-// (https://cloud.google.com/iam/help/conditions/resource-policies).
-func (c *ProjectsLocationsCollectionsGetIamPolicyCall) OptionsRequestedPolicyVersion(optionsRequestedPolicyVersion int64) *ProjectsLocationsCollectionsGetIamPolicyCall {
-	c.urlParams_.Set("options.requestedPolicyVersion", fmt.Sprint(optionsRequestedPolicyVersion))
+// UpdateMask sets the optional parameter "updateMask": Specifies the fields to
+// be updated in the config.
+func (c *ProjectsLocationsUpdateConfigCall) UpdateMask(updateMask string) *ProjectsLocationsUpdateConfigCall {
+	c.urlParams_.Set("updateMask", updateMask)
 	return c
 }
 
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
 // details.
-func (c *ProjectsLocationsCollectionsGetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsLocationsCollectionsGetIamPolicyCall {
+func (c *ProjectsLocationsUpdateConfigCall) Fields(s ...googleapi.Field) *ProjectsLocationsUpdateConfigCall {
 	c.urlParams_.Set("fields", googleapi.CombineFields(s))
 	return c
 }
 
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *ProjectsLocationsCollectionsGetIamPolicyCall) IfNoneMatch(entityTag string) *ProjectsLocationsCollectionsGetIamPolicyCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
 // Context sets the context to be used in this call's Do method.
-func (c *ProjectsLocationsCollectionsGetIamPolicyCall) Context(ctx context.Context) *ProjectsLocationsCollectionsGetIamPolicyCall {
+func (c *ProjectsLocationsUpdateConfigCall) Context(ctx context.Context) *ProjectsLocationsUpdateConfigCall {
 	c.ctx_ = ctx
 	return c
 }
 
 // Header returns a http.Header that can be modified by the caller to add
 // headers to the request.
-func (c *ProjectsLocationsCollectionsGetIamPolicyCall) Header() http.Header {
+func (c *ProjectsLocationsUpdateConfigCall) Header() http.Header {
 	if c.header_ == nil {
 		c.header_ = make(http.Header)
 	}
 	return c.header_
 }
 
-func (c *ProjectsLocationsCollectionsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+func (c *ProjectsLocationsUpdateConfigCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.config)
+	if err != nil {
+		return nil, err
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+resource}:getIamPolicy")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("PATCH", urls, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
 	googleapi.Expand(req.URL, map[string]string{
-		"resource": c.resource,
+		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.updateConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
-// Do executes the "dataform.projects.locations.collections.getIamPolicy" call.
+// Do executes the "dataform.projects.locations.updateConfig" call.
 // Any non-2xx status code is an error. Response headers are in either
-// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// *Config.ServerResponse.Header or (if a response was returned at all) in
 // error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
 // whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsCollectionsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+func (c *ProjectsLocationsUpdateConfigCall) Do(opts ...googleapi.CallOption) (*Config, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -3357,230 +3564,18 @@ func (c *ProjectsLocationsCollectionsGetIamPolicyCall) Do(opts ...googleapi.Call
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, gensupport.WrapError(err)
 	}
-	ret := &Policy{
+	ret := &Config{
 		ServerResponse: googleapi.ServerResponse{
 			Header:         res.Header,
 			HTTPStatusCode: res.StatusCode,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type ProjectsLocationsCollectionsSetIamPolicyCall struct {
-	s                   *Service
-	resource            string
-	setiampolicyrequest *SetIamPolicyRequest
-	urlParams_          gensupport.URLParams
-	ctx_                context.Context
-	header_             http.Header
-}
-
-// SetIamPolicy: Sets the access control policy on the specified resource.
-// Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`,
-// and `PERMISSION_DENIED` errors.
-//
-//   - resource: REQUIRED: The resource for which the policy is being specified.
-//     See Resource names (https://cloud.google.com/apis/design/resource_names)
-//     for the appropriate value for this field.
-func (r *ProjectsLocationsCollectionsService) SetIamPolicy(resource string, setiampolicyrequest *SetIamPolicyRequest) *ProjectsLocationsCollectionsSetIamPolicyCall {
-	c := &ProjectsLocationsCollectionsSetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.resource = resource
-	c.setiampolicyrequest = setiampolicyrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *ProjectsLocationsCollectionsSetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsLocationsCollectionsSetIamPolicyCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *ProjectsLocationsCollectionsSetIamPolicyCall) Context(ctx context.Context) *ProjectsLocationsCollectionsSetIamPolicyCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *ProjectsLocationsCollectionsSetIamPolicyCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsCollectionsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	b, err := gensupport.DecodeResponseBytes(target, res)
 	if err != nil {
 		return nil, err
 	}
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+resource}:setIamPolicy")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"resource": c.resource,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "dataform.projects.locations.collections.setIamPolicy" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *Policy.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsCollectionsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &Policy{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type ProjectsLocationsCollectionsTestIamPermissionsCall struct {
-	s                         *Service
-	resource                  string
-	testiampermissionsrequest *TestIamPermissionsRequest
-	urlParams_                gensupport.URLParams
-	ctx_                      context.Context
-	header_                   http.Header
-}
-
-// TestIamPermissions: Returns permissions that a caller has on the specified
-// resource. If the resource does not exist, this will return an empty set of
-// permissions, not a `NOT_FOUND` error. Note: This operation is designed to be
-// used for building permission-aware UIs and command-line tools, not for
-// authorization checking. This operation may "fail open" without warning.
-//
-//   - resource: REQUIRED: The resource for which the policy detail is being
-//     requested. See Resource names
-//     (https://cloud.google.com/apis/design/resource_names) for the appropriate
-//     value for this field.
-func (r *ProjectsLocationsCollectionsService) TestIamPermissions(resource string, testiampermissionsrequest *TestIamPermissionsRequest) *ProjectsLocationsCollectionsTestIamPermissionsCall {
-	c := &ProjectsLocationsCollectionsTestIamPermissionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.resource = resource
-	c.testiampermissionsrequest = testiampermissionsrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *ProjectsLocationsCollectionsTestIamPermissionsCall) Fields(s ...googleapi.Field) *ProjectsLocationsCollectionsTestIamPermissionsCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *ProjectsLocationsCollectionsTestIamPermissionsCall) Context(ctx context.Context) *ProjectsLocationsCollectionsTestIamPermissionsCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *ProjectsLocationsCollectionsTestIamPermissionsCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsCollectionsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
-	if err != nil {
-		return nil, err
-	}
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+resource}:testIamPermissions")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"resource": c.resource,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "dataform.projects.locations.collections.testIamPermissions" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *TestIamPermissionsResponse.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *ProjectsLocationsCollectionsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*TestIamPermissionsResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &TestIamPermissionsResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.updateConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3629,8 +3624,7 @@ func (c *ProjectsLocationsRepositoriesCommitCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesCommitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commitrepositorychangesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.commitrepositorychangesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3646,6 +3640,7 @@ func (c *ProjectsLocationsRepositoriesCommitCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.commit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3681,9 +3676,11 @@ func (c *ProjectsLocationsRepositoriesCommitCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.commit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3741,12 +3738,11 @@ func (c *ProjectsLocationsRepositoriesComputeAccessTokenStatusCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:computeAccessTokenStatus")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3754,6 +3750,7 @@ func (c *ProjectsLocationsRepositoriesComputeAccessTokenStatusCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.computeAccessTokenStatus", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3789,9 +3786,11 @@ func (c *ProjectsLocationsRepositoriesComputeAccessTokenStatusCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.computeAccessTokenStatus", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3848,8 +3847,7 @@ func (c *ProjectsLocationsRepositoriesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.repository)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.repository)
 	if err != nil {
 		return nil, err
 	}
@@ -3865,6 +3863,7 @@ func (c *ProjectsLocationsRepositoriesCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3899,9 +3898,11 @@ func (c *ProjectsLocationsRepositoriesCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3955,12 +3956,11 @@ func (c *ProjectsLocationsRepositoriesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3968,6 +3968,7 @@ func (c *ProjectsLocationsRepositoriesDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4002,9 +4003,11 @@ func (c *ProjectsLocationsRepositoriesDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4038,7 +4041,8 @@ func (c *ProjectsLocationsRepositoriesFetchHistoryCall) PageSize(pageSize int64)
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `FetchRepositoryHistory` call. Provide this to retrieve the
 // subsequent page. When paginating, all other parameters provided to
-// `FetchRepositoryHistory` must match the call that provided the page token.
+// `FetchRepositoryHistory`, with the exception of `page_size`, must match the
+// call that provided the page token.
 func (c *ProjectsLocationsRepositoriesFetchHistoryCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesFetchHistoryCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -4080,12 +4084,11 @@ func (c *ProjectsLocationsRepositoriesFetchHistoryCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:fetchHistory")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4093,6 +4096,7 @@ func (c *ProjectsLocationsRepositoriesFetchHistoryCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.fetchHistory", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4128,9 +4132,11 @@ func (c *ProjectsLocationsRepositoriesFetchHistoryCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.fetchHistory", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4209,12 +4215,11 @@ func (c *ProjectsLocationsRepositoriesFetchRemoteBranchesCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:fetchRemoteBranches")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4222,6 +4227,7 @@ func (c *ProjectsLocationsRepositoriesFetchRemoteBranchesCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.fetchRemoteBranches", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4257,9 +4263,11 @@ func (c *ProjectsLocationsRepositoriesFetchRemoteBranchesCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.fetchRemoteBranches", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4317,12 +4325,11 @@ func (c *ProjectsLocationsRepositoriesGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4330,6 +4337,7 @@ func (c *ProjectsLocationsRepositoriesGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4364,9 +4372,11 @@ func (c *ProjectsLocationsRepositoriesGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4444,12 +4454,11 @@ func (c *ProjectsLocationsRepositoriesGetIamPolicyCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4457,6 +4466,7 @@ func (c *ProjectsLocationsRepositoriesGetIamPolicyCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4491,9 +4501,11 @@ func (c *ProjectsLocationsRepositoriesGetIamPolicyCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4540,8 +4552,9 @@ func (c *ProjectsLocationsRepositoriesListCall) PageSize(pageSize int64) *Projec
 
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `ListRepositories` call. Provide this to retrieve the subsequent
-// page. When paginating, all other parameters provided to `ListRepositories`
-// must match the call that provided the page token.
+// page. When paginating, all other parameters provided to `ListRepositories`,
+// with the exception of `page_size`, must match the call that provided the
+// page token.
 func (c *ProjectsLocationsRepositoriesListCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -4583,12 +4596,11 @@ func (c *ProjectsLocationsRepositoriesListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/repositories")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4596,6 +4608,7 @@ func (c *ProjectsLocationsRepositoriesListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4631,9 +4644,11 @@ func (c *ProjectsLocationsRepositoriesListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4667,7 +4682,10 @@ type ProjectsLocationsRepositoriesPatchCall struct {
 	header_    http.Header
 }
 
-// Patch: Updates a single Repository.
+// Patch: Updates a single Repository. **Note:** *This method does not fully
+// implement AIP/134 (https://google.aip.dev/134). The wildcard entry (\*) is
+// treated as a bad request, and when the `field_mask` is omitted, the request
+// is treated as a full update on all modifiable fields.*
 //
 // - name: Identifier. The repository's name.
 func (r *ProjectsLocationsRepositoriesService) Patch(name string, repository *Repository) *ProjectsLocationsRepositoriesPatchCall {
@@ -4709,8 +4727,7 @@ func (c *ProjectsLocationsRepositoriesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.repository)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.repository)
 	if err != nil {
 		return nil, err
 	}
@@ -4726,6 +4743,7 @@ func (c *ProjectsLocationsRepositoriesPatchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4760,9 +4778,11 @@ func (c *ProjectsLocationsRepositoriesPatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4804,8 +4824,8 @@ func (c *ProjectsLocationsRepositoriesQueryDirectoryContentsCall) PageSize(pageS
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `QueryRepositoryDirectoryContents` call. Provide this to retrieve
 // the subsequent page. When paginating, all other parameters provided to
-// `QueryRepositoryDirectoryContents` must match the call that provided the
-// page token.
+// `QueryRepositoryDirectoryContents`, with the exception of `page_size`, must
+// match the call that provided the page token.
 func (c *ProjectsLocationsRepositoriesQueryDirectoryContentsCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesQueryDirectoryContentsCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -4854,12 +4874,11 @@ func (c *ProjectsLocationsRepositoriesQueryDirectoryContentsCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:queryDirectoryContents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4867,6 +4886,7 @@ func (c *ProjectsLocationsRepositoriesQueryDirectoryContentsCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.queryDirectoryContents", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4902,9 +4922,11 @@ func (c *ProjectsLocationsRepositoriesQueryDirectoryContentsCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.queryDirectoryContents", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4998,12 +5020,11 @@ func (c *ProjectsLocationsRepositoriesReadFileCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:readFile")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5011,6 +5032,7 @@ func (c *ProjectsLocationsRepositoriesReadFileCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.readFile", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5046,9 +5068,11 @@ func (c *ProjectsLocationsRepositoriesReadFileCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.readFile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5100,8 +5124,7 @@ func (c *ProjectsLocationsRepositoriesSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5117,6 +5140,7 @@ func (c *ProjectsLocationsRepositoriesSetIamPolicyCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5151,9 +5175,11 @@ func (c *ProjectsLocationsRepositoriesSetIamPolicyCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5208,8 +5234,7 @@ func (c *ProjectsLocationsRepositoriesTestIamPermissionsCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5225,6 +5250,7 @@ func (c *ProjectsLocationsRepositoriesTestIamPermissionsCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5260,241 +5286,11 @@ func (c *ProjectsLocationsRepositoriesTestIamPermissionsCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall struct {
-	s            *Service
-	resource     string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// GetIamPolicy: Gets the access control policy for a resource. Returns an
-// empty policy if the resource exists and does not have a policy set.
-//
-//   - resource: REQUIRED: The resource for which the policy is being requested.
-//     See Resource names (https://cloud.google.com/apis/design/resource_names)
-//     for the appropriate value for this field.
-func (r *ProjectsLocationsRepositoriesCommentThreadsService) GetIamPolicy(resource string) *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall {
-	c := &ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.resource = resource
-	return c
-}
-
-// OptionsRequestedPolicyVersion sets the optional parameter
-// "options.requestedPolicyVersion": The maximum policy version that will be
-// used to format the policy. Valid values are 0, 1, and 3. Requests specifying
-// an invalid value will be rejected. Requests for policies with any
-// conditional role bindings must specify version 3. Policies with no
-// conditional role bindings may specify any valid value or leave the field
-// unset. The policy in the response might use the policy version that you
-// specified, or it might use a lower policy version. For example, if you
-// specify version 3, but the policy has no conditional role bindings, the
-// response uses version 1. To learn which resources support conditions in
-// their IAM policies, see the IAM documentation
-// (https://cloud.google.com/iam/help/conditions/resource-policies).
-func (c *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall) OptionsRequestedPolicyVersion(optionsRequestedPolicyVersion int64) *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall {
-	c.urlParams_.Set("options.requestedPolicyVersion", fmt.Sprint(optionsRequestedPolicyVersion))
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall) IfNoneMatch(entityTag string) *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+resource}:getIamPolicy")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	b, err := gensupport.DecodeResponseBytes(target, res)
 	if err != nil {
 		return nil, err
 	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"resource": c.resource,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "dataform.projects.locations.repositories.commentThreads.getIamPolicy" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *Policy.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesCommentThreadsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &Policy{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall struct {
-	s                   *Service
-	resource            string
-	setiampolicyrequest *SetIamPolicyRequest
-	urlParams_          gensupport.URLParams
-	ctx_                context.Context
-	header_             http.Header
-}
-
-// SetIamPolicy: Sets the access control policy on the specified resource.
-// Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`,
-// and `PERMISSION_DENIED` errors.
-//
-//   - resource: REQUIRED: The resource for which the policy is being specified.
-//     See Resource names (https://cloud.google.com/apis/design/resource_names)
-//     for the appropriate value for this field.
-func (r *ProjectsLocationsRepositoriesCommentThreadsService) SetIamPolicy(resource string, setiampolicyrequest *SetIamPolicyRequest) *ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall {
-	c := &ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.resource = resource
-	c.setiampolicyrequest = setiampolicyrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
-	if err != nil {
-		return nil, err
-	}
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+resource}:setIamPolicy")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"resource": c.resource,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "dataform.projects.locations.repositories.commentThreads.setIamPolicy" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *Policy.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesCommentThreadsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &Policy{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5543,8 +5339,7 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsCreateCall) Header() htt
 
 func (c *ProjectsLocationsRepositoriesCompilationResultsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.compilationresult)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.compilationresult)
 	if err != nil {
 		return nil, err
 	}
@@ -5560,6 +5355,7 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsCreateCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.compilationResults.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5595,9 +5391,11 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsCreateCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.compilationResults.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5655,12 +5453,11 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsGetCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5668,6 +5465,7 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsGetCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.compilationResults.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5703,9 +5501,11 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsGetCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.compilationResults.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5754,7 +5554,8 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsListCall) PageSize(pageS
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `ListCompilationResults` call. Provide this to retrieve the
 // subsequent page. When paginating, all other parameters provided to
-// `ListCompilationResults` must match the call that provided the page token.
+// `ListCompilationResults`, with the exception of `page_size`, must match the
+// call that provided the page token.
 func (c *ProjectsLocationsRepositoriesCompilationResultsListCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesCompilationResultsListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -5796,12 +5597,11 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsListCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/compilationResults")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5809,6 +5609,7 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsListCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.compilationResults.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5844,9 +5645,11 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsListCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.compilationResults.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5908,8 +5711,8 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsQueryCall) PageSize(page
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `QueryCompilationResultActions` call. Provide this to retrieve
 // the subsequent page. When paginating, all other parameters provided to
-// `QueryCompilationResultActions` must match the call that provided the page
-// token.
+// `QueryCompilationResultActions`, with the exception of `page_size`, must
+// match the call that provided the page token.
 func (c *ProjectsLocationsRepositoriesCompilationResultsQueryCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesCompilationResultsQueryCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -5951,12 +5754,11 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsQueryCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:query")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5964,6 +5766,7 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsQueryCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.compilationResults.query", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5999,9 +5802,11 @@ func (c *ProjectsLocationsRepositoriesCompilationResultsQueryCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.compilationResults.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6079,8 +5884,7 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsCreateCall) Header() http.He
 
 func (c *ProjectsLocationsRepositoriesReleaseConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.releaseconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.releaseconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -6096,6 +5900,7 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsCreateCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6130,9 +5935,11 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsCreateCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6178,12 +5985,11 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsDeleteCall) Header() http.He
 
 func (c *ProjectsLocationsRepositoriesReleaseConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6191,6 +5997,7 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsDeleteCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6225,9 +6032,11 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsDeleteCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6285,12 +6094,11 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsGetCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6298,6 +6106,7 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsGetCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6332,9 +6141,11 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsGetCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6368,7 +6179,8 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsListCall) PageSize(pageSize 
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `ListReleaseConfigs` call. Provide this to retrieve the
 // subsequent page. When paginating, all other parameters provided to
-// `ListReleaseConfigs` must match the call that provided the page token.
+// `ListReleaseConfigs`, with the exception of `page_size`, must match the call
+// that provided the page token.
 func (c *ProjectsLocationsRepositoriesReleaseConfigsListCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesReleaseConfigsListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -6410,12 +6222,11 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsListCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/releaseConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6423,6 +6234,7 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsListCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6458,9 +6270,11 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsListCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6494,7 +6308,10 @@ type ProjectsLocationsRepositoriesReleaseConfigsPatchCall struct {
 	header_       http.Header
 }
 
-// Patch: Updates a single ReleaseConfig.
+// Patch: Updates a single ReleaseConfig. **Note:** *This method does not fully
+// implement AIP/134 (https://google.aip.dev/134). The wildcard entry (\*) is
+// treated as a bad request, and when the `field_mask` is omitted, the request
+// is treated as a full update on all modifiable fields.*
 //
 // - name: Identifier. The release config's name.
 func (r *ProjectsLocationsRepositoriesReleaseConfigsService) Patch(name string, releaseconfig *ReleaseConfig) *ProjectsLocationsRepositoriesReleaseConfigsPatchCall {
@@ -6536,8 +6353,7 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsPatchCall) Header() http.Hea
 
 func (c *ProjectsLocationsRepositoriesReleaseConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.releaseconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.releaseconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -6553,6 +6369,7 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsPatchCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6587,9 +6404,11 @@ func (c *ProjectsLocationsRepositoriesReleaseConfigsPatchCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.releaseConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6646,8 +6465,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsCreateCall) Header() http.H
 
 func (c *ProjectsLocationsRepositoriesWorkflowConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -6663,6 +6481,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsCreateCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6697,9 +6516,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsCreateCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6745,12 +6566,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsDeleteCall) Header() http.H
 
 func (c *ProjectsLocationsRepositoriesWorkflowConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6758,6 +6578,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsDeleteCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6792,9 +6613,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsDeleteCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6852,12 +6675,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsGetCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6865,6 +6687,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsGetCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6899,9 +6722,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsGetCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6935,7 +6760,8 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsListCall) PageSize(pageSize
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `ListWorkflowConfigs` call. Provide this to retrieve the
 // subsequent page. When paginating, all other parameters provided to
-// `ListWorkflowConfigs` must match the call that provided the page token.
+// `ListWorkflowConfigs`, with the exception of `page_size`, must match the
+// call that provided the page token.
 func (c *ProjectsLocationsRepositoriesWorkflowConfigsListCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesWorkflowConfigsListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -6977,12 +6803,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/workflowConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6990,6 +6815,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsListCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7025,9 +6851,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7061,7 +6889,10 @@ type ProjectsLocationsRepositoriesWorkflowConfigsPatchCall struct {
 	header_        http.Header
 }
 
-// Patch: Updates a single WorkflowConfig.
+// Patch: Updates a single WorkflowConfig. **Note:** *This method does not
+// fully implement AIP/134 (https://google.aip.dev/134). The wildcard entry
+// (\*) is treated as a bad request, and when the `field_mask` is omitted, the
+// request is treated as a full update on all modifiable fields.*
 //
 // - name: Identifier. The workflow config's name.
 func (r *ProjectsLocationsRepositoriesWorkflowConfigsService) Patch(name string, workflowconfig *WorkflowConfig) *ProjectsLocationsRepositoriesWorkflowConfigsPatchCall {
@@ -7104,8 +6935,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsPatchCall) Header() http.He
 
 func (c *ProjectsLocationsRepositoriesWorkflowConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -7121,6 +6951,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsPatchCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7155,9 +6986,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowConfigsPatchCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7205,8 +7038,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCancelCall) Header() ht
 
 func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelworkflowinvocationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelworkflowinvocationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7222,15 +7054,17 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCancelCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "dataform.projects.locations.repositories.workflowInvocations.cancel" call.
 // Any non-2xx status code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCancelCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+// *CancelWorkflowInvocationResponse.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCancelCall) Do(opts ...googleapi.CallOption) (*CancelWorkflowInvocationResponse, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -7249,16 +7083,18 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCancelCall) Do(opts ...
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, gensupport.WrapError(err)
 	}
-	ret := &Empty{
+	ret := &CancelWorkflowInvocationResponse{
 		ServerResponse: googleapi.ServerResponse{
 			Header:         res.Header,
 			HTTPStatusCode: res.StatusCode,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7307,8 +7143,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCreateCall) Header() ht
 
 func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowinvocation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowinvocation)
 	if err != nil {
 		return nil, err
 	}
@@ -7324,6 +7159,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCreateCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7359,9 +7195,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsCreateCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7407,12 +7245,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsDeleteCall) Header() ht
 
 func (c *ProjectsLocationsRepositoriesWorkflowInvocationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7420,6 +7257,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsDeleteCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7454,9 +7292,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsDeleteCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7514,12 +7354,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsGetCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7527,6 +7366,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsGetCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7562,9 +7402,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsGetCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7612,7 +7454,8 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsListCall) PageSize(page
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `ListWorkflowInvocations` call. Provide this to retrieve the
 // subsequent page. When paginating, all other parameters provided to
-// `ListWorkflowInvocations` must match the call that provided the page token.
+// `ListWorkflowInvocations`, with the exception of `page_size`, must match the
+// call that provided the page token.
 func (c *ProjectsLocationsRepositoriesWorkflowInvocationsListCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesWorkflowInvocationsListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -7654,12 +7497,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsListCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/workflowInvocations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7667,6 +7509,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsListCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7702,9 +7545,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsListCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7758,8 +7603,8 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsQueryCall) PageSize(pag
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `QueryWorkflowInvocationActions` call. Provide this to retrieve
 // the subsequent page. When paginating, all other parameters provided to
-// `QueryWorkflowInvocationActions` must match the call that provided the page
-// token.
+// `QueryWorkflowInvocationActions`, with the exception of `page_size`, must
+// match the call that provided the page token.
 func (c *ProjectsLocationsRepositoriesWorkflowInvocationsQueryCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesWorkflowInvocationsQueryCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -7801,12 +7646,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsQueryCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:query")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7814,6 +7658,7 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsQueryCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.query", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7849,9 +7694,11 @@ func (c *ProjectsLocationsRepositoriesWorkflowInvocationsQueryCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workflowInvocations.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7920,8 +7767,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesCommitCall) Header() http.Header
 
 func (c *ProjectsLocationsRepositoriesWorkspacesCommitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commitworkspacechangesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.commitworkspacechangesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7937,15 +7783,17 @@ func (c *ProjectsLocationsRepositoriesWorkspacesCommitCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.commit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "dataform.projects.locations.repositories.workspaces.commit" call.
 // Any non-2xx status code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesWorkspacesCommitCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+// *CommitWorkspaceChangesResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesWorkspacesCommitCall) Do(opts ...googleapi.CallOption) (*CommitWorkspaceChangesResponse, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -7964,16 +7812,18 @@ func (c *ProjectsLocationsRepositoriesWorkspacesCommitCall) Do(opts ...googleapi
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, gensupport.WrapError(err)
 	}
-	ret := &Empty{
+	ret := &CommitWorkspaceChangesResponse{
 		ServerResponse: googleapi.ServerResponse{
 			Header:         res.Header,
 			HTTPStatusCode: res.StatusCode,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.commit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8030,8 +7880,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesCreateCall) Header() http.Header
 
 func (c *ProjectsLocationsRepositoriesWorkspacesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workspace)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -8047,6 +7896,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesCreateCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8081,9 +7931,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesCreateCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8129,12 +7981,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesDeleteCall) Header() http.Header
 
 func (c *ProjectsLocationsRepositoriesWorkspacesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8142,6 +7993,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesDeleteCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8176,9 +8028,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesDeleteCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8243,12 +8097,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchFileDiffCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+workspace}:fetchFileDiff")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8256,6 +8109,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchFileDiffCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.fetchFileDiff", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8291,9 +8145,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchFileDiffCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.fetchFileDiff", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8351,12 +8207,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchFileGitStatusesCall) doRequ
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:fetchFileGitStatuses")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8364,6 +8219,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchFileGitStatusesCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.fetchFileGitStatuses", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8399,9 +8255,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchFileGitStatusesCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.fetchFileGitStatuses", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8467,12 +8325,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchGitAheadBehindCall) doReque
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:fetchGitAheadBehind")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8480,6 +8337,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchGitAheadBehindCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.fetchGitAheadBehind", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8515,9 +8373,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesFetchGitAheadBehindCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.fetchGitAheadBehind", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8575,12 +8435,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesGetCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8588,6 +8447,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesGetCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8622,9 +8482,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesGetCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8702,12 +8564,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesGetIamPolicyCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8715,6 +8576,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesGetIamPolicyCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8749,9 +8611,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesGetIamPolicyCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8799,8 +8663,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesInstallNpmPackagesCall) Header()
 
 func (c *ProjectsLocationsRepositoriesWorkspacesInstallNpmPackagesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.installnpmpackagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.installnpmpackagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8816,6 +8679,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesInstallNpmPackagesCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.installNpmPackages", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8851,9 +8715,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesInstallNpmPackagesCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.installNpmPackages", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8900,8 +8766,9 @@ func (c *ProjectsLocationsRepositoriesWorkspacesListCall) PageSize(pageSize int6
 
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `ListWorkspaces` call. Provide this to retrieve the subsequent
-// page. When paginating, all other parameters provided to `ListWorkspaces`
-// must match the call that provided the page token.
+// page. When paginating, all other parameters provided to `ListWorkspaces`,
+// with the exception of `page_size`, must match the call that provided the
+// page token.
 func (c *ProjectsLocationsRepositoriesWorkspacesListCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesWorkspacesListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -8943,12 +8810,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/workspaces")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8956,6 +8822,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8991,9 +8858,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9062,8 +8931,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMakeDirectoryCall) Header() http
 
 func (c *ProjectsLocationsRepositoriesWorkspacesMakeDirectoryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.makedirectoryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.makedirectoryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9079,6 +8947,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMakeDirectoryCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.makeDirectory", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9114,9 +8983,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMakeDirectoryCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.makeDirectory", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9165,8 +9036,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMoveDirectoryCall) Header() http
 
 func (c *ProjectsLocationsRepositoriesWorkspacesMoveDirectoryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.movedirectoryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.movedirectoryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9182,6 +9052,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMoveDirectoryCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.moveDirectory", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9217,9 +9088,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMoveDirectoryCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.moveDirectory", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9267,8 +9140,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMoveFileCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesWorkspacesMoveFileCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.movefilerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.movefilerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9284,6 +9156,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMoveFileCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.moveFile", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9319,9 +9192,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesMoveFileCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.moveFile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9369,8 +9244,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesPullCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesWorkspacesPullCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pullgitcommitsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pullgitcommitsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9386,15 +9260,17 @@ func (c *ProjectsLocationsRepositoriesWorkspacesPullCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.pull", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "dataform.projects.locations.repositories.workspaces.pull" call.
 // Any non-2xx status code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesWorkspacesPullCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+// *PullGitCommitsResponse.ServerResponse.Header or (if a response was returned
+// at all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsRepositoriesWorkspacesPullCall) Do(opts ...googleapi.CallOption) (*PullGitCommitsResponse, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -9413,16 +9289,18 @@ func (c *ProjectsLocationsRepositoriesWorkspacesPullCall) Do(opts ...googleapi.C
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, gensupport.WrapError(err)
 	}
-	ret := &Empty{
+	ret := &PullGitCommitsResponse{
 		ServerResponse: googleapi.ServerResponse{
 			Header:         res.Header,
 			HTTPStatusCode: res.StatusCode,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.pull", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9470,8 +9348,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesPushCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesWorkspacesPushCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pushgitcommitsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pushgitcommitsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9487,15 +9364,17 @@ func (c *ProjectsLocationsRepositoriesWorkspacesPushCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.push", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "dataform.projects.locations.repositories.workspaces.push" call.
 // Any non-2xx status code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesWorkspacesPushCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+// *PushGitCommitsResponse.ServerResponse.Header or (if a response was returned
+// at all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsRepositoriesWorkspacesPushCall) Do(opts ...googleapi.CallOption) (*PushGitCommitsResponse, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -9514,16 +9393,18 @@ func (c *ProjectsLocationsRepositoriesWorkspacesPushCall) Do(opts ...googleapi.C
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, gensupport.WrapError(err)
 	}
-	ret := &Empty{
+	ret := &PushGitCommitsResponse{
 		ServerResponse: googleapi.ServerResponse{
 			Header:         res.Header,
 			HTTPStatusCode: res.StatusCode,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.push", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9556,7 +9437,8 @@ func (c *ProjectsLocationsRepositoriesWorkspacesQueryDirectoryContentsCall) Page
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `QueryDirectoryContents` call. Provide this to retrieve the
 // subsequent page. When paginating, all other parameters provided to
-// `QueryDirectoryContents` must match the call that provided the page token.
+// `QueryDirectoryContents`, with the exception of `page_size`, must match the
+// call that provided the page token.
 func (c *ProjectsLocationsRepositoriesWorkspacesQueryDirectoryContentsCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesWorkspacesQueryDirectoryContentsCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -9606,12 +9488,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesQueryDirectoryContentsCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+workspace}:queryDirectoryContents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9619,6 +9500,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesQueryDirectoryContentsCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.queryDirectoryContents", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9654,9 +9536,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesQueryDirectoryContentsCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.queryDirectoryContents", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9750,12 +9634,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesReadFileCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+workspace}:readFile")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9763,6 +9646,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesReadFileCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.readFile", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9798,9 +9682,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesReadFileCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.readFile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9849,8 +9735,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesRemoveDirectoryCall) Header() ht
 
 func (c *ProjectsLocationsRepositoriesWorkspacesRemoveDirectoryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removedirectoryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removedirectoryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9866,15 +9751,17 @@ func (c *ProjectsLocationsRepositoriesWorkspacesRemoveDirectoryCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.removeDirectory", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "dataform.projects.locations.repositories.workspaces.removeDirectory" call.
 // Any non-2xx status code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesWorkspacesRemoveDirectoryCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+// *RemoveDirectoryResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesWorkspacesRemoveDirectoryCall) Do(opts ...googleapi.CallOption) (*RemoveDirectoryResponse, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -9893,16 +9780,18 @@ func (c *ProjectsLocationsRepositoriesWorkspacesRemoveDirectoryCall) Do(opts ...
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, gensupport.WrapError(err)
 	}
-	ret := &Empty{
+	ret := &RemoveDirectoryResponse{
 		ServerResponse: googleapi.ServerResponse{
 			Header:         res.Header,
 			HTTPStatusCode: res.StatusCode,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.removeDirectory", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9950,8 +9839,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesRemoveFileCall) Header() http.He
 
 func (c *ProjectsLocationsRepositoriesWorkspacesRemoveFileCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removefilerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removefilerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9967,15 +9855,17 @@ func (c *ProjectsLocationsRepositoriesWorkspacesRemoveFileCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.removeFile", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "dataform.projects.locations.repositories.workspaces.removeFile" call.
 // Any non-2xx status code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesWorkspacesRemoveFileCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+// *RemoveFileResponse.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsRepositoriesWorkspacesRemoveFileCall) Do(opts ...googleapi.CallOption) (*RemoveFileResponse, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -9994,16 +9884,18 @@ func (c *ProjectsLocationsRepositoriesWorkspacesRemoveFileCall) Do(opts ...googl
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, gensupport.WrapError(err)
 	}
-	ret := &Empty{
+	ret := &RemoveFileResponse{
 		ServerResponse: googleapi.ServerResponse{
 			Header:         res.Header,
 			HTTPStatusCode: res.StatusCode,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.removeFile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10051,8 +9943,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesResetCall) Header() http.Header 
 
 func (c *ProjectsLocationsRepositoriesWorkspacesResetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resetworkspacechangesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resetworkspacechangesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10068,15 +9959,17 @@ func (c *ProjectsLocationsRepositoriesWorkspacesResetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.reset", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "dataform.projects.locations.repositories.workspaces.reset" call.
 // Any non-2xx status code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *ProjectsLocationsRepositoriesWorkspacesResetCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+// *ResetWorkspaceChangesResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesWorkspacesResetCall) Do(opts ...googleapi.CallOption) (*ResetWorkspaceChangesResponse, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	res, err := c.doRequest("json")
 	if res != nil && res.StatusCode == http.StatusNotModified {
@@ -10095,16 +9988,18 @@ func (c *ProjectsLocationsRepositoriesWorkspacesResetCall) Do(opts ...googleapi.
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, gensupport.WrapError(err)
 	}
-	ret := &Empty{
+	ret := &ResetWorkspaceChangesResponse{
 		ServerResponse: googleapi.ServerResponse{
 			Header:         res.Header,
 			HTTPStatusCode: res.StatusCode,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.reset", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10145,7 +10040,8 @@ func (c *ProjectsLocationsRepositoriesWorkspacesSearchFilesCall) PageSize(pageSi
 // PageToken sets the optional parameter "pageToken": Page token received from
 // a previous `SearchFilesRequest` call. Provide this to retrieve the
 // subsequent page. When paginating, all other parameters provided to
-// `SearchFilesRequest` must match the call that provided the page token.
+// `SearchFilesRequest`, with the exception of `page_size`, must match the call
+// that provided the page token.
 func (c *ProjectsLocationsRepositoriesWorkspacesSearchFilesCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesWorkspacesSearchFilesCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -10187,12 +10083,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesSearchFilesCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+workspace}:searchFiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10200,6 +10095,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesSearchFilesCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.searchFiles", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10235,9 +10131,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesSearchFilesCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.searchFiles", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10310,8 +10208,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesSetIamPolicyCall) Header() http.
 
 func (c *ProjectsLocationsRepositoriesWorkspacesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10327,6 +10224,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesSetIamPolicyCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10361,9 +10259,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesSetIamPolicyCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10418,8 +10318,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesTestIamPermissionsCall) Header()
 
 func (c *ProjectsLocationsRepositoriesWorkspacesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10435,6 +10334,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesTestIamPermissionsCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10470,9 +10370,11 @@ func (c *ProjectsLocationsRepositoriesWorkspacesTestIamPermissionsCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10520,8 +10422,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesWriteFileCall) Header() http.Hea
 
 func (c *ProjectsLocationsRepositoriesWorkspacesWriteFileCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.writefilerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.writefilerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10537,6 +10438,7 @@ func (c *ProjectsLocationsRepositoriesWorkspacesWriteFileCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"workspace": c.workspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.writeFile", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10572,8 +10474,10 @@ func (c *ProjectsLocationsRepositoriesWorkspacesWriteFileCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataform.projects.locations.repositories.workspaces.writeFile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

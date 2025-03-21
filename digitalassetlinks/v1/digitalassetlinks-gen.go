@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "digitalassetlinks:v1"
 const apiName = "digitalassetlinks"
@@ -103,7 +106,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Assetlinks = NewAssetlinksService(s)
+	s.Statements = NewStatementsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,14 +127,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Assetlinks = NewAssetlinksService(s)
-	s.Statements = NewStatementsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -194,9 +197,9 @@ type AndroidAppAsset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidAppAsset) MarshalJSON() ([]byte, error) {
+func (s AndroidAppAsset) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidAppAsset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Asset: Uniquely identifies an asset. A digital asset is an identifiable and
@@ -221,17 +224,14 @@ type Asset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Asset) MarshalJSON() ([]byte, error) {
+func (s Asset) MarshalJSON() ([]byte, error) {
 	type NoMethod Asset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkCheckRequest: Message used to check for the existence of multiple
 // digital asset links within a single RPC.
 type BulkCheckRequest struct {
-	// AllowGoogleInternalDataSources: Same configuration as in Check request, all
-	// statements checks will use same configurations.
-	AllowGoogleInternalDataSources bool `json:"allowGoogleInternalDataSources,omitempty"`
 	// DefaultRelation: If specified, will be used in any given template statement
 	// that doesn’t specify a relation.
 	DefaultRelation string `json:"defaultRelation,omitempty"`
@@ -241,31 +241,27 @@ type BulkCheckRequest struct {
 	// DefaultTarget: If specified, will be used in any given template statement
 	// that doesn’t specify a target.
 	DefaultTarget *Asset `json:"defaultTarget,omitempty"`
-	// SkipCacheLookup: Same configuration as in Check request, all statements
-	// checks will use same configurations.
-	SkipCacheLookup bool `json:"skipCacheLookup,omitempty"`
 	// Statements: List of statements to check. For each statement, you can omit a
 	// field if the corresponding default_* field below was supplied. Minimum 1
 	// statement; maximum 1,000 statements. Any additional statements will be
 	// ignored.
 	Statements []*StatementTemplate `json:"statements,omitempty"`
-	// ForceSendFields is a list of field names (e.g.
-	// "AllowGoogleInternalDataSources") to unconditionally include in API
-	// requests. By default, fields with empty or default values are omitted from
-	// API requests. See
+	// ForceSendFields is a list of field names (e.g. "DefaultRelation") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AllowGoogleInternalDataSources")
-	// to include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "DefaultRelation") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkCheckRequest) MarshalJSON() ([]byte, error) {
+func (s BulkCheckRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkCheckRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkCheckResponse: Response for BulkCheck call. Results are sent in a list
@@ -278,7 +274,7 @@ type BulkCheckResponse struct {
 	// this field.
 	//
 	// Possible values:
-	//   "ERROR_CODE_UNSPECIFIED"
+	//   "ERROR_CODE_UNSPECIFIED" - Default value, otherwise unused.
 	//   "ERROR_CODE_INVALID_QUERY" - Unable to parse query.
 	//   "ERROR_CODE_FETCH_ERROR" - Unable to fetch the asset links data.
 	//   "ERROR_CODE_FAILED_SSL_VALIDATION" - Invalid HTTPS certificate .
@@ -311,9 +307,9 @@ type BulkCheckResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkCheckResponse) MarshalJSON() ([]byte, error) {
+func (s BulkCheckResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkCheckResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateInfo: Describes an X509 certificate.
@@ -346,9 +342,9 @@ type CertificateInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateInfo) MarshalJSON() ([]byte, error) {
+func (s CertificateInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckResponse: Response message for the CheckAssetLinks call.
@@ -364,7 +360,7 @@ type CheckResponse struct {
 	// ErrorCode: Error codes that describe the result of the Check operation.
 	//
 	// Possible values:
-	//   "ERROR_CODE_UNSPECIFIED"
+	//   "ERROR_CODE_UNSPECIFIED" - Default value, otherwise unused.
 	//   "ERROR_CODE_INVALID_QUERY" - Unable to parse query.
 	//   "ERROR_CODE_FETCH_ERROR" - Unable to fetch the asset links data.
 	//   "ERROR_CODE_FAILED_SSL_VALIDATION" - Invalid HTTPS certificate .
@@ -400,9 +396,9 @@ type CheckResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckResponse) MarshalJSON() ([]byte, error) {
+func (s CheckResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListResponse: Response message for the List call.
@@ -418,7 +414,7 @@ type ListResponse struct {
 	// ErrorCode: Error codes that describe the result of the List operation.
 	//
 	// Possible values:
-	//   "ERROR_CODE_UNSPECIFIED"
+	//   "ERROR_CODE_UNSPECIFIED" - Default value, otherwise unused.
 	//   "ERROR_CODE_INVALID_QUERY" - Unable to parse query.
 	//   "ERROR_CODE_FETCH_ERROR" - Unable to fetch the asset links data.
 	//   "ERROR_CODE_FAILED_SSL_VALIDATION" - Invalid HTTPS certificate .
@@ -453,9 +449,9 @@ type ListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListResponse) MarshalJSON() ([]byte, error) {
+func (s ListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Statement: Describes a reliable statement that has been made about the
@@ -492,9 +488,9 @@ type Statement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Statement) MarshalJSON() ([]byte, error) {
+func (s Statement) MarshalJSON() ([]byte, error) {
 	type NoMethod Statement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StatementTemplate: A single statement to check in a bulk call using
@@ -523,9 +519,9 @@ type StatementTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StatementTemplate) MarshalJSON() ([]byte, error) {
+func (s StatementTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod StatementTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebAsset: Describes a web asset.
@@ -559,9 +555,9 @@ type WebAsset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebAsset) MarshalJSON() ([]byte, error) {
+func (s WebAsset) MarshalJSON() ([]byte, error) {
 	type NoMethod WebAsset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AssetlinksBulkCheckCall struct {
@@ -607,8 +603,7 @@ func (c *AssetlinksBulkCheckCall) Header() http.Header {
 
 func (c *AssetlinksBulkCheckCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkcheckrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkcheckrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -621,6 +616,7 @@ func (c *AssetlinksBulkCheckCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "digitalassetlinks.assetlinks.bulkCheck", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -656,9 +652,11 @@ func (c *AssetlinksBulkCheckCall) Do(opts ...googleapi.CallOption) (*BulkCheckRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "digitalassetlinks.assetlinks.bulkCheck", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -844,16 +842,16 @@ func (c *AssetlinksCheckCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/assetlinks:check")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "digitalassetlinks.assetlinks.check", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -888,9 +886,11 @@ func (c *AssetlinksCheckCall) Do(opts ...googleapi.CallOption) (*CheckResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "digitalassetlinks.assetlinks.check", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1020,16 +1020,16 @@ func (c *StatementsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/statements:list")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "digitalassetlinks.statements.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1064,8 +1064,10 @@ func (c *StatementsListCall) Do(opts ...googleapi.CallOption) (*ListResponse, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "digitalassetlinks.statements.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "pollen:v1"
 const apiName = "pollen"
@@ -115,7 +118,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Forecast = NewForecastService(s)
+	s.MapTypes = NewMapTypesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Forecast = NewForecastService(s)
-	s.MapTypes = NewMapTypesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -265,9 +268,9 @@ type Color struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Color) MarshalJSON() ([]byte, error) {
+func (s Color) MarshalJSON() ([]byte, error) {
 	type NoMethod Color
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Color) UnmarshalJSON(data []byte) error {
@@ -323,9 +326,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DayInfo: This object contains the daily forecast information for each day
@@ -333,11 +336,11 @@ func (s *Date) MarshalJSON() ([]byte, error) {
 type DayInfo struct {
 	// Date: The date in UTC at which the pollen forecast data is represented.
 	Date *Date `json:"date,omitempty"`
-	// PlantInfo: This list will include (up to) 15 pollen species affecting the
+	// PlantInfo: This list will include up to 15 pollen species affecting the
 	// location specified in the request.
 	PlantInfo []*PlantInfo `json:"plantInfo,omitempty"`
-	// PollenTypeInfo: This list will include (up to) three pollen types (grass,
-	// weed, tree) affecting the location specified in the request.
+	// PollenTypeInfo: This list will include up to three pollen types (GRASS,
+	// WEED, TREE) affecting the location specified in the request.
 	PollenTypeInfo []*PollenTypeInfo `json:"pollenTypeInfo,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Date") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -352,9 +355,9 @@ type DayInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DayInfo) MarshalJSON() ([]byte, error) {
+func (s DayInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DayInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HttpBody: Message that represents an arbitrary HTTP body. It should only be
@@ -399,9 +402,9 @@ type HttpBody struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HttpBody) MarshalJSON() ([]byte, error) {
+func (s HttpBody) MarshalJSON() ([]byte, error) {
 	type NoMethod HttpBody
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IndexInfo: This object contains data representing specific pollen index
@@ -440,9 +443,9 @@ type IndexInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IndexInfo) MarshalJSON() ([]byte, error) {
+func (s IndexInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod IndexInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LookupForecastResponse struct {
@@ -472,9 +475,9 @@ type LookupForecastResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupForecastResponse) MarshalJSON() ([]byte, error) {
+func (s LookupForecastResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupForecastResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlantDescription: Contains general information about plants, including
@@ -522,9 +525,9 @@ type PlantDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlantDescription) MarshalJSON() ([]byte, error) {
+func (s PlantDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod PlantDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlantInfo: This object contains the daily information on specific plant.
@@ -549,6 +552,8 @@ type PlantInfo struct {
 	//   "GRAMINALES" - Graminales is classified as a grass pollen type.
 	//   "RAGWEED" - Ragweed is classified as a weed pollen type.
 	//   "MUGWORT" - Mugwort is classified as a weed pollen type.
+	//   "JAPANESE_CEDAR" - Japanese cedar is classified as a tree pollen type.
+	//   "JAPANESE_CYPRESS" - Japanese cypress is classified as a tree pollen type.
 	Code string `json:"code,omitempty"`
 	// DisplayName: A human readable representation of the plant name. Example:
 	// “Cottonwood".
@@ -575,9 +580,9 @@ type PlantInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlantInfo) MarshalJSON() ([]byte, error) {
+func (s PlantInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod PlantInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PollenTypeInfo: This object contains the pollen type index and health
@@ -615,9 +620,9 @@ type PollenTypeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PollenTypeInfo) MarshalJSON() ([]byte, error) {
+func (s PollenTypeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod PollenTypeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ForecastLookupCall struct {
@@ -644,8 +649,8 @@ func (c *ForecastLookupCall) Days(days int64) *ForecastLookupCall {
 
 // LanguageCode sets the optional parameter "languageCode": Allows the client
 // to choose the language for the response. If data cannot be provided for that
-// language the API uses the closest match. Allowed values rely on the IETF
-// BCP-47 standard. Default value is "en".
+// language, the API uses the closest match. Allowed values rely on the IETF
+// BCP-47 standard. The default value is "en".
 func (c *ForecastLookupCall) LanguageCode(languageCode string) *ForecastLookupCall {
 	c.urlParams_.Set("languageCode", languageCode)
 	return c
@@ -666,8 +671,8 @@ func (c *ForecastLookupCall) LocationLongitude(locationLongitude float64) *Forec
 }
 
 // PageSize sets the optional parameter "pageSize": The maximum number of daily
-// info records to return per page. The default and max value is 5 (5 days of
-// data).
+// info records to return per page. The default and max value is 5, indicating
+// 5 days of data.
 func (c *ForecastLookupCall) PageSize(pageSize int64) *ForecastLookupCall {
 	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
 	return c
@@ -675,7 +680,7 @@ func (c *ForecastLookupCall) PageSize(pageSize int64) *ForecastLookupCall {
 
 // PageToken sets the optional parameter "pageToken": A page token received
 // from a previous daily call. It is used to retrieve the subsequent page. Note
-// that when providing a value for the page token all other request parameters
+// that when providing a value for the page token, all other request parameters
 // provided must match the previous call that provided the page token.
 func (c *ForecastLookupCall) PageToken(pageToken string) *ForecastLookupCall {
 	c.urlParams_.Set("pageToken", pageToken)
@@ -685,7 +690,7 @@ func (c *ForecastLookupCall) PageToken(pageToken string) *ForecastLookupCall {
 // PlantsDescription sets the optional parameter "plantsDescription": Contains
 // general information about plants, including details on their seasonality,
 // special shapes and colors, information about allergic cross-reactions, and
-// plant photos.
+// plant photos. The default value is "true".
 func (c *ForecastLookupCall) PlantsDescription(plantsDescription bool) *ForecastLookupCall {
 	c.urlParams_.Set("plantsDescription", fmt.Sprint(plantsDescription))
 	return c
@@ -727,16 +732,16 @@ func (c *ForecastLookupCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/forecast:lookup")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pollen.forecast.lookup", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -772,9 +777,11 @@ func (c *ForecastLookupCall) Do(opts ...googleapi.CallOption) (*LookupForecastRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pollen.forecast.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -868,12 +875,11 @@ func (c *MapTypesHeatmapTilesLookupHeatmapTileCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/mapTypes/{mapType}/heatmapTiles/{zoom}/{x}/{y}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -884,6 +890,7 @@ func (c *MapTypesHeatmapTilesLookupHeatmapTileCall) doRequest(alt string) (*http
 		"x":       strconv.FormatInt(c.x, 10),
 		"y":       strconv.FormatInt(c.y, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pollen.mapTypes.heatmapTiles.lookupHeatmapTile", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -918,8 +925,10 @@ func (c *MapTypesHeatmapTilesLookupHeatmapTileCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pollen.mapTypes.heatmapTiles.lookupHeatmapTile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "ml:v1"
 const apiName = "ml"
@@ -125,7 +128,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,13 +148,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -311,9 +314,9 @@ type GoogleApi__HttpBody struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleApi__HttpBody) MarshalJSON() ([]byte, error) {
+func (s GoogleApi__HttpBody) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleApi__HttpBody
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudMlV1AutomatedStoppingConfigDecayCurveAutomatedStoppingConfig struct {
@@ -334,9 +337,9 @@ type GoogleCloudMlV1AutomatedStoppingConfigDecayCurveAutomatedStoppingConfig str
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1AutomatedStoppingConfigDecayCurveAutomatedStoppingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1AutomatedStoppingConfigDecayCurveAutomatedStoppingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1AutomatedStoppingConfigDecayCurveAutomatedStoppingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1AutomatedStoppingConfigMedianAutomatedStoppingConfig: The
@@ -364,9 +367,9 @@ type GoogleCloudMlV1AutomatedStoppingConfigMedianAutomatedStoppingConfig struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1AutomatedStoppingConfigMedianAutomatedStoppingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1AutomatedStoppingConfigMedianAutomatedStoppingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1AutomatedStoppingConfigMedianAutomatedStoppingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1HyperparameterOutputHyperparameterMetric: An observed value
@@ -389,9 +392,9 @@ type GoogleCloudMlV1HyperparameterOutputHyperparameterMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1HyperparameterOutputHyperparameterMetric) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1HyperparameterOutputHyperparameterMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1HyperparameterOutputHyperparameterMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1HyperparameterOutputHyperparameterMetric) UnmarshalJSON(data []byte) error {
@@ -428,9 +431,9 @@ type GoogleCloudMlV1MeasurementMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1MeasurementMetric) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1MeasurementMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1MeasurementMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1MeasurementMetric) UnmarshalJSON(data []byte) error {
@@ -464,9 +467,9 @@ type GoogleCloudMlV1StudyConfigParameterSpecCategoricalValueSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigParameterSpecCategoricalValueSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigParameterSpecCategoricalValueSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigParameterSpecCategoricalValueSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudMlV1StudyConfigParameterSpecDiscreteValueSpec struct {
@@ -488,9 +491,9 @@ type GoogleCloudMlV1StudyConfigParameterSpecDiscreteValueSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigParameterSpecDiscreteValueSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigParameterSpecDiscreteValueSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigParameterSpecDiscreteValueSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1StudyConfigParameterSpecDiscreteValueSpec) UnmarshalJSON(data []byte) error {
@@ -530,9 +533,9 @@ type GoogleCloudMlV1StudyConfigParameterSpecDoubleValueSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigParameterSpecDoubleValueSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigParameterSpecDoubleValueSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigParameterSpecDoubleValueSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1StudyConfigParameterSpecDoubleValueSpec) UnmarshalJSON(data []byte) error {
@@ -571,9 +574,9 @@ type GoogleCloudMlV1StudyConfigParameterSpecIntegerValueSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigParameterSpecIntegerValueSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigParameterSpecIntegerValueSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigParameterSpecIntegerValueSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1StudyConfigParameterSpecMatchingParentCategoricalValueSpec:
@@ -595,9 +598,9 @@ type GoogleCloudMlV1StudyConfigParameterSpecMatchingParentCategoricalValueSpec s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigParameterSpecMatchingParentCategoricalValueSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigParameterSpecMatchingParentCategoricalValueSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigParameterSpecMatchingParentCategoricalValueSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1StudyConfigParameterSpecMatchingParentDiscreteValueSpec:
@@ -619,9 +622,9 @@ type GoogleCloudMlV1StudyConfigParameterSpecMatchingParentDiscreteValueSpec stru
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigParameterSpecMatchingParentDiscreteValueSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigParameterSpecMatchingParentDiscreteValueSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigParameterSpecMatchingParentDiscreteValueSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1StudyConfigParameterSpecMatchingParentDiscreteValueSpec) UnmarshalJSON(data []byte) error {
@@ -660,9 +663,9 @@ type GoogleCloudMlV1StudyConfigParameterSpecMatchingParentIntValueSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigParameterSpecMatchingParentIntValueSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigParameterSpecMatchingParentIntValueSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigParameterSpecMatchingParentIntValueSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1StudyConfigMetricSpec: Represents a metric to optimize.
@@ -689,9 +692,9 @@ type GoogleCloudMlV1StudyConfigMetricSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigMetricSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigMetricSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigMetricSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1StudyConfigParameterSpec: Represents a single parameter to
@@ -755,9 +758,9 @@ type GoogleCloudMlV1StudyConfigParameterSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1StudyConfigParameterSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1StudyConfigParameterSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1StudyConfigParameterSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1TrialParameter: A message representing a parameter to be
@@ -785,9 +788,9 @@ type GoogleCloudMlV1TrialParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1TrialParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1TrialParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1TrialParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1TrialParameter) UnmarshalJSON(data []byte) error {
@@ -842,9 +845,9 @@ type GoogleCloudMlV1__AcceleratorConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__AcceleratorConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__AcceleratorConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__AcceleratorConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__AddTrialMeasurementRequest: The request message for the
@@ -865,9 +868,9 @@ type GoogleCloudMlV1__AddTrialMeasurementRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__AddTrialMeasurementRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__AddTrialMeasurementRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__AddTrialMeasurementRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__AutoScaling: Options for automatically scaling a model.
@@ -916,9 +919,9 @@ type GoogleCloudMlV1__AutoScaling struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__AutoScaling) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__AutoScaling) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__AutoScaling
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__AutomatedStoppingConfig: Configuration for Automated Early
@@ -940,9 +943,9 @@ type GoogleCloudMlV1__AutomatedStoppingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__AutomatedStoppingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__AutomatedStoppingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__AutomatedStoppingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__BuiltInAlgorithmOutput: Represents output related to a
@@ -972,9 +975,9 @@ type GoogleCloudMlV1__BuiltInAlgorithmOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__BuiltInAlgorithmOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__BuiltInAlgorithmOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__BuiltInAlgorithmOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__CancelJobRequest: Request message for the CancelJob method.
@@ -1018,9 +1021,9 @@ type GoogleCloudMlV1__Capability struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Capability) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Capability) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Capability
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__CheckTrialEarlyStoppingStateMetatdata: This message will be
@@ -1046,9 +1049,9 @@ type GoogleCloudMlV1__CheckTrialEarlyStoppingStateMetatdata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__CheckTrialEarlyStoppingStateMetatdata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__CheckTrialEarlyStoppingStateMetatdata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__CheckTrialEarlyStoppingStateMetatdata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__CheckTrialEarlyStoppingStateRequest: The request message
@@ -1079,9 +1082,9 @@ type GoogleCloudMlV1__CheckTrialEarlyStoppingStateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__CheckTrialEarlyStoppingStateResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__CheckTrialEarlyStoppingStateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__CheckTrialEarlyStoppingStateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__CompleteTrialRequest: The request message for the
@@ -1110,9 +1113,9 @@ type GoogleCloudMlV1__CompleteTrialRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__CompleteTrialRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__CompleteTrialRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__CompleteTrialRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudMlV1__Config struct {
@@ -1131,9 +1134,9 @@ type GoogleCloudMlV1__Config struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Config) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Config) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Config
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ContainerPort: Represents a network port in a single
@@ -1157,9 +1160,9 @@ type GoogleCloudMlV1__ContainerPort struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ContainerPort) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ContainerPort) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ContainerPort
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ContainerSpec: Specification of a custom container for
@@ -1286,9 +1289,9 @@ type GoogleCloudMlV1__ContainerSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ContainerSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ContainerSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ContainerSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__DiskConfig: Represents the config of disk options.
@@ -1312,9 +1315,9 @@ type GoogleCloudMlV1__DiskConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__DiskConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__DiskConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__DiskConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__EncryptionConfig: Represents a custom encryption key
@@ -1339,9 +1342,9 @@ type GoogleCloudMlV1__EncryptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__EncryptionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__EncryptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__EncryptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__EnvVar: Represents an environment variable to be made
@@ -1379,9 +1382,9 @@ type GoogleCloudMlV1__EnvVar struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__EnvVar) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__EnvVar) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__EnvVar
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ExplainRequest: Request for explanations to be issued
@@ -1402,9 +1405,9 @@ type GoogleCloudMlV1__ExplainRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ExplainRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ExplainRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ExplainRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ExplanationConfig: Message holding configuration options
@@ -1442,9 +1445,9 @@ type GoogleCloudMlV1__ExplanationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ExplanationConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ExplanationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ExplanationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__GetConfigResponse: Returns service account information
@@ -1472,9 +1475,9 @@ type GoogleCloudMlV1__GetConfigResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__GetConfigResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__GetConfigResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__GetConfigResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__HyperparameterOutput: Represents the result of a single
@@ -1538,9 +1541,9 @@ type GoogleCloudMlV1__HyperparameterOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__HyperparameterOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__HyperparameterOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__HyperparameterOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__HyperparameterSpec: Represents a set of hyperparameters to
@@ -1610,9 +1613,9 @@ type GoogleCloudMlV1__HyperparameterSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__HyperparameterSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__HyperparameterSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__HyperparameterSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__IntegratedGradientsAttribution: Attributes credit by
@@ -1637,9 +1640,9 @@ type GoogleCloudMlV1__IntegratedGradientsAttribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__IntegratedGradientsAttribution) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__IntegratedGradientsAttribution) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__IntegratedGradientsAttribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__Job: Represents a training or prediction job.
@@ -1710,9 +1713,9 @@ type GoogleCloudMlV1__Job struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Job) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Job) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Job
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ListJobsResponse: Response message for the ListJobs method.
@@ -1738,9 +1741,9 @@ type GoogleCloudMlV1__ListJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ListJobsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ListJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ListJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudMlV1__ListLocationsResponse struct {
@@ -1766,9 +1769,9 @@ type GoogleCloudMlV1__ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ListModelsResponse: Response message for the ListModels
@@ -1795,9 +1798,9 @@ type GoogleCloudMlV1__ListModelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ListModelsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ListModelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ListModelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ListOptimalTrialsRequest: The request message for the
@@ -1828,9 +1831,9 @@ type GoogleCloudMlV1__ListOptimalTrialsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ListOptimalTrialsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ListOptimalTrialsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ListOptimalTrialsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudMlV1__ListStudiesResponse struct {
@@ -1852,9 +1855,9 @@ type GoogleCloudMlV1__ListStudiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ListStudiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ListStudiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ListStudiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ListTrialsResponse: The response message for the ListTrials
@@ -1878,9 +1881,9 @@ type GoogleCloudMlV1__ListTrialsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ListTrialsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ListTrialsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ListTrialsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ListVersionsResponse: Response message for the ListVersions
@@ -1907,9 +1910,9 @@ type GoogleCloudMlV1__ListVersionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ListVersionsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ListVersionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ListVersionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudMlV1__Location struct {
@@ -1932,9 +1935,9 @@ type GoogleCloudMlV1__Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Location) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Location) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ManualScaling: Options for manually scaling a model.
@@ -1957,9 +1960,9 @@ type GoogleCloudMlV1__ManualScaling struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ManualScaling) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ManualScaling) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ManualScaling
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__Measurement: A message representing a measurement.
@@ -1986,9 +1989,9 @@ type GoogleCloudMlV1__Measurement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Measurement) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Measurement) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Measurement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__MetricSpec: MetricSpec contains the specifications to use
@@ -2018,9 +2021,9 @@ type GoogleCloudMlV1__MetricSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__MetricSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__MetricSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__MetricSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__Model: Represents a machine learning solution. A model can
@@ -2091,9 +2094,9 @@ type GoogleCloudMlV1__Model struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Model) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Model) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Model
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__OperationMetadata: Represents the metadata of the
@@ -2141,9 +2144,9 @@ type GoogleCloudMlV1__OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__ParameterSpec: Represents a single hyperparameter to
@@ -2208,9 +2211,9 @@ type GoogleCloudMlV1__ParameterSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ParameterSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ParameterSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ParameterSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1__ParameterSpec) UnmarshalJSON(data []byte) error {
@@ -2254,9 +2257,9 @@ type GoogleCloudMlV1__PredictRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__PredictRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__PredictRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__PredictRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__PredictionInput: Represents input parameters for a
@@ -2345,9 +2348,9 @@ type GoogleCloudMlV1__PredictionInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__PredictionInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__PredictionInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__PredictionInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__PredictionOutput: Represents results of a prediction job.
@@ -2374,9 +2377,9 @@ type GoogleCloudMlV1__PredictionOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__PredictionOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__PredictionOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__PredictionOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1__PredictionOutput) UnmarshalJSON(data []byte) error {
@@ -2454,9 +2457,9 @@ type GoogleCloudMlV1__ReplicaConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__ReplicaConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__ReplicaConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__ReplicaConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__RequestLoggingConfig: Configuration for logging
@@ -2496,9 +2499,9 @@ type GoogleCloudMlV1__RequestLoggingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__RequestLoggingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__RequestLoggingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__RequestLoggingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1__RequestLoggingConfig) UnmarshalJSON(data []byte) error {
@@ -2570,9 +2573,9 @@ type GoogleCloudMlV1__RouteMap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__RouteMap) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__RouteMap) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__RouteMap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__SampledShapleyAttribution: An attribution method that
@@ -2596,9 +2599,9 @@ type GoogleCloudMlV1__SampledShapleyAttribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__SampledShapleyAttribution) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__SampledShapleyAttribution) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__SampledShapleyAttribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__Scheduling: All parameters related to scheduling of
@@ -2660,9 +2663,9 @@ type GoogleCloudMlV1__Scheduling struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Scheduling) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Scheduling) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Scheduling
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__SetDefaultVersionRequest: Request message for the
@@ -2709,9 +2712,9 @@ type GoogleCloudMlV1__Study struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Study) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Study) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Study
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__StudyConfig: Represents configuration of a study.
@@ -2746,9 +2749,9 @@ type GoogleCloudMlV1__StudyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__StudyConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__StudyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__StudyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__SuggestTrialsMetadata: Metadata field of a
@@ -2775,9 +2778,9 @@ type GoogleCloudMlV1__SuggestTrialsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__SuggestTrialsMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__SuggestTrialsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__SuggestTrialsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__SuggestTrialsRequest: The request message for the
@@ -2803,9 +2806,9 @@ type GoogleCloudMlV1__SuggestTrialsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__SuggestTrialsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__SuggestTrialsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__SuggestTrialsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__SuggestTrialsResponse: This message will be placed in the
@@ -2840,9 +2843,9 @@ type GoogleCloudMlV1__SuggestTrialsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__SuggestTrialsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__SuggestTrialsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__SuggestTrialsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__TrainingInput: Represents input parameters for a training
@@ -3070,9 +3073,9 @@ type GoogleCloudMlV1__TrainingInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__TrainingInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__TrainingInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__TrainingInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__TrainingOutput: Represents results of a training job.
@@ -3120,9 +3123,9 @@ type GoogleCloudMlV1__TrainingOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__TrainingOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__TrainingOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__TrainingOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudMlV1__TrainingOutput) UnmarshalJSON(data []byte) error {
@@ -3192,9 +3195,9 @@ type GoogleCloudMlV1__Trial struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Trial) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Trial) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Trial
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__Version: Represents a version of the model. Each version is
@@ -3410,9 +3413,9 @@ type GoogleCloudMlV1__Version struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__Version) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__Version) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__Version
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudMlV1__XraiAttribution: Attributes credit by computing the XRAI
@@ -3437,9 +3440,9 @@ type GoogleCloudMlV1__XraiAttribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudMlV1__XraiAttribution) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudMlV1__XraiAttribution) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudMlV1__XraiAttribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1__AuditConfig: Specifies the audit configuration for a service.
@@ -3478,9 +3481,9 @@ type GoogleIamV1__AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1__AuditConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1__AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1__AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1__AuditLogConfig: Provides the configuration for logging a type
@@ -3513,9 +3516,9 @@ type GoogleIamV1__AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1__AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1__AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1__AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1__Binding: Associates `members`, or principals, with a `role`.
@@ -3612,9 +3615,9 @@ type GoogleIamV1__Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1__Binding) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1__Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1__Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1__Policy: An Identity and Access Management (IAM) policy, which
@@ -3704,9 +3707,9 @@ type GoogleIamV1__Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1__Policy) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1__Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1__Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1__SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -3733,9 +3736,9 @@ type GoogleIamV1__SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1__SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1__SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1__SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1__TestIamPermissionsRequest: Request message for
@@ -3759,9 +3762,9 @@ type GoogleIamV1__TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1__TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1__TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1__TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1__TestIamPermissionsResponse: Response message for
@@ -3786,9 +3789,9 @@ type GoogleIamV1__TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1__TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1__TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1__TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunning__ListOperationsResponse: The response message for
@@ -3815,9 +3818,9 @@ type GoogleLongrunning__ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunning__ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunning__ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunning__ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunning__Operation: This resource represents a long-running
@@ -3862,9 +3865,9 @@ type GoogleLongrunning__Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunning__Operation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunning__Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunning__Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobuf__Empty: A generic empty message that you can re-use to avoid
@@ -3906,9 +3909,9 @@ type GoogleRpc__Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpc__Status) MarshalJSON() ([]byte, error) {
+func (s GoogleRpc__Status) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpc__Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleType__Expr: Represents a textual expression in the Common Expression
@@ -3954,9 +3957,9 @@ type GoogleType__Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleType__Expr) MarshalJSON() ([]byte, error) {
+func (s GoogleType__Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleType__Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsExplainCall struct {
@@ -4005,8 +4008,7 @@ func (c *ProjectsExplainCall) Header() http.Header {
 
 func (c *ProjectsExplainCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__explainrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__explainrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4022,6 +4024,7 @@ func (c *ProjectsExplainCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.explain", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4057,9 +4060,11 @@ func (c *ProjectsExplainCall) Do(opts ...googleapi.CallOption) (*GoogleApi__Http
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.explain", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4120,12 +4125,11 @@ func (c *ProjectsGetConfigCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:getConfig")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4133,6 +4137,7 @@ func (c *ProjectsGetConfigCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4168,9 +4173,11 @@ func (c *ProjectsGetConfigCall) Do(opts ...googleapi.CallOption) (*GoogleCloudMl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4220,8 +4227,7 @@ func (c *ProjectsPredictCall) Header() http.Header {
 
 func (c *ProjectsPredictCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body = strings.NewReader(c.googlecloudmlv1__predictrequest.HttpBody.Data)
+	body := bytes.NewBufferString(c.googlecloudmlv1__predictrequest.HttpBody.Data)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:predict")
@@ -4234,6 +4240,7 @@ func (c *ProjectsPredictCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.predict", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4280,6 +4287,7 @@ func (c *ProjectsPredictCall) Do(opts ...googleapi.CallOption) (*GoogleApi__Http
 		return nil, err
 	}
 	ret.Data = b.String()
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.predict", "response", internallog.HTTPResponse(res, b.Bytes()))
 	return ret, nil
 }
 
@@ -4327,8 +4335,7 @@ func (c *ProjectsJobsCancelCall) Header() http.Header {
 
 func (c *ProjectsJobsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__canceljobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__canceljobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4344,6 +4351,7 @@ func (c *ProjectsJobsCancelCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.jobs.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4379,9 +4387,11 @@ func (c *ProjectsJobsCancelCall) Do(opts ...googleapi.CallOption) (*GoogleProtob
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.jobs.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4429,8 +4439,7 @@ func (c *ProjectsJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__job)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__job)
 	if err != nil {
 		return nil, err
 	}
@@ -4446,6 +4455,7 @@ func (c *ProjectsJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.jobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4481,9 +4491,11 @@ func (c *ProjectsJobsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleCloudM
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.jobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4541,12 +4553,11 @@ func (c *ProjectsJobsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4554,6 +4565,7 @@ func (c *ProjectsJobsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.jobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4589,9 +4601,11 @@ func (c *ProjectsJobsGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloudMlV1
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.jobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4669,12 +4683,11 @@ func (c *ProjectsJobsGetIamPolicyCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4682,6 +4695,7 @@ func (c *ProjectsJobsGetIamPolicyCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.jobs.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4717,9 +4731,11 @@ func (c *ProjectsJobsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.jobs.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4808,12 +4824,11 @@ func (c *ProjectsJobsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/jobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4821,6 +4836,7 @@ func (c *ProjectsJobsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.jobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4856,9 +4872,11 @@ func (c *ProjectsJobsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudMlV
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.jobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4944,8 +4962,7 @@ func (c *ProjectsJobsPatchCall) Header() http.Header {
 
 func (c *ProjectsJobsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__job)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__job)
 	if err != nil {
 		return nil, err
 	}
@@ -4961,6 +4978,7 @@ func (c *ProjectsJobsPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.jobs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4996,9 +5014,11 @@ func (c *ProjectsJobsPatchCall) Do(opts ...googleapi.CallOption) (*GoogleCloudMl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.jobs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5050,8 +5070,7 @@ func (c *ProjectsJobsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsJobsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv1__setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv1__setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5067,6 +5086,7 @@ func (c *ProjectsJobsSetIamPolicyCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.jobs.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5102,9 +5122,11 @@ func (c *ProjectsJobsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.jobs.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5159,8 +5181,7 @@ func (c *ProjectsJobsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsJobsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv1__testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv1__testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5176,6 +5197,7 @@ func (c *ProjectsJobsTestIamPermissionsCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.jobs.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5211,9 +5233,11 @@ func (c *ProjectsJobsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.jobs.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5272,12 +5296,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5285,6 +5308,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5320,9 +5344,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5399,12 +5425,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5412,6 +5437,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5447,9 +5473,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5489,7 +5517,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -5524,12 +5552,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5537,6 +5564,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5572,9 +5600,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5634,12 +5664,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5647,6 +5676,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5682,9 +5712,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5741,8 +5773,7 @@ func (c *ProjectsLocationsStudiesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsStudiesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__study)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__study)
 	if err != nil {
 		return nil, err
 	}
@@ -5758,6 +5789,7 @@ func (c *ProjectsLocationsStudiesCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5793,9 +5825,11 @@ func (c *ProjectsLocationsStudiesCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5841,12 +5875,11 @@ func (c *ProjectsLocationsStudiesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsStudiesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5854,6 +5887,7 @@ func (c *ProjectsLocationsStudiesDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5889,9 +5923,11 @@ func (c *ProjectsLocationsStudiesDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5949,12 +5985,11 @@ func (c *ProjectsLocationsStudiesGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5962,6 +5997,7 @@ func (c *ProjectsLocationsStudiesGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5997,9 +6033,11 @@ func (c *ProjectsLocationsStudiesGetCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6058,12 +6096,11 @@ func (c *ProjectsLocationsStudiesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/studies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6071,6 +6108,7 @@ func (c *ProjectsLocationsStudiesListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6106,9 +6144,11 @@ func (c *ProjectsLocationsStudiesListCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6157,8 +6197,7 @@ func (c *ProjectsLocationsStudiesTrialsAddMeasurementCall) Header() http.Header 
 
 func (c *ProjectsLocationsStudiesTrialsAddMeasurementCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__addtrialmeasurementrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__addtrialmeasurementrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6174,6 +6213,7 @@ func (c *ProjectsLocationsStudiesTrialsAddMeasurementCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.addMeasurement", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6209,9 +6249,11 @@ func (c *ProjectsLocationsStudiesTrialsAddMeasurementCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.addMeasurement", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6261,8 +6303,7 @@ func (c *ProjectsLocationsStudiesTrialsCheckEarlyStoppingStateCall) Header() htt
 
 func (c *ProjectsLocationsStudiesTrialsCheckEarlyStoppingStateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__checktrialearlystoppingstaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__checktrialearlystoppingstaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6278,6 +6319,7 @@ func (c *ProjectsLocationsStudiesTrialsCheckEarlyStoppingStateCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.checkEarlyStoppingState", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6313,9 +6355,11 @@ func (c *ProjectsLocationsStudiesTrialsCheckEarlyStoppingStateCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.checkEarlyStoppingState", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6363,8 +6407,7 @@ func (c *ProjectsLocationsStudiesTrialsCompleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsStudiesTrialsCompleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__completetrialrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__completetrialrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6380,6 +6423,7 @@ func (c *ProjectsLocationsStudiesTrialsCompleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.complete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6415,9 +6459,11 @@ func (c *ProjectsLocationsStudiesTrialsCompleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.complete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6465,8 +6511,7 @@ func (c *ProjectsLocationsStudiesTrialsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsStudiesTrialsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__trial)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__trial)
 	if err != nil {
 		return nil, err
 	}
@@ -6482,6 +6527,7 @@ func (c *ProjectsLocationsStudiesTrialsCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6517,9 +6563,11 @@ func (c *ProjectsLocationsStudiesTrialsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6565,12 +6613,11 @@ func (c *ProjectsLocationsStudiesTrialsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsStudiesTrialsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6578,6 +6625,7 @@ func (c *ProjectsLocationsStudiesTrialsDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6613,9 +6661,11 @@ func (c *ProjectsLocationsStudiesTrialsDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6673,12 +6723,11 @@ func (c *ProjectsLocationsStudiesTrialsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6686,6 +6735,7 @@ func (c *ProjectsLocationsStudiesTrialsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6721,9 +6771,11 @@ func (c *ProjectsLocationsStudiesTrialsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6781,12 +6833,11 @@ func (c *ProjectsLocationsStudiesTrialsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/trials")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6794,6 +6845,7 @@ func (c *ProjectsLocationsStudiesTrialsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6829,9 +6881,11 @@ func (c *ProjectsLocationsStudiesTrialsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6882,8 +6936,7 @@ func (c *ProjectsLocationsStudiesTrialsListOptimalTrialsCall) Header() http.Head
 
 func (c *ProjectsLocationsStudiesTrialsListOptimalTrialsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__listoptimaltrialsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__listoptimaltrialsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6899,6 +6952,7 @@ func (c *ProjectsLocationsStudiesTrialsListOptimalTrialsCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.listOptimalTrials", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6934,9 +6988,11 @@ func (c *ProjectsLocationsStudiesTrialsListOptimalTrialsCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.listOptimalTrials", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6984,8 +7040,7 @@ func (c *ProjectsLocationsStudiesTrialsStopCall) Header() http.Header {
 
 func (c *ProjectsLocationsStudiesTrialsStopCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__stoptrialrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__stoptrialrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7001,6 +7056,7 @@ func (c *ProjectsLocationsStudiesTrialsStopCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.stop", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7036,9 +7092,11 @@ func (c *ProjectsLocationsStudiesTrialsStopCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.stop", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7089,8 +7147,7 @@ func (c *ProjectsLocationsStudiesTrialsSuggestCall) Header() http.Header {
 
 func (c *ProjectsLocationsStudiesTrialsSuggestCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__suggesttrialsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__suggesttrialsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7106,6 +7163,7 @@ func (c *ProjectsLocationsStudiesTrialsSuggestCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.suggest", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7141,9 +7199,11 @@ func (c *ProjectsLocationsStudiesTrialsSuggestCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.locations.studies.trials.suggest", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7193,8 +7253,7 @@ func (c *ProjectsModelsCreateCall) Header() http.Header {
 
 func (c *ProjectsModelsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__model)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__model)
 	if err != nil {
 		return nil, err
 	}
@@ -7210,6 +7269,7 @@ func (c *ProjectsModelsCreateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7245,9 +7305,11 @@ func (c *ProjectsModelsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7295,12 +7357,11 @@ func (c *ProjectsModelsDeleteCall) Header() http.Header {
 
 func (c *ProjectsModelsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7308,6 +7369,7 @@ func (c *ProjectsModelsDeleteCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7343,9 +7405,11 @@ func (c *ProjectsModelsDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleLong
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7405,12 +7469,11 @@ func (c *ProjectsModelsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7418,6 +7481,7 @@ func (c *ProjectsModelsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7453,9 +7517,11 @@ func (c *ProjectsModelsGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloudMl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7533,12 +7599,11 @@ func (c *ProjectsModelsGetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7546,6 +7611,7 @@ func (c *ProjectsModelsGetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7581,9 +7647,11 @@ func (c *ProjectsModelsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7669,12 +7737,11 @@ func (c *ProjectsModelsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/models")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7682,6 +7749,7 @@ func (c *ProjectsModelsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7717,9 +7785,11 @@ func (c *ProjectsModelsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudM
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7802,8 +7872,7 @@ func (c *ProjectsModelsPatchCall) Header() http.Header {
 
 func (c *ProjectsModelsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__model)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__model)
 	if err != nil {
 		return nil, err
 	}
@@ -7819,6 +7888,7 @@ func (c *ProjectsModelsPatchCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7854,9 +7924,11 @@ func (c *ProjectsModelsPatchCall) Do(opts ...googleapi.CallOption) (*GoogleLongr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7908,8 +7980,7 @@ func (c *ProjectsModelsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsModelsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv1__setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv1__setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7925,6 +7996,7 @@ func (c *ProjectsModelsSetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7960,9 +8032,11 @@ func (c *ProjectsModelsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8017,8 +8091,7 @@ func (c *ProjectsModelsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsModelsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv1__testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv1__testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8034,6 +8107,7 @@ func (c *ProjectsModelsTestIamPermissionsCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8069,9 +8143,11 @@ func (c *ProjectsModelsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8124,8 +8200,7 @@ func (c *ProjectsModelsVersionsCreateCall) Header() http.Header {
 
 func (c *ProjectsModelsVersionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__version)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__version)
 	if err != nil {
 		return nil, err
 	}
@@ -8141,6 +8216,7 @@ func (c *ProjectsModelsVersionsCreateCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.versions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8176,9 +8252,11 @@ func (c *ProjectsModelsVersionsCreateCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.versions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8228,12 +8306,11 @@ func (c *ProjectsModelsVersionsDeleteCall) Header() http.Header {
 
 func (c *ProjectsModelsVersionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8241,6 +8318,7 @@ func (c *ProjectsModelsVersionsDeleteCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.versions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8276,9 +8354,11 @@ func (c *ProjectsModelsVersionsDeleteCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.versions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8338,12 +8418,11 @@ func (c *ProjectsModelsVersionsGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8351,6 +8430,7 @@ func (c *ProjectsModelsVersionsGetCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.versions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8386,9 +8466,11 @@ func (c *ProjectsModelsVersionsGetCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.versions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8475,12 +8557,11 @@ func (c *ProjectsModelsVersionsListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/versions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8488,6 +8569,7 @@ func (c *ProjectsModelsVersionsListCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.versions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8523,9 +8605,11 @@ func (c *ProjectsModelsVersionsListCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.versions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8611,8 +8695,7 @@ func (c *ProjectsModelsVersionsPatchCall) Header() http.Header {
 
 func (c *ProjectsModelsVersionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__version)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__version)
 	if err != nil {
 		return nil, err
 	}
@@ -8628,6 +8711,7 @@ func (c *ProjectsModelsVersionsPatchCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.versions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8663,9 +8747,11 @@ func (c *ProjectsModelsVersionsPatchCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.versions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8719,8 +8805,7 @@ func (c *ProjectsModelsVersionsSetDefaultCall) Header() http.Header {
 
 func (c *ProjectsModelsVersionsSetDefaultCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudmlv1__setdefaultversionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudmlv1__setdefaultversionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8736,6 +8821,7 @@ func (c *ProjectsModelsVersionsSetDefaultCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.models.versions.setDefault", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8771,9 +8857,11 @@ func (c *ProjectsModelsVersionsSetDefaultCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.models.versions.setDefault", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8792,7 +8880,7 @@ type ProjectsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -8827,12 +8915,11 @@ func (c *ProjectsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8840,6 +8927,7 @@ func (c *ProjectsOperationsCancelCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8875,9 +8963,11 @@ func (c *ProjectsOperationsCancelCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8937,12 +9027,11 @@ func (c *ProjectsOperationsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8950,6 +9039,7 @@ func (c *ProjectsOperationsGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8985,9 +9075,11 @@ func (c *ProjectsOperationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleLon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9066,12 +9158,11 @@ func (c *ProjectsOperationsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9079,6 +9170,7 @@ func (c *ProjectsOperationsListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "ml.projects.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9114,9 +9206,11 @@ func (c *ProjectsOperationsListCall) Do(opts ...googleapi.CallOption) (*GoogleLo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "ml.projects.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

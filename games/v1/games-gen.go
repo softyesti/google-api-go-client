@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "games:v1"
 const apiName = "games"
@@ -127,7 +130,20 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accesstokens = NewAccesstokensService(s)
+	s.AchievementDefinitions = NewAchievementDefinitionsService(s)
+	s.Achievements = NewAchievementsService(s)
+	s.Applications = NewApplicationsService(s)
+	s.Events = NewEventsService(s)
+	s.Leaderboards = NewLeaderboardsService(s)
+	s.Metagame = NewMetagameService(s)
+	s.Players = NewPlayersService(s)
+	s.Recall = NewRecallService(s)
+	s.Revisions = NewRevisionsService(s)
+	s.Scores = NewScoresService(s)
+	s.Snapshots = NewSnapshotsService(s)
+	s.Stats = NewStatsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -146,26 +162,16 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.AchievementDefinitions = NewAchievementDefinitionsService(s)
-	s.Achievements = NewAchievementsService(s)
-	s.Applications = NewApplicationsService(s)
-	s.Events = NewEventsService(s)
-	s.Leaderboards = NewLeaderboardsService(s)
-	s.Metagame = NewMetagameService(s)
-	s.Players = NewPlayersService(s)
-	s.Recall = NewRecallService(s)
-	s.Revisions = NewRevisionsService(s)
-	s.Scores = NewScoresService(s)
-	s.Snapshots = NewSnapshotsService(s)
-	s.Stats = NewStatsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
+
+	Accesstokens *AccesstokensService
 
 	AchievementDefinitions *AchievementDefinitionsService
 
@@ -197,6 +203,15 @@ func (s *Service) userAgent() string {
 		return googleapi.UserAgent
 	}
 	return googleapi.UserAgent + " " + s.UserAgent
+}
+
+func NewAccesstokensService(s *Service) *AccesstokensService {
+	rs := &AccesstokensService{s: s}
+	return rs
+}
+
+type AccesstokensService struct {
+	s *Service
 }
 
 func NewAchievementDefinitionsService(s *Service) *AchievementDefinitionsService {
@@ -362,9 +377,9 @@ type AchievementDefinition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementDefinition) MarshalJSON() ([]byte, error) {
+func (s AchievementDefinition) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementDefinition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementDefinitionsListResponse: A list of achievement definition
@@ -393,9 +408,9 @@ type AchievementDefinitionsListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementDefinitionsListResponse) MarshalJSON() ([]byte, error) {
+func (s AchievementDefinitionsListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementDefinitionsListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementIncrementResponse: An achievement increment response
@@ -424,9 +439,9 @@ type AchievementIncrementResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementIncrementResponse) MarshalJSON() ([]byte, error) {
+func (s AchievementIncrementResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementIncrementResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementRevealResponse: An achievement reveal response
@@ -457,9 +472,9 @@ type AchievementRevealResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementRevealResponse) MarshalJSON() ([]byte, error) {
+func (s AchievementRevealResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementRevealResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementSetStepsAtLeastResponse: An achievement set steps at least
@@ -489,9 +504,9 @@ type AchievementSetStepsAtLeastResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementSetStepsAtLeastResponse) MarshalJSON() ([]byte, error) {
+func (s AchievementSetStepsAtLeastResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementSetStepsAtLeastResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementUnlockResponse: An achievement unlock response
@@ -518,9 +533,9 @@ type AchievementUnlockResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementUnlockResponse) MarshalJSON() ([]byte, error) {
+func (s AchievementUnlockResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementUnlockResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementUpdateMultipleRequest: A list of achievement update requests.
@@ -543,9 +558,9 @@ type AchievementUpdateMultipleRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementUpdateMultipleRequest) MarshalJSON() ([]byte, error) {
+func (s AchievementUpdateMultipleRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementUpdateMultipleRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementUpdateMultipleResponse: Response message for
@@ -572,9 +587,9 @@ type AchievementUpdateMultipleResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementUpdateMultipleResponse) MarshalJSON() ([]byte, error) {
+func (s AchievementUpdateMultipleResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementUpdateMultipleResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementUpdateRequest: A request to update an achievement.
@@ -612,9 +627,9 @@ type AchievementUpdateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementUpdateRequest) MarshalJSON() ([]byte, error) {
+func (s AchievementUpdateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementUpdateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AchievementUpdateResponse: An updated achievement.
@@ -653,9 +668,9 @@ type AchievementUpdateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AchievementUpdateResponse) MarshalJSON() ([]byte, error) {
+func (s AchievementUpdateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AchievementUpdateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Application: The Application resource.
@@ -710,9 +725,9 @@ type Application struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Application) MarshalJSON() ([]byte, error) {
+func (s Application) MarshalJSON() ([]byte, error) {
 	type NoMethod Application
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationCategory: An application category object.
@@ -737,9 +752,9 @@ type ApplicationCategory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationCategory) MarshalJSON() ([]byte, error) {
+func (s ApplicationCategory) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationCategory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationPlayerId: Primary scoped player identifier for an application.
@@ -761,9 +776,9 @@ type ApplicationPlayerId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationPlayerId) MarshalJSON() ([]byte, error) {
+func (s ApplicationPlayerId) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationPlayerId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationVerifyResponse: A third party application verification response
@@ -795,9 +810,9 @@ type ApplicationVerifyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationVerifyResponse) MarshalJSON() ([]byte, error) {
+func (s ApplicationVerifyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationVerifyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Category: Data related to individual game categories.
@@ -822,9 +837,9 @@ type Category struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Category) MarshalJSON() ([]byte, error) {
+func (s Category) MarshalJSON() ([]byte, error) {
 	type NoMethod Category
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CategoryListResponse: A third party list metagame categories response.
@@ -852,9 +867,9 @@ type CategoryListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CategoryListResponse) MarshalJSON() ([]byte, error) {
+func (s CategoryListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CategoryListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EndPoint: Container for a URL end point of the requested type.
@@ -877,9 +892,9 @@ type EndPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EndPoint) MarshalJSON() ([]byte, error) {
+func (s EndPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod EndPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventBatchRecordFailure: A batch update failure resource.
@@ -917,9 +932,9 @@ type EventBatchRecordFailure struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventBatchRecordFailure) MarshalJSON() ([]byte, error) {
+func (s EventBatchRecordFailure) MarshalJSON() ([]byte, error) {
 	type NoMethod EventBatchRecordFailure
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventChild: An event child relationship resource.
@@ -942,9 +957,9 @@ type EventChild struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventChild) MarshalJSON() ([]byte, error) {
+func (s EventChild) MarshalJSON() ([]byte, error) {
 	type NoMethod EventChild
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventDefinition: An event definition resource.
@@ -985,9 +1000,9 @@ type EventDefinition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventDefinition) MarshalJSON() ([]byte, error) {
+func (s EventDefinition) MarshalJSON() ([]byte, error) {
 	type NoMethod EventDefinition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventDefinitionListResponse: A ListDefinitions response.
@@ -1015,9 +1030,9 @@ type EventDefinitionListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventDefinitionListResponse) MarshalJSON() ([]byte, error) {
+func (s EventDefinitionListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EventDefinitionListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventPeriodRange: An event period time range.
@@ -1044,9 +1059,9 @@ type EventPeriodRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventPeriodRange) MarshalJSON() ([]byte, error) {
+func (s EventPeriodRange) MarshalJSON() ([]byte, error) {
 	type NoMethod EventPeriodRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventPeriodUpdate: An event period update resource.
@@ -1071,9 +1086,9 @@ type EventPeriodUpdate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventPeriodUpdate) MarshalJSON() ([]byte, error) {
+func (s EventPeriodUpdate) MarshalJSON() ([]byte, error) {
 	type NoMethod EventPeriodUpdate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventRecordFailure: An event update failure resource.
@@ -1103,9 +1118,9 @@ type EventRecordFailure struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventRecordFailure) MarshalJSON() ([]byte, error) {
+func (s EventRecordFailure) MarshalJSON() ([]byte, error) {
 	type NoMethod EventRecordFailure
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventRecordRequest: An event period update resource.
@@ -1133,9 +1148,9 @@ type EventRecordRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventRecordRequest) MarshalJSON() ([]byte, error) {
+func (s EventRecordRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EventRecordRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventUpdateRequest: An event period update resource.
@@ -1160,9 +1175,9 @@ type EventUpdateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventUpdateRequest) MarshalJSON() ([]byte, error) {
+func (s EventUpdateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EventUpdateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventUpdateResponse: An event period update resource.
@@ -1192,17 +1207,17 @@ type EventUpdateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventUpdateResponse) MarshalJSON() ([]byte, error) {
+func (s EventUpdateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EventUpdateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GamePlayerToken: Recall tokens for a game.
 type GamePlayerToken struct {
 	// ApplicationId: The application that this player identifier is for.
 	ApplicationId string `json:"applicationId,omitempty"`
-	// Token: Recall token data.
-	Token []*RecallToken `json:"token,omitempty"`
+	// RecallToken: Recall token data.
+	RecallToken *RecallToken `json:"recallToken,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ApplicationId") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1216,9 +1231,9 @@ type GamePlayerToken struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GamePlayerToken) MarshalJSON() ([]byte, error) {
+func (s GamePlayerToken) MarshalJSON() ([]byte, error) {
 	type NoMethod GamePlayerToken
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GamesAchievementIncrement: The payload to request to increment an
@@ -1244,9 +1259,9 @@ type GamesAchievementIncrement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GamesAchievementIncrement) MarshalJSON() ([]byte, error) {
+func (s GamesAchievementIncrement) MarshalJSON() ([]byte, error) {
 	type NoMethod GamesAchievementIncrement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GamesAchievementSetStepsAtLeast: The payload to request to increment an
@@ -1270,9 +1285,61 @@ type GamesAchievementSetStepsAtLeast struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GamesAchievementSetStepsAtLeast) MarshalJSON() ([]byte, error) {
+func (s GamesAchievementSetStepsAtLeast) MarshalJSON() ([]byte, error) {
 	type NoMethod GamesAchievementSetStepsAtLeast
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GeneratePlayGroupingApiTokenResponse: Response for the
+// GeneratePlayGroupingApiToken RPC.
+type GeneratePlayGroupingApiTokenResponse struct {
+	// Token: Token for accessing the Play Grouping API.
+	Token *PlayGroupingApiToken `json:"token,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Token") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Token") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GeneratePlayGroupingApiTokenResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GeneratePlayGroupingApiTokenResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GenerateRecallPlayGroupingApiTokenResponse: Response for the
+// GenerateRecallPlayGroupingApiToken RPC.
+type GenerateRecallPlayGroupingApiTokenResponse struct {
+	// Token: Token for accessing the Play Grouping API.
+	Token *PlayGroupingApiToken `json:"token,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Token") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Token") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GenerateRecallPlayGroupingApiTokenResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GenerateRecallPlayGroupingApiTokenResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetMultipleApplicationPlayerIdsResponse: Response message for
@@ -1298,9 +1365,9 @@ type GetMultipleApplicationPlayerIdsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetMultipleApplicationPlayerIdsResponse) MarshalJSON() ([]byte, error) {
+func (s GetMultipleApplicationPlayerIdsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetMultipleApplicationPlayerIdsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageAsset: An image asset object.
@@ -1329,9 +1396,9 @@ type ImageAsset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageAsset) MarshalJSON() ([]byte, error) {
+func (s ImageAsset) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageAsset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Instance: The Instance resource.
@@ -1373,9 +1440,9 @@ type Instance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Instance) MarshalJSON() ([]byte, error) {
+func (s Instance) MarshalJSON() ([]byte, error) {
 	type NoMethod Instance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceAndroidDetails: The Android instance details resource.
@@ -1403,9 +1470,9 @@ type InstanceAndroidDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceAndroidDetails) MarshalJSON() ([]byte, error) {
+func (s InstanceAndroidDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceAndroidDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceIosDetails: The iOS details resource.
@@ -1440,9 +1507,9 @@ type InstanceIosDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceIosDetails) MarshalJSON() ([]byte, error) {
+func (s InstanceIosDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceIosDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceWebDetails: The Web details resource.
@@ -1468,9 +1535,9 @@ type InstanceWebDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceWebDetails) MarshalJSON() ([]byte, error) {
+func (s InstanceWebDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceWebDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Leaderboard: The Leaderboard resource.
@@ -1511,9 +1578,9 @@ type Leaderboard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Leaderboard) MarshalJSON() ([]byte, error) {
+func (s Leaderboard) MarshalJSON() ([]byte, error) {
 	type NoMethod Leaderboard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LeaderboardEntry: The Leaderboard Entry resource.
@@ -1558,9 +1625,9 @@ type LeaderboardEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LeaderboardEntry) MarshalJSON() ([]byte, error) {
+func (s LeaderboardEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod LeaderboardEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LeaderboardListResponse: A list of leaderboard objects.
@@ -1588,9 +1655,9 @@ type LeaderboardListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LeaderboardListResponse) MarshalJSON() ([]byte, error) {
+func (s LeaderboardListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LeaderboardListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LeaderboardScoreRank: A score rank in a leaderboard.
@@ -1619,9 +1686,9 @@ type LeaderboardScoreRank struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LeaderboardScoreRank) MarshalJSON() ([]byte, error) {
+func (s LeaderboardScoreRank) MarshalJSON() ([]byte, error) {
 	type NoMethod LeaderboardScoreRank
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LeaderboardScores: A ListScores response.
@@ -1659,9 +1726,9 @@ type LeaderboardScores struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LeaderboardScores) MarshalJSON() ([]byte, error) {
+func (s LeaderboardScores) MarshalJSON() ([]byte, error) {
 	type NoMethod LeaderboardScores
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LinkPersonaRequest: Request to link an in-game account with a PGS principal
@@ -1737,9 +1804,9 @@ type LinkPersonaRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LinkPersonaRequest) MarshalJSON() ([]byte, error) {
+func (s LinkPersonaRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LinkPersonaRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LinkPersonaResponse: Outcome of a persona linking attempt.
@@ -1768,9 +1835,9 @@ type LinkPersonaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LinkPersonaResponse) MarshalJSON() ([]byte, error) {
+func (s LinkPersonaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LinkPersonaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetagameConfig: The metagame config resource
@@ -1799,9 +1866,32 @@ type MetagameConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetagameConfig) MarshalJSON() ([]byte, error) {
+func (s MetagameConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod MetagameConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PlayGroupingApiToken: Token data returned from GeneratePlayGroupingApiToken
+// RPC.
+type PlayGroupingApiToken struct {
+	// TokenValue: Value of the token.
+	TokenValue string `json:"tokenValue,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "TokenValue") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "TokenValue") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PlayGroupingApiToken) MarshalJSON() ([]byte, error) {
+	type NoMethod PlayGroupingApiToken
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Player: A Player resource.
@@ -1860,9 +1950,9 @@ type Player struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Player) MarshalJSON() ([]byte, error) {
+func (s Player) MarshalJSON() ([]byte, error) {
 	type NoMethod Player
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerName: A representation of the individual components of the name.
@@ -1886,9 +1976,9 @@ type PlayerName struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerName) MarshalJSON() ([]byte, error) {
+func (s PlayerName) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerName
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerAchievement: An achievement object.
@@ -1930,9 +2020,9 @@ type PlayerAchievement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerAchievement) MarshalJSON() ([]byte, error) {
+func (s PlayerAchievement) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerAchievement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerAchievementListResponse: A list of achievement objects.
@@ -1960,9 +2050,9 @@ type PlayerAchievementListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerAchievementListResponse) MarshalJSON() ([]byte, error) {
+func (s PlayerAchievementListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerAchievementListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerEvent: An event status resource.
@@ -1993,9 +2083,9 @@ type PlayerEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerEvent) MarshalJSON() ([]byte, error) {
+func (s PlayerEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerEventListResponse: A ListByPlayer response.
@@ -2023,9 +2113,9 @@ type PlayerEventListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerEventListResponse) MarshalJSON() ([]byte, error) {
+func (s PlayerEventListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerEventListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerExperienceInfo: 1P/3P metadata about the player's experience.
@@ -2057,9 +2147,9 @@ type PlayerExperienceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerExperienceInfo) MarshalJSON() ([]byte, error) {
+func (s PlayerExperienceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerExperienceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerLeaderboardScore: A player leaderboard score object.
@@ -2107,9 +2197,9 @@ type PlayerLeaderboardScore struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerLeaderboardScore) MarshalJSON() ([]byte, error) {
+func (s PlayerLeaderboardScore) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerLeaderboardScore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerLeaderboardScoreListResponse: A list of player leaderboard scores.
@@ -2139,9 +2229,9 @@ type PlayerLeaderboardScoreListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerLeaderboardScoreListResponse) MarshalJSON() ([]byte, error) {
+func (s PlayerLeaderboardScoreListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerLeaderboardScoreListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerLevel: 1P/3P metadata about a user's level.
@@ -2168,9 +2258,9 @@ type PlayerLevel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerLevel) MarshalJSON() ([]byte, error) {
+func (s PlayerLevel) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerLevel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerListResponse: A third party player list response.
@@ -2198,9 +2288,9 @@ type PlayerListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerListResponse) MarshalJSON() ([]byte, error) {
+func (s PlayerListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerScore: A player score.
@@ -2235,9 +2325,9 @@ type PlayerScore struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerScore) MarshalJSON() ([]byte, error) {
+func (s PlayerScore) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerScore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerScoreListResponse: A list of score submission statuses.
@@ -2263,9 +2353,9 @@ type PlayerScoreListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerScoreListResponse) MarshalJSON() ([]byte, error) {
+func (s PlayerScoreListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerScoreListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerScoreResponse: A list of leaderboard entry resources.
@@ -2309,9 +2399,9 @@ type PlayerScoreResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerScoreResponse) MarshalJSON() ([]byte, error) {
+func (s PlayerScoreResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerScoreResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlayerScoreSubmissionList: A list of score submission requests.
@@ -2334,9 +2424,9 @@ type PlayerScoreSubmissionList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlayerScoreSubmissionList) MarshalJSON() ([]byte, error) {
+func (s PlayerScoreSubmissionList) MarshalJSON() ([]byte, error) {
 	type NoMethod PlayerScoreSubmissionList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfileSettings: Profile settings
@@ -2370,9 +2460,9 @@ type ProfileSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfileSettings) MarshalJSON() ([]byte, error) {
+func (s ProfileSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfileSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RecallToken: Recall token data returned from RetrievePlayerTokens RPC
@@ -2398,9 +2488,9 @@ type RecallToken struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecallToken) MarshalJSON() ([]byte, error) {
+func (s RecallToken) MarshalJSON() ([]byte, error) {
 	type NoMethod RecallToken
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResetPersonaRequest: Request to remove all Recall tokens associated with a
@@ -2422,9 +2512,9 @@ type ResetPersonaRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResetPersonaRequest) MarshalJSON() ([]byte, error) {
+func (s ResetPersonaRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ResetPersonaRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResetPersonaResponse: Response for the ResetPersona RPC
@@ -2448,65 +2538,65 @@ type ResetPersonaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResetPersonaResponse) MarshalJSON() ([]byte, error) {
+func (s ResetPersonaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ResetPersonaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RetrieveDeveloperGamesLastPlayerTokenResponse: Recall token data returned
 // from for the RetrieveDeveloperGamesLastPlayerToken RPC
 type RetrieveDeveloperGamesLastPlayerTokenResponse struct {
-	// Token: The recall token associated with the requested PGS Player principal.
-	// It can be unset if there is no recall token associated with the requested
-	// principal.
-	Token *RecallToken `json:"token,omitempty"`
+	// GamePlayerToken: The recall token associated with the requested PGS Player
+	// principal. It can be unset if there is no recall token associated with the
+	// requested principal.
+	GamePlayerToken *GamePlayerToken `json:"gamePlayerToken,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "Token") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Token") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *RetrieveDeveloperGamesLastPlayerTokenResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod RetrieveDeveloperGamesLastPlayerTokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// RetrieveGamesPlayerTokensResponse: A list of recall token data returned from
-// the RetrieveGamesPlayerTokens RPC
-type RetrieveGamesPlayerTokensResponse struct {
-	// ApplicationRecallTokens: The requested applications along with the recall
-	// tokens for the player. If the player does not have recall tokens for an
-	// application, that application is not included in the response.
-	ApplicationRecallTokens []*GamePlayerToken `json:"applicationRecallTokens,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "ApplicationRecallTokens") to
+	// ForceSendFields is a list of field names (e.g. "GamePlayerToken") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ApplicationRecallTokens") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "GamePlayerToken") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *RetrieveGamesPlayerTokensResponse) MarshalJSON() ([]byte, error) {
+func (s RetrieveDeveloperGamesLastPlayerTokenResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod RetrieveDeveloperGamesLastPlayerTokenResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RetrieveGamesPlayerTokensResponse: A list of recall token data returned from
+// the RetrieveGamesPlayerTokens RPC
+type RetrieveGamesPlayerTokensResponse struct {
+	// GamePlayerTokens: The requested applications along with the recall tokens
+	// for the player. If the player does not have recall tokens for an
+	// application, that application is not included in the response.
+	GamePlayerTokens []*GamePlayerToken `json:"gamePlayerTokens,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "GamePlayerTokens") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "GamePlayerTokens") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RetrieveGamesPlayerTokensResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RetrieveGamesPlayerTokensResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RetrievePlayerTokensResponse: Response for the RetrievePlayerTokens RPC
@@ -2530,9 +2620,9 @@ type RetrievePlayerTokensResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RetrievePlayerTokensResponse) MarshalJSON() ([]byte, error) {
+func (s RetrievePlayerTokensResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RetrievePlayerTokensResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevisionCheckResponse: A third party checking a revision response.
@@ -2568,9 +2658,9 @@ type RevisionCheckResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevisionCheckResponse) MarshalJSON() ([]byte, error) {
+func (s RevisionCheckResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevisionCheckResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScopedPlayerIds: Scoped player identifiers.
@@ -2600,9 +2690,9 @@ type ScopedPlayerIds struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScopedPlayerIds) MarshalJSON() ([]byte, error) {
+func (s ScopedPlayerIds) MarshalJSON() ([]byte, error) {
 	type NoMethod ScopedPlayerIds
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScoreSubmission: A request to submit a score to leaderboards.
@@ -2633,9 +2723,9 @@ type ScoreSubmission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScoreSubmission) MarshalJSON() ([]byte, error) {
+func (s ScoreSubmission) MarshalJSON() ([]byte, error) {
 	type NoMethod ScoreSubmission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Snapshot: An snapshot object.
@@ -2687,9 +2777,9 @@ type Snapshot struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Snapshot) MarshalJSON() ([]byte, error) {
+func (s Snapshot) MarshalJSON() ([]byte, error) {
 	type NoMethod Snapshot
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SnapshotImage: An image of a snapshot.
@@ -2719,9 +2809,9 @@ type SnapshotImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SnapshotImage) MarshalJSON() ([]byte, error) {
+func (s SnapshotImage) MarshalJSON() ([]byte, error) {
 	type NoMethod SnapshotImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SnapshotListResponse: A third party list snapshots response.
@@ -2750,9 +2840,9 @@ type SnapshotListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SnapshotListResponse) MarshalJSON() ([]byte, error) {
+func (s SnapshotListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SnapshotListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StatsResponse: A third party stats resource.
@@ -2815,9 +2905,9 @@ type StatsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StatsResponse) MarshalJSON() ([]byte, error) {
+func (s StatsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod StatsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *StatsResponse) UnmarshalJSON(data []byte) error {
@@ -2872,9 +2962,9 @@ type UnlinkPersonaRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnlinkPersonaRequest) MarshalJSON() ([]byte, error) {
+func (s UnlinkPersonaRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UnlinkPersonaRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnlinkPersonaResponse: Response for the UnlinkPersona RPC
@@ -2899,9 +2989,237 @@ type UnlinkPersonaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnlinkPersonaResponse) MarshalJSON() ([]byte, error) {
+func (s UnlinkPersonaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UnlinkPersonaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type AccesstokensGeneratePlayGroupingApiTokenCall struct {
+	s          *Service
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// GeneratePlayGroupingApiToken: Generates a Play Grouping API token for the
+// PGS user identified by the attached credential.
+func (r *AccesstokensService) GeneratePlayGroupingApiToken() *AccesstokensGeneratePlayGroupingApiTokenCall {
+	c := &AccesstokensGeneratePlayGroupingApiTokenCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	return c
+}
+
+// PackageName sets the optional parameter "packageName": Required. App package
+// name to generate the token for (e.g. com.example.mygame).
+func (c *AccesstokensGeneratePlayGroupingApiTokenCall) PackageName(packageName string) *AccesstokensGeneratePlayGroupingApiTokenCall {
+	c.urlParams_.Set("packageName", packageName)
+	return c
+}
+
+// Persona sets the optional parameter "persona": Required. Persona to
+// associate with the token. Persona is a developer-provided stable identifier
+// of the user. Must be deterministically generated (e.g. as a one-way hash)
+// from the user account ID and user profile ID (if the app has the concept),
+// according to the developer's own user identity system.
+func (c *AccesstokensGeneratePlayGroupingApiTokenCall) Persona(persona string) *AccesstokensGeneratePlayGroupingApiTokenCall {
+	c.urlParams_.Set("persona", persona)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *AccesstokensGeneratePlayGroupingApiTokenCall) Fields(s ...googleapi.Field) *AccesstokensGeneratePlayGroupingApiTokenCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *AccesstokensGeneratePlayGroupingApiTokenCall) Context(ctx context.Context) *AccesstokensGeneratePlayGroupingApiTokenCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *AccesstokensGeneratePlayGroupingApiTokenCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *AccesstokensGeneratePlayGroupingApiTokenCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/accesstokens/generatePlayGroupingApiToken")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.accesstokens.generatePlayGroupingApiToken", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "games.accesstokens.generatePlayGroupingApiToken" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GeneratePlayGroupingApiTokenResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *AccesstokensGeneratePlayGroupingApiTokenCall) Do(opts ...googleapi.CallOption) (*GeneratePlayGroupingApiTokenResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GeneratePlayGroupingApiTokenResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.accesstokens.generatePlayGroupingApiToken", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type AccesstokensGenerateRecallPlayGroupingApiTokenCall struct {
+	s          *Service
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// GenerateRecallPlayGroupingApiToken: Generates a Play Grouping API token for
+// the PGS user identified by the Recall session ID provided in the request.
+func (r *AccesstokensService) GenerateRecallPlayGroupingApiToken() *AccesstokensGenerateRecallPlayGroupingApiTokenCall {
+	c := &AccesstokensGenerateRecallPlayGroupingApiTokenCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	return c
+}
+
+// PackageName sets the optional parameter "packageName": Required. App package
+// name to generate the token for (e.g. com.example.mygame).
+func (c *AccesstokensGenerateRecallPlayGroupingApiTokenCall) PackageName(packageName string) *AccesstokensGenerateRecallPlayGroupingApiTokenCall {
+	c.urlParams_.Set("packageName", packageName)
+	return c
+}
+
+// Persona sets the optional parameter "persona": Required. Persona to
+// associate with the token. Persona is a developer-provided stable identifier
+// of the user. Must be deterministically generated (e.g. as a one-way hash)
+// from the user account ID and user profile ID (if the app has the concept),
+// according to the developer's own user identity system.
+func (c *AccesstokensGenerateRecallPlayGroupingApiTokenCall) Persona(persona string) *AccesstokensGenerateRecallPlayGroupingApiTokenCall {
+	c.urlParams_.Set("persona", persona)
+	return c
+}
+
+// RecallSessionId sets the optional parameter "recallSessionId": Required.
+// Opaque server-generated string that encodes all the necessary information to
+// identify the PGS player / Google user and application. See
+// https://developer.android.com/games/pgs/recall/recall-setup on how to
+// integrate with Recall and get session ID.
+func (c *AccesstokensGenerateRecallPlayGroupingApiTokenCall) RecallSessionId(recallSessionId string) *AccesstokensGenerateRecallPlayGroupingApiTokenCall {
+	c.urlParams_.Set("recallSessionId", recallSessionId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *AccesstokensGenerateRecallPlayGroupingApiTokenCall) Fields(s ...googleapi.Field) *AccesstokensGenerateRecallPlayGroupingApiTokenCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *AccesstokensGenerateRecallPlayGroupingApiTokenCall) Context(ctx context.Context) *AccesstokensGenerateRecallPlayGroupingApiTokenCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *AccesstokensGenerateRecallPlayGroupingApiTokenCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *AccesstokensGenerateRecallPlayGroupingApiTokenCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/accesstokens/generateRecallPlayGroupingApiToken")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.accesstokens.generateRecallPlayGroupingApiToken", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "games.accesstokens.generateRecallPlayGroupingApiToken" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GenerateRecallPlayGroupingApiTokenResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *AccesstokensGenerateRecallPlayGroupingApiTokenCall) Do(opts ...googleapi.CallOption) (*GenerateRecallPlayGroupingApiTokenResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GenerateRecallPlayGroupingApiTokenResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.accesstokens.generateRecallPlayGroupingApiToken", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type AchievementDefinitionsListCall struct {
@@ -2977,16 +3295,16 @@ func (c *AchievementDefinitionsListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/achievements")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.achievementDefinitions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3022,9 +3340,11 @@ func (c *AchievementDefinitionsListCall) Do(opts ...googleapi.CallOption) (*Achi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.achievementDefinitions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3102,12 +3422,11 @@ func (c *AchievementsIncrementCall) Header() http.Header {
 
 func (c *AchievementsIncrementCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/achievements/{achievementId}/increment")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3115,6 +3434,7 @@ func (c *AchievementsIncrementCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"achievementId": c.achievementId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.achievements.increment", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3150,9 +3470,11 @@ func (c *AchievementsIncrementCall) Do(opts ...googleapi.CallOption) (*Achieveme
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.achievements.increment", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3250,12 +3572,11 @@ func (c *AchievementsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/players/{playerId}/achievements")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3263,6 +3584,7 @@ func (c *AchievementsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"playerId": c.playerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.achievements.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3298,9 +3620,11 @@ func (c *AchievementsListCall) Do(opts ...googleapi.CallOption) (*PlayerAchievem
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.achievements.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3368,12 +3692,11 @@ func (c *AchievementsRevealCall) Header() http.Header {
 
 func (c *AchievementsRevealCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/achievements/{achievementId}/reveal")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3381,6 +3704,7 @@ func (c *AchievementsRevealCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"achievementId": c.achievementId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.achievements.reveal", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3416,9 +3740,11 @@ func (c *AchievementsRevealCall) Do(opts ...googleapi.CallOption) (*AchievementR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.achievements.reveal", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3469,12 +3795,11 @@ func (c *AchievementsSetStepsAtLeastCall) Header() http.Header {
 
 func (c *AchievementsSetStepsAtLeastCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/achievements/{achievementId}/setStepsAtLeast")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3482,6 +3807,7 @@ func (c *AchievementsSetStepsAtLeastCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"achievementId": c.achievementId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.achievements.setStepsAtLeast", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3517,9 +3843,11 @@ func (c *AchievementsSetStepsAtLeastCall) Do(opts ...googleapi.CallOption) (*Ach
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.achievements.setStepsAtLeast", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3565,12 +3893,11 @@ func (c *AchievementsUnlockCall) Header() http.Header {
 
 func (c *AchievementsUnlockCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/achievements/{achievementId}/unlock")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3578,6 +3905,7 @@ func (c *AchievementsUnlockCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"achievementId": c.achievementId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.achievements.unlock", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3613,9 +3941,11 @@ func (c *AchievementsUnlockCall) Do(opts ...googleapi.CallOption) (*AchievementU
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.achievements.unlock", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3660,8 +3990,7 @@ func (c *AchievementsUpdateMultipleCall) Header() http.Header {
 
 func (c *AchievementsUpdateMultipleCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.achievementupdatemultiplerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.achievementupdatemultiplerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3674,6 +4003,7 @@ func (c *AchievementsUpdateMultipleCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.achievements.updateMultiple", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3709,9 +4039,11 @@ func (c *AchievementsUpdateMultipleCall) Do(opts ...googleapi.CallOption) (*Achi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.achievements.updateMultiple", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3791,12 +4123,11 @@ func (c *ApplicationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/applications/{applicationId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3804,6 +4135,7 @@ func (c *ApplicationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"applicationId": c.applicationId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.applications.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3838,9 +4170,11 @@ func (c *ApplicationsGetCall) Do(opts ...googleapi.CallOption) (*Application, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.applications.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3901,16 +4235,16 @@ func (c *ApplicationsGetEndPointCall) Header() http.Header {
 
 func (c *ApplicationsGetEndPointCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/applications/getEndPoint")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.applications.getEndPoint", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3945,9 +4279,11 @@ func (c *ApplicationsGetEndPointCall) Do(opts ...googleapi.CallOption) (*EndPoin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.applications.getEndPoint", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3990,16 +4326,16 @@ func (c *ApplicationsPlayedCall) Header() http.Header {
 
 func (c *ApplicationsPlayedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/applications/played")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.applications.played", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4014,6 +4350,7 @@ func (c *ApplicationsPlayedCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.applications.played", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -4073,12 +4410,11 @@ func (c *ApplicationsVerifyCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/applications/{applicationId}/verify")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4086,6 +4422,7 @@ func (c *ApplicationsVerifyCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"applicationId": c.applicationId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.applications.verify", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4121,9 +4458,11 @@ func (c *ApplicationsVerifyCall) Do(opts ...googleapi.CallOption) (*ApplicationV
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.applications.verify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4200,16 +4539,16 @@ func (c *EventsListByPlayerCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/events")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.events.listByPlayer", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4245,9 +4584,11 @@ func (c *EventsListByPlayerCall) Do(opts ...googleapi.CallOption) (*PlayerEventL
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.events.listByPlayer", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4346,16 +4687,16 @@ func (c *EventsListDefinitionsCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/eventDefinitions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.events.listDefinitions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4391,9 +4732,11 @@ func (c *EventsListDefinitionsCall) Do(opts ...googleapi.CallOption) (*EventDefi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.events.listDefinitions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4466,8 +4809,7 @@ func (c *EventsRecordCall) Header() http.Header {
 
 func (c *EventsRecordCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventrecordrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.eventrecordrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4480,6 +4822,7 @@ func (c *EventsRecordCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.events.record", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4515,9 +4858,11 @@ func (c *EventsRecordCall) Do(opts ...googleapi.CallOption) (*EventUpdateRespons
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.events.record", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4582,12 +4927,11 @@ func (c *LeaderboardsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/leaderboards/{leaderboardId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4595,6 +4939,7 @@ func (c *LeaderboardsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"leaderboardId": c.leaderboardId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.leaderboards.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4629,9 +4974,11 @@ func (c *LeaderboardsGetCall) Do(opts ...googleapi.CallOption) (*Leaderboard, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.leaderboards.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4707,16 +5054,16 @@ func (c *LeaderboardsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/leaderboards")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.leaderboards.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4752,9 +5099,11 @@ func (c *LeaderboardsListCall) Do(opts ...googleapi.CallOption) (*LeaderboardLis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.leaderboards.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4830,16 +5179,16 @@ func (c *MetagameGetMetagameConfigCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/metagameConfig")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.metagame.getMetagameConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4874,9 +5223,11 @@ func (c *MetagameGetMetagameConfigCall) Do(opts ...googleapi.CallOption) (*Metag
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.metagame.getMetagameConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4962,12 +5313,11 @@ func (c *MetagameListCategoriesByPlayerCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/players/{playerId}/categories/{collection}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4976,6 +5326,7 @@ func (c *MetagameListCategoriesByPlayerCall) doRequest(alt string) (*http.Respon
 		"playerId":   c.playerId,
 		"collection": c.collection,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.metagame.listCategoriesByPlayer", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5011,9 +5362,11 @@ func (c *MetagameListCategoriesByPlayerCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.metagame.listCategoriesByPlayer", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5110,12 +5463,11 @@ func (c *PlayersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/players/{playerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5123,6 +5475,7 @@ func (c *PlayersGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"playerId": c.playerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.players.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5157,9 +5510,11 @@ func (c *PlayersGetCall) Do(opts ...googleapi.CallOption) (*Player, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.players.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5224,16 +5579,16 @@ func (c *PlayersGetMultipleApplicationPlayerIdsCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/players/me/multipleApplicationPlayerIds")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.players.getMultipleApplicationPlayerIds", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5269,9 +5624,11 @@ func (c *PlayersGetMultipleApplicationPlayerIdsCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.players.getMultipleApplicationPlayerIds", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5326,16 +5683,16 @@ func (c *PlayersGetScopedPlayerIdsCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/players/me/scopedIds")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.players.getScopedPlayerIds", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5371,9 +5728,11 @@ func (c *PlayersGetScopedPlayerIdsCall) Do(opts ...googleapi.CallOption) (*Scope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.players.getScopedPlayerIds", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5454,12 +5813,11 @@ func (c *PlayersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/players/me/players/{collection}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5467,6 +5825,7 @@ func (c *PlayersListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"collection": c.collection,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.players.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5502,9 +5861,11 @@ func (c *PlayersListCall) Do(opts ...googleapi.CallOption) (*PlayerListResponse,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.players.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5594,12 +5955,11 @@ func (c *RecallGamesPlayerTokensCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/recall/gamesPlayerTokens/{sessionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5607,6 +5967,7 @@ func (c *RecallGamesPlayerTokensCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"sessionId": c.sessionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.recall.gamesPlayerTokens", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5642,9 +6003,11 @@ func (c *RecallGamesPlayerTokensCall) Do(opts ...googleapi.CallOption) (*Retriev
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.recall.gamesPlayerTokens", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5706,12 +6069,11 @@ func (c *RecallLastTokenFromAllDeveloperGamesCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/recall/developerGamesLastPlayerToken/{sessionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5719,6 +6081,7 @@ func (c *RecallLastTokenFromAllDeveloperGamesCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"sessionId": c.sessionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.recall.lastTokenFromAllDeveloperGames", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5754,9 +6117,11 @@ func (c *RecallLastTokenFromAllDeveloperGamesCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.recall.lastTokenFromAllDeveloperGames", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5801,8 +6166,7 @@ func (c *RecallLinkPersonaCall) Header() http.Header {
 
 func (c *RecallLinkPersonaCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.linkpersonarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.linkpersonarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5815,6 +6179,7 @@ func (c *RecallLinkPersonaCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.recall.linkPersona", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5850,9 +6215,11 @@ func (c *RecallLinkPersonaCall) Do(opts ...googleapi.CallOption) (*LinkPersonaRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.recall.linkPersona", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5897,8 +6264,7 @@ func (c *RecallResetPersonaCall) Header() http.Header {
 
 func (c *RecallResetPersonaCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resetpersonarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resetpersonarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5911,6 +6277,7 @@ func (c *RecallResetPersonaCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.recall.resetPersona", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5946,9 +6313,11 @@ func (c *RecallResetPersonaCall) Do(opts ...googleapi.CallOption) (*ResetPersona
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.recall.resetPersona", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6009,12 +6378,11 @@ func (c *RecallRetrieveTokensCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/recall/tokens/{sessionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6022,6 +6390,7 @@ func (c *RecallRetrieveTokensCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"sessionId": c.sessionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.recall.retrieveTokens", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6057,9 +6426,11 @@ func (c *RecallRetrieveTokensCall) Do(opts ...googleapi.CallOption) (*RetrievePl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.recall.retrieveTokens", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6105,8 +6476,7 @@ func (c *RecallUnlinkPersonaCall) Header() http.Header {
 
 func (c *RecallUnlinkPersonaCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.unlinkpersonarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.unlinkpersonarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6119,6 +6489,7 @@ func (c *RecallUnlinkPersonaCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.recall.unlinkPersona", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6154,9 +6525,11 @@ func (c *RecallUnlinkPersonaCall) Do(opts ...googleapi.CallOption) (*UnlinkPerso
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.recall.unlinkPersona", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6217,16 +6590,16 @@ func (c *RevisionsCheckCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/revisions/check")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.revisions.check", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6262,9 +6635,11 @@ func (c *RevisionsCheckCall) Do(opts ...googleapi.CallOption) (*RevisionCheckRes
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.revisions.check", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6377,12 +6752,11 @@ func (c *ScoresGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/players/{playerId}/leaderboards/{leaderboardId}/scores/{timeSpan}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6392,6 +6766,7 @@ func (c *ScoresGetCall) doRequest(alt string) (*http.Response, error) {
 		"leaderboardId": c.leaderboardId,
 		"timeSpan":      c.timeSpan,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.scores.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6427,9 +6802,11 @@ func (c *ScoresGetCall) Do(opts ...googleapi.CallOption) (*PlayerLeaderboardScor
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.scores.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6536,12 +6913,11 @@ func (c *ScoresListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/leaderboards/{leaderboardId}/scores/{collection}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6550,6 +6926,7 @@ func (c *ScoresListCall) doRequest(alt string) (*http.Response, error) {
 		"leaderboardId": c.leaderboardId,
 		"collection":    c.collection,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.scores.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6585,9 +6962,11 @@ func (c *ScoresListCall) Do(opts ...googleapi.CallOption) (*LeaderboardScores, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.scores.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6713,12 +7092,11 @@ func (c *ScoresListWindowCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/leaderboards/{leaderboardId}/window/{collection}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6727,6 +7105,7 @@ func (c *ScoresListWindowCall) doRequest(alt string) (*http.Response, error) {
 		"leaderboardId": c.leaderboardId,
 		"collection":    c.collection,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.scores.listWindow", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6762,9 +7141,11 @@ func (c *ScoresListWindowCall) Do(opts ...googleapi.CallOption) (*LeaderboardSco
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.scores.listWindow", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6853,12 +7234,11 @@ func (c *ScoresSubmitCall) Header() http.Header {
 
 func (c *ScoresSubmitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/leaderboards/{leaderboardId}/scores")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6866,6 +7246,7 @@ func (c *ScoresSubmitCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"leaderboardId": c.leaderboardId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.scores.submit", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6901,9 +7282,11 @@ func (c *ScoresSubmitCall) Do(opts ...googleapi.CallOption) (*PlayerScoreRespons
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.scores.submit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6954,8 +7337,7 @@ func (c *ScoresSubmitMultipleCall) Header() http.Header {
 
 func (c *ScoresSubmitMultipleCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.playerscoresubmissionlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.playerscoresubmissionlist)
 	if err != nil {
 		return nil, err
 	}
@@ -6968,6 +7350,7 @@ func (c *ScoresSubmitMultipleCall) doRequest(alt string) (*http.Response, error)
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.scores.submitMultiple", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7003,9 +7386,11 @@ func (c *ScoresSubmitMultipleCall) Do(opts ...googleapi.CallOption) (*PlayerScor
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.scores.submitMultiple", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7070,12 +7455,11 @@ func (c *SnapshotsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/snapshots/{snapshotId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7083,6 +7467,7 @@ func (c *SnapshotsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"snapshotId": c.snapshotId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.snapshots.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7117,9 +7502,11 @@ func (c *SnapshotsGetCall) Do(opts ...googleapi.CallOption) (*Snapshot, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.snapshots.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7202,12 +7589,11 @@ func (c *SnapshotsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/players/{playerId}/snapshots")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7215,6 +7601,7 @@ func (c *SnapshotsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"playerId": c.playerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.snapshots.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7250,9 +7637,11 @@ func (c *SnapshotsListCall) Do(opts ...googleapi.CallOption) (*SnapshotListRespo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.snapshots.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7328,16 +7717,16 @@ func (c *StatsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "games/v1/stats")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "games.stats.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7372,8 +7761,10 @@ func (c *StatsGetCall) Do(opts ...googleapi.CallOption) (*StatsResponse, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "games.stats.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

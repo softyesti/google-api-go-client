@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "cloudtrace:v2"
 const apiName = "cloudtrace"
@@ -124,7 +127,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -143,13 +147,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -217,9 +220,9 @@ type Annotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Annotation) MarshalJSON() ([]byte, error) {
+func (s Annotation) MarshalJSON() ([]byte, error) {
 	type NoMethod Annotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttributeValue: The allowed types for `[VALUE]` in a `[KEY]:[VALUE]`
@@ -244,9 +247,9 @@ type AttributeValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttributeValue) MarshalJSON() ([]byte, error) {
+func (s AttributeValue) MarshalJSON() ([]byte, error) {
 	type NoMethod AttributeValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Attributes: A set of attributes as key-value pairs.
@@ -275,9 +278,9 @@ type Attributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Attributes) MarshalJSON() ([]byte, error) {
+func (s Attributes) MarshalJSON() ([]byte, error) {
 	type NoMethod Attributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchWriteSpansRequest: The request message for the `BatchWriteSpans`
@@ -299,9 +302,9 @@ type BatchWriteSpansRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchWriteSpansRequest) MarshalJSON() ([]byte, error) {
+func (s BatchWriteSpansRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchWriteSpansRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -345,9 +348,9 @@ type Link struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Link) MarshalJSON() ([]byte, error) {
+func (s Link) MarshalJSON() ([]byte, error) {
 	type NoMethod Link
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Links: A collection of links, which are references from this span to a span
@@ -371,9 +374,9 @@ type Links struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Links) MarshalJSON() ([]byte, error) {
+func (s Links) MarshalJSON() ([]byte, error) {
 	type NoMethod Links
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MessageEvent: An event describing a message sent/received between Spans.
@@ -408,9 +411,9 @@ type MessageEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MessageEvent) MarshalJSON() ([]byte, error) {
+func (s MessageEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod MessageEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Module: Binary module.
@@ -434,9 +437,9 @@ type Module struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Module) MarshalJSON() ([]byte, error) {
+func (s Module) MarshalJSON() ([]byte, error) {
 	type NoMethod Module
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Span: A span represents a single operation within a trace. Spans can be
@@ -532,9 +535,9 @@ type Span struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Span) MarshalJSON() ([]byte, error) {
+func (s Span) MarshalJSON() ([]byte, error) {
 	type NoMethod Span
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StackFrame: Represents a single stack frame in a stack trace.
@@ -573,9 +576,9 @@ type StackFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StackFrame) MarshalJSON() ([]byte, error) {
+func (s StackFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod StackFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StackFrames: A collection of stack frames, which can be truncated.
@@ -599,9 +602,9 @@ type StackFrames struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StackFrames) MarshalJSON() ([]byte, error) {
+func (s StackFrames) MarshalJSON() ([]byte, error) {
 	type NoMethod StackFrames
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StackTrace: A call stack appearing in a trace.
@@ -629,9 +632,9 @@ type StackTrace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StackTrace) MarshalJSON() ([]byte, error) {
+func (s StackTrace) MarshalJSON() ([]byte, error) {
 	type NoMethod StackTrace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -663,9 +666,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeEvent: A time-stamped annotation or message event in the Span.
@@ -689,9 +692,9 @@ type TimeEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeEvent) MarshalJSON() ([]byte, error) {
+func (s TimeEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeEvents: A collection of `TimeEvent`s. A `TimeEvent` is a time-stamped
@@ -720,9 +723,9 @@ type TimeEvents struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeEvents) MarshalJSON() ([]byte, error) {
+func (s TimeEvents) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeEvents
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TruncatableString: Represents a string that might be shortened to a
@@ -750,9 +753,9 @@ type TruncatableString struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TruncatableString) MarshalJSON() ([]byte, error) {
+func (s TruncatableString) MarshalJSON() ([]byte, error) {
 	type NoMethod TruncatableString
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsTracesBatchWriteCall struct {
@@ -801,8 +804,7 @@ func (c *ProjectsTracesBatchWriteCall) Header() http.Header {
 
 func (c *ProjectsTracesBatchWriteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchwritespansrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchwritespansrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -818,6 +820,7 @@ func (c *ProjectsTracesBatchWriteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudtrace.projects.traces.batchWrite", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -852,9 +855,11 @@ func (c *ProjectsTracesBatchWriteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudtrace.projects.traces.batchWrite", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -908,8 +913,7 @@ func (c *ProjectsTracesSpansCreateSpanCall) Header() http.Header {
 
 func (c *ProjectsTracesSpansCreateSpanCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.span)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.span)
 	if err != nil {
 		return nil, err
 	}
@@ -925,6 +929,7 @@ func (c *ProjectsTracesSpansCreateSpanCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudtrace.projects.traces.spans.createSpan", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -959,8 +964,10 @@ func (c *ProjectsTracesSpansCreateSpanCall) Do(opts ...googleapi.CallOption) (*S
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudtrace.projects.traces.spans.createSpan", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

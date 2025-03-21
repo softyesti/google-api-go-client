@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "sts:v1beta"
 const apiName = "sts"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.V1beta = NewV1betaService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.V1beta = NewV1betaService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -245,9 +248,9 @@ type GoogleIamV1Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1Binding) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIdentityStsV1AccessBoundary: An access boundary defines the upper
@@ -273,9 +276,9 @@ type GoogleIdentityStsV1AccessBoundary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIdentityStsV1AccessBoundary) MarshalJSON() ([]byte, error) {
+func (s GoogleIdentityStsV1AccessBoundary) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIdentityStsV1AccessBoundary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIdentityStsV1AccessBoundaryRule: An access boundary rule defines an
@@ -319,9 +322,9 @@ type GoogleIdentityStsV1AccessBoundaryRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIdentityStsV1AccessBoundaryRule) MarshalJSON() ([]byte, error) {
+func (s GoogleIdentityStsV1AccessBoundaryRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIdentityStsV1AccessBoundaryRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIdentityStsV1Options: An `Options` object configures features that the
@@ -353,9 +356,9 @@ type GoogleIdentityStsV1Options struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIdentityStsV1Options) MarshalJSON() ([]byte, error) {
+func (s GoogleIdentityStsV1Options) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIdentityStsV1Options
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIdentityStsV1betaAccessBoundary: An access boundary defines the upper
@@ -381,9 +384,9 @@ type GoogleIdentityStsV1betaAccessBoundary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIdentityStsV1betaAccessBoundary) MarshalJSON() ([]byte, error) {
+func (s GoogleIdentityStsV1betaAccessBoundary) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIdentityStsV1betaAccessBoundary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIdentityStsV1betaAccessBoundaryRule: An access boundary rule defines
@@ -427,9 +430,9 @@ type GoogleIdentityStsV1betaAccessBoundaryRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIdentityStsV1betaAccessBoundaryRule) MarshalJSON() ([]byte, error) {
+func (s GoogleIdentityStsV1betaAccessBoundaryRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIdentityStsV1betaAccessBoundaryRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIdentityStsV1betaExchangeTokenRequest: Request message for
@@ -553,9 +556,9 @@ type GoogleIdentityStsV1betaExchangeTokenRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIdentityStsV1betaExchangeTokenRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleIdentityStsV1betaExchangeTokenRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIdentityStsV1betaExchangeTokenRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIdentityStsV1betaExchangeTokenResponse: Response message for
@@ -594,9 +597,9 @@ type GoogleIdentityStsV1betaExchangeTokenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIdentityStsV1betaExchangeTokenResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleIdentityStsV1betaExchangeTokenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIdentityStsV1betaExchangeTokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIdentityStsV1betaOptions: An `Options` object configures features that
@@ -628,9 +631,9 @@ type GoogleIdentityStsV1betaOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIdentityStsV1betaOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleIdentityStsV1betaOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIdentityStsV1betaOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeExpr: Represents a textual expression in the Common Expression
@@ -676,9 +679,9 @@ type GoogleTypeExpr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeExpr) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeExpr) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeExpr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type V1betaTokenCall struct {
@@ -726,8 +729,7 @@ func (c *V1betaTokenCall) Header() http.Header {
 
 func (c *V1betaTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleidentitystsv1betaexchangetokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleidentitystsv1betaexchangetokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -740,6 +742,7 @@ func (c *V1betaTokenCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "sts.token", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -775,8 +778,10 @@ func (c *V1betaTokenCall) Do(opts ...googleapi.CallOption) (*GoogleIdentityStsV1
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "sts.token", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

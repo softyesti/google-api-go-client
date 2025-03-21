@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "firestore:v1"
 const apiName = "firestore"
@@ -126,7 +129,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -312,9 +315,9 @@ type Aggregation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Aggregation) MarshalJSON() ([]byte, error) {
+func (s Aggregation) MarshalJSON() ([]byte, error) {
 	type NoMethod Aggregation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationResult: The result of a single bucket from a Firestore
@@ -340,9 +343,9 @@ type AggregationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResult) MarshalJSON() ([]byte, error) {
+func (s AggregationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ArrayValue: An array value.
@@ -362,9 +365,9 @@ type ArrayValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ArrayValue) MarshalJSON() ([]byte, error) {
+func (s ArrayValue) MarshalJSON() ([]byte, error) {
 	type NoMethod ArrayValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Avg: Average of the values of the requested field. * Only numeric values
@@ -388,9 +391,9 @@ type Avg struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Avg) MarshalJSON() ([]byte, error) {
+func (s Avg) MarshalJSON() ([]byte, error) {
 	type NoMethod Avg
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetDocumentsRequest: The request for Firestore.BatchGetDocuments.
@@ -428,9 +431,9 @@ type BatchGetDocumentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetDocumentsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchGetDocumentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetDocumentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetDocumentsResponse: The streamed response for
@@ -466,9 +469,9 @@ type BatchGetDocumentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetDocumentsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchGetDocumentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchWriteRequest: The request for Firestore.BatchWrite.
@@ -492,9 +495,9 @@ type BatchWriteRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchWriteRequest) MarshalJSON() ([]byte, error) {
+func (s BatchWriteRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchWriteRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchWriteResponse: The response from Firestore.BatchWrite.
@@ -521,9 +524,9 @@ type BatchWriteResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchWriteResponse) MarshalJSON() ([]byte, error) {
+func (s BatchWriteResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchWriteResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BeginTransactionRequest: The request for Firestore.BeginTransaction.
@@ -544,9 +547,9 @@ type BeginTransactionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BeginTransactionRequest) MarshalJSON() ([]byte, error) {
+func (s BeginTransactionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BeginTransactionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BeginTransactionResponse: The response for Firestore.BeginTransaction.
@@ -569,9 +572,9 @@ type BeginTransactionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BeginTransactionResponse) MarshalJSON() ([]byte, error) {
+func (s BeginTransactionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BeginTransactionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BitSequence: A sequence of bits, encoded in a byte array. Each byte in the
@@ -606,9 +609,9 @@ type BitSequence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BitSequence) MarshalJSON() ([]byte, error) {
+func (s BitSequence) MarshalJSON() ([]byte, error) {
 	type NoMethod BitSequence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BloomFilter: A bloom filter (https://en.wikipedia.org/wiki/Bloom_filter).
@@ -637,9 +640,9 @@ type BloomFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BloomFilter) MarshalJSON() ([]byte, error) {
+func (s BloomFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod BloomFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CollectionSelector: A selection of a collection, such as `messages as m1`.
@@ -664,9 +667,9 @@ type CollectionSelector struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CollectionSelector) MarshalJSON() ([]byte, error) {
+func (s CollectionSelector) MarshalJSON() ([]byte, error) {
 	type NoMethod CollectionSelector
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitRequest: The request for Firestore.Commit.
@@ -688,9 +691,9 @@ type CommitRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitRequest) MarshalJSON() ([]byte, error) {
+func (s CommitRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitResponse: The response for Firestore.Commit.
@@ -717,9 +720,9 @@ type CommitResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitResponse) MarshalJSON() ([]byte, error) {
+func (s CommitResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompositeFilter: A filter that merges multiple other filters using the given
@@ -749,9 +752,9 @@ type CompositeFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompositeFilter) MarshalJSON() ([]byte, error) {
+func (s CompositeFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod CompositeFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Count: Count of documents that match the query. The `COUNT(*)` aggregation
@@ -777,9 +780,9 @@ type Count struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Count) MarshalJSON() ([]byte, error) {
+func (s Count) MarshalJSON() ([]byte, error) {
 	type NoMethod Count
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Cursor: A position in a query result set.
@@ -804,9 +807,9 @@ type Cursor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Cursor) MarshalJSON() ([]byte, error) {
+func (s Cursor) MarshalJSON() ([]byte, error) {
 	type NoMethod Cursor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Document: A Firestore document. Must not exceed 1 MiB - 4 bytes.
@@ -856,19 +859,15 @@ type Document struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Document) MarshalJSON() ([]byte, error) {
+func (s Document) MarshalJSON() ([]byte, error) {
 	type NoMethod Document
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DocumentChange: A Document has changed. May be the result of multiple
 // writes, including deletes, that ultimately resulted in a new value for the
 // Document. Multiple DocumentChange messages may be returned for the same
-// logical change, if multiple targets are affected. For PipelineQueryTargets,
-// `document` will be in the new pipeline format, For a Listen stream with both
-// QueryTargets and PipelineQueryTargets present, if a document matches both
-// types of queries, then a separate DocumentChange messages will be sent out
-// one for each set.
+// logical change, if multiple targets are affected.
 type DocumentChange struct {
 	// Document: The new state of the Document. If `mask` is set, contains only
 	// fields that were updated or added.
@@ -891,9 +890,9 @@ type DocumentChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentChange) MarshalJSON() ([]byte, error) {
+func (s DocumentChange) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DocumentDelete: A Document has been deleted. May be the result of multiple
@@ -922,9 +921,9 @@ type DocumentDelete struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentDelete) MarshalJSON() ([]byte, error) {
+func (s DocumentDelete) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentDelete
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DocumentMask: A set of field paths on a document. Used to restrict a get or
@@ -948,9 +947,9 @@ type DocumentMask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentMask) MarshalJSON() ([]byte, error) {
+func (s DocumentMask) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentMask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DocumentRemove: A Document has been removed from the view of the targets.
@@ -981,9 +980,9 @@ type DocumentRemove struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentRemove) MarshalJSON() ([]byte, error) {
+func (s DocumentRemove) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentRemove
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DocumentTransform: A transformation of a document.
@@ -1006,9 +1005,9 @@ type DocumentTransform struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentTransform) MarshalJSON() ([]byte, error) {
+func (s DocumentTransform) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentTransform
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DocumentsTarget: A target specified by a set of documents names.
@@ -1031,9 +1030,9 @@ type DocumentsTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentsTarget) MarshalJSON() ([]byte, error) {
+func (s DocumentsTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentsTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1073,9 +1072,9 @@ type ExecutionStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionStats) MarshalJSON() ([]byte, error) {
+func (s ExecutionStats) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExistenceFilter: A digest of all the documents that match a given target.
@@ -1113,9 +1112,9 @@ type ExistenceFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExistenceFilter) MarshalJSON() ([]byte, error) {
+func (s ExistenceFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod ExistenceFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExplainMetrics: Explain metrics for the query.
@@ -1138,9 +1137,9 @@ type ExplainMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExplainMetrics) MarshalJSON() ([]byte, error) {
+func (s ExplainMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod ExplainMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExplainOptions: Explain options for the query.
@@ -1163,9 +1162,9 @@ type ExplainOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExplainOptions) MarshalJSON() ([]byte, error) {
+func (s ExplainOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ExplainOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FieldFilter: A filter on a specific field.
@@ -1218,9 +1217,9 @@ type FieldFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FieldFilter) MarshalJSON() ([]byte, error) {
+func (s FieldFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod FieldFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FieldReference: A reference to a field in a document, ex:
@@ -1243,9 +1242,9 @@ type FieldReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FieldReference) MarshalJSON() ([]byte, error) {
+func (s FieldReference) MarshalJSON() ([]byte, error) {
 	type NoMethod FieldReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FieldTransform: A transformation of a field of the document.
@@ -1323,9 +1322,9 @@ type FieldTransform struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FieldTransform) MarshalJSON() ([]byte, error) {
+func (s FieldTransform) MarshalJSON() ([]byte, error) {
 	type NoMethod FieldTransform
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Filter: A filter.
@@ -1349,29 +1348,48 @@ type Filter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Filter) MarshalJSON() ([]byte, error) {
+func (s Filter) MarshalJSON() ([]byte, error) {
 	type NoMethod Filter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// FindNearest: Nearest Neighbors search config.
+// FindNearest: Nearest Neighbors search config. The ordering provided by
+// FindNearest supersedes the order_by stage. If multiple documents have the
+// same vector distance, the returned document order is not guaranteed to be
+// stable between queries.
 type FindNearest struct {
 	// DistanceMeasure: Required. The distance measure to use, required.
 	//
 	// Possible values:
 	//   "DISTANCE_MEASURE_UNSPECIFIED" - Should not be set.
 	//   "EUCLIDEAN" - Measures the EUCLIDEAN distance between the vectors. See
-	// [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) to learn more
-	//   "COSINE" - Compares vectors based on the angle between them, which allows
-	// you to measure similarity that isn't based on the vectors magnitude. We
-	// recommend using DOT_PRODUCT with unit normalized vectors instead of COSINE
-	// distance, which is mathematically equivalent with better performance. See
-	// [Cosine Similarity](https://en.wikipedia.org/wiki/Cosine_similarity) to
-	// learn more.
+	// [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) to learn more.
+	// The resulting distance decreases the more similar two vectors are.
+	//   "COSINE" - COSINE distance compares vectors based on the angle between
+	// them, which allows you to measure similarity that isn't based on the vectors
+	// magnitude. We recommend using DOT_PRODUCT with unit normalized vectors
+	// instead of COSINE distance, which is mathematically equivalent with better
+	// performance. See [Cosine
+	// Similarity](https://en.wikipedia.org/wiki/Cosine_similarity) to learn more
+	// about COSINE similarity and COSINE distance. The resulting COSINE distance
+	// decreases the more similar two vectors are.
 	//   "DOT_PRODUCT" - Similar to cosine but is affected by the magnitude of the
 	// vectors. See [Dot Product](https://en.wikipedia.org/wiki/Dot_product) to
-	// learn more.
+	// learn more. The resulting distance increases the more similar two vectors
+	// are.
 	DistanceMeasure string `json:"distanceMeasure,omitempty"`
+	// DistanceResultField: Optional. Optional name of the field to output the
+	// result of the vector distance calculation. Must conform to document field
+	// name limitations.
+	DistanceResultField string `json:"distanceResultField,omitempty"`
+	// DistanceThreshold: Optional. Option to specify a threshold for which no less
+	// similar documents will be returned. The behavior of the specified
+	// `distance_measure` will affect the meaning of the distance threshold. Since
+	// DOT_PRODUCT distances increase when the vectors are more similar, the
+	// comparison is inverted. * For EUCLIDEAN, COSINE: `WHERE distance <=
+	// distance_threshold` * For DOT_PRODUCT: `WHERE distance >=
+	// distance_threshold`
+	DistanceThreshold float64 `json:"distanceThreshold,omitempty"`
 	// Limit: Required. The number of nearest neighbors to return. Must be a
 	// positive integer of no more than 1000.
 	Limit int64 `json:"limit,omitempty"`
@@ -1395,9 +1413,23 @@ type FindNearest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FindNearest) MarshalJSON() ([]byte, error) {
+func (s FindNearest) MarshalJSON() ([]byte, error) {
 	type NoMethod FindNearest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *FindNearest) UnmarshalJSON(data []byte) error {
+	type NoMethod FindNearest
+	var s1 struct {
+		DistanceThreshold gensupport.JSONFloat64 `json:"distanceThreshold"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.DistanceThreshold = float64(s1.DistanceThreshold)
+	return nil
 }
 
 // GoogleFirestoreAdminV1Backup: A Backup of a Cloud Firestore Database. The
@@ -1447,9 +1479,9 @@ type GoogleFirestoreAdminV1Backup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1Backup) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1Backup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1Backup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1BackupSchedule: A backup schedule for a Cloud
@@ -1468,7 +1500,8 @@ type GoogleFirestoreAdminV1BackupSchedule struct {
 	// `projects/{project}/databases/{database}/backupSchedules/{backup_schedule}`
 	Name string `json:"name,omitempty"`
 	// Retention: At what relative time in the future, compared to its creation
-	// time, the backup should be deleted, e.g. keep backups for 7 days.
+	// time, the backup should be deleted, e.g. keep backups for 7 days. The
+	// maximum supported retention period is 14 weeks.
 	Retention string `json:"retention,omitempty"`
 	// UpdateTime: Output only. The timestamp at which this backup schedule was
 	// most recently updated. When a backup schedule is first created, this is the
@@ -1492,9 +1525,124 @@ type GoogleFirestoreAdminV1BackupSchedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1BackupSchedule) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1BackupSchedule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1BackupSchedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleFirestoreAdminV1BackupSource: Information about a backup that was used
+// to restore a database.
+type GoogleFirestoreAdminV1BackupSource struct {
+	// Backup: The resource name of the backup that was used to restore this
+	// database. Format:
+	// `projects/{project}/locations/{location}/backups/{backup}`.
+	Backup string `json:"backup,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Backup") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Backup") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleFirestoreAdminV1BackupSource) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleFirestoreAdminV1BackupSource
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleFirestoreAdminV1BulkDeleteDocumentsMetadata: Metadata for
+// google.longrunning.Operation results from
+// FirestoreAdmin.BulkDeleteDocuments.
+type GoogleFirestoreAdminV1BulkDeleteDocumentsMetadata struct {
+	// CollectionIds: The IDs of the collection groups that are being deleted.
+	CollectionIds []string `json:"collectionIds,omitempty"`
+	// EndTime: The time this operation completed. Will be unset if operation still
+	// in progress.
+	EndTime string `json:"endTime,omitempty"`
+	// NamespaceIds: Which namespace IDs are being deleted.
+	NamespaceIds []string `json:"namespaceIds,omitempty"`
+	// OperationState: The state of the operation.
+	//
+	// Possible values:
+	//   "OPERATION_STATE_UNSPECIFIED" - Unspecified.
+	//   "INITIALIZING" - Request is being prepared for processing.
+	//   "PROCESSING" - Request is actively being processed.
+	//   "CANCELLING" - Request is in the process of being cancelled after user
+	// called google.longrunning.Operations.CancelOperation on the operation.
+	//   "FINALIZING" - Request has been processed and is in its finalization
+	// stage.
+	//   "SUCCESSFUL" - Request has completed successfully.
+	//   "FAILED" - Request has finished being processed, but encountered an error.
+	//   "CANCELLED" - Request has finished being cancelled after user called
+	// google.longrunning.Operations.CancelOperation.
+	OperationState string `json:"operationState,omitempty"`
+	// ProgressBytes: The progress, in bytes, of this operation.
+	ProgressBytes *GoogleFirestoreAdminV1Progress `json:"progressBytes,omitempty"`
+	// ProgressDocuments: The progress, in documents, of this operation.
+	ProgressDocuments *GoogleFirestoreAdminV1Progress `json:"progressDocuments,omitempty"`
+	// SnapshotTime: The timestamp that corresponds to the version of the database
+	// that is being read to get the list of documents to delete. This time can
+	// also be used as the timestamp of PITR in case of disaster recovery (subject
+	// to PITR window limit).
+	SnapshotTime string `json:"snapshotTime,omitempty"`
+	// StartTime: The time this operation started.
+	StartTime string `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CollectionIds") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CollectionIds") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleFirestoreAdminV1BulkDeleteDocumentsMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleFirestoreAdminV1BulkDeleteDocumentsMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleFirestoreAdminV1BulkDeleteDocumentsRequest: The request for
+// FirestoreAdmin.BulkDeleteDocuments. When both collection_ids and
+// namespace_ids are set, only documents satisfying both conditions will be
+// deleted. Requests with namespace_ids and collection_ids both empty will be
+// rejected. Please use FirestoreAdmin.DeleteDatabase instead.
+type GoogleFirestoreAdminV1BulkDeleteDocumentsRequest struct {
+	// CollectionIds: Optional. IDs of the collection groups to delete. Unspecified
+	// means all collection groups. Each collection group in this list must be
+	// unique.
+	CollectionIds []string `json:"collectionIds,omitempty"`
+	// NamespaceIds: Optional. Namespaces to delete. An empty list means all
+	// namespaces. This is the recommended usage for databases that don't use
+	// namespaces. An empty string element represents the default namespace. This
+	// should be used if the database has data in non-default namespaces, but
+	// doesn't want to delete from them. Each namespace in this list must be
+	// unique.
+	NamespaceIds []string `json:"namespaceIds,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CollectionIds") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CollectionIds") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleFirestoreAdminV1BulkDeleteDocumentsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleFirestoreAdminV1BulkDeleteDocumentsRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1CmekConfig: The CMEK (Customer Managed Encryption Key)
@@ -1529,9 +1677,9 @@ type GoogleFirestoreAdminV1CmekConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1CmekConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1CmekConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1CmekConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1CreateDatabaseMetadata: Metadata related to the create
@@ -1539,29 +1687,38 @@ func (s *GoogleFirestoreAdminV1CmekConfig) MarshalJSON() ([]byte, error) {
 type GoogleFirestoreAdminV1CreateDatabaseMetadata struct {
 }
 
-// GoogleFirestoreAdminV1DailyRecurrence: Represents a recurring schedule that
-// runs every day. The time zone is UTC.
-type GoogleFirestoreAdminV1DailyRecurrence struct {
-	// Time: Time of the day. The first run scheduled will be either on the same
-	// day if schedule creation time precedes time_of_day or the next day
-	// otherwise.
-	Time *TimeOfDay `json:"time,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Time") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+// GoogleFirestoreAdminV1CustomerManagedEncryptionOptions: The configuration
+// options for using CMEK (Customer Managed Encryption Key) encryption.
+type GoogleFirestoreAdminV1CustomerManagedEncryptionOptions struct {
+	// KmsKeyName: Required. Only keys in the same location as the database are
+	// allowed to be used for encryption. For Firestore's nam5 multi-region, this
+	// corresponds to Cloud KMS multi-region us. For Firestore's eur3 multi-region,
+	// this corresponds to Cloud KMS multi-region europe. See
+	// https://cloud.google.com/kms/docs/locations. The expected format is
+	// `projects/{project_id}/locations/{kms_location}/keyRings/{key_ring}/cryptoKey
+	// s/{crypto_key}`.
+	KmsKeyName string `json:"kmsKeyName,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "KmsKeyName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Time") to include in API requests
-	// with the JSON null value. By default, fields with empty values are omitted
-	// from API requests. See
+	// NullFields is a list of field names (e.g. "KmsKeyName") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1DailyRecurrence) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleFirestoreAdminV1DailyRecurrence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+func (s GoogleFirestoreAdminV1CustomerManagedEncryptionOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleFirestoreAdminV1CustomerManagedEncryptionOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleFirestoreAdminV1DailyRecurrence: Represents a recurring schedule that
+// runs every day. The time zone is UTC.
+type GoogleFirestoreAdminV1DailyRecurrence struct {
 }
 
 // GoogleFirestoreAdminV1Database: A Cloud Firestore Database.
@@ -1622,8 +1779,8 @@ type GoogleFirestoreAdminV1Database struct {
 	// has an up-to-date value before proceeding.
 	Etag string `json:"etag,omitempty"`
 	// KeyPrefix: Output only. The key_prefix for this database. This key_prefix is
-	// used, in combination with the project id ("~") to construct the application
-	// id that is returned from the Cloud Datastore APIs in Google App Engine first
+	// used, in combination with the project ID ("~") to construct the application
+	// ID that is returned from the Cloud Datastore APIs in Google App Engine first
 	// generation runtimes. This value may be empty in which case the appid to use
 	// for URL-encoded keys is the project_id (eg: foo instead of v~foo).
 	KeyPrefix string `json:"keyPrefix,omitempty"`
@@ -1649,13 +1806,14 @@ type GoogleFirestoreAdminV1Database struct {
 	// PreviousId: Output only. The database resource's prior database ID. This
 	// field is only populated for deleted databases.
 	PreviousId string `json:"previousId,omitempty"`
+	// SourceInfo: Output only. Information about the provenance of this database.
+	SourceInfo *GoogleFirestoreAdminV1SourceInfo `json:"sourceInfo,omitempty"`
 	// Type: The type of the database. See
 	// https://cloud.google.com/datastore/docs/firestore-or-datastore for
 	// information about how to choose.
 	//
 	// Possible values:
-	//   "DATABASE_TYPE_UNSPECIFIED" - The default value. This value is used if the
-	// database type is omitted.
+	//   "DATABASE_TYPE_UNSPECIFIED" - Not used.
 	//   "FIRESTORE_NATIVE" - Firestore Native Mode
 	//   "DATASTORE_MODE" - Firestore in Datastore Mode.
 	Type string `json:"type,omitempty"`
@@ -1687,37 +1845,9 @@ type GoogleFirestoreAdminV1Database struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1Database) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1Database) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1Database
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleFirestoreAdminV1DatabaseSnapshot: A consistent snapshot of a database
-// at a specific point in time.
-type GoogleFirestoreAdminV1DatabaseSnapshot struct {
-	// Database: Required. A name of the form
-	// `projects/{project_id}/databases/{database_id}`
-	Database string `json:"database,omitempty"`
-	// SnapshotTime: Required. The timestamp at which the database snapshot is
-	// taken. The requested timestamp must be a whole minute within the PITR
-	// window.
-	SnapshotTime string `json:"snapshotTime,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Database") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Database") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleFirestoreAdminV1DatabaseSnapshot) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleFirestoreAdminV1DatabaseSnapshot
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1DeleteDatabaseMetadata: Metadata related to the delete
@@ -1725,15 +1855,44 @@ func (s *GoogleFirestoreAdminV1DatabaseSnapshot) MarshalJSON() ([]byte, error) {
 type GoogleFirestoreAdminV1DeleteDatabaseMetadata struct {
 }
 
+// GoogleFirestoreAdminV1EncryptionConfig: Encryption configuration for a new
+// database being created from another source. The source could be a Backup .
+type GoogleFirestoreAdminV1EncryptionConfig struct {
+	// CustomerManagedEncryption: Use Customer Managed Encryption Keys (CMEK) for
+	// encryption.
+	CustomerManagedEncryption *GoogleFirestoreAdminV1CustomerManagedEncryptionOptions `json:"customerManagedEncryption,omitempty"`
+	// GoogleDefaultEncryption: Use Google default encryption.
+	GoogleDefaultEncryption *GoogleFirestoreAdminV1GoogleDefaultEncryptionOptions `json:"googleDefaultEncryption,omitempty"`
+	// UseSourceEncryption: The database will use the same encryption configuration
+	// as the source.
+	UseSourceEncryption *GoogleFirestoreAdminV1SourceEncryptionOptions `json:"useSourceEncryption,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CustomerManagedEncryption")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CustomerManagedEncryption") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleFirestoreAdminV1EncryptionConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleFirestoreAdminV1EncryptionConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // GoogleFirestoreAdminV1ExportDocumentsMetadata: Metadata for
 // google.longrunning.Operation results from FirestoreAdmin.ExportDocuments.
 type GoogleFirestoreAdminV1ExportDocumentsMetadata struct {
-	// CollectionIds: Which collection ids are being exported.
+	// CollectionIds: Which collection IDs are being exported.
 	CollectionIds []string `json:"collectionIds,omitempty"`
 	// EndTime: The time this operation completed. Will be unset if operation still
 	// in progress.
 	EndTime string `json:"endTime,omitempty"`
-	// NamespaceIds: Which namespace ids are being exported.
+	// NamespaceIds: Which namespace IDs are being exported.
 	NamespaceIds []string `json:"namespaceIds,omitempty"`
 	// OperationState: The state of the export operation.
 	//
@@ -1775,16 +1934,16 @@ type GoogleFirestoreAdminV1ExportDocumentsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ExportDocumentsMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ExportDocumentsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ExportDocumentsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1ExportDocumentsRequest: The request for
 // FirestoreAdmin.ExportDocuments.
 type GoogleFirestoreAdminV1ExportDocumentsRequest struct {
-	// CollectionIds: Which collection ids to export. Unspecified means all
-	// collections. Each collection id in this list must be unique.
+	// CollectionIds: Which collection IDs to export. Unspecified means all
+	// collections. Each collection ID in this list must be unique.
 	CollectionIds []string `json:"collectionIds,omitempty"`
 	// NamespaceIds: An empty list represents all namespaces. This is the preferred
 	// usage for databases that don't use namespaces. An empty string element
@@ -1821,9 +1980,9 @@ type GoogleFirestoreAdminV1ExportDocumentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ExportDocumentsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ExportDocumentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ExportDocumentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1ExportDocumentsResponse: Returned in the
@@ -1846,35 +2005,34 @@ type GoogleFirestoreAdminV1ExportDocumentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ExportDocumentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ExportDocumentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ExportDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1Field: Represents a single field in the database.
 // Fields are grouped by their "Collection Group", which represent all
-// collections in the database with the same id.
+// collections in the database with the same ID.
 type GoogleFirestoreAdminV1Field struct {
 	// IndexConfig: The index configuration for this field. If unset, field
 	// indexing will revert to the configuration defined by the `ancestor_field`.
 	// To explicitly remove all indexes for this field, specify an index config
 	// with an empty list of indexes.
 	IndexConfig *GoogleFirestoreAdminV1IndexConfig `json:"indexConfig,omitempty"`
-	// Name: Required. A field name of the form
+	// Name: Required. A field name of the form:
 	// `projects/{project_id}/databases/{database_id}/collectionGroups/{collection_i
-	// d}/fields/{field_path}` A field path may be a simple field name, e.g.
-	// `address` or a path to fields within map_value , e.g. `address.city`, or a
+	// d}/fields/{field_path}` A field path can be a simple field name, e.g.
+	// `address` or a path to fields within `map_value` , e.g. `address.city`, or a
 	// special field path. The only valid special field is `*`, which represents
-	// any field. Field paths may be quoted using ` (backtick). The only character
-	// that needs to be escaped within a quoted field path is the backtick
+	// any field. Field paths can be quoted using `` ` `` (backtick). The only
+	// character that must be escaped within a quoted field path is the backtick
 	// character itself, escaped using a backslash. Special characters in field
-	// paths that must be quoted include: `*`, `.`, ``` (backtick), `[`, `]`, as
-	// well as any ascii symbolic characters. Examples: (Note: Comments here are
-	// written in markdown syntax, so there is an additional layer of backticks to
-	// represent a code block) `\`address.city\`` represents a field named
-	// `address.city`, not the map key `city` in the field `address`. `\`*\``
-	// represents a field named `*`, not any field. A special `Field` contains the
-	// default indexing settings for all fields. This field's resource name is:
+	// paths that must be quoted include: `*`, `.`, `` ` `` (backtick), `[`, `]`,
+	// as well as any ascii symbolic characters. Examples: `` `address.city` ``
+	// represents a field named `address.city`, not the map key `city` in the field
+	// `address`. `` `*` `` represents a field named `*`, not any field. A special
+	// `Field` contains the default indexing settings for all fields. This field's
+	// resource name is:
 	// `projects/{project_id}/databases/{database_id}/collectionGroups/__default__/f
 	// ields/*` Indexes defined on this `Field` will be applied to all fields which
 	// do not have their own `Field` index configuration.
@@ -1898,9 +2056,9 @@ type GoogleFirestoreAdminV1Field struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1Field) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1Field) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1Field
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1FieldOperationMetadata: Metadata for
@@ -1952,9 +2110,9 @@ type GoogleFirestoreAdminV1FieldOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1FieldOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1FieldOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1FieldOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1FlatIndex: An index that stores vectors in a flat data
@@ -1962,17 +2120,22 @@ func (s *GoogleFirestoreAdminV1FieldOperationMetadata) MarshalJSON() ([]byte, er
 type GoogleFirestoreAdminV1FlatIndex struct {
 }
 
+// GoogleFirestoreAdminV1GoogleDefaultEncryptionOptions: The configuration
+// options for using Google default encryption.
+type GoogleFirestoreAdminV1GoogleDefaultEncryptionOptions struct {
+}
+
 // GoogleFirestoreAdminV1ImportDocumentsMetadata: Metadata for
 // google.longrunning.Operation results from FirestoreAdmin.ImportDocuments.
 type GoogleFirestoreAdminV1ImportDocumentsMetadata struct {
-	// CollectionIds: Which collection ids are being imported.
+	// CollectionIds: Which collection IDs are being imported.
 	CollectionIds []string `json:"collectionIds,omitempty"`
 	// EndTime: The time this operation completed. Will be unset if operation still
 	// in progress.
 	EndTime string `json:"endTime,omitempty"`
 	// InputUriPrefix: The location of the documents being imported.
 	InputUriPrefix string `json:"inputUriPrefix,omitempty"`
-	// NamespaceIds: Which namespace ids are being imported.
+	// NamespaceIds: Which namespace IDs are being imported.
 	NamespaceIds []string `json:"namespaceIds,omitempty"`
 	// OperationState: The state of the import operation.
 	//
@@ -2008,16 +2171,16 @@ type GoogleFirestoreAdminV1ImportDocumentsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ImportDocumentsMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ImportDocumentsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ImportDocumentsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1ImportDocumentsRequest: The request for
 // FirestoreAdmin.ImportDocuments.
 type GoogleFirestoreAdminV1ImportDocumentsRequest struct {
-	// CollectionIds: Which collection ids to import. Unspecified means all
-	// collections included in the import. Each collection id in this list must be
+	// CollectionIds: Which collection IDs to import. Unspecified means all
+	// collections included in the import. Each collection ID in this list must be
 	// unique.
 	CollectionIds []string `json:"collectionIds,omitempty"`
 	// InputUriPrefix: Location of the exported files. This must match the
@@ -2044,9 +2207,9 @@ type GoogleFirestoreAdminV1ImportDocumentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ImportDocumentsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ImportDocumentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ImportDocumentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1Index: Cloud Firestore indexes enable simple and
@@ -2078,20 +2241,20 @@ type GoogleFirestoreAdminV1Index struct {
 	Name string `json:"name,omitempty"`
 	// QueryScope: Indexes with a collection query scope specified allow queries
 	// against a collection that is the child of a specific document, specified at
-	// query time, and that has the same collection id. Indexes with a collection
+	// query time, and that has the same collection ID. Indexes with a collection
 	// group query scope specified allow queries against all collections descended
 	// from a specific document, specified at query time, and that have the same
-	// collection id as this index.
+	// collection ID as this index.
 	//
 	// Possible values:
 	//   "QUERY_SCOPE_UNSPECIFIED" - The query scope is unspecified. Not a valid
 	// option.
 	//   "COLLECTION" - Indexes with a collection query scope specified allow
 	// queries against a collection that is the child of a specific document,
-	// specified at query time, and that has the collection id specified by the
+	// specified at query time, and that has the collection ID specified by the
 	// index.
 	//   "COLLECTION_GROUP" - Indexes with a collection group query scope specified
-	// allow queries against all collections that has the collection id specified
+	// allow queries against all collections that has the collection ID specified
 	// by the index.
 	//   "COLLECTION_RECURSIVE" - Include all the collections's ancestor in the
 	// index. Only available for Datastore Mode databases.
@@ -2129,9 +2292,9 @@ type GoogleFirestoreAdminV1Index struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1Index) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1Index) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1Index
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1IndexConfig: The index configuration for this field.
@@ -2167,9 +2330,9 @@ type GoogleFirestoreAdminV1IndexConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1IndexConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1IndexConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1IndexConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1IndexConfigDelta: Information about an index
@@ -2197,9 +2360,9 @@ type GoogleFirestoreAdminV1IndexConfigDelta struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1IndexConfigDelta) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1IndexConfigDelta) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1IndexConfigDelta
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1IndexField: A field in an index. The field_path
@@ -2241,9 +2404,9 @@ type GoogleFirestoreAdminV1IndexField struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1IndexField) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1IndexField) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1IndexField
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1IndexOperationMetadata: Metadata for
@@ -2290,9 +2453,9 @@ type GoogleFirestoreAdminV1IndexOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1IndexOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1IndexOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1IndexOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1ListBackupSchedulesResponse: The response for
@@ -2316,9 +2479,9 @@ type GoogleFirestoreAdminV1ListBackupSchedulesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ListBackupSchedulesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ListBackupSchedulesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ListBackupSchedulesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1ListBackupsResponse: The response for
@@ -2348,9 +2511,9 @@ type GoogleFirestoreAdminV1ListBackupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ListBackupsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ListBackupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ListBackupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1ListDatabasesResponse: The list of databases for a
@@ -2383,9 +2546,9 @@ type GoogleFirestoreAdminV1ListDatabasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ListDatabasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ListDatabasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ListDatabasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1ListFieldsResponse: The response for
@@ -2412,9 +2575,9 @@ type GoogleFirestoreAdminV1ListFieldsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ListFieldsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ListFieldsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ListFieldsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1ListIndexesResponse: The response for
@@ -2441,9 +2604,9 @@ type GoogleFirestoreAdminV1ListIndexesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1ListIndexesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1ListIndexesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1ListIndexesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1LocationMetadata: The metadata message for
@@ -2472,9 +2635,9 @@ type GoogleFirestoreAdminV1Progress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1Progress) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1Progress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1Progress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1RestoreDatabaseMetadata: Metadata for the long-running
@@ -2519,29 +2682,31 @@ type GoogleFirestoreAdminV1RestoreDatabaseMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1RestoreDatabaseMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1RestoreDatabaseMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1RestoreDatabaseMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1RestoreDatabaseRequest: The request message for
 // FirestoreAdmin.RestoreDatabase.
 type GoogleFirestoreAdminV1RestoreDatabaseRequest struct {
-	// Backup: Backup to restore from. Must be from the same project as the parent.
-	// Format is: `projects/{project_id}/locations/{location}/backups/{backup}`
+	// Backup: Required. Backup to restore from. Must be from the same project as
+	// the parent. The restored database will be created in the same location as
+	// the source backup. Format is:
+	// `projects/{project_id}/locations/{location}/backups/{backup}`
 	Backup string `json:"backup,omitempty"`
 	// DatabaseId: Required. The ID to use for the database, which will become the
-	// final component of the database's resource name. This database id must not
+	// final component of the database's resource name. This database ID must not
 	// be associated with an existing database. This value should be 4-63
 	// characters. Valid characters are /a-z-/ with first character a letter and
 	// the last a letter or a number. Must not be UUID-like
-	// /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/. "(default)" database id is also
+	// /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/. "(default)" database ID is also
 	// valid.
 	DatabaseId string `json:"databaseId,omitempty"`
-	// DatabaseSnapshot: Database snapshot to restore from. The source database
-	// must exist and have enabled PITR. The restored database will be created in
-	// the same location as the source database.
-	DatabaseSnapshot *GoogleFirestoreAdminV1DatabaseSnapshot `json:"databaseSnapshot,omitempty"`
+	// EncryptionConfig: Optional. Encryption configuration for the restored
+	// database. If this field is not specified, the restored database will use the
+	// same encryption configuration as the backup, namely use_source_encryption.
+	EncryptionConfig *GoogleFirestoreAdminV1EncryptionConfig `json:"encryptionConfig,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Backup") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
@@ -2555,9 +2720,42 @@ type GoogleFirestoreAdminV1RestoreDatabaseRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1RestoreDatabaseRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1RestoreDatabaseRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1RestoreDatabaseRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleFirestoreAdminV1SourceEncryptionOptions: The configuration options for
+// using the same encryption method as the source.
+type GoogleFirestoreAdminV1SourceEncryptionOptions struct {
+}
+
+// GoogleFirestoreAdminV1SourceInfo: Information about the provenance of this
+// database.
+type GoogleFirestoreAdminV1SourceInfo struct {
+	// Backup: If set, this database was restored from the specified backup (or a
+	// snapshot thereof).
+	Backup *GoogleFirestoreAdminV1BackupSource `json:"backup,omitempty"`
+	// Operation: The associated long-running operation. This field may not be set
+	// after the operation has completed. Format:
+	// `projects/{project}/databases/{database}/operations/{operation}`.
+	Operation string `json:"operation,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Backup") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Backup") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleFirestoreAdminV1SourceInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleFirestoreAdminV1SourceInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1Stats: Backup specific statistics.
@@ -2584,9 +2782,9 @@ type GoogleFirestoreAdminV1Stats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1Stats) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1Stats) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1Stats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1TtlConfig: The TTL (time-to-live) configuration for
@@ -2624,9 +2822,9 @@ type GoogleFirestoreAdminV1TtlConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1TtlConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1TtlConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1TtlConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1TtlConfigDelta: Information about a TTL configuration
@@ -2652,9 +2850,9 @@ type GoogleFirestoreAdminV1TtlConfigDelta struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1TtlConfigDelta) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1TtlConfigDelta) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1TtlConfigDelta
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1UpdateDatabaseMetadata: Metadata related to the update
@@ -2684,9 +2882,9 @@ type GoogleFirestoreAdminV1VectorConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1VectorConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1VectorConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1VectorConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirestoreAdminV1WeeklyRecurrence: Represents a recurring schedule that
@@ -2704,9 +2902,6 @@ type GoogleFirestoreAdminV1WeeklyRecurrence struct {
 	//   "SATURDAY" - Saturday
 	//   "SUNDAY" - Sunday
 	Day string `json:"day,omitempty"`
-	// Time: Time of the day. If day is today, the first run will happen today if
-	// schedule creation time precedes time_of_day, and the next week otherwise.
-	Time *TimeOfDay `json:"time,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Day") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
@@ -2720,9 +2915,9 @@ type GoogleFirestoreAdminV1WeeklyRecurrence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirestoreAdminV1WeeklyRecurrence) MarshalJSON() ([]byte, error) {
+func (s GoogleFirestoreAdminV1WeeklyRecurrence) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirestoreAdminV1WeeklyRecurrence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningCancelOperationRequest: The request message for
@@ -2754,9 +2949,9 @@ type GoogleLongrunningListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -2801,9 +2996,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LatLng: An object that represents a latitude/longitude pair. This is
@@ -2829,9 +3024,9 @@ type LatLng struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatLng) MarshalJSON() ([]byte, error) {
+func (s LatLng) MarshalJSON() ([]byte, error) {
 	type NoMethod LatLng
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LatLng) UnmarshalJSON(data []byte) error {
@@ -2874,9 +3069,9 @@ type ListCollectionIdsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCollectionIdsRequest) MarshalJSON() ([]byte, error) {
+func (s ListCollectionIdsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCollectionIdsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCollectionIdsResponse: The response from Firestore.ListCollectionIds.
@@ -2901,9 +3096,9 @@ type ListCollectionIdsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCollectionIdsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCollectionIdsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCollectionIdsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDocumentsResponse: The response for Firestore.ListDocuments.
@@ -2929,9 +3124,9 @@ type ListDocumentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDocumentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDocumentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -2957,9 +3152,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListenRequest: A request for Firestore.Listen
@@ -2983,9 +3178,9 @@ type ListenRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListenRequest) MarshalJSON() ([]byte, error) {
+func (s ListenRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ListenRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListenResponse: The response for Firestore.Listen.
@@ -3019,9 +3214,9 @@ type ListenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListenResponse) MarshalJSON() ([]byte, error) {
+func (s ListenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -3057,9 +3252,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MapValue: A map value.
@@ -3082,9 +3277,9 @@ type MapValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MapValue) MarshalJSON() ([]byte, error) {
+func (s MapValue) MarshalJSON() ([]byte, error) {
 	type NoMethod MapValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Order: An order on a field.
@@ -3111,9 +3306,9 @@ type Order struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Order) MarshalJSON() ([]byte, error) {
+func (s Order) MarshalJSON() ([]byte, error) {
 	type NoMethod Order
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartitionQueryRequest: The request for Firestore.PartitionQuery.
@@ -3164,9 +3359,9 @@ type PartitionQueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartitionQueryRequest) MarshalJSON() ([]byte, error) {
+func (s PartitionQueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PartitionQueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartitionQueryResponse: The response for Firestore.PartitionQuery.
@@ -3202,9 +3397,9 @@ type PartitionQueryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartitionQueryResponse) MarshalJSON() ([]byte, error) {
+func (s PartitionQueryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PartitionQueryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlanSummary: Planning phase information for the query.
@@ -3226,9 +3421,9 @@ type PlanSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlanSummary) MarshalJSON() ([]byte, error) {
+func (s PlanSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod PlanSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Precondition: A precondition on a document, used for conditional operations.
@@ -3252,9 +3447,9 @@ type Precondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Precondition) MarshalJSON() ([]byte, error) {
+func (s Precondition) MarshalJSON() ([]byte, error) {
 	type NoMethod Precondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Projection: The projection of document's fields to return.
@@ -3275,9 +3470,9 @@ type Projection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Projection) MarshalJSON() ([]byte, error) {
+func (s Projection) MarshalJSON() ([]byte, error) {
 	type NoMethod Projection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryTarget: A target specified by a query.
@@ -3303,9 +3498,9 @@ type QueryTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryTarget) MarshalJSON() ([]byte, error) {
+func (s QueryTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadOnly: Options for a transaction that can only be used to read documents.
@@ -3328,9 +3523,9 @@ type ReadOnly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadOnly) MarshalJSON() ([]byte, error) {
+func (s ReadOnly) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadOnly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadWrite: Options for a transaction that can be used to read and write
@@ -3352,9 +3547,9 @@ type ReadWrite struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadWrite) MarshalJSON() ([]byte, error) {
+func (s ReadWrite) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadWrite
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackRequest: The request for Firestore.Rollback.
@@ -3374,9 +3569,9 @@ type RollbackRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackRequest) MarshalJSON() ([]byte, error) {
+func (s RollbackRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunAggregationQueryRequest: The request for Firestore.RunAggregationQuery.
@@ -3412,9 +3607,9 @@ type RunAggregationQueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunAggregationQueryRequest) MarshalJSON() ([]byte, error) {
+func (s RunAggregationQueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunAggregationQueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunAggregationQueryResponse: The response for Firestore.RunAggregationQuery.
@@ -3453,9 +3648,9 @@ type RunAggregationQueryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunAggregationQueryResponse) MarshalJSON() ([]byte, error) {
+func (s RunAggregationQueryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunAggregationQueryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunQueryRequest: The request for Firestore.RunQuery.
@@ -3491,9 +3686,9 @@ type RunQueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunQueryRequest) MarshalJSON() ([]byte, error) {
+func (s RunQueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunQueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunQueryResponse: The response for Firestore.RunQuery.
@@ -3537,9 +3732,9 @@ type RunQueryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunQueryResponse) MarshalJSON() ([]byte, error) {
+func (s RunQueryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunQueryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -3571,9 +3766,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StructuredAggregationQuery: Firestore query for running an aggregation over
@@ -3598,14 +3793,14 @@ type StructuredAggregationQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StructuredAggregationQuery) MarshalJSON() ([]byte, error) {
+func (s StructuredAggregationQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod StructuredAggregationQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StructuredQuery: A Firestore query. The query stages are executed in the
 // following order: 1. from 2. where 3. select 4. order_by + start_at + end_at
-// 5. offset 6. limit
+// 5. offset 6. limit 7. find_nearest
 type StructuredQuery struct {
 	// EndAt: A potential prefix of a position in the result set to end the query
 	// at. This is similar to `START_AT` but with it controlling the end position
@@ -3677,9 +3872,9 @@ type StructuredQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StructuredQuery) MarshalJSON() ([]byte, error) {
+func (s StructuredQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod StructuredQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Sum: Sum of the values of the requested field. * Only numeric values will be
@@ -3711,9 +3906,9 @@ type Sum struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Sum) MarshalJSON() ([]byte, error) {
+func (s Sum) MarshalJSON() ([]byte, error) {
 	type NoMethod Sum
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Target: A specification of a set of documents to listen to.
@@ -3746,7 +3941,7 @@ type Target struct {
 	// `target_id=0` is added, the server will immediately send a response with a
 	// `TargetChange::Remove` event. Note that if the client sends multiple
 	// `AddTarget` requests without an ID, the order of IDs returned in
-	// `TargetChage.target_ids` are undefined. Therefore, clients should provide a
+	// `TargetChange.target_ids` are undefined. Therefore, clients should provide a
 	// target ID instead of relying on the server to assign one. If `target_id` is
 	// non-zero, there must not be an existing active target on this stream with
 	// the same ID.
@@ -3764,9 +3959,9 @@ type Target struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Target) MarshalJSON() ([]byte, error) {
+func (s Target) MarshalJSON() ([]byte, error) {
 	type NoMethod Target
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetChange: Targets being watched have changed.
@@ -3818,42 +4013,9 @@ type TargetChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetChange) MarshalJSON() ([]byte, error) {
+func (s TargetChange) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// TimeOfDay: Represents a time of day. The date and time zone are either not
-// significant or are specified elsewhere. An API may choose to allow leap
-// seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
-type TimeOfDay struct {
-	// Hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-	// choose to allow the value "24:00:00" for scenarios like business closing
-	// time.
-	Hours int64 `json:"hours,omitempty"`
-	// Minutes: Minutes of hour of day. Must be from 0 to 59.
-	Minutes int64 `json:"minutes,omitempty"`
-	// Nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-	Nanos int64 `json:"nanos,omitempty"`
-	// Seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-	// API may allow the value 60 if it allows leap-seconds.
-	Seconds int64 `json:"seconds,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Hours") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *TimeOfDay) MarshalJSON() ([]byte, error) {
-	type NoMethod TimeOfDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransactionOptions: Options for creating a new transaction.
@@ -3875,9 +4037,9 @@ type TransactionOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransactionOptions) MarshalJSON() ([]byte, error) {
+func (s TransactionOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod TransactionOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnaryFilter: A filter with a single operand.
@@ -3910,9 +4072,9 @@ type UnaryFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnaryFilter) MarshalJSON() ([]byte, error) {
+func (s UnaryFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod UnaryFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Value: A message that can hold any of the supported value types.
@@ -3962,9 +4124,9 @@ type Value struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Value) MarshalJSON() ([]byte, error) {
+func (s Value) MarshalJSON() ([]byte, error) {
 	type NoMethod Value
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Value) UnmarshalJSON(data []byte) error {
@@ -4019,9 +4181,9 @@ type Write struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Write) MarshalJSON() ([]byte, error) {
+func (s Write) MarshalJSON() ([]byte, error) {
 	type NoMethod Write
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WriteRequest: The request for Firestore.Write. The first request creates a
@@ -4062,9 +4224,9 @@ type WriteRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WriteRequest) MarshalJSON() ([]byte, error) {
+func (s WriteRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod WriteRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WriteResponse: The response for Firestore.Write.
@@ -4098,9 +4260,9 @@ type WriteResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WriteResponse) MarshalJSON() ([]byte, error) {
+func (s WriteResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod WriteResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WriteResult: The result of applying a write.
@@ -4125,9 +4287,119 @@ type WriteResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WriteResult) MarshalJSON() ([]byte, error) {
+func (s WriteResult) MarshalJSON() ([]byte, error) {
 	type NoMethod WriteResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ProjectsDatabasesBulkDeleteDocumentsCall struct {
+	s                                                *Service
+	name                                             string
+	googlefirestoreadminv1bulkdeletedocumentsrequest *GoogleFirestoreAdminV1BulkDeleteDocumentsRequest
+	urlParams_                                       gensupport.URLParams
+	ctx_                                             context.Context
+	header_                                          http.Header
+}
+
+// BulkDeleteDocuments: Bulk deletes a subset of documents from Google Cloud
+// Firestore. Documents created or updated after the underlying system starts
+// to process the request will not be deleted. The bulk delete occurs in the
+// background and its progress can be monitored and managed via the Operation
+// resource that is created. For more details on bulk delete behavior, refer
+// to: https://cloud.google.com/firestore/docs/manage-data/bulk-delete
+//
+//   - name: Database to operate. Should be of the form:
+//     `projects/{project_id}/databases/{database_id}`.
+func (r *ProjectsDatabasesService) BulkDeleteDocuments(name string, googlefirestoreadminv1bulkdeletedocumentsrequest *GoogleFirestoreAdminV1BulkDeleteDocumentsRequest) *ProjectsDatabasesBulkDeleteDocumentsCall {
+	c := &ProjectsDatabasesBulkDeleteDocumentsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googlefirestoreadminv1bulkdeletedocumentsrequest = googlefirestoreadminv1bulkdeletedocumentsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsDatabasesBulkDeleteDocumentsCall) Fields(s ...googleapi.Field) *ProjectsDatabasesBulkDeleteDocumentsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsDatabasesBulkDeleteDocumentsCall) Context(ctx context.Context) *ProjectsDatabasesBulkDeleteDocumentsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsDatabasesBulkDeleteDocumentsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsDatabasesBulkDeleteDocumentsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1bulkdeletedocumentsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:bulkDeleteDocuments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.bulkDeleteDocuments", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "firestore.projects.databases.bulkDeleteDocuments" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleLongrunningOperation.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsDatabasesBulkDeleteDocumentsCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunningOperation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleLongrunningOperation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.bulkDeleteDocuments", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsDatabasesCreateCall struct {
@@ -4154,7 +4426,7 @@ func (r *ProjectsDatabasesService) Create(parent string, googlefirestoreadminv1d
 // resource name. This value should be 4-63 characters. Valid characters are
 // /a-z-/ with first character a letter and the last a letter or a number. Must
 // not be UUID-like /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/. "(default)"
-// database id is also valid.
+// database ID is also valid.
 func (c *ProjectsDatabasesCreateCall) DatabaseId(databaseId string) *ProjectsDatabasesCreateCall {
 	c.urlParams_.Set("databaseId", databaseId)
 	return c
@@ -4185,8 +4457,7 @@ func (c *ProjectsDatabasesCreateCall) Header() http.Header {
 
 func (c *ProjectsDatabasesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1database)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1database)
 	if err != nil {
 		return nil, err
 	}
@@ -4202,6 +4473,7 @@ func (c *ProjectsDatabasesCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4237,9 +4509,11 @@ func (c *ProjectsDatabasesCreateCall) Do(opts ...googleapi.CallOption) (*GoogleL
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4293,12 +4567,11 @@ func (c *ProjectsDatabasesDeleteCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4306,6 +4579,7 @@ func (c *ProjectsDatabasesDeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4341,9 +4615,11 @@ func (c *ProjectsDatabasesDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleL
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4400,8 +4676,7 @@ func (c *ProjectsDatabasesExportDocumentsCall) Header() http.Header {
 
 func (c *ProjectsDatabasesExportDocumentsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1exportdocumentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1exportdocumentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4417,6 +4692,7 @@ func (c *ProjectsDatabasesExportDocumentsCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.exportDocuments", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4452,9 +4728,11 @@ func (c *ProjectsDatabasesExportDocumentsCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.exportDocuments", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4512,12 +4790,11 @@ func (c *ProjectsDatabasesGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4525,6 +4802,7 @@ func (c *ProjectsDatabasesGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4560,9 +4838,11 @@ func (c *ProjectsDatabasesGetCall) Do(opts ...googleapi.CallOption) (*GoogleFire
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4616,8 +4896,7 @@ func (c *ProjectsDatabasesImportDocumentsCall) Header() http.Header {
 
 func (c *ProjectsDatabasesImportDocumentsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1importdocumentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1importdocumentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4633,6 +4912,7 @@ func (c *ProjectsDatabasesImportDocumentsCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.importDocuments", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4668,9 +4948,11 @@ func (c *ProjectsDatabasesImportDocumentsCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.importDocuments", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4735,12 +5017,11 @@ func (c *ProjectsDatabasesListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/databases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4748,6 +5029,7 @@ func (c *ProjectsDatabasesListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4783,9 +5065,11 @@ func (c *ProjectsDatabasesListCall) Do(opts ...googleapi.CallOption) (*GoogleFir
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4841,8 +5125,7 @@ func (c *ProjectsDatabasesPatchCall) Header() http.Header {
 
 func (c *ProjectsDatabasesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1database)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1database)
 	if err != nil {
 		return nil, err
 	}
@@ -4858,6 +5141,7 @@ func (c *ProjectsDatabasesPatchCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4893,9 +5177,11 @@ func (c *ProjectsDatabasesPatchCall) Do(opts ...googleapi.CallOption) (*GoogleLo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4953,8 +5239,7 @@ func (c *ProjectsDatabasesRestoreCall) Header() http.Header {
 
 func (c *ProjectsDatabasesRestoreCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1restoredatabaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1restoredatabaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4970,6 +5255,7 @@ func (c *ProjectsDatabasesRestoreCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.restore", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5005,9 +5291,11 @@ func (c *ProjectsDatabasesRestoreCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.restore", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5058,8 +5346,7 @@ func (c *ProjectsDatabasesBackupSchedulesCreateCall) Header() http.Header {
 
 func (c *ProjectsDatabasesBackupSchedulesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1backupschedule)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1backupschedule)
 	if err != nil {
 		return nil, err
 	}
@@ -5075,6 +5362,7 @@ func (c *ProjectsDatabasesBackupSchedulesCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5110,9 +5398,11 @@ func (c *ProjectsDatabasesBackupSchedulesCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5159,12 +5449,11 @@ func (c *ProjectsDatabasesBackupSchedulesDeleteCall) Header() http.Header {
 
 func (c *ProjectsDatabasesBackupSchedulesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5172,6 +5461,7 @@ func (c *ProjectsDatabasesBackupSchedulesDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5206,9 +5496,11 @@ func (c *ProjectsDatabasesBackupSchedulesDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5267,12 +5559,11 @@ func (c *ProjectsDatabasesBackupSchedulesGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5280,6 +5571,7 @@ func (c *ProjectsDatabasesBackupSchedulesGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5315,9 +5607,11 @@ func (c *ProjectsDatabasesBackupSchedulesGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5376,12 +5670,11 @@ func (c *ProjectsDatabasesBackupSchedulesListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/backupSchedules")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5389,6 +5682,7 @@ func (c *ProjectsDatabasesBackupSchedulesListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5424,9 +5718,11 @@ func (c *ProjectsDatabasesBackupSchedulesListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5484,8 +5780,7 @@ func (c *ProjectsDatabasesBackupSchedulesPatchCall) Header() http.Header {
 
 func (c *ProjectsDatabasesBackupSchedulesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1backupschedule)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1backupschedule)
 	if err != nil {
 		return nil, err
 	}
@@ -5501,6 +5796,7 @@ func (c *ProjectsDatabasesBackupSchedulesPatchCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5536,9 +5832,11 @@ func (c *ProjectsDatabasesBackupSchedulesPatchCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.backupSchedules.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5598,12 +5896,11 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsGetCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5611,6 +5908,7 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsGetCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.fields.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5646,9 +5944,11 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsGetCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.fields.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5737,12 +6037,11 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fields")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5750,6 +6049,7 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.fields.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5785,9 +6085,11 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.fields.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5833,22 +6135,20 @@ type ProjectsDatabasesCollectionGroupsFieldsPatchCall struct {
 // `projects/{project_id}/databases/{database_id}/collectionGroups/__default__/f
 // ields/*`.
 //
-//   - name: A field name of the form
+//   - name: A field name of the form:
 //     `projects/{project_id}/databases/{database_id}/collectionGroups/{collection
-//     _id}/fields/{field_path}` A field path may be a simple field name, e.g.
-//     `address` or a path to fields within map_value , e.g. `address.city`, or a
-//     special field path. The only valid special field is `*`, which represents
-//     any field. Field paths may be quoted using ` (backtick). The only
-//     character that needs to be escaped within a quoted field path is the
+//     _id}/fields/{field_path}` A field path can be a simple field name, e.g.
+//     `address` or a path to fields within `map_value` , e.g. `address.city`, or
+//     a special field path. The only valid special field is `*`, which
+//     represents any field. Field paths can be quoted using “ ` “ (backtick).
+//     The only character that must be escaped within a quoted field path is the
 //     backtick character itself, escaped using a backslash. Special characters
-//     in field paths that must be quoted include: `*`, `.`, ``` (backtick), `[`,
-//     `]`, as well as any ascii symbolic characters. Examples: (Note: Comments
-//     here are written in markdown syntax, so there is an additional layer of
-//     backticks to represent a code block) `\`address.city\“ represents a field
-//     named `address.city`, not the map key `city` in the field `address`.
-//     `\`*\“ represents a field named `*`, not any field. A special `Field`
-//     contains the default indexing settings for all fields. This field's
-//     resource name is:
+//     in field paths that must be quoted include: `*`, `.`, “ ` “ (backtick),
+//     `[`, `]`, as well as any ascii symbolic characters. Examples: “
+//     `address.city` “ represents a field named `address.city`, not the map key
+//     `city` in the field `address`. “ `*` “ represents a field named `*`, not
+//     any field. A special `Field` contains the default indexing settings for
+//     all fields. This field's resource name is:
 //     `projects/{project_id}/databases/{database_id}/collectionGroups/__default__
 //     /fields/*` Indexes defined on this `Field` will be applied to all fields
 //     which do not have their own `Field` index configuration.
@@ -5892,8 +6192,7 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsPatchCall) Header() http.Header 
 
 func (c *ProjectsDatabasesCollectionGroupsFieldsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1field)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1field)
 	if err != nil {
 		return nil, err
 	}
@@ -5909,6 +6208,7 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsPatchCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.fields.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5944,9 +6244,11 @@ func (c *ProjectsDatabasesCollectionGroupsFieldsPatchCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.fields.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5999,8 +6301,7 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesCreateCall) Header() http.Heade
 
 func (c *ProjectsDatabasesCollectionGroupsIndexesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirestoreadminv1index)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirestoreadminv1index)
 	if err != nil {
 		return nil, err
 	}
@@ -6016,6 +6317,7 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesCreateCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.indexes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6051,9 +6353,11 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesCreateCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.indexes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6101,12 +6405,11 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesDeleteCall) Header() http.Heade
 
 func (c *ProjectsDatabasesCollectionGroupsIndexesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6114,6 +6417,7 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesDeleteCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.indexes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6148,9 +6452,11 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesDeleteCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.indexes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6210,12 +6516,11 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesGetCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6223,6 +6528,7 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesGetCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.indexes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6258,9 +6564,11 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesGetCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.indexes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6342,12 +6650,11 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/indexes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6355,6 +6662,7 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.indexes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6390,9 +6698,11 @@ func (c *ProjectsDatabasesCollectionGroupsIndexesListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.collectionGroups.indexes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6463,8 +6773,7 @@ func (c *ProjectsDatabasesDocumentsBatchGetCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsBatchGetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchgetdocumentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchgetdocumentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6480,6 +6789,7 @@ func (c *ProjectsDatabasesDocumentsBatchGetCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"database": c.database,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.batchGet", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6515,9 +6825,11 @@ func (c *ProjectsDatabasesDocumentsBatchGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6571,8 +6883,7 @@ func (c *ProjectsDatabasesDocumentsBatchWriteCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsBatchWriteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchwriterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchwriterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6588,6 +6899,7 @@ func (c *ProjectsDatabasesDocumentsBatchWriteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"database": c.database,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.batchWrite", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6623,9 +6935,11 @@ func (c *ProjectsDatabasesDocumentsBatchWriteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.batchWrite", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6674,8 +6988,7 @@ func (c *ProjectsDatabasesDocumentsBeginTransactionCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsBeginTransactionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.begintransactionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.begintransactionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6691,6 +7004,7 @@ func (c *ProjectsDatabasesDocumentsBeginTransactionCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"database": c.database,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.beginTransaction", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6726,9 +7040,11 @@ func (c *ProjectsDatabasesDocumentsBeginTransactionCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.beginTransaction", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6777,8 +7093,7 @@ func (c *ProjectsDatabasesDocumentsCommitCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsCommitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commitrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.commitrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6794,6 +7109,7 @@ func (c *ProjectsDatabasesDocumentsCommitCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"database": c.database,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.commit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6828,9 +7144,11 @@ func (c *ProjectsDatabasesDocumentsCommitCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.commit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6901,8 +7219,7 @@ func (c *ProjectsDatabasesDocumentsCreateDocumentCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsCreateDocumentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.document)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.document)
 	if err != nil {
 		return nil, err
 	}
@@ -6919,6 +7236,7 @@ func (c *ProjectsDatabasesDocumentsCreateDocumentCall) doRequest(alt string) (*h
 		"parent":       c.parent,
 		"collectionId": c.collectionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.createDocument", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6953,9 +7271,11 @@ func (c *ProjectsDatabasesDocumentsCreateDocumentCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.createDocument", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7018,12 +7338,11 @@ func (c *ProjectsDatabasesDocumentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7031,6 +7350,7 @@ func (c *ProjectsDatabasesDocumentsDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7065,9 +7385,11 @@ func (c *ProjectsDatabasesDocumentsDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7150,12 +7472,11 @@ func (c *ProjectsDatabasesDocumentsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7163,6 +7484,7 @@ func (c *ProjectsDatabasesDocumentsGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7197,9 +7519,11 @@ func (c *ProjectsDatabasesDocumentsGetCall) Do(opts ...googleapi.CallOption) (*D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7329,12 +7653,11 @@ func (c *ProjectsDatabasesDocumentsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/{collectionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7343,6 +7666,7 @@ func (c *ProjectsDatabasesDocumentsListCall) doRequest(alt string) (*http.Respon
 		"parent":       c.parent,
 		"collectionId": c.collectionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7378,9 +7702,11 @@ func (c *ProjectsDatabasesDocumentsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7452,8 +7778,7 @@ func (c *ProjectsDatabasesDocumentsListCollectionIdsCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsListCollectionIdsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.listcollectionidsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.listcollectionidsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7469,6 +7794,7 @@ func (c *ProjectsDatabasesDocumentsListCollectionIdsCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.listCollectionIds", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7504,9 +7830,11 @@ func (c *ProjectsDatabasesDocumentsListCollectionIdsCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.listCollectionIds", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7657,12 +7985,11 @@ func (c *ProjectsDatabasesDocumentsListDocumentsCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/{collectionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7671,6 +7998,7 @@ func (c *ProjectsDatabasesDocumentsListDocumentsCall) doRequest(alt string) (*ht
 		"parent":       c.parent,
 		"collectionId": c.collectionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.listDocuments", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7706,9 +8034,11 @@ func (c *ProjectsDatabasesDocumentsListDocumentsCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.listDocuments", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7779,8 +8109,7 @@ func (c *ProjectsDatabasesDocumentsListenCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsListenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.listenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.listenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7796,6 +8125,7 @@ func (c *ProjectsDatabasesDocumentsListenCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"database": c.database,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.listen", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7830,9 +8160,11 @@ func (c *ProjectsDatabasesDocumentsListenCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.listen", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7886,8 +8218,7 @@ func (c *ProjectsDatabasesDocumentsPartitionQueryCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsPartitionQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.partitionqueryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.partitionqueryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7903,6 +8234,7 @@ func (c *ProjectsDatabasesDocumentsPartitionQueryCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.partitionQuery", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7938,9 +8270,11 @@ func (c *ProjectsDatabasesDocumentsPartitionQueryCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.partitionQuery", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8042,8 +8376,7 @@ func (c *ProjectsDatabasesDocumentsPatchCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.document)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.document)
 	if err != nil {
 		return nil, err
 	}
@@ -8059,6 +8392,7 @@ func (c *ProjectsDatabasesDocumentsPatchCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8093,9 +8427,11 @@ func (c *ProjectsDatabasesDocumentsPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8144,8 +8480,7 @@ func (c *ProjectsDatabasesDocumentsRollbackCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsRollbackCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rollbackrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rollbackrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8161,6 +8496,7 @@ func (c *ProjectsDatabasesDocumentsRollbackCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"database": c.database,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.rollback", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8195,9 +8531,11 @@ func (c *ProjectsDatabasesDocumentsRollbackCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.rollback", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8253,8 +8591,7 @@ func (c *ProjectsDatabasesDocumentsRunAggregationQueryCall) Header() http.Header
 
 func (c *ProjectsDatabasesDocumentsRunAggregationQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runaggregationqueryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runaggregationqueryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8270,6 +8607,7 @@ func (c *ProjectsDatabasesDocumentsRunAggregationQueryCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.runAggregationQuery", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8305,9 +8643,11 @@ func (c *ProjectsDatabasesDocumentsRunAggregationQueryCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.runAggregationQuery", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8359,8 +8699,7 @@ func (c *ProjectsDatabasesDocumentsRunQueryCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsRunQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runqueryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runqueryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8376,6 +8715,7 @@ func (c *ProjectsDatabasesDocumentsRunQueryCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.runQuery", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8411,9 +8751,11 @@ func (c *ProjectsDatabasesDocumentsRunQueryCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.runQuery", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8464,8 +8806,7 @@ func (c *ProjectsDatabasesDocumentsWriteCall) Header() http.Header {
 
 func (c *ProjectsDatabasesDocumentsWriteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.writerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.writerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8481,6 +8822,7 @@ func (c *ProjectsDatabasesDocumentsWriteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"database": c.database,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.write", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8515,9 +8857,11 @@ func (c *ProjectsDatabasesDocumentsWriteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.documents.write", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8537,7 +8881,7 @@ type ProjectsDatabasesOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -8573,8 +8917,7 @@ func (c *ProjectsDatabasesOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsDatabasesOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlelongrunningcanceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlelongrunningcanceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8590,6 +8933,7 @@ func (c *ProjectsDatabasesOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8624,9 +8968,11 @@ func (c *ProjectsDatabasesOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8675,12 +9021,11 @@ func (c *ProjectsDatabasesOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsDatabasesOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8688,6 +9033,7 @@ func (c *ProjectsDatabasesOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8722,9 +9068,11 @@ func (c *ProjectsDatabasesOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8784,12 +9132,11 @@ func (c *ProjectsDatabasesOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8797,6 +9144,7 @@ func (c *ProjectsDatabasesOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8832,9 +9180,11 @@ func (c *ProjectsDatabasesOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8913,12 +9263,11 @@ func (c *ProjectsDatabasesOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8926,6 +9275,7 @@ func (c *ProjectsDatabasesOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.databases.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8961,9 +9311,11 @@ func (c *ProjectsDatabasesOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.databases.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9042,12 +9394,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9055,6 +9406,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9089,9 +9441,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9173,12 +9527,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9186,6 +9539,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9221,9 +9575,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9291,12 +9647,11 @@ func (c *ProjectsLocationsBackupsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsBackupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9304,6 +9659,7 @@ func (c *ProjectsLocationsBackupsDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.locations.backups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9338,9 +9694,11 @@ func (c *ProjectsLocationsBackupsDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.locations.backups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9399,12 +9757,11 @@ func (c *ProjectsLocationsBackupsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9412,6 +9769,7 @@ func (c *ProjectsLocationsBackupsGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.locations.backups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9447,9 +9805,11 @@ func (c *ProjectsLocationsBackupsGetCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.locations.backups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9471,6 +9831,18 @@ type ProjectsLocationsBackupsListCall struct {
 func (r *ProjectsLocationsBackupsService) List(parent string) *ProjectsLocationsBackupsListCall {
 	c := &ProjectsLocationsBackupsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": An expression that filters the
+// list of returned backups. A filter expression consists of a field name, a
+// comparison operator, and a value for filtering. The value must be a string,
+// a number, or a boolean. The comparison operator must be one of: `<`, `>`,
+// `<=`, `>=`, `!=`, `=`, or `:`. Colon `:` is the contains operator. Filter
+// rules are not case sensitive. The following fields in the Backup are
+// eligible for filtering: * `database_uid` (supports `=` only)
+func (c *ProjectsLocationsBackupsListCall) Filter(filter string) *ProjectsLocationsBackupsListCall {
+	c.urlParams_.Set("filter", filter)
 	return c
 }
 
@@ -9510,12 +9882,11 @@ func (c *ProjectsLocationsBackupsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/backups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9523,6 +9894,7 @@ func (c *ProjectsLocationsBackupsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firestore.projects.locations.backups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9558,8 +9930,10 @@ func (c *ProjectsLocationsBackupsListCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firestore.projects.locations.backups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

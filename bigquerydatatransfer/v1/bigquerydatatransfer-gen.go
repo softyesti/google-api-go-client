@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "bigquerydatatransfer:v1"
 const apiName = "bigquerydatatransfer"
@@ -130,7 +133,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -149,13 +153,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -316,9 +319,9 @@ type CheckValidCredsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckValidCredsResponse) MarshalJSON() ([]byte, error) {
+func (s CheckValidCredsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckValidCredsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataSource: Defines the properties and custom parameters for a data source.
@@ -415,9 +418,9 @@ type DataSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataSource) MarshalJSON() ([]byte, error) {
+func (s DataSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DataSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataSourceParameter: A parameter used to define custom fields in a data
@@ -483,9 +486,9 @@ type DataSourceParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataSourceParameter) MarshalJSON() ([]byte, error) {
+func (s DataSourceParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod DataSourceParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DataSourceParameter) UnmarshalJSON(data []byte) error {
@@ -523,9 +526,9 @@ type EmailPreferences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EmailPreferences) MarshalJSON() ([]byte, error) {
+func (s EmailPreferences) MarshalJSON() ([]byte, error) {
 	type NoMethod EmailPreferences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -555,9 +558,9 @@ type EncryptionConfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionConfiguration) MarshalJSON() ([]byte, error) {
+func (s EncryptionConfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionConfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EnrollDataSourcesRequest: A request to enroll a set of data sources so they
@@ -579,9 +582,33 @@ type EnrollDataSourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnrollDataSourcesRequest) MarshalJSON() ([]byte, error) {
+func (s EnrollDataSourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EnrollDataSourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// EventDrivenSchedule: Options customizing EventDriven transfers schedule.
+type EventDrivenSchedule struct {
+	// PubsubSubscription: Pub/Sub subscription name used to receive events. Only
+	// Google Cloud Storage data source support this option. Format:
+	// projects/{project}/subscriptions/{subscription}
+	PubsubSubscription string `json:"pubsubSubscription,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PubsubSubscription") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PubsubSubscription") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s EventDrivenSchedule) MarshalJSON() ([]byte, error) {
+	type NoMethod EventDrivenSchedule
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDataSourcesResponse: Returns list of supported data sources and their
@@ -610,9 +637,9 @@ type ListDataSourcesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDataSourcesResponse) MarshalJSON() ([]byte, error) {
+func (s ListDataSourcesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDataSourcesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -638,9 +665,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTransferConfigsResponse: The returned list of pipelines in the project.
@@ -668,9 +695,9 @@ type ListTransferConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTransferConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTransferConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTransferConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTransferLogsResponse: The returned list transfer run messages.
@@ -698,9 +725,9 @@ type ListTransferLogsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTransferLogsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTransferLogsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTransferLogsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTransferRunsResponse: The returned list of pipelines in the project.
@@ -728,9 +755,9 @@ type ListTransferRunsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTransferRunsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTransferRunsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTransferRunsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -766,9 +793,13 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ManualSchedule: Options customizing manual transfers schedule.
+type ManualSchedule struct {
 }
 
 // ScheduleOptions: Options customizing the data transfer schedule.
@@ -802,9 +833,43 @@ type ScheduleOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScheduleOptions) MarshalJSON() ([]byte, error) {
+func (s ScheduleOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ScheduleOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ScheduleOptionsV2: V2 options customizing different types of data transfer
+// schedule. This field supports existing time-based and manual transfer
+// schedule. Also supports Event-Driven transfer schedule. ScheduleOptionsV2
+// cannot be used together with ScheduleOptions/Schedule.
+type ScheduleOptionsV2 struct {
+	// EventDrivenSchedule: Event driven transfer schedule options. If set, the
+	// transfer will be scheduled upon events arrial.
+	EventDrivenSchedule *EventDrivenSchedule `json:"eventDrivenSchedule,omitempty"`
+	// ManualSchedule: Manual transfer schedule. If set, the transfer run will not
+	// be auto-scheduled by the system, unless the client invokes
+	// StartManualTransferRuns. This is equivalent to disable_auto_scheduling =
+	// true.
+	ManualSchedule *ManualSchedule `json:"manualSchedule,omitempty"`
+	// TimeBasedSchedule: Time based transfer schedule options. This is the default
+	// schedule option.
+	TimeBasedSchedule *TimeBasedSchedule `json:"timeBasedSchedule,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EventDrivenSchedule") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EventDrivenSchedule") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ScheduleOptionsV2) MarshalJSON() ([]byte, error) {
+	type NoMethod ScheduleOptionsV2
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScheduleTransferRunsRequest: A request to schedule transfer runs for a time
@@ -829,9 +894,9 @@ type ScheduleTransferRunsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScheduleTransferRunsRequest) MarshalJSON() ([]byte, error) {
+func (s ScheduleTransferRunsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ScheduleTransferRunsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScheduleTransferRunsResponse: A response to schedule transfer runs for a
@@ -855,9 +920,9 @@ type ScheduleTransferRunsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScheduleTransferRunsResponse) MarshalJSON() ([]byte, error) {
+func (s ScheduleTransferRunsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ScheduleTransferRunsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartManualTransferRunsRequest: A request to start manual transfer runs.
@@ -885,9 +950,9 @@ type StartManualTransferRunsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartManualTransferRunsRequest) MarshalJSON() ([]byte, error) {
+func (s StartManualTransferRunsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod StartManualTransferRunsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartManualTransferRunsResponse: A response to start manual transfer runs.
@@ -910,9 +975,9 @@ type StartManualTransferRunsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartManualTransferRunsResponse) MarshalJSON() ([]byte, error) {
+func (s StartManualTransferRunsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod StartManualTransferRunsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -944,9 +1009,49 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TimeBasedSchedule: Options customizing the time based transfer schedule.
+// Options are migrated from the original ScheduleOptions message.
+type TimeBasedSchedule struct {
+	// EndTime: Defines time to stop scheduling transfer runs. A transfer run
+	// cannot be scheduled at or after the end time. The end time can be changed at
+	// any moment.
+	EndTime string `json:"endTime,omitempty"`
+	// Schedule: Data transfer schedule. If the data source does not support a
+	// custom schedule, this should be empty. If it is empty, the default value for
+	// the data source will be used. The specified times are in UTC. Examples of
+	// valid format: `1st,3rd monday of month 15:30`, `every wed,fri of jan,jun
+	// 13:15`, and `first sunday of quarter 00:00`. See more explanation about the
+	// format here:
+	// https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml#the_schedule_format
+	// NOTE: The minimum interval time between recurring transfers depends on the
+	// data source; refer to the documentation for your data source.
+	Schedule string `json:"schedule,omitempty"`
+	// StartTime: Specifies time to start scheduling transfer runs. The first run
+	// will be scheduled at or after the start time according to a recurrence
+	// pattern defined in the schedule string. The start time can be changed at any
+	// moment.
+	StartTime string `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndTime") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TimeBasedSchedule) MarshalJSON() ([]byte, error) {
+	type NoMethod TimeBasedSchedule
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeRange: A specification for a time range, this will request transfer runs
@@ -975,9 +1080,9 @@ type TimeRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeRange) MarshalJSON() ([]byte, error) {
+func (s TimeRange) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferConfig: Represents a data transfer configuration. A transfer
@@ -1017,6 +1122,9 @@ type TransferConfig struct {
 	// it is present, or otherwise try to apply project default keys if it is
 	// absent.
 	EncryptionConfiguration *EncryptionConfiguration `json:"encryptionConfiguration,omitempty"`
+	// Error: Output only. Error code with detailed information about reason of the
+	// latest config failure.
+	Error *Status `json:"error,omitempty"`
 	// Name: Identifier. The resource name of the transfer config. Transfer config
 	// names have the form either
 	// `projects/{project_id}/locations/{region}/transferConfigs/{config_id}` or
@@ -1052,6 +1160,10 @@ type TransferConfig struct {
 	Schedule string `json:"schedule,omitempty"`
 	// ScheduleOptions: Options customizing the data transfer schedule.
 	ScheduleOptions *ScheduleOptions `json:"scheduleOptions,omitempty"`
+	// ScheduleOptionsV2: Options customizing different types of data transfer
+	// schedule. This field replaces "schedule" and "schedule_options" fields.
+	// ScheduleOptionsV2 cannot be used together with ScheduleOptions/Schedule.
+	ScheduleOptionsV2 *ScheduleOptionsV2 `json:"scheduleOptionsV2,omitempty"`
 	// State: Output only. State of the most recently updated transfer run.
 	//
 	// Possible values:
@@ -1084,9 +1196,9 @@ type TransferConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferConfig) MarshalJSON() ([]byte, error) {
+func (s TransferConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferMessage: Represents a user facing message for a particular data
@@ -1117,9 +1229,9 @@ type TransferMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferMessage) MarshalJSON() ([]byte, error) {
+func (s TransferMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferRun: Represents a data transfer run.
@@ -1197,9 +1309,9 @@ type TransferRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferRun) MarshalJSON() ([]byte, error) {
+func (s TransferRun) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnenrollDataSourcesRequest: A request to unenroll a set of data sources so
@@ -1221,9 +1333,9 @@ type UnenrollDataSourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnenrollDataSourcesRequest) MarshalJSON() ([]byte, error) {
+func (s UnenrollDataSourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UnenrollDataSourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserInfo: Information about a user.
@@ -1243,9 +1355,9 @@ type UserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserInfo) MarshalJSON() ([]byte, error) {
+func (s UserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod UserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsEnrollDataSourcesCall struct {
@@ -1299,8 +1411,7 @@ func (c *ProjectsEnrollDataSourcesCall) Header() http.Header {
 
 func (c *ProjectsEnrollDataSourcesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enrolldatasourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.enrolldatasourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1316,6 +1427,7 @@ func (c *ProjectsEnrollDataSourcesCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.enrollDataSources", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1350,9 +1462,11 @@ func (c *ProjectsEnrollDataSourcesCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.enrollDataSources", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1404,8 +1518,7 @@ func (c *ProjectsDataSourcesCheckValidCredsCall) Header() http.Header {
 
 func (c *ProjectsDataSourcesCheckValidCredsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.checkvalidcredsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.checkvalidcredsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1421,6 +1534,7 @@ func (c *ProjectsDataSourcesCheckValidCredsCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.dataSources.checkValidCreds", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1456,9 +1570,11 @@ func (c *ProjectsDataSourcesCheckValidCredsCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.dataSources.checkValidCreds", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1519,12 +1635,11 @@ func (c *ProjectsDataSourcesGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1532,6 +1647,7 @@ func (c *ProjectsDataSourcesGetCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.dataSources.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1566,9 +1682,11 @@ func (c *ProjectsDataSourcesGetCall) Do(opts ...googleapi.CallOption) (*DataSour
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.dataSources.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1645,12 +1763,11 @@ func (c *ProjectsDataSourcesListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dataSources")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1658,6 +1775,7 @@ func (c *ProjectsDataSourcesListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.dataSources.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1693,9 +1811,11 @@ func (c *ProjectsDataSourcesListCall) Do(opts ...googleapi.CallOption) (*ListDat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.dataSources.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1771,8 +1891,7 @@ func (c *ProjectsLocationsEnrollDataSourcesCall) Header() http.Header {
 
 func (c *ProjectsLocationsEnrollDataSourcesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enrolldatasourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.enrolldatasourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1788,6 +1907,7 @@ func (c *ProjectsLocationsEnrollDataSourcesCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.enrollDataSources", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1822,9 +1942,11 @@ func (c *ProjectsLocationsEnrollDataSourcesCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.enrollDataSources", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1882,12 +2004,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1895,6 +2016,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1929,9 +2051,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2013,12 +2137,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2026,6 +2149,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2061,9 +2185,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2137,8 +2263,7 @@ func (c *ProjectsLocationsUnenrollDataSourcesCall) Header() http.Header {
 
 func (c *ProjectsLocationsUnenrollDataSourcesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.unenrolldatasourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.unenrolldatasourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2154,6 +2279,7 @@ func (c *ProjectsLocationsUnenrollDataSourcesCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.unenrollDataSources", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2188,9 +2314,11 @@ func (c *ProjectsLocationsUnenrollDataSourcesCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.unenrollDataSources", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2242,8 +2370,7 @@ func (c *ProjectsLocationsDataSourcesCheckValidCredsCall) Header() http.Header {
 
 func (c *ProjectsLocationsDataSourcesCheckValidCredsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.checkvalidcredsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.checkvalidcredsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2259,6 +2386,7 @@ func (c *ProjectsLocationsDataSourcesCheckValidCredsCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.dataSources.checkValidCreds", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2294,9 +2422,11 @@ func (c *ProjectsLocationsDataSourcesCheckValidCredsCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.dataSources.checkValidCreds", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2357,12 +2487,11 @@ func (c *ProjectsLocationsDataSourcesGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2370,6 +2499,7 @@ func (c *ProjectsLocationsDataSourcesGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.dataSources.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2404,9 +2534,11 @@ func (c *ProjectsLocationsDataSourcesGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.dataSources.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2483,12 +2615,11 @@ func (c *ProjectsLocationsDataSourcesListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dataSources")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2496,6 +2627,7 @@ func (c *ProjectsLocationsDataSourcesListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.dataSources.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2531,9 +2663,11 @@ func (c *ProjectsLocationsDataSourcesListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.dataSources.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2581,13 +2715,16 @@ func (r *ProjectsLocationsTransferConfigsService) Create(parent string, transfer
 	return c
 }
 
-// AuthorizationCode sets the optional parameter "authorizationCode": Optional
-// OAuth2 authorization code to use with this transfer configuration. This is
-// required only if `transferConfig.dataSourceId` is 'youtube_channel' and new
+// AuthorizationCode sets the optional parameter "authorizationCode":
+// Deprecated: Authorization code was required when
+// `transferConfig.dataSourceId` is 'youtube_channel' but it is no longer used
+// in any data sources. Use `version_info` instead. Optional OAuth2
+// authorization code to use with this transfer configuration. This is required
+// only if `transferConfig.dataSourceId` is 'youtube_channel' and new
 // credentials are needed, as indicated by `CheckValidCreds`. In order to
 // obtain authorization_code, make a request to the following URL:
 // https://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=authorization_code&client_id=client_id&scope=data_source_scopes
-// * The client_id is the OAuth client_id of the a data source as returned by
+// * The client_id is the OAuth client_id of the data source as returned by
 // ListDataSources method. * data_source_scopes are the scopes returned by
 // ListDataSources method. Note that this should not be set when
 // `service_account_name` is used to create the transfer config.
@@ -2610,12 +2747,13 @@ func (c *ProjectsLocationsTransferConfigsCreateCall) ServiceAccountName(serviceA
 }
 
 // VersionInfo sets the optional parameter "versionInfo": Optional version
-// info. This is required only if `transferConfig.dataSourceId` is not
-// 'youtube_channel' and new credentials are needed, as indicated by
+// info. This parameter replaces `authorization_code` which is no longer used
+// in any data sources. This is required only if `transferConfig.dataSourceId`
+// is 'youtube_channel' *or* new credentials are needed, as indicated by
 // `CheckValidCreds`. In order to obtain version info, make a request to the
 // following URL:
 // https://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=version_info&client_id=client_id&scope=data_source_scopes
-// * The client_id is the OAuth client_id of the a data source as returned by
+// * The client_id is the OAuth client_id of the data source as returned by
 // ListDataSources method. * data_source_scopes are the scopes returned by
 // ListDataSources method. Note that this should not be set when
 // `service_account_name` is used to create the transfer config.
@@ -2649,8 +2787,7 @@ func (c *ProjectsLocationsTransferConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsTransferConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transferconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transferconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -2666,6 +2803,7 @@ func (c *ProjectsLocationsTransferConfigsCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2700,9 +2838,11 @@ func (c *ProjectsLocationsTransferConfigsCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2751,12 +2891,11 @@ func (c *ProjectsLocationsTransferConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsTransferConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2764,6 +2903,7 @@ func (c *ProjectsLocationsTransferConfigsDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2798,9 +2938,11 @@ func (c *ProjectsLocationsTransferConfigsDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2860,12 +3002,11 @@ func (c *ProjectsLocationsTransferConfigsGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2873,6 +3014,7 @@ func (c *ProjectsLocationsTransferConfigsGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2907,9 +3049,11 @@ func (c *ProjectsLocationsTransferConfigsGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2994,12 +3138,11 @@ func (c *ProjectsLocationsTransferConfigsListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/transferConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3007,6 +3150,7 @@ func (c *ProjectsLocationsTransferConfigsListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3042,9 +3186,11 @@ func (c *ProjectsLocationsTransferConfigsListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3094,13 +3240,16 @@ func (r *ProjectsLocationsTransferConfigsService) Patch(name string, transfercon
 	return c
 }
 
-// AuthorizationCode sets the optional parameter "authorizationCode": Optional
-// OAuth2 authorization code to use with this transfer configuration. This is
-// required only if `transferConfig.dataSourceId` is 'youtube_channel' and new
+// AuthorizationCode sets the optional parameter "authorizationCode":
+// Deprecated: Authorization code was required when
+// `transferConfig.dataSourceId` is 'youtube_channel' but it is no longer used
+// in any data sources. Use `version_info` instead. Optional OAuth2
+// authorization code to use with this transfer configuration. This is required
+// only if `transferConfig.dataSourceId` is 'youtube_channel' and new
 // credentials are needed, as indicated by `CheckValidCreds`. In order to
 // obtain authorization_code, make a request to the following URL:
 // https://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=authorization_code&client_id=client_id&scope=data_source_scopes
-// * The client_id is the OAuth client_id of the a data source as returned by
+// * The client_id is the OAuth client_id of the data source as returned by
 // ListDataSources method. * data_source_scopes are the scopes returned by
 // ListDataSources method. Note that this should not be set when
 // `service_account_name` is used to update the transfer config.
@@ -3130,12 +3279,13 @@ func (c *ProjectsLocationsTransferConfigsPatchCall) UpdateMask(updateMask string
 }
 
 // VersionInfo sets the optional parameter "versionInfo": Optional version
-// info. This is required only if `transferConfig.dataSourceId` is not
-// 'youtube_channel' and new credentials are needed, as indicated by
+// info. This parameter replaces `authorization_code` which is no longer used
+// in any data sources. This is required only if `transferConfig.dataSourceId`
+// is 'youtube_channel' *or* new credentials are needed, as indicated by
 // `CheckValidCreds`. In order to obtain version info, make a request to the
 // following URL:
 // https://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=version_info&client_id=client_id&scope=data_source_scopes
-// * The client_id is the OAuth client_id of the a data source as returned by
+// * The client_id is the OAuth client_id of the data source as returned by
 // ListDataSources method. * data_source_scopes are the scopes returned by
 // ListDataSources method. Note that this should not be set when
 // `service_account_name` is used to update the transfer config.
@@ -3169,8 +3319,7 @@ func (c *ProjectsLocationsTransferConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsTransferConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transferconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transferconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -3186,6 +3335,7 @@ func (c *ProjectsLocationsTransferConfigsPatchCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3220,9 +3370,11 @@ func (c *ProjectsLocationsTransferConfigsPatchCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3276,8 +3428,7 @@ func (c *ProjectsLocationsTransferConfigsScheduleRunsCall) Header() http.Header 
 
 func (c *ProjectsLocationsTransferConfigsScheduleRunsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.scheduletransferrunsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.scheduletransferrunsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3293,6 +3444,7 @@ func (c *ProjectsLocationsTransferConfigsScheduleRunsCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.scheduleRuns", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3328,9 +3480,11 @@ func (c *ProjectsLocationsTransferConfigsScheduleRunsCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.scheduleRuns", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3384,8 +3538,7 @@ func (c *ProjectsLocationsTransferConfigsStartManualRunsCall) Header() http.Head
 
 func (c *ProjectsLocationsTransferConfigsStartManualRunsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.startmanualtransferrunsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.startmanualtransferrunsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3401,6 +3554,7 @@ func (c *ProjectsLocationsTransferConfigsStartManualRunsCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.startManualRuns", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3436,9 +3590,11 @@ func (c *ProjectsLocationsTransferConfigsStartManualRunsCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.startManualRuns", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3487,12 +3643,11 @@ func (c *ProjectsLocationsTransferConfigsRunsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsTransferConfigsRunsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3500,6 +3655,7 @@ func (c *ProjectsLocationsTransferConfigsRunsDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.runs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3534,9 +3690,11 @@ func (c *ProjectsLocationsTransferConfigsRunsDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.runs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3597,12 +3755,11 @@ func (c *ProjectsLocationsTransferConfigsRunsGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3610,6 +3767,7 @@ func (c *ProjectsLocationsTransferConfigsRunsGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.runs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3644,9 +3802,11 @@ func (c *ProjectsLocationsTransferConfigsRunsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.runs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3756,12 +3916,11 @@ func (c *ProjectsLocationsTransferConfigsRunsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/runs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3769,6 +3928,7 @@ func (c *ProjectsLocationsTransferConfigsRunsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.runs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3804,9 +3964,11 @@ func (c *ProjectsLocationsTransferConfigsRunsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.runs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3919,12 +4081,11 @@ func (c *ProjectsLocationsTransferConfigsRunsTransferLogsListCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/transferLogs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3932,6 +4093,7 @@ func (c *ProjectsLocationsTransferConfigsRunsTransferLogsListCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.runs.transferLogs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3967,9 +4129,11 @@ func (c *ProjectsLocationsTransferConfigsRunsTransferLogsListCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.locations.transferConfigs.runs.transferLogs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4017,13 +4181,16 @@ func (r *ProjectsTransferConfigsService) Create(parent string, transferconfig *T
 	return c
 }
 
-// AuthorizationCode sets the optional parameter "authorizationCode": Optional
-// OAuth2 authorization code to use with this transfer configuration. This is
-// required only if `transferConfig.dataSourceId` is 'youtube_channel' and new
+// AuthorizationCode sets the optional parameter "authorizationCode":
+// Deprecated: Authorization code was required when
+// `transferConfig.dataSourceId` is 'youtube_channel' but it is no longer used
+// in any data sources. Use `version_info` instead. Optional OAuth2
+// authorization code to use with this transfer configuration. This is required
+// only if `transferConfig.dataSourceId` is 'youtube_channel' and new
 // credentials are needed, as indicated by `CheckValidCreds`. In order to
 // obtain authorization_code, make a request to the following URL:
 // https://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=authorization_code&client_id=client_id&scope=data_source_scopes
-// * The client_id is the OAuth client_id of the a data source as returned by
+// * The client_id is the OAuth client_id of the data source as returned by
 // ListDataSources method. * data_source_scopes are the scopes returned by
 // ListDataSources method. Note that this should not be set when
 // `service_account_name` is used to create the transfer config.
@@ -4046,12 +4213,13 @@ func (c *ProjectsTransferConfigsCreateCall) ServiceAccountName(serviceAccountNam
 }
 
 // VersionInfo sets the optional parameter "versionInfo": Optional version
-// info. This is required only if `transferConfig.dataSourceId` is not
-// 'youtube_channel' and new credentials are needed, as indicated by
+// info. This parameter replaces `authorization_code` which is no longer used
+// in any data sources. This is required only if `transferConfig.dataSourceId`
+// is 'youtube_channel' *or* new credentials are needed, as indicated by
 // `CheckValidCreds`. In order to obtain version info, make a request to the
 // following URL:
 // https://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=version_info&client_id=client_id&scope=data_source_scopes
-// * The client_id is the OAuth client_id of the a data source as returned by
+// * The client_id is the OAuth client_id of the data source as returned by
 // ListDataSources method. * data_source_scopes are the scopes returned by
 // ListDataSources method. Note that this should not be set when
 // `service_account_name` is used to create the transfer config.
@@ -4085,8 +4253,7 @@ func (c *ProjectsTransferConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsTransferConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transferconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transferconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -4102,6 +4269,7 @@ func (c *ProjectsTransferConfigsCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4136,9 +4304,11 @@ func (c *ProjectsTransferConfigsCreateCall) Do(opts ...googleapi.CallOption) (*T
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4187,12 +4357,11 @@ func (c *ProjectsTransferConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsTransferConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4200,6 +4369,7 @@ func (c *ProjectsTransferConfigsDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4234,9 +4404,11 @@ func (c *ProjectsTransferConfigsDeleteCall) Do(opts ...googleapi.CallOption) (*E
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4296,12 +4468,11 @@ func (c *ProjectsTransferConfigsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4309,6 +4480,7 @@ func (c *ProjectsTransferConfigsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4343,9 +4515,11 @@ func (c *ProjectsTransferConfigsGetCall) Do(opts ...googleapi.CallOption) (*Tran
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4430,12 +4604,11 @@ func (c *ProjectsTransferConfigsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/transferConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4443,6 +4616,7 @@ func (c *ProjectsTransferConfigsListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4478,9 +4652,11 @@ func (c *ProjectsTransferConfigsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4530,13 +4706,16 @@ func (r *ProjectsTransferConfigsService) Patch(name string, transferconfig *Tran
 	return c
 }
 
-// AuthorizationCode sets the optional parameter "authorizationCode": Optional
-// OAuth2 authorization code to use with this transfer configuration. This is
-// required only if `transferConfig.dataSourceId` is 'youtube_channel' and new
+// AuthorizationCode sets the optional parameter "authorizationCode":
+// Deprecated: Authorization code was required when
+// `transferConfig.dataSourceId` is 'youtube_channel' but it is no longer used
+// in any data sources. Use `version_info` instead. Optional OAuth2
+// authorization code to use with this transfer configuration. This is required
+// only if `transferConfig.dataSourceId` is 'youtube_channel' and new
 // credentials are needed, as indicated by `CheckValidCreds`. In order to
 // obtain authorization_code, make a request to the following URL:
 // https://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=authorization_code&client_id=client_id&scope=data_source_scopes
-// * The client_id is the OAuth client_id of the a data source as returned by
+// * The client_id is the OAuth client_id of the data source as returned by
 // ListDataSources method. * data_source_scopes are the scopes returned by
 // ListDataSources method. Note that this should not be set when
 // `service_account_name` is used to update the transfer config.
@@ -4566,12 +4745,13 @@ func (c *ProjectsTransferConfigsPatchCall) UpdateMask(updateMask string) *Projec
 }
 
 // VersionInfo sets the optional parameter "versionInfo": Optional version
-// info. This is required only if `transferConfig.dataSourceId` is not
-// 'youtube_channel' and new credentials are needed, as indicated by
+// info. This parameter replaces `authorization_code` which is no longer used
+// in any data sources. This is required only if `transferConfig.dataSourceId`
+// is 'youtube_channel' *or* new credentials are needed, as indicated by
 // `CheckValidCreds`. In order to obtain version info, make a request to the
 // following URL:
 // https://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=version_info&client_id=client_id&scope=data_source_scopes
-// * The client_id is the OAuth client_id of the a data source as returned by
+// * The client_id is the OAuth client_id of the data source as returned by
 // ListDataSources method. * data_source_scopes are the scopes returned by
 // ListDataSources method. Note that this should not be set when
 // `service_account_name` is used to update the transfer config.
@@ -4605,8 +4785,7 @@ func (c *ProjectsTransferConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsTransferConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transferconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transferconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -4622,6 +4801,7 @@ func (c *ProjectsTransferConfigsPatchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4656,9 +4836,11 @@ func (c *ProjectsTransferConfigsPatchCall) Do(opts ...googleapi.CallOption) (*Tr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4712,8 +4894,7 @@ func (c *ProjectsTransferConfigsScheduleRunsCall) Header() http.Header {
 
 func (c *ProjectsTransferConfigsScheduleRunsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.scheduletransferrunsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.scheduletransferrunsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4729,6 +4910,7 @@ func (c *ProjectsTransferConfigsScheduleRunsCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.scheduleRuns", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4764,9 +4946,11 @@ func (c *ProjectsTransferConfigsScheduleRunsCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.scheduleRuns", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4820,8 +5004,7 @@ func (c *ProjectsTransferConfigsStartManualRunsCall) Header() http.Header {
 
 func (c *ProjectsTransferConfigsStartManualRunsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.startmanualtransferrunsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.startmanualtransferrunsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4837,6 +5020,7 @@ func (c *ProjectsTransferConfigsStartManualRunsCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.startManualRuns", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4872,9 +5056,11 @@ func (c *ProjectsTransferConfigsStartManualRunsCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.startManualRuns", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4923,12 +5109,11 @@ func (c *ProjectsTransferConfigsRunsDeleteCall) Header() http.Header {
 
 func (c *ProjectsTransferConfigsRunsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4936,6 +5121,7 @@ func (c *ProjectsTransferConfigsRunsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.runs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4970,9 +5156,11 @@ func (c *ProjectsTransferConfigsRunsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.runs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5033,12 +5221,11 @@ func (c *ProjectsTransferConfigsRunsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5046,6 +5233,7 @@ func (c *ProjectsTransferConfigsRunsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.runs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5080,9 +5268,11 @@ func (c *ProjectsTransferConfigsRunsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.runs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5192,12 +5382,11 @@ func (c *ProjectsTransferConfigsRunsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/runs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5205,6 +5394,7 @@ func (c *ProjectsTransferConfigsRunsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.runs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5240,9 +5430,11 @@ func (c *ProjectsTransferConfigsRunsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.runs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5355,12 +5547,11 @@ func (c *ProjectsTransferConfigsRunsTransferLogsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/transferLogs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5368,6 +5559,7 @@ func (c *ProjectsTransferConfigsRunsTransferLogsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.runs.transferLogs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5403,9 +5595,11 @@ func (c *ProjectsTransferConfigsRunsTransferLogsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigquerydatatransfer.projects.transferConfigs.runs.transferLogs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

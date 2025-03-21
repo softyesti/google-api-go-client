@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -37,7 +37,7 @@
 // By default, all available scopes (see "Constants") are used to authenticate.
 // To restrict scopes, use [google.golang.org/api/option.WithScopes]:
 //
-//	dataflowService, err := dataflow.NewService(ctx, option.WithScopes(dataflow.ComputeReadonlyScope))
+//	dataflowService, err := dataflow.NewService(ctx, option.WithScopes(dataflow.ComputeScope))
 //
 // To use an API key for authentication (note: some APIs do not support API
 // keys), use [google.golang.org/api/option.WithAPIKey]:
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "dataflow:v1b3"
 const apiName = "dataflow"
@@ -106,9 +109,6 @@ const (
 
 	// View and manage your Google Compute Engine resources
 	ComputeScope = "https://www.googleapis.com/auth/compute"
-
-	// View your Google Compute Engine resources
-	ComputeReadonlyScope = "https://www.googleapis.com/auth/compute.readonly"
 )
 
 // NewService creates a new Service.
@@ -116,7 +116,6 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	scopesOption := internaloption.WithDefaultScopes(
 		"https://www.googleapis.com/auth/cloud-platform",
 		"https://www.googleapis.com/auth/compute",
-		"https://www.googleapis.com/auth/compute.readonly",
 	)
 	// NOTE: prepend, so we don't override user-specified scopes.
 	opts = append([]option.ClientOption{scopesOption}, opts...)
@@ -128,7 +127,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -147,13 +147,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -390,9 +389,9 @@ type ApproximateProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApproximateProgress) MarshalJSON() ([]byte, error) {
+func (s ApproximateProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod ApproximateProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ApproximateProgress) UnmarshalJSON(data []byte) error {
@@ -458,9 +457,9 @@ type ApproximateReportedProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApproximateReportedProgress) MarshalJSON() ([]byte, error) {
+func (s ApproximateReportedProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod ApproximateReportedProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ApproximateReportedProgress) UnmarshalJSON(data []byte) error {
@@ -501,9 +500,9 @@ type ApproximateSplitRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApproximateSplitRequest) MarshalJSON() ([]byte, error) {
+func (s ApproximateSplitRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ApproximateSplitRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ApproximateSplitRequest) UnmarshalJSON(data []byte) error {
@@ -573,9 +572,9 @@ type AutoscalingEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoscalingEvent) MarshalJSON() ([]byte, error) {
+func (s AutoscalingEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoscalingEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutoscalingSettings: Settings for WorkerPool autoscaling.
@@ -604,9 +603,9 @@ type AutoscalingSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoscalingSettings) MarshalJSON() ([]byte, error) {
+func (s AutoscalingSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoscalingSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Base2Exponent: Exponential buckets where the growth factor between buckets
@@ -632,9 +631,9 @@ type Base2Exponent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Base2Exponent) MarshalJSON() ([]byte, error) {
+func (s Base2Exponent) MarshalJSON() ([]byte, error) {
 	type NoMethod Base2Exponent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BigQueryIODetails: Metadata for a BigQuery connector used by the job.
@@ -660,9 +659,9 @@ type BigQueryIODetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BigQueryIODetails) MarshalJSON() ([]byte, error) {
+func (s BigQueryIODetails) MarshalJSON() ([]byte, error) {
 	type NoMethod BigQueryIODetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BigTableIODetails: Metadata for a Cloud Bigtable connector used by the job.
@@ -686,9 +685,62 @@ type BigTableIODetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BigTableIODetails) MarshalJSON() ([]byte, error) {
+func (s BigTableIODetails) MarshalJSON() ([]byte, error) {
 	type NoMethod BigTableIODetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BoundedTrie: The message type used for encoding metrics of type bounded
+// trie.
+type BoundedTrie struct {
+	// Bound: The maximum number of elements to store before truncation.
+	Bound int64 `json:"bound,omitempty"`
+	// Root: A compact representation of all the elements in this trie.
+	Root *BoundedTrieNode `json:"root,omitempty"`
+	// Singleton: A more efficient representation for metrics consisting of a
+	// single value.
+	Singleton []string `json:"singleton,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Bound") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Bound") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BoundedTrie) MarshalJSON() ([]byte, error) {
+	type NoMethod BoundedTrie
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BoundedTrieNode: A single node in a BoundedTrie.
+type BoundedTrieNode struct {
+	// Children: Children of this node. Must be empty if truncated is true.
+	Children map[string]BoundedTrieNode `json:"children,omitempty"`
+	// Truncated: Whether this node has been truncated. A truncated leaf represents
+	// possibly many children with the same prefix.
+	Truncated bool `json:"truncated,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Children") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Children") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BoundedTrieNode) MarshalJSON() ([]byte, error) {
+	type NoMethod BoundedTrieNode
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BucketOptions: `BucketOptions` describes the bucket boundaries used in the
@@ -711,9 +763,9 @@ type BucketOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BucketOptions) MarshalJSON() ([]byte, error) {
+func (s BucketOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod BucketOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CPUTime: Modeled after information exposed by /proc/stat.
@@ -739,9 +791,9 @@ type CPUTime struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CPUTime) MarshalJSON() ([]byte, error) {
+func (s CPUTime) MarshalJSON() ([]byte, error) {
 	type NoMethod CPUTime
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *CPUTime) UnmarshalJSON(data []byte) error {
@@ -782,9 +834,9 @@ type ComponentSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComponentSource) MarshalJSON() ([]byte, error) {
+func (s ComponentSource) MarshalJSON() ([]byte, error) {
 	type NoMethod ComponentSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComponentTransform: Description of a transform executed as part of an
@@ -811,9 +863,9 @@ type ComponentTransform struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComponentTransform) MarshalJSON() ([]byte, error) {
+func (s ComponentTransform) MarshalJSON() ([]byte, error) {
 	type NoMethod ComponentTransform
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComputationTopology: All configuration data for a particular Computation.
@@ -843,9 +895,9 @@ type ComputationTopology struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputationTopology) MarshalJSON() ([]byte, error) {
+func (s ComputationTopology) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputationTopology
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConcatPosition: A position that encapsulates an inner position and an index
@@ -869,9 +921,9 @@ type ConcatPosition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConcatPosition) MarshalJSON() ([]byte, error) {
+func (s ConcatPosition) MarshalJSON() ([]byte, error) {
 	type NoMethod ConcatPosition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContainerSpec: Container Spec.
@@ -907,9 +959,9 @@ type ContainerSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContainerSpec) MarshalJSON() ([]byte, error) {
+func (s ContainerSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod ContainerSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CounterMetadata: CounterMetadata includes all static non-name non-value
@@ -961,9 +1013,9 @@ type CounterMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CounterMetadata) MarshalJSON() ([]byte, error) {
+func (s CounterMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CounterMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CounterStructuredName: Identifies a counter within a per-job namespace.
@@ -1022,9 +1074,9 @@ type CounterStructuredName struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CounterStructuredName) MarshalJSON() ([]byte, error) {
+func (s CounterStructuredName) MarshalJSON() ([]byte, error) {
 	type NoMethod CounterStructuredName
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CounterStructuredNameAndMetadata: A single message which encapsulates
@@ -1047,15 +1099,17 @@ type CounterStructuredNameAndMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CounterStructuredNameAndMetadata) MarshalJSON() ([]byte, error) {
+func (s CounterStructuredNameAndMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CounterStructuredNameAndMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// CounterUpdate: An update to a Counter sent from a worker.
+// CounterUpdate: An update to a Counter sent from a worker. Next ID: 17
 type CounterUpdate struct {
 	// Boolean: Boolean value for And, Or.
 	Boolean bool `json:"boolean,omitempty"`
+	// BoundedTrie: Bounded trie data
+	BoundedTrie *BoundedTrie `json:"boundedTrie,omitempty"`
 	// Cumulative: True if this counter is reported as the total cumulative
 	// aggregate value accumulated since the worker started working on this
 	// WorkItem. By default this is false, indicating that this counter is reported
@@ -1102,9 +1156,9 @@ type CounterUpdate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CounterUpdate) MarshalJSON() ([]byte, error) {
+func (s CounterUpdate) MarshalJSON() ([]byte, error) {
 	type NoMethod CounterUpdate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *CounterUpdate) UnmarshalJSON(data []byte) error {
@@ -1150,9 +1204,9 @@ type CreateJobFromTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateJobFromTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s CreateJobFromTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateJobFromTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomSourceLocation: Identifies the location of a custom souce.
@@ -1172,9 +1226,9 @@ type CustomSourceLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomSourceLocation) MarshalJSON() ([]byte, error) {
+func (s CustomSourceLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomSourceLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataDiskAssignment: Data disk assignment for a given VM instance.
@@ -1200,9 +1254,9 @@ type DataDiskAssignment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataDiskAssignment) MarshalJSON() ([]byte, error) {
+func (s DataDiskAssignment) MarshalJSON() ([]byte, error) {
 	type NoMethod DataDiskAssignment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataSamplingConfig: Configuration options for sampling elements.
@@ -1237,9 +1291,9 @@ type DataSamplingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataSamplingConfig) MarshalJSON() ([]byte, error) {
+func (s DataSamplingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DataSamplingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataSamplingReport: Contains per-worker telemetry about the data sampling
@@ -1278,9 +1332,33 @@ type DataSamplingReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataSamplingReport) MarshalJSON() ([]byte, error) {
+func (s DataSamplingReport) MarshalJSON() ([]byte, error) {
 	type NoMethod DataSamplingReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DataflowGaugeValue: The gauge value of a metric.
+type DataflowGaugeValue struct {
+	// MeasuredTime: The timestamp when the gauge was recorded.
+	MeasuredTime string `json:"measuredTime,omitempty"`
+	// Value: The value of the gauge.
+	Value int64 `json:"value,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "MeasuredTime") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "MeasuredTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DataflowGaugeValue) MarshalJSON() ([]byte, error) {
+	type NoMethod DataflowGaugeValue
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataflowHistogramValue: Summary statistics for a population of values.
@@ -1314,9 +1392,9 @@ type DataflowHistogramValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataflowHistogramValue) MarshalJSON() ([]byte, error) {
+func (s DataflowHistogramValue) MarshalJSON() ([]byte, error) {
 	type NoMethod DataflowHistogramValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatastoreIODetails: Metadata for a Datastore connector used by the job.
@@ -1338,9 +1416,9 @@ type DatastoreIODetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatastoreIODetails) MarshalJSON() ([]byte, error) {
+func (s DatastoreIODetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DatastoreIODetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DebugOptions: Describes any options that have an effect on the debugging of
@@ -1349,8 +1427,8 @@ type DebugOptions struct {
 	// DataSampling: Configuration options for sampling elements from a running
 	// pipeline.
 	DataSampling *DataSamplingConfig `json:"dataSampling,omitempty"`
-	// EnableHotKeyLogging: When true, enables the logging of the literal hot key
-	// to the user's Cloud Logging.
+	// EnableHotKeyLogging: Optional. When true, enables the logging of the literal
+	// hot key to the user's Cloud Logging.
 	EnableHotKeyLogging bool `json:"enableHotKeyLogging,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DataSampling") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1365,9 +1443,9 @@ type DebugOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DebugOptions) MarshalJSON() ([]byte, error) {
+func (s DebugOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod DebugOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeleteSnapshotResponse: Response from deleting a snapshot.
@@ -1408,9 +1486,9 @@ type DerivedSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DerivedSource) MarshalJSON() ([]byte, error) {
+func (s DerivedSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DerivedSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Disk: Describes the data disk used by a workflow job.
@@ -1447,9 +1525,9 @@ type Disk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Disk) MarshalJSON() ([]byte, error) {
+func (s Disk) MarshalJSON() ([]byte, error) {
 	type NoMethod Disk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DisplayData: Data provided with a pipeline or transform to provide
@@ -1500,9 +1578,9 @@ type DisplayData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DisplayData) MarshalJSON() ([]byte, error) {
+func (s DisplayData) MarshalJSON() ([]byte, error) {
 	type NoMethod DisplayData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DisplayData) UnmarshalJSON(data []byte) error {
@@ -1548,9 +1626,9 @@ type DistributionUpdate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DistributionUpdate) MarshalJSON() ([]byte, error) {
+func (s DistributionUpdate) MarshalJSON() ([]byte, error) {
 	type NoMethod DistributionUpdate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DistributionUpdate) UnmarshalJSON(data []byte) error {
@@ -1590,9 +1668,9 @@ type DynamicSourceSplit struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DynamicSourceSplit) MarshalJSON() ([]byte, error) {
+func (s DynamicSourceSplit) MarshalJSON() ([]byte, error) {
 	type NoMethod DynamicSourceSplit
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Environment: Describes the environment in which a Dataflow Job runs.
@@ -1602,18 +1680,18 @@ type Environment struct {
 	// This should be in the form of the API service name, e.g.
 	// "compute.googleapis.com".
 	ClusterManagerApiService string `json:"clusterManagerApiService,omitempty"`
-	// Dataset: The dataset for the current project where various workflow related
-	// tables are stored. The supported resource type is: Google BigQuery:
-	// bigquery.googleapis.com/{dataset}
+	// Dataset: Optional. The dataset for the current project where various
+	// workflow related tables are stored. The supported resource type is: Google
+	// BigQuery: bigquery.googleapis.com/{dataset}
 	Dataset string `json:"dataset,omitempty"`
-	// DebugOptions: Any debugging options to be supplied to the job.
+	// DebugOptions: Optional. Any debugging options to be supplied to the job.
 	DebugOptions *DebugOptions `json:"debugOptions,omitempty"`
 	// Experiments: The list of experiments to enable. This field should be used
 	// for SDK related experiments and not for service related experiments. The
 	// proper field for service related experiments is service_options.
 	Experiments []string `json:"experiments,omitempty"`
-	// FlexResourceSchedulingGoal: Which Flexible Resource Scheduling mode to run
-	// in.
+	// FlexResourceSchedulingGoal: Optional. Which Flexible Resource Scheduling
+	// mode to run in.
 	//
 	// Possible values:
 	//   "FLEXRS_UNSPECIFIED" - Run in the default mode.
@@ -1627,11 +1705,12 @@ type Environment struct {
 	// the SDK pipeline options on the worker in a language agnostic and platform
 	// independent way.
 	SdkPipelineOptions googleapi.RawMessage `json:"sdkPipelineOptions,omitempty"`
-	// ServiceAccountEmail: Identity to run virtual machines as. Defaults to the
-	// default account.
+	// ServiceAccountEmail: Optional. Identity to run virtual machines as. Defaults
+	// to the default account.
 	ServiceAccountEmail string `json:"serviceAccountEmail,omitempty"`
-	// ServiceKmsKeyName: If set, contains the Cloud KMS key identifier used to
-	// encrypt data at rest, AKA a Customer Managed Encryption Key (CMEK). Format:
+	// ServiceKmsKeyName: Optional. If set, contains the Cloud KMS key identifier
+	// used to encrypt data at rest, AKA a Customer Managed Encryption Key (CMEK).
+	// Format:
 	// projects/PROJECT_ID/locations/LOCATION/keyRings/KEY_RING/cryptoKeys/KEY
 	ServiceKmsKeyName string `json:"serviceKmsKeyName,omitempty"`
 	// ServiceOptions: Optional. The list of service options to enable. This field
@@ -1684,13 +1763,13 @@ type Environment struct {
 	// WorkerPools: The worker pools. At least one "harness" worker pool must be
 	// specified in order for the job to have workers.
 	WorkerPools []*WorkerPool `json:"workerPools,omitempty"`
-	// WorkerRegion: The Compute Engine region
+	// WorkerRegion: Optional. The Compute Engine region
 	// (https://cloud.google.com/compute/docs/regions-zones/regions-zones) in which
 	// worker processing should occur, e.g. "us-west1". Mutually exclusive with
 	// worker_zone. If neither worker_region nor worker_zone is specified, default
 	// to the control plane's region.
 	WorkerRegion string `json:"workerRegion,omitempty"`
-	// WorkerZone: The Compute Engine zone
+	// WorkerZone: Optional. The Compute Engine zone
 	// (https://cloud.google.com/compute/docs/regions-zones/regions-zones) in which
 	// worker processing should occur, e.g. "us-west1-a". Mutually exclusive with
 	// worker_region. If neither worker_region nor worker_zone is specified, a zone
@@ -1709,9 +1788,9 @@ type Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Environment) MarshalJSON() ([]byte, error) {
+func (s Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutionStageState: A message describing the state of a particular
@@ -1786,9 +1865,9 @@ type ExecutionStageState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionStageState) MarshalJSON() ([]byte, error) {
+func (s ExecutionStageState) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionStageState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutionStageSummary: Description of the composing transforms, names/ids,
@@ -1840,9 +1919,9 @@ type ExecutionStageSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionStageSummary) MarshalJSON() ([]byte, error) {
+func (s ExecutionStageSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionStageSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FailedLocation: Indicates which [regional endpoint]
@@ -1866,9 +1945,9 @@ type FailedLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FailedLocation) MarshalJSON() ([]byte, error) {
+func (s FailedLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod FailedLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileIODetails: Metadata for a File connector used by the job.
@@ -1888,9 +1967,9 @@ type FileIODetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileIODetails) MarshalJSON() ([]byte, error) {
+func (s FileIODetails) MarshalJSON() ([]byte, error) {
 	type NoMethod FileIODetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FlattenInstruction: An instruction that copies its inputs (zero or more) to
@@ -1911,16 +1990,19 @@ type FlattenInstruction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlattenInstruction) MarshalJSON() ([]byte, error) {
+func (s FlattenInstruction) MarshalJSON() ([]byte, error) {
 	type NoMethod FlattenInstruction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FlexTemplateRuntimeEnvironment: The environment values to be set at runtime
-// for flex template. LINT.IfChange
+// for flex template.
 type FlexTemplateRuntimeEnvironment struct {
 	// AdditionalExperiments: Additional experiment flags for the job.
 	AdditionalExperiments []string `json:"additionalExperiments,omitempty"`
+	// AdditionalPipelineOptions: Optional. Additional pipeline option flags for
+	// the job.
+	AdditionalPipelineOptions []string `json:"additionalPipelineOptions,omitempty"`
 	// AdditionalUserLabels: Additional user labels to be specified for the job.
 	// Keys and values must follow the restrictions specified in the labeling
 	// restrictions
@@ -2058,9 +2140,9 @@ type FlexTemplateRuntimeEnvironment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlexTemplateRuntimeEnvironment) MarshalJSON() ([]byte, error) {
+func (s FlexTemplateRuntimeEnvironment) MarshalJSON() ([]byte, error) {
 	type NoMethod FlexTemplateRuntimeEnvironment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FloatingPointList: A metric value representing a list of floating point
@@ -2081,9 +2163,9 @@ type FloatingPointList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FloatingPointList) MarshalJSON() ([]byte, error) {
+func (s FloatingPointList) MarshalJSON() ([]byte, error) {
 	type NoMethod FloatingPointList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *FloatingPointList) UnmarshalJSON(data []byte) error {
@@ -2123,9 +2205,9 @@ type FloatingPointMean struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FloatingPointMean) MarshalJSON() ([]byte, error) {
+func (s FloatingPointMean) MarshalJSON() ([]byte, error) {
 	type NoMethod FloatingPointMean
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *FloatingPointMean) UnmarshalJSON(data []byte) error {
@@ -2139,6 +2221,67 @@ func (s *FloatingPointMean) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	s.Sum = float64(s1.Sum)
+	return nil
+}
+
+// GPUUsage: Information about the GPU usage on the worker.
+type GPUUsage struct {
+	// Timestamp: Required. Timestamp of the measurement.
+	Timestamp string `json:"timestamp,omitempty"`
+	// Utilization: Required. Utilization info about the GPU.
+	Utilization *GPUUtilization `json:"utilization,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Timestamp") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Timestamp") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GPUUsage) MarshalJSON() ([]byte, error) {
+	type NoMethod GPUUsage
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GPUUtilization: Utilization details about the GPU.
+type GPUUtilization struct {
+	// Rate: Required. GPU utilization rate of any kernel over the last sample
+	// period in the range of [0, 1].
+	Rate float64 `json:"rate,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Rate") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Rate") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GPUUtilization) MarshalJSON() ([]byte, error) {
+	type NoMethod GPUUtilization
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GPUUtilization) UnmarshalJSON(data []byte) error {
+	type NoMethod GPUUtilization
+	var s1 struct {
+		Rate gensupport.JSONFloat64 `json:"rate"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Rate = float64(s1.Rate)
 	return nil
 }
 
@@ -2167,9 +2310,9 @@ type GetDebugConfigRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetDebugConfigRequest) MarshalJSON() ([]byte, error) {
+func (s GetDebugConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetDebugConfigRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetDebugConfigResponse: Response to a get debug configuration request.
@@ -2192,9 +2335,9 @@ type GetDebugConfigResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetDebugConfigResponse) MarshalJSON() ([]byte, error) {
+func (s GetDebugConfigResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetDebugConfigResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetTemplateResponse: The response to a GetTemplate request.
@@ -2231,9 +2374,9 @@ type GetTemplateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetTemplateResponse) MarshalJSON() ([]byte, error) {
+func (s GetTemplateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetTemplateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Histogram: Histogram of value counts for a distribution. Buckets have an
@@ -2265,9 +2408,9 @@ type Histogram struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Histogram) MarshalJSON() ([]byte, error) {
+func (s Histogram) MarshalJSON() ([]byte, error) {
 	type NoMethod Histogram
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HotKeyDebuggingInfo: Information useful for debugging a hot key detection.
@@ -2288,9 +2431,9 @@ type HotKeyDebuggingInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HotKeyDebuggingInfo) MarshalJSON() ([]byte, error) {
+func (s HotKeyDebuggingInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod HotKeyDebuggingInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HotKeyDetection: Proto describing a hot key detected on a given WorkItem.
@@ -2315,9 +2458,9 @@ type HotKeyDetection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HotKeyDetection) MarshalJSON() ([]byte, error) {
+func (s HotKeyDetection) MarshalJSON() ([]byte, error) {
 	type NoMethod HotKeyDetection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HotKeyInfo: Information about a hot key.
@@ -2345,9 +2488,9 @@ type HotKeyInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HotKeyInfo) MarshalJSON() ([]byte, error) {
+func (s HotKeyInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod HotKeyInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstructionInput: An input of an instruction, as a reference to an output of
@@ -2373,9 +2516,9 @@ type InstructionInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstructionInput) MarshalJSON() ([]byte, error) {
+func (s InstructionInput) MarshalJSON() ([]byte, error) {
 	type NoMethod InstructionInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstructionOutput: An output of an instruction.
@@ -2409,9 +2552,9 @@ type InstructionOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstructionOutput) MarshalJSON() ([]byte, error) {
+func (s InstructionOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod InstructionOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntegerGauge: A metric value representing temporal values of a variable.
@@ -2434,9 +2577,9 @@ type IntegerGauge struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntegerGauge) MarshalJSON() ([]byte, error) {
+func (s IntegerGauge) MarshalJSON() ([]byte, error) {
 	type NoMethod IntegerGauge
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntegerList: A metric value representing a list of integers.
@@ -2456,9 +2599,9 @@ type IntegerList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntegerList) MarshalJSON() ([]byte, error) {
+func (s IntegerList) MarshalJSON() ([]byte, error) {
 	type NoMethod IntegerList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntegerMean: A representation of an integer mean metric contribution.
@@ -2480,9 +2623,9 @@ type IntegerMean struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntegerMean) MarshalJSON() ([]byte, error) {
+func (s IntegerMean) MarshalJSON() ([]byte, error) {
 	type NoMethod IntegerMean
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Job: Defines a job to be run by the Cloud Dataflow service. Do not enter
@@ -2577,7 +2720,7 @@ type Job struct {
 	// [\p{Ll}\p{Lo}\p{N}_-]{0,63} * Both keys and values are additionally
 	// constrained to be <= 128 bytes in size.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Location: The [regional endpoint]
+	// Location: Optional. The [regional endpoint]
 	// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints) that
 	// contains this job.
 	Location string `json:"location,omitempty"`
@@ -2670,6 +2813,9 @@ type Job struct {
 	// SatisfiesPzs: Reserved for future use. This field is set only in responses
 	// from the server; it is ignored if it is set in any requests.
 	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
+	// ServiceResources: Output only. Resources used by the Dataflow Service to run
+	// the job.
+	ServiceResources *ServiceResources `json:"serviceResources,omitempty"`
 	// StageStates: This field may be mutated by the Cloud Dataflow service;
 	// callers cannot mutate it.
 	StageStates []*ExecutionStageState `json:"stageStates,omitempty"`
@@ -2692,8 +2838,8 @@ type Job struct {
 	// files are: Google Cloud Storage: storage.googleapis.com/{bucket}/{object}
 	// bucket.storage.googleapis.com/{object}
 	TempFiles []string `json:"tempFiles,omitempty"`
-	// TransformNameMapping: The map of transform name prefixes of the job to be
-	// replaced to the corresponding name prefixes of the new job.
+	// TransformNameMapping: Optional. The map of transform name prefixes of the
+	// job to be replaced to the corresponding name prefixes of the new job.
 	TransformNameMapping map[string]string `json:"transformNameMapping,omitempty"`
 	// Type: Optional. The type of Dataflow job.
 	//
@@ -2720,9 +2866,9 @@ type Job struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Job) MarshalJSON() ([]byte, error) {
+func (s Job) MarshalJSON() ([]byte, error) {
 	type NoMethod Job
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobExecutionDetails: Information about the execution of a job.
@@ -2749,9 +2895,9 @@ type JobExecutionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobExecutionDetails) MarshalJSON() ([]byte, error) {
+func (s JobExecutionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod JobExecutionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobExecutionInfo: Additional information about how a Cloud Dataflow job will
@@ -2772,9 +2918,9 @@ type JobExecutionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobExecutionInfo) MarshalJSON() ([]byte, error) {
+func (s JobExecutionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod JobExecutionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobExecutionStageInfo: Contains information about how a particular
@@ -2797,9 +2943,9 @@ type JobExecutionStageInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobExecutionStageInfo) MarshalJSON() ([]byte, error) {
+func (s JobExecutionStageInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod JobExecutionStageInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobMessage: A particular message pertaining to a Dataflow job.
@@ -2850,9 +2996,9 @@ type JobMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobMessage) MarshalJSON() ([]byte, error) {
+func (s JobMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod JobMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobMetadata: Metadata available primarily for filtering jobs. Will be
@@ -2890,9 +3036,9 @@ type JobMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobMetadata) MarshalJSON() ([]byte, error) {
+func (s JobMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod JobMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobMetrics: JobMetrics contains a collection of metrics describing the
@@ -2924,9 +3070,9 @@ type JobMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobMetrics) MarshalJSON() ([]byte, error) {
+func (s JobMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod JobMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyRangeDataDiskAssignment: Data disk assignment information for a specific
@@ -2955,9 +3101,9 @@ type KeyRangeDataDiskAssignment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyRangeDataDiskAssignment) MarshalJSON() ([]byte, error) {
+func (s KeyRangeDataDiskAssignment) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyRangeDataDiskAssignment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyRangeLocation: Location information for a specific key-range of a sharded
@@ -2993,9 +3139,9 @@ type KeyRangeLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyRangeLocation) MarshalJSON() ([]byte, error) {
+func (s KeyRangeLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyRangeLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LaunchFlexTemplateParameter: Launch FlexTemplate Parameter.
@@ -3035,9 +3181,9 @@ type LaunchFlexTemplateParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LaunchFlexTemplateParameter) MarshalJSON() ([]byte, error) {
+func (s LaunchFlexTemplateParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod LaunchFlexTemplateParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LaunchFlexTemplateRequest: A request to launch a Cloud Dataflow job from a
@@ -3061,9 +3207,9 @@ type LaunchFlexTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LaunchFlexTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s LaunchFlexTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LaunchFlexTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LaunchFlexTemplateResponse: Response to the request to launch a job from
@@ -3088,9 +3234,9 @@ type LaunchFlexTemplateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LaunchFlexTemplateResponse) MarshalJSON() ([]byte, error) {
+func (s LaunchFlexTemplateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LaunchFlexTemplateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LaunchTemplateParameters: Parameters to provide to the template being
@@ -3125,9 +3271,9 @@ type LaunchTemplateParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LaunchTemplateParameters) MarshalJSON() ([]byte, error) {
+func (s LaunchTemplateParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod LaunchTemplateParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LaunchTemplateResponse: Response to the request to launch a template.
@@ -3151,9 +3297,9 @@ type LaunchTemplateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LaunchTemplateResponse) MarshalJSON() ([]byte, error) {
+func (s LaunchTemplateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LaunchTemplateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LeaseWorkItemRequest: Request to lease WorkItems.
@@ -3164,6 +3310,9 @@ type LeaseWorkItemRequest struct {
 	// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints) that
 	// contains the WorkItem's job.
 	Location string `json:"location,omitempty"`
+	// ProjectNumber: Optional. The project number of the project this worker
+	// belongs to.
+	ProjectNumber int64 `json:"projectNumber,omitempty,string"`
 	// RequestedLeaseDuration: The initial lease period.
 	RequestedLeaseDuration string `json:"requestedLeaseDuration,omitempty"`
 	// UnifiedWorkerRequest: Untranslated bag-of-bytes WorkRequest from
@@ -3190,9 +3339,9 @@ type LeaseWorkItemRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LeaseWorkItemRequest) MarshalJSON() ([]byte, error) {
+func (s LeaseWorkItemRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LeaseWorkItemRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LeaseWorkItemResponse: Response to a request to lease WorkItems.
@@ -3218,9 +3367,9 @@ type LeaseWorkItemResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LeaseWorkItemResponse) MarshalJSON() ([]byte, error) {
+func (s LeaseWorkItemResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LeaseWorkItemResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Linear: Linear buckets with the following boundaries for indices in 0 to
@@ -3245,9 +3394,9 @@ type Linear struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Linear) MarshalJSON() ([]byte, error) {
+func (s Linear) MarshalJSON() ([]byte, error) {
 	type NoMethod Linear
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Linear) UnmarshalJSON(data []byte) error {
@@ -3291,9 +3440,9 @@ type ListJobMessagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListJobMessagesResponse) MarshalJSON() ([]byte, error) {
+func (s ListJobMessagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListJobMessagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListJobsResponse: Response to a request to list Cloud Dataflow jobs in a
@@ -3326,9 +3475,9 @@ type ListJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListJobsResponse) MarshalJSON() ([]byte, error) {
+func (s ListJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSnapshotsResponse: List of snapshots.
@@ -3351,9 +3500,9 @@ type ListSnapshotsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSnapshotsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSnapshotsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSnapshotsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MapTask: MapTask consists of an ordered set of instructions, each of which
@@ -3384,9 +3533,9 @@ type MapTask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MapTask) MarshalJSON() ([]byte, error) {
+func (s MapTask) MarshalJSON() ([]byte, error) {
 	type NoMethod MapTask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MemInfo: Information about the memory usage of a worker or a container
@@ -3416,9 +3565,9 @@ type MemInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MemInfo) MarshalJSON() ([]byte, error) {
+func (s MemInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod MemInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricShortId: The metric short id is returned to the user alongside an
@@ -3442,9 +3591,9 @@ type MetricShortId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricShortId) MarshalJSON() ([]byte, error) {
+func (s MetricShortId) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricShortId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricStructuredName: Identifies a metric, by describing the source which
@@ -3475,9 +3624,9 @@ type MetricStructuredName struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricStructuredName) MarshalJSON() ([]byte, error) {
+func (s MetricStructuredName) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricStructuredName
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricUpdate: Describes the state of a metric.
@@ -3520,9 +3669,12 @@ type MetricUpdate struct {
 	Scalar interface{} `json:"scalar,omitempty"`
 	// Set: Worker-computed aggregate value for the "Set" aggregation kind. The
 	// only possible value type is a list of Values whose type can be Long, Double,
-	// or String, according to the metric's type. All Values in the list must be of
-	// the same type.
+	// String, or BoundedTrie according to the metric's type. All Values in the
+	// list must be of the same type.
 	Set interface{} `json:"set,omitempty"`
+	// Trie: Worker-computed aggregate value for the "Trie" aggregation kind. The
+	// only possible value type is a BoundedTrieNode.
+	Trie interface{} `json:"trie,omitempty"`
 	// UpdateTime: Timestamp associated with the metric value. Optional when
 	// workers are reporting work progress; it will be filled in responses from the
 	// metrics API.
@@ -3540,9 +3692,9 @@ type MetricUpdate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricUpdate) MarshalJSON() ([]byte, error) {
+func (s MetricUpdate) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricUpdate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricValue: The value of a metric along with its name and labels.
@@ -3551,6 +3703,8 @@ type MetricValue struct {
 	Metric string `json:"metric,omitempty"`
 	// MetricLabels: Optional. Set of metric labels for this metric.
 	MetricLabels map[string]string `json:"metricLabels,omitempty"`
+	// ValueGauge64: Non-cumulative int64 value of this metric.
+	ValueGauge64 *DataflowGaugeValue `json:"valueGauge64,omitempty"`
 	// ValueHistogram: Histogram value of this metric.
 	ValueHistogram *DataflowHistogramValue `json:"valueHistogram,omitempty"`
 	// ValueInt64: Integer value of this metric.
@@ -3568,9 +3722,9 @@ type MetricValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricValue) MarshalJSON() ([]byte, error) {
+func (s MetricValue) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MountedDataDisk: Describes mounted data disk.
@@ -3592,9 +3746,9 @@ type MountedDataDisk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MountedDataDisk) MarshalJSON() ([]byte, error) {
+func (s MountedDataDisk) MarshalJSON() ([]byte, error) {
 	type NoMethod MountedDataDisk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultiOutputInfo: Information about an output of a multi-output DoFn.
@@ -3615,9 +3769,9 @@ type MultiOutputInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiOutputInfo) MarshalJSON() ([]byte, error) {
+func (s MultiOutputInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiOutputInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NameAndKind: Basic metadata about a counter.
@@ -3654,9 +3808,9 @@ type NameAndKind struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NameAndKind) MarshalJSON() ([]byte, error) {
+func (s NameAndKind) MarshalJSON() ([]byte, error) {
 	type NoMethod NameAndKind
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OutlierStats: Statistics for the underflow and overflow bucket.
@@ -3684,9 +3838,9 @@ type OutlierStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OutlierStats) MarshalJSON() ([]byte, error) {
+func (s OutlierStats) MarshalJSON() ([]byte, error) {
 	type NoMethod OutlierStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *OutlierStats) UnmarshalJSON(data []byte) error {
@@ -3732,9 +3886,9 @@ type Package struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Package) MarshalJSON() ([]byte, error) {
+func (s Package) MarshalJSON() ([]byte, error) {
 	type NoMethod Package
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParDoInstruction: An instruction that does a ParDo operation. Takes one main
@@ -3765,9 +3919,9 @@ type ParDoInstruction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParDoInstruction) MarshalJSON() ([]byte, error) {
+func (s ParDoInstruction) MarshalJSON() ([]byte, error) {
 	type NoMethod ParDoInstruction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParallelInstruction: Describes a particular operation comprising a MapTask.
@@ -3806,9 +3960,9 @@ type ParallelInstruction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParallelInstruction) MarshalJSON() ([]byte, error) {
+func (s ParallelInstruction) MarshalJSON() ([]byte, error) {
 	type NoMethod ParallelInstruction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Parameter: Structured data associated with this message.
@@ -3830,9 +3984,9 @@ type Parameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Parameter) MarshalJSON() ([]byte, error) {
+func (s Parameter) MarshalJSON() ([]byte, error) {
 	type NoMethod Parameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParameterMetadata: Metadata for a specific parameter.
@@ -3927,9 +4081,9 @@ type ParameterMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParameterMetadata) MarshalJSON() ([]byte, error) {
+func (s ParameterMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ParameterMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParameterMetadataEnumOption: ParameterMetadataEnumOption specifies the
@@ -3954,9 +4108,9 @@ type ParameterMetadataEnumOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParameterMetadataEnumOption) MarshalJSON() ([]byte, error) {
+func (s ParameterMetadataEnumOption) MarshalJSON() ([]byte, error) {
 	type NoMethod ParameterMetadataEnumOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartialGroupByKeyInstruction: An instruction that does a partial
@@ -3992,9 +4146,9 @@ type PartialGroupByKeyInstruction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartialGroupByKeyInstruction) MarshalJSON() ([]byte, error) {
+func (s PartialGroupByKeyInstruction) MarshalJSON() ([]byte, error) {
 	type NoMethod PartialGroupByKeyInstruction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerStepNamespaceMetrics: Metrics for a particular unfused step and
@@ -4022,9 +4176,9 @@ type PerStepNamespaceMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerStepNamespaceMetrics) MarshalJSON() ([]byte, error) {
+func (s PerStepNamespaceMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod PerStepNamespaceMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerWorkerMetrics: Per worker metrics.
@@ -4045,9 +4199,9 @@ type PerWorkerMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerWorkerMetrics) MarshalJSON() ([]byte, error) {
+func (s PerWorkerMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod PerWorkerMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PipelineDescription: A descriptive representation of submitted pipeline as
@@ -4078,9 +4232,9 @@ type PipelineDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PipelineDescription) MarshalJSON() ([]byte, error) {
+func (s PipelineDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod PipelineDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Point: A point in the timeseries.
@@ -4102,9 +4256,9 @@ type Point struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Point) MarshalJSON() ([]byte, error) {
+func (s Point) MarshalJSON() ([]byte, error) {
 	type NoMethod Point
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Point) UnmarshalJSON(data []byte) error {
@@ -4152,9 +4306,9 @@ type Position struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Position) MarshalJSON() ([]byte, error) {
+func (s Position) MarshalJSON() ([]byte, error) {
 	type NoMethod Position
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProgressTimeseries: Information about the progress of some component of job
@@ -4178,9 +4332,9 @@ type ProgressTimeseries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProgressTimeseries) MarshalJSON() ([]byte, error) {
+func (s ProgressTimeseries) MarshalJSON() ([]byte, error) {
 	type NoMethod ProgressTimeseries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ProgressTimeseries) UnmarshalJSON(data []byte) error {
@@ -4216,9 +4370,9 @@ type PubSubIODetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PubSubIODetails) MarshalJSON() ([]byte, error) {
+func (s PubSubIODetails) MarshalJSON() ([]byte, error) {
 	type NoMethod PubSubIODetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PubsubLocation: Identifies a pubsub location to use for transferring data
@@ -4258,9 +4412,9 @@ type PubsubLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PubsubLocation) MarshalJSON() ([]byte, error) {
+func (s PubsubLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod PubsubLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PubsubSnapshotMetadata: Represents a Pubsub snapshot.
@@ -4284,9 +4438,9 @@ type PubsubSnapshotMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PubsubSnapshotMetadata) MarshalJSON() ([]byte, error) {
+func (s PubsubSnapshotMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod PubsubSnapshotMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadInstruction: An instruction that reads records. Takes no inputs,
@@ -4307,9 +4461,9 @@ type ReadInstruction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadInstruction) MarshalJSON() ([]byte, error) {
+func (s ReadInstruction) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadInstruction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportWorkItemStatusRequest: Request to report the status of WorkItems.
@@ -4320,6 +4474,9 @@ type ReportWorkItemStatusRequest struct {
 	// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints) that
 	// contains the WorkItem's job.
 	Location string `json:"location,omitempty"`
+	// ProjectNumber: Optional. The project number of the project which owns the
+	// WorkItem's job.
+	ProjectNumber int64 `json:"projectNumber,omitempty,string"`
 	// UnifiedWorkerRequest: Untranslated bag-of-bytes WorkProgressUpdateRequest
 	// from UnifiedWorker.
 	UnifiedWorkerRequest googleapi.RawMessage `json:"unifiedWorkerRequest,omitempty"`
@@ -4345,9 +4502,9 @@ type ReportWorkItemStatusRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportWorkItemStatusRequest) MarshalJSON() ([]byte, error) {
+func (s ReportWorkItemStatusRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportWorkItemStatusRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportWorkItemStatusResponse: Response from a request to report the status
@@ -4377,9 +4534,9 @@ type ReportWorkItemStatusResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportWorkItemStatusResponse) MarshalJSON() ([]byte, error) {
+func (s ReportWorkItemStatusResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportWorkItemStatusResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportedParallelism: Represents the level of parallelism in a WorkItem's
@@ -4406,9 +4563,9 @@ type ReportedParallelism struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportedParallelism) MarshalJSON() ([]byte, error) {
+func (s ReportedParallelism) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportedParallelism
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ReportedParallelism) UnmarshalJSON(data []byte) error {
@@ -4433,6 +4590,8 @@ type ResourceUtilizationReport struct {
 	Containers map[string]ResourceUtilizationReport `json:"containers,omitempty"`
 	// CpuTime: CPU utilization samples.
 	CpuTime []*CPUTime `json:"cpuTime,omitempty"`
+	// GpuUsage: Optional. GPU usage samples.
+	GpuUsage []*GPUUsage `json:"gpuUsage,omitempty"`
 	// MemoryInfo: Memory utilization samples.
 	MemoryInfo []*MemInfo `json:"memoryInfo,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Containers") to
@@ -4448,9 +4607,9 @@ type ResourceUtilizationReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResourceUtilizationReport) MarshalJSON() ([]byte, error) {
+func (s ResourceUtilizationReport) MarshalJSON() ([]byte, error) {
 	type NoMethod ResourceUtilizationReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResourceUtilizationReportResponse: Service-side response to WorkerMessage
@@ -4458,11 +4617,14 @@ func (s *ResourceUtilizationReport) MarshalJSON() ([]byte, error) {
 type ResourceUtilizationReportResponse struct {
 }
 
-// RuntimeEnvironment: The environment values to set at runtime. LINT.IfChange
+// RuntimeEnvironment: The environment values to set at runtime.
 type RuntimeEnvironment struct {
 	// AdditionalExperiments: Optional. Additional experiment flags for the job,
 	// specified with the `--experiments` option.
 	AdditionalExperiments []string `json:"additionalExperiments,omitempty"`
+	// AdditionalPipelineOptions: Optional. Additional pipeline option flags for
+	// the job.
+	AdditionalPipelineOptions []string `json:"additionalPipelineOptions,omitempty"`
 	// AdditionalUserLabels: Optional. Additional user labels to be specified for
 	// the job. Keys and values should follow the restrictions specified in the
 	// labeling restrictions
@@ -4564,9 +4726,9 @@ type RuntimeEnvironment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuntimeEnvironment) MarshalJSON() ([]byte, error) {
+func (s RuntimeEnvironment) MarshalJSON() ([]byte, error) {
 	type NoMethod RuntimeEnvironment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuntimeMetadata: RuntimeMetadata describing a runtime environment.
@@ -4588,9 +4750,9 @@ type RuntimeMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuntimeMetadata) MarshalJSON() ([]byte, error) {
+func (s RuntimeMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod RuntimeMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuntimeUpdatableParams: Additional job parameters that can only be updated
@@ -4622,9 +4784,9 @@ type RuntimeUpdatableParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuntimeUpdatableParams) MarshalJSON() ([]byte, error) {
+func (s RuntimeUpdatableParams) MarshalJSON() ([]byte, error) {
 	type NoMethod RuntimeUpdatableParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *RuntimeUpdatableParams) UnmarshalJSON(data []byte) error {
@@ -4650,6 +4812,7 @@ type SDKInfo struct {
 	//   "JAVA" - Java.
 	//   "PYTHON" - Python.
 	//   "GO" - Go.
+	//   "YAML" - YAML.
 	Language string `json:"language,omitempty"`
 	// Version: Optional. The SDK version.
 	Version string `json:"version,omitempty"`
@@ -4666,9 +4829,9 @@ type SDKInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SDKInfo) MarshalJSON() ([]byte, error) {
+func (s SDKInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SDKInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SdkBug: A bug found in the Dataflow SDK.
@@ -4709,9 +4872,9 @@ type SdkBug struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SdkBug) MarshalJSON() ([]byte, error) {
+func (s SdkBug) MarshalJSON() ([]byte, error) {
 	type NoMethod SdkBug
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SdkHarnessContainerImage: Defines an SDK harness container for executing
@@ -4746,9 +4909,9 @@ type SdkHarnessContainerImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SdkHarnessContainerImage) MarshalJSON() ([]byte, error) {
+func (s SdkHarnessContainerImage) MarshalJSON() ([]byte, error) {
 	type NoMethod SdkHarnessContainerImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SdkVersion: The version of the SDK used to run the job.
@@ -4784,9 +4947,9 @@ type SdkVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SdkVersion) MarshalJSON() ([]byte, error) {
+func (s SdkVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod SdkVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SendDebugCaptureRequest: Request to send encoded debug information. Next ID:
@@ -4826,9 +4989,9 @@ type SendDebugCaptureRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SendDebugCaptureRequest) MarshalJSON() ([]byte, error) {
+func (s SendDebugCaptureRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SendDebugCaptureRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SendDebugCaptureResponse: Response to a send capture request. nothing
@@ -4859,9 +5022,9 @@ type SendWorkerMessagesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SendWorkerMessagesRequest) MarshalJSON() ([]byte, error) {
+func (s SendWorkerMessagesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SendWorkerMessagesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SendWorkerMessagesResponse: The response to the worker messages.
@@ -4884,9 +5047,9 @@ type SendWorkerMessagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SendWorkerMessagesResponse) MarshalJSON() ([]byte, error) {
+func (s SendWorkerMessagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SendWorkerMessagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SeqMapTask: Describes a particular function to invoke.
@@ -4918,9 +5081,9 @@ type SeqMapTask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeqMapTask) MarshalJSON() ([]byte, error) {
+func (s SeqMapTask) MarshalJSON() ([]byte, error) {
 	type NoMethod SeqMapTask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SeqMapTaskOutputInfo: Information about an output of a SeqMapTask.
@@ -4942,9 +5105,32 @@ type SeqMapTaskOutputInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeqMapTaskOutputInfo) MarshalJSON() ([]byte, error) {
+func (s SeqMapTaskOutputInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SeqMapTaskOutputInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ServiceResources: Resources used by the Dataflow Service to run the job.
+type ServiceResources struct {
+	// Zones: Output only. List of Cloud Zones being used by the Dataflow Service
+	// for this job. Example: us-central1-c
+	Zones []string `json:"zones,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Zones") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Zones") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ServiceResources) MarshalJSON() ([]byte, error) {
+	type NoMethod ServiceResources
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ShellTask: A task which consists of a shell command for the worker to
@@ -4967,9 +5153,9 @@ type ShellTask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ShellTask) MarshalJSON() ([]byte, error) {
+func (s ShellTask) MarshalJSON() ([]byte, error) {
 	type NoMethod ShellTask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SideInputInfo: Information about a side input of a DoFn or an input of a
@@ -4998,9 +5184,9 @@ type SideInputInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SideInputInfo) MarshalJSON() ([]byte, error) {
+func (s SideInputInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SideInputInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Sink: A sink that records can be encoded and written to.
@@ -5022,9 +5208,9 @@ type Sink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Sink) MarshalJSON() ([]byte, error) {
+func (s Sink) MarshalJSON() ([]byte, error) {
 	type NoMethod Sink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Snapshot: Represents a snapshot of a job.
@@ -5075,9 +5261,9 @@ type Snapshot struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Snapshot) MarshalJSON() ([]byte, error) {
+func (s Snapshot) MarshalJSON() ([]byte, error) {
 	type NoMethod Snapshot
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SnapshotJobRequest: Request to create a snapshot of a job.
@@ -5103,9 +5289,9 @@ type SnapshotJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SnapshotJobRequest) MarshalJSON() ([]byte, error) {
+func (s SnapshotJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SnapshotJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Source: A source that records can be read and decoded from.
@@ -5152,9 +5338,9 @@ type Source struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Source) MarshalJSON() ([]byte, error) {
+func (s Source) MarshalJSON() ([]byte, error) {
 	type NoMethod Source
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceFork: DEPRECATED in favor of DynamicSourceSplit.
@@ -5180,9 +5366,9 @@ type SourceFork struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceFork) MarshalJSON() ([]byte, error) {
+func (s SourceFork) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceFork
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceGetMetadataRequest: A request to compute the SourceMetadata of a
@@ -5203,9 +5389,9 @@ type SourceGetMetadataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceGetMetadataRequest) MarshalJSON() ([]byte, error) {
+func (s SourceGetMetadataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceGetMetadataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceGetMetadataResponse: The result of a SourceGetMetadataOperation.
@@ -5225,9 +5411,9 @@ type SourceGetMetadataResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceGetMetadataResponse) MarshalJSON() ([]byte, error) {
+func (s SourceGetMetadataResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceGetMetadataResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceMetadata: Metadata about a Source useful for automatically optimizing
@@ -5257,9 +5443,9 @@ type SourceMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceMetadata) MarshalJSON() ([]byte, error) {
+func (s SourceMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceOperationRequest: A work item that represents the different operations
@@ -5293,9 +5479,9 @@ type SourceOperationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceOperationRequest) MarshalJSON() ([]byte, error) {
+func (s SourceOperationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceOperationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceOperationResponse: The result of a SourceOperationRequest, specified
@@ -5319,9 +5505,9 @@ type SourceOperationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceOperationResponse) MarshalJSON() ([]byte, error) {
+func (s SourceOperationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceOperationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceSplitOptions: Hints for splitting a Source into bundles (parts for
@@ -5345,9 +5531,9 @@ type SourceSplitOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceSplitOptions) MarshalJSON() ([]byte, error) {
+func (s SourceSplitOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceSplitOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceSplitRequest: Represents the operation to split a high-level Source
@@ -5379,9 +5565,9 @@ type SourceSplitRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceSplitRequest) MarshalJSON() ([]byte, error) {
+func (s SourceSplitRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceSplitRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceSplitResponse: The response to a SourceSplitRequest.
@@ -5419,9 +5605,9 @@ type SourceSplitResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceSplitResponse) MarshalJSON() ([]byte, error) {
+func (s SourceSplitResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceSplitResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceSplitShard: DEPRECATED in favor of DerivedSource.
@@ -5453,9 +5639,9 @@ type SourceSplitShard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceSplitShard) MarshalJSON() ([]byte, error) {
+func (s SourceSplitShard) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceSplitShard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SpannerIODetails: Metadata for a Spanner connector used by the job.
@@ -5479,9 +5665,9 @@ type SpannerIODetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpannerIODetails) MarshalJSON() ([]byte, error) {
+func (s SpannerIODetails) MarshalJSON() ([]byte, error) {
 	type NoMethod SpannerIODetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SplitInt64: A representation of an int64, n, that is immune to precision
@@ -5504,9 +5690,9 @@ type SplitInt64 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SplitInt64) MarshalJSON() ([]byte, error) {
+func (s SplitInt64) MarshalJSON() ([]byte, error) {
 	type NoMethod SplitInt64
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StageExecutionDetails: Information about the workers and work items within a
@@ -5534,9 +5720,9 @@ type StageExecutionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StageExecutionDetails) MarshalJSON() ([]byte, error) {
+func (s StageExecutionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod StageExecutionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StageSource: Description of an input or output of an execution stage.
@@ -5564,9 +5750,9 @@ type StageSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StageSource) MarshalJSON() ([]byte, error) {
+func (s StageSource) MarshalJSON() ([]byte, error) {
 	type NoMethod StageSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StageSummary: Information about a particular execution stage of a job.
@@ -5607,9 +5793,9 @@ type StageSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StageSummary) MarshalJSON() ([]byte, error) {
+func (s StageSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod StageSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StateFamilyConfig: State family configuration.
@@ -5631,9 +5817,9 @@ type StateFamilyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StateFamilyConfig) MarshalJSON() ([]byte, error) {
+func (s StateFamilyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod StateFamilyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -5665,9 +5851,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Step: Defines a particular step within a Cloud Dataflow job. A job consists
@@ -5706,9 +5892,9 @@ type Step struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Step) MarshalJSON() ([]byte, error) {
+func (s Step) MarshalJSON() ([]byte, error) {
 	type NoMethod Step
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Straggler: Information for a straggler.
@@ -5731,9 +5917,9 @@ type Straggler struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Straggler) MarshalJSON() ([]byte, error) {
+func (s Straggler) MarshalJSON() ([]byte, error) {
 	type NoMethod Straggler
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StragglerDebuggingInfo: Information useful for debugging a straggler. Each
@@ -5756,9 +5942,9 @@ type StragglerDebuggingInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StragglerDebuggingInfo) MarshalJSON() ([]byte, error) {
+func (s StragglerDebuggingInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod StragglerDebuggingInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StragglerInfo: Information useful for straggler identification and
@@ -5783,9 +5969,9 @@ type StragglerInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StragglerInfo) MarshalJSON() ([]byte, error) {
+func (s StragglerInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod StragglerInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StragglerSummary: Summarized straggler identification details.
@@ -5810,9 +5996,9 @@ type StragglerSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StragglerSummary) MarshalJSON() ([]byte, error) {
+func (s StragglerSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod StragglerSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamLocation: Describes a stream of data, either as input to be processed
@@ -5840,9 +6026,9 @@ type StreamLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamLocation) MarshalJSON() ([]byte, error) {
+func (s StreamLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingApplianceSnapshotConfig: Streaming appliance snapshot
@@ -5867,9 +6053,9 @@ type StreamingApplianceSnapshotConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingApplianceSnapshotConfig) MarshalJSON() ([]byte, error) {
+func (s StreamingApplianceSnapshotConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingApplianceSnapshotConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingComputationConfig: Configuration information for a single streaming
@@ -5899,9 +6085,9 @@ type StreamingComputationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingComputationConfig) MarshalJSON() ([]byte, error) {
+func (s StreamingComputationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingComputationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingComputationRanges: Describes full or partial data disk assignment
@@ -5924,9 +6110,9 @@ type StreamingComputationRanges struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingComputationRanges) MarshalJSON() ([]byte, error) {
+func (s StreamingComputationRanges) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingComputationRanges
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingComputationTask: A task which describes what action should be
@@ -5960,9 +6146,9 @@ type StreamingComputationTask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingComputationTask) MarshalJSON() ([]byte, error) {
+func (s StreamingComputationTask) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingComputationTask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingConfigTask: A task that carries configuration information for
@@ -5984,6 +6170,12 @@ type StreamingConfigTask struct {
 	StreamingComputationConfigs []*StreamingComputationConfig `json:"streamingComputationConfigs,omitempty"`
 	// UserStepToStateFamilyNameMap: Map from user step names to state families.
 	UserStepToStateFamilyNameMap map[string]string `json:"userStepToStateFamilyNameMap,omitempty"`
+	// UserWorkerRunnerV1Settings: Binary encoded proto to control runtime behavior
+	// of the java runner v1 user worker.
+	UserWorkerRunnerV1Settings string `json:"userWorkerRunnerV1Settings,omitempty"`
+	// UserWorkerRunnerV2Settings: Binary encoded proto to control runtime behavior
+	// of the runner v2 user worker.
+	UserWorkerRunnerV2Settings string `json:"userWorkerRunnerV2Settings,omitempty"`
 	// WindmillServiceEndpoint: If present, the worker must use this endpoint to
 	// communicate with Windmill Service dispatchers, otherwise the worker must
 	// continue to use whatever endpoint it had been using.
@@ -6005,9 +6197,9 @@ type StreamingConfigTask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingConfigTask) MarshalJSON() ([]byte, error) {
+func (s StreamingConfigTask) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingConfigTask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingOperationalLimits: Operational limits imposed on streaming jobs by
@@ -6043,9 +6235,9 @@ type StreamingOperationalLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingOperationalLimits) MarshalJSON() ([]byte, error) {
+func (s StreamingOperationalLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingOperationalLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingScalingReport: Contains per-user worker telemetry used in streaming
@@ -6079,9 +6271,9 @@ type StreamingScalingReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingScalingReport) MarshalJSON() ([]byte, error) {
+func (s StreamingScalingReport) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingScalingReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingScalingReportResponse: Contains per-user-worker streaming scaling
@@ -6102,9 +6294,9 @@ type StreamingScalingReportResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingScalingReportResponse) MarshalJSON() ([]byte, error) {
+func (s StreamingScalingReportResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingScalingReportResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingSetupTask: A task which initializes part of a streaming Dataflow
@@ -6136,9 +6328,9 @@ type StreamingSetupTask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingSetupTask) MarshalJSON() ([]byte, error) {
+func (s StreamingSetupTask) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingSetupTask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingSideInputLocation: Identifies the location of a streaming side
@@ -6161,9 +6353,9 @@ type StreamingSideInputLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingSideInputLocation) MarshalJSON() ([]byte, error) {
+func (s StreamingSideInputLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingSideInputLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingStageLocation: Identifies the location of a streaming computation
@@ -6185,9 +6377,9 @@ type StreamingStageLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingStageLocation) MarshalJSON() ([]byte, error) {
+func (s StreamingStageLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingStageLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamingStragglerInfo: Information useful for streaming straggler
@@ -6218,9 +6410,9 @@ type StreamingStragglerInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamingStragglerInfo) MarshalJSON() ([]byte, error) {
+func (s StreamingStragglerInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamingStragglerInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StringList: A metric value representing a list of strings.
@@ -6240,9 +6432,9 @@ type StringList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StringList) MarshalJSON() ([]byte, error) {
+func (s StringList) MarshalJSON() ([]byte, error) {
 	type NoMethod StringList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StructuredMessage: A rich message format, including a human readable string,
@@ -6269,9 +6461,9 @@ type StructuredMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StructuredMessage) MarshalJSON() ([]byte, error) {
+func (s StructuredMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod StructuredMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TaskRunnerSettings: Taskrunner configuration settings.
@@ -6342,9 +6534,9 @@ type TaskRunnerSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TaskRunnerSettings) MarshalJSON() ([]byte, error) {
+func (s TaskRunnerSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod TaskRunnerSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TemplateMetadata: Metadata describing a template.
@@ -6368,6 +6560,8 @@ type TemplateMetadata struct {
 	// SupportsExactlyOnce: Optional. Indicates if the streaming template supports
 	// exactly once mode.
 	SupportsExactlyOnce bool `json:"supportsExactlyOnce,omitempty"`
+	// YamlDefinition: Optional. For future use.
+	YamlDefinition string `json:"yamlDefinition,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DefaultStreamingMode") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -6381,9 +6575,9 @@ type TemplateMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TemplateMetadata) MarshalJSON() ([]byte, error) {
+func (s TemplateMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod TemplateMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TopologyConfig: Global topology of the streaming Dataflow job, including all
@@ -6414,9 +6608,9 @@ type TopologyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TopologyConfig) MarshalJSON() ([]byte, error) {
+func (s TopologyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TopologyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransformSummary: Description of the type, names/ids, and input/outputs for
@@ -6461,9 +6655,9 @@ type TransformSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransformSummary) MarshalJSON() ([]byte, error) {
+func (s TransformSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod TransformSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkItem: WorkItem represents basic information about a WorkItem to be
@@ -6516,9 +6710,9 @@ type WorkItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkItem) MarshalJSON() ([]byte, error) {
+func (s WorkItem) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkItemDetails: Information about an individual work item execution.
@@ -6562,9 +6756,9 @@ type WorkItemDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkItemDetails) MarshalJSON() ([]byte, error) {
+func (s WorkItemDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkItemDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkItemServiceState: The Dataflow service's idea of the current state of a
@@ -6617,9 +6811,9 @@ type WorkItemServiceState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkItemServiceState) MarshalJSON() ([]byte, error) {
+func (s WorkItemServiceState) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkItemServiceState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkItemStatus: Conveys a worker's progress through the work described by a
@@ -6703,9 +6897,9 @@ type WorkItemStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkItemStatus) MarshalJSON() ([]byte, error) {
+func (s WorkItemStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkItemStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *WorkItemStatus) UnmarshalJSON(data []byte) error {
@@ -6741,9 +6935,9 @@ type WorkerDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerDetails) MarshalJSON() ([]byte, error) {
+func (s WorkerDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerHealthReport: WorkerHealthReport contains information about the health
@@ -6785,9 +6979,9 @@ type WorkerHealthReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerHealthReport) MarshalJSON() ([]byte, error) {
+func (s WorkerHealthReport) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerHealthReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerHealthReportResponse: WorkerHealthReportResponse contains information
@@ -6810,9 +7004,9 @@ type WorkerHealthReportResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerHealthReportResponse) MarshalJSON() ([]byte, error) {
+func (s WorkerHealthReportResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerHealthReportResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerLifecycleEvent: A report of an event in a worker's lifecycle. The
@@ -6855,9 +7049,9 @@ type WorkerLifecycleEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerLifecycleEvent) MarshalJSON() ([]byte, error) {
+func (s WorkerLifecycleEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerLifecycleEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerMessage: WorkerMessage provides information to the backend about a
@@ -6906,9 +7100,9 @@ type WorkerMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerMessage) MarshalJSON() ([]byte, error) {
+func (s WorkerMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerMessageCode: A message code is used to report status and error
@@ -6952,9 +7146,9 @@ type WorkerMessageCode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerMessageCode) MarshalJSON() ([]byte, error) {
+func (s WorkerMessageCode) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerMessageCode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerMessageResponse: A worker_message response allows the server to pass
@@ -6989,9 +7183,9 @@ type WorkerMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerMessageResponse) MarshalJSON() ([]byte, error) {
+func (s WorkerMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerPool: Describes one particular pool of Cloud Dataflow workers to be
@@ -7113,9 +7307,9 @@ type WorkerPool struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerPool) MarshalJSON() ([]byte, error) {
+func (s WorkerPool) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerPool
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerSettings: Provides data to pass through to the worker harness.
@@ -7155,9 +7349,9 @@ type WorkerSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerSettings) MarshalJSON() ([]byte, error) {
+func (s WorkerSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerShutdownNotice: Shutdown notification from workers. This is to be sent
@@ -7181,9 +7375,9 @@ type WorkerShutdownNotice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerShutdownNotice) MarshalJSON() ([]byte, error) {
+func (s WorkerShutdownNotice) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerShutdownNotice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerShutdownNoticeResponse: Service-side response to WorkerMessage issuing
@@ -7209,9 +7403,9 @@ type WorkerThreadScalingReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerThreadScalingReport) MarshalJSON() ([]byte, error) {
+func (s WorkerThreadScalingReport) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerThreadScalingReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkerThreadScalingReportResponse: Contains the thread scaling
@@ -7232,9 +7426,9 @@ type WorkerThreadScalingReportResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerThreadScalingReportResponse) MarshalJSON() ([]byte, error) {
+func (s WorkerThreadScalingReportResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerThreadScalingReportResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WriteInstruction: An instruction that writes records. Takes one input,
@@ -7257,9 +7451,9 @@ type WriteInstruction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WriteInstruction) MarshalJSON() ([]byte, error) {
+func (s WriteInstruction) MarshalJSON() ([]byte, error) {
 	type NoMethod WriteInstruction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsDeleteSnapshotsCall struct {
@@ -7318,12 +7512,11 @@ func (c *ProjectsDeleteSnapshotsCall) Header() http.Header {
 
 func (c *ProjectsDeleteSnapshotsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/snapshots")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7331,6 +7524,7 @@ func (c *ProjectsDeleteSnapshotsCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.deleteSnapshots", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7366,9 +7560,11 @@ func (c *ProjectsDeleteSnapshotsCall) Do(opts ...googleapi.CallOption) (*DeleteS
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.deleteSnapshots", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7416,8 +7612,7 @@ func (c *ProjectsWorkerMessagesCall) Header() http.Header {
 
 func (c *ProjectsWorkerMessagesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sendworkermessagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sendworkermessagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7433,6 +7628,7 @@ func (c *ProjectsWorkerMessagesCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.workerMessages", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7468,9 +7664,11 @@ func (c *ProjectsWorkerMessagesCall) Do(opts ...googleapi.CallOption) (*SendWork
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.workerMessages", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7616,12 +7814,11 @@ func (c *ProjectsJobsAggregatedCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/jobs:aggregated")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7629,6 +7826,7 @@ func (c *ProjectsJobsAggregatedCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.aggregated", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7664,9 +7862,11 @@ func (c *ProjectsJobsAggregatedCall) Do(opts ...googleapi.CallOption) (*ListJobs
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.aggregated", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7787,8 +7987,7 @@ func (c *ProjectsJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.job)
 	if err != nil {
 		return nil, err
 	}
@@ -7804,6 +8003,7 @@ func (c *ProjectsJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7838,9 +8038,11 @@ func (c *ProjectsJobsCreateCall) Do(opts ...googleapi.CallOption) (*Job, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7946,12 +8148,11 @@ func (c *ProjectsJobsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/jobs/{jobId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7960,6 +8161,7 @@ func (c *ProjectsJobsGetCall) doRequest(alt string) (*http.Response, error) {
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7994,9 +8196,11 @@ func (c *ProjectsJobsGetCall) Do(opts ...googleapi.CallOption) (*Job, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8078,12 +8282,11 @@ func (c *ProjectsJobsGetMetricsCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/jobs/{jobId}/metrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8092,6 +8295,7 @@ func (c *ProjectsJobsGetMetricsCall) doRequest(alt string) (*http.Response, erro
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.getMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8126,9 +8330,11 @@ func (c *ProjectsJobsGetMetricsCall) Do(opts ...googleapi.CallOption) (*JobMetri
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.getMetrics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8280,12 +8486,11 @@ func (c *ProjectsJobsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/jobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8293,6 +8498,7 @@ func (c *ProjectsJobsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8328,9 +8534,11 @@ func (c *ProjectsJobsListCall) Do(opts ...googleapi.CallOption) (*ListJobsRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8402,8 +8610,7 @@ func (c *ProjectsJobsSnapshotCall) Header() http.Header {
 
 func (c *ProjectsJobsSnapshotCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.snapshotjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.snapshotjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8420,6 +8627,7 @@ func (c *ProjectsJobsSnapshotCall) doRequest(alt string) (*http.Response, error)
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.snapshot", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8454,9 +8662,11 @@ func (c *ProjectsJobsSnapshotCall) Do(opts ...googleapi.CallOption) (*Snapshot, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.snapshot", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8532,8 +8742,7 @@ func (c *ProjectsJobsUpdateCall) Header() http.Header {
 
 func (c *ProjectsJobsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.job)
 	if err != nil {
 		return nil, err
 	}
@@ -8550,6 +8759,7 @@ func (c *ProjectsJobsUpdateCall) doRequest(alt string) (*http.Response, error) {
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8584,9 +8794,11 @@ func (c *ProjectsJobsUpdateCall) Do(opts ...googleapi.CallOption) (*Job, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8637,8 +8849,7 @@ func (c *ProjectsJobsDebugGetConfigCall) Header() http.Header {
 
 func (c *ProjectsJobsDebugGetConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getdebugconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getdebugconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8655,6 +8866,7 @@ func (c *ProjectsJobsDebugGetConfigCall) doRequest(alt string) (*http.Response, 
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.debug.getConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8690,9 +8902,11 @@ func (c *ProjectsJobsDebugGetConfigCall) Do(opts ...googleapi.CallOption) (*GetD
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.debug.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8743,8 +8957,7 @@ func (c *ProjectsJobsDebugSendCaptureCall) Header() http.Header {
 
 func (c *ProjectsJobsDebugSendCaptureCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.senddebugcapturerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.senddebugcapturerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8761,6 +8974,7 @@ func (c *ProjectsJobsDebugSendCaptureCall) doRequest(alt string) (*http.Response
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.debug.sendCapture", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8796,9 +9010,11 @@ func (c *ProjectsJobsDebugSendCaptureCall) Do(opts ...googleapi.CallOption) (*Se
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.debug.sendCapture", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8948,12 +9164,11 @@ func (c *ProjectsJobsMessagesListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/jobs/{jobId}/messages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8962,6 +9177,7 @@ func (c *ProjectsJobsMessagesListCall) doRequest(alt string) (*http.Response, er
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.messages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8997,9 +9213,11 @@ func (c *ProjectsJobsMessagesListCall) Do(opts ...googleapi.CallOption) (*ListJo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.messages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9071,8 +9289,7 @@ func (c *ProjectsJobsWorkItemsLeaseCall) Header() http.Header {
 
 func (c *ProjectsJobsWorkItemsLeaseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.leaseworkitemrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.leaseworkitemrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9089,6 +9306,7 @@ func (c *ProjectsJobsWorkItemsLeaseCall) doRequest(alt string) (*http.Response, 
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.workItems.lease", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9124,9 +9342,11 @@ func (c *ProjectsJobsWorkItemsLeaseCall) Do(opts ...googleapi.CallOption) (*Leas
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.workItems.lease", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9177,8 +9397,7 @@ func (c *ProjectsJobsWorkItemsReportStatusCall) Header() http.Header {
 
 func (c *ProjectsJobsWorkItemsReportStatusCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportworkitemstatusrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reportworkitemstatusrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9195,6 +9414,7 @@ func (c *ProjectsJobsWorkItemsReportStatusCall) doRequest(alt string) (*http.Res
 		"projectId": c.projectId,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.workItems.reportStatus", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9230,9 +9450,11 @@ func (c *ProjectsJobsWorkItemsReportStatusCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.jobs.workItems.reportStatus", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9285,8 +9507,7 @@ func (c *ProjectsLocationsWorkerMessagesCall) Header() http.Header {
 
 func (c *ProjectsLocationsWorkerMessagesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sendworkermessagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sendworkermessagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9303,6 +9524,7 @@ func (c *ProjectsLocationsWorkerMessagesCall) doRequest(alt string) (*http.Respo
 		"projectId": c.projectId,
 		"location":  c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.workerMessages", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9338,9 +9560,11 @@ func (c *ProjectsLocationsWorkerMessagesCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.workerMessages", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9393,8 +9617,7 @@ func (c *ProjectsLocationsFlexTemplatesLaunchCall) Header() http.Header {
 
 func (c *ProjectsLocationsFlexTemplatesLaunchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.launchflextemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.launchflextemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9411,6 +9634,7 @@ func (c *ProjectsLocationsFlexTemplatesLaunchCall) doRequest(alt string) (*http.
 		"projectId": c.projectId,
 		"location":  c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.flexTemplates.launch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9446,9 +9670,11 @@ func (c *ProjectsLocationsFlexTemplatesLaunchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.flexTemplates.launch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9545,8 +9771,7 @@ func (c *ProjectsLocationsJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.job)
 	if err != nil {
 		return nil, err
 	}
@@ -9563,6 +9788,7 @@ func (c *ProjectsLocationsJobsCreateCall) doRequest(alt string) (*http.Response,
 		"projectId": c.projectId,
 		"location":  c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9597,9 +9823,11 @@ func (c *ProjectsLocationsJobsCreateCall) Do(opts ...googleapi.CallOption) (*Job
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9702,12 +9930,11 @@ func (c *ProjectsLocationsJobsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/jobs/{jobId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9717,6 +9944,7 @@ func (c *ProjectsLocationsJobsGetCall) doRequest(alt string) (*http.Response, er
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9751,9 +9979,11 @@ func (c *ProjectsLocationsJobsGetCall) Do(opts ...googleapi.CallOption) (*Job, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9838,12 +10068,11 @@ func (c *ProjectsLocationsJobsGetExecutionDetailsCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/jobs/{jobId}/executionDetails")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9853,6 +10082,7 @@ func (c *ProjectsLocationsJobsGetExecutionDetailsCall) doRequest(alt string) (*h
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.getExecutionDetails", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9888,9 +10118,11 @@ func (c *ProjectsLocationsJobsGetExecutionDetailsCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.getExecutionDetails", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9990,12 +10222,11 @@ func (c *ProjectsLocationsJobsGetMetricsCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/jobs/{jobId}/metrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10005,6 +10236,7 @@ func (c *ProjectsLocationsJobsGetMetricsCall) doRequest(alt string) (*http.Respo
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.getMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10039,9 +10271,11 @@ func (c *ProjectsLocationsJobsGetMetricsCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.getMetrics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10190,12 +10424,11 @@ func (c *ProjectsLocationsJobsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/jobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10204,6 +10437,7 @@ func (c *ProjectsLocationsJobsListCall) doRequest(alt string) (*http.Response, e
 		"projectId": c.projectId,
 		"location":  c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10239,9 +10473,11 @@ func (c *ProjectsLocationsJobsListCall) Do(opts ...googleapi.CallOption) (*ListJ
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10316,8 +10552,7 @@ func (c *ProjectsLocationsJobsSnapshotCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsSnapshotCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.snapshotjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.snapshotjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10335,6 +10570,7 @@ func (c *ProjectsLocationsJobsSnapshotCall) doRequest(alt string) (*http.Respons
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.snapshot", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10369,9 +10605,11 @@ func (c *ProjectsLocationsJobsSnapshotCall) Do(opts ...googleapi.CallOption) (*S
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.snapshot", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10444,8 +10682,7 @@ func (c *ProjectsLocationsJobsUpdateCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.job)
 	if err != nil {
 		return nil, err
 	}
@@ -10463,6 +10700,7 @@ func (c *ProjectsLocationsJobsUpdateCall) doRequest(alt string) (*http.Response,
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10497,9 +10735,11 @@ func (c *ProjectsLocationsJobsUpdateCall) Do(opts ...googleapi.CallOption) (*Job
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10555,8 +10795,7 @@ func (c *ProjectsLocationsJobsDebugGetConfigCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsDebugGetConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getdebugconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getdebugconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10574,6 +10813,7 @@ func (c *ProjectsLocationsJobsDebugGetConfigCall) doRequest(alt string) (*http.R
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.debug.getConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10609,9 +10849,11 @@ func (c *ProjectsLocationsJobsDebugGetConfigCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.debug.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10667,8 +10909,7 @@ func (c *ProjectsLocationsJobsDebugSendCaptureCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsDebugSendCaptureCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.senddebugcapturerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.senddebugcapturerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10686,6 +10927,7 @@ func (c *ProjectsLocationsJobsDebugSendCaptureCall) doRequest(alt string) (*http
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.debug.sendCapture", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10721,9 +10963,11 @@ func (c *ProjectsLocationsJobsDebugSendCaptureCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.debug.sendCapture", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10870,12 +11114,11 @@ func (c *ProjectsLocationsJobsMessagesListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/jobs/{jobId}/messages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10885,6 +11128,7 @@ func (c *ProjectsLocationsJobsMessagesListCall) doRequest(alt string) (*http.Res
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.messages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10920,9 +11164,11 @@ func (c *ProjectsLocationsJobsMessagesListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.messages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11007,12 +11253,11 @@ func (c *ProjectsLocationsJobsSnapshotsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/jobs/{jobId}/snapshots")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11022,6 +11267,7 @@ func (c *ProjectsLocationsJobsSnapshotsListCall) doRequest(alt string) (*http.Re
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.snapshots.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11057,9 +11303,11 @@ func (c *ProjectsLocationsJobsSnapshotsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.snapshots.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11161,12 +11409,11 @@ func (c *ProjectsLocationsJobsStagesGetExecutionDetailsCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/jobs/{jobId}/stages/{stageId}/executionDetails")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11177,6 +11424,7 @@ func (c *ProjectsLocationsJobsStagesGetExecutionDetailsCall) doRequest(alt strin
 		"jobId":     c.jobId,
 		"stageId":   c.stageId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.stages.getExecutionDetails", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11212,9 +11460,11 @@ func (c *ProjectsLocationsJobsStagesGetExecutionDetailsCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.stages.getExecutionDetails", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11291,8 +11541,7 @@ func (c *ProjectsLocationsJobsWorkItemsLeaseCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsWorkItemsLeaseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.leaseworkitemrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.leaseworkitemrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11310,6 +11559,7 @@ func (c *ProjectsLocationsJobsWorkItemsLeaseCall) doRequest(alt string) (*http.R
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.workItems.lease", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11345,9 +11595,11 @@ func (c *ProjectsLocationsJobsWorkItemsLeaseCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.workItems.lease", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11403,8 +11655,7 @@ func (c *ProjectsLocationsJobsWorkItemsReportStatusCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsWorkItemsReportStatusCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportworkitemstatusrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reportworkitemstatusrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11422,6 +11673,7 @@ func (c *ProjectsLocationsJobsWorkItemsReportStatusCall) doRequest(alt string) (
 		"location":  c.location,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.workItems.reportStatus", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11457,9 +11709,11 @@ func (c *ProjectsLocationsJobsWorkItemsReportStatusCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.jobs.workItems.reportStatus", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11512,12 +11766,11 @@ func (c *ProjectsLocationsSnapshotsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsSnapshotsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/snapshots/{snapshotId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11527,6 +11780,7 @@ func (c *ProjectsLocationsSnapshotsDeleteCall) doRequest(alt string) (*http.Resp
 		"location":   c.location,
 		"snapshotId": c.snapshotId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.snapshots.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11562,9 +11816,11 @@ func (c *ProjectsLocationsSnapshotsDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.snapshots.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11629,12 +11885,11 @@ func (c *ProjectsLocationsSnapshotsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/snapshots/{snapshotId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11644,6 +11899,7 @@ func (c *ProjectsLocationsSnapshotsGetCall) doRequest(alt string) (*http.Respons
 		"location":   c.location,
 		"snapshotId": c.snapshotId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.snapshots.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11678,9 +11934,11 @@ func (c *ProjectsLocationsSnapshotsGetCall) Do(opts ...googleapi.CallOption) (*S
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.snapshots.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11748,12 +12006,11 @@ func (c *ProjectsLocationsSnapshotsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/snapshots")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11762,6 +12019,7 @@ func (c *ProjectsLocationsSnapshotsListCall) doRequest(alt string) (*http.Respon
 		"projectId": c.projectId,
 		"location":  c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.snapshots.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11797,9 +12055,11 @@ func (c *ProjectsLocationsSnapshotsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.snapshots.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11814,7 +12074,12 @@ type ProjectsLocationsTemplatesCreateCall struct {
 }
 
 // Create: Creates a Cloud Dataflow job from a template. Do not enter
-// confidential information when you supply string values using the API.
+// confidential information when you supply string values using the API. To
+// create a job, we recommend using `projects.locations.templates.create` with
+// a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints). Using
+// `projects.templates.create` is not recommended, because your job will always
+// start in `us-central1`.
 //
 //   - location: The [regional endpoint]
 //     (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints) to
@@ -11853,8 +12118,7 @@ func (c *ProjectsLocationsTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createjobfromtemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createjobfromtemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11871,6 +12135,7 @@ func (c *ProjectsLocationsTemplatesCreateCall) doRequest(alt string) (*http.Resp
 		"projectId": c.projectId,
 		"location":  c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.templates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11905,9 +12170,11 @@ func (c *ProjectsLocationsTemplatesCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.templates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11921,7 +12188,12 @@ type ProjectsLocationsTemplatesGetCall struct {
 	header_      http.Header
 }
 
-// Get: Get the template associated with a template.
+// Get: Get the template associated with a template. To get the template, we
+// recommend using `projects.locations.templates.get` with a [regional
+// endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints). Using
+// `projects.templates.get` is not recommended, because only templates that are
+// running in `us-central1` are retrieved.
 //
 //   - location: The [regional endpoint]
 //     (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints) to
@@ -11991,12 +12263,11 @@ func (c *ProjectsLocationsTemplatesGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/locations/{location}/templates:get")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12005,6 +12276,7 @@ func (c *ProjectsLocationsTemplatesGetCall) doRequest(alt string) (*http.Respons
 		"projectId": c.projectId,
 		"location":  c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.templates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12040,9 +12312,11 @@ func (c *ProjectsLocationsTemplatesGetCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.templates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12056,7 +12330,11 @@ type ProjectsLocationsTemplatesLaunchCall struct {
 	header_                  http.Header
 }
 
-// Launch: Launch a template.
+// Launch: Launches a template. To launch a template, we recommend using
+// `projects.locations.templates.launch` with a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints). Using
+// `projects.templates.launch` is not recommended, because jobs launched from
+// the template will always start in `us-central1`.
 //
 //   - location: The [regional endpoint]
 //     (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints) to
@@ -12127,8 +12405,7 @@ func (c *ProjectsLocationsTemplatesLaunchCall) Header() http.Header {
 
 func (c *ProjectsLocationsTemplatesLaunchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.launchtemplateparameters)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.launchtemplateparameters)
 	if err != nil {
 		return nil, err
 	}
@@ -12145,6 +12422,7 @@ func (c *ProjectsLocationsTemplatesLaunchCall) doRequest(alt string) (*http.Resp
 		"projectId": c.projectId,
 		"location":  c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.locations.templates.launch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12180,9 +12458,11 @@ func (c *ProjectsLocationsTemplatesLaunchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.locations.templates.launch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12251,12 +12531,11 @@ func (c *ProjectsSnapshotsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/snapshots/{snapshotId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12265,6 +12544,7 @@ func (c *ProjectsSnapshotsGetCall) doRequest(alt string) (*http.Response, error)
 		"projectId":  c.projectId,
 		"snapshotId": c.snapshotId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.snapshots.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12299,9 +12579,11 @@ func (c *ProjectsSnapshotsGetCall) Do(opts ...googleapi.CallOption) (*Snapshot, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.snapshots.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12373,12 +12655,11 @@ func (c *ProjectsSnapshotsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/snapshots")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12386,6 +12667,7 @@ func (c *ProjectsSnapshotsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.snapshots.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12421,9 +12703,11 @@ func (c *ProjectsSnapshotsListCall) Do(opts ...googleapi.CallOption) (*ListSnaps
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.snapshots.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12437,7 +12721,12 @@ type ProjectsTemplatesCreateCall struct {
 }
 
 // Create: Creates a Cloud Dataflow job from a template. Do not enter
-// confidential information when you supply string values using the API.
+// confidential information when you supply string values using the API. To
+// create a job, we recommend using `projects.locations.templates.create` with
+// a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints). Using
+// `projects.templates.create` is not recommended, because your job will always
+// start in `us-central1`.
 //
 // - projectId: The ID of the Cloud Platform project that the job belongs to.
 func (r *ProjectsTemplatesService) Create(projectId string, createjobfromtemplaterequest *CreateJobFromTemplateRequest) *ProjectsTemplatesCreateCall {
@@ -12472,8 +12761,7 @@ func (c *ProjectsTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createjobfromtemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createjobfromtemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12489,6 +12777,7 @@ func (c *ProjectsTemplatesCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.templates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12523,9 +12812,11 @@ func (c *ProjectsTemplatesCreateCall) Do(opts ...googleapi.CallOption) (*Job, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.templates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12538,7 +12829,12 @@ type ProjectsTemplatesGetCall struct {
 	header_      http.Header
 }
 
-// Get: Get the template associated with a template.
+// Get: Get the template associated with a template. To get the template, we
+// recommend using `projects.locations.templates.get` with a [regional
+// endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints). Using
+// `projects.templates.get` is not recommended, because only templates that are
+// running in `us-central1` are retrieved.
 //
 // - projectId: The ID of the Cloud Platform project that the job belongs to.
 func (r *ProjectsTemplatesService) Get(projectId string) *ProjectsTemplatesGetCall {
@@ -12612,12 +12908,11 @@ func (c *ProjectsTemplatesGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1b3/projects/{projectId}/templates:get")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12625,6 +12920,7 @@ func (c *ProjectsTemplatesGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.templates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12660,9 +12956,11 @@ func (c *ProjectsTemplatesGetCall) Do(opts ...googleapi.CallOption) (*GetTemplat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.templates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12675,7 +12973,11 @@ type ProjectsTemplatesLaunchCall struct {
 	header_                  http.Header
 }
 
-// Launch: Launch a template.
+// Launch: Launches a template. To launch a template, we recommend using
+// `projects.locations.templates.launch` with a [regional endpoint]
+// (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints). Using
+// `projects.templates.launch` is not recommended, because jobs launched from
+// the template will always start in `us-central1`.
 //
 // - projectId: The ID of the Cloud Platform project that the job belongs to.
 func (r *ProjectsTemplatesService) Launch(projectId string, launchtemplateparameters *LaunchTemplateParameters) *ProjectsTemplatesLaunchCall {
@@ -12750,8 +13052,7 @@ func (c *ProjectsTemplatesLaunchCall) Header() http.Header {
 
 func (c *ProjectsTemplatesLaunchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.launchtemplateparameters)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.launchtemplateparameters)
 	if err != nil {
 		return nil, err
 	}
@@ -12767,6 +13068,7 @@ func (c *ProjectsTemplatesLaunchCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataflow.projects.templates.launch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12802,8 +13104,10 @@ func (c *ProjectsTemplatesLaunchCall) Do(opts ...googleapi.CallOption) (*LaunchT
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataflow.projects.templates.launch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "recommender:v1"
 const apiName = "recommender"
@@ -115,7 +118,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.BillingAccounts = NewBillingAccountsService(s)
+	s.Folders = NewFoldersService(s)
+	s.Organizations = NewOrganizationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,16 +141,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.BillingAccounts = NewBillingAccountsService(s)
-	s.Folders = NewFoldersService(s)
-	s.Organizations = NewOrganizationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -466,9 +469,9 @@ type GoogleCloudRecommenderV1CostProjection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1CostProjection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1CostProjection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1CostProjection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1Impact: Contains the impact a recommendation can
@@ -489,10 +492,16 @@ type GoogleCloudRecommenderV1Impact struct {
 	Category string `json:"category,omitempty"`
 	// CostProjection: Use with CategoryType.COST
 	CostProjection *GoogleCloudRecommenderV1CostProjection `json:"costProjection,omitempty"`
+	// ImpactComponents: If populated, the impact contains multiple components. In
+	// this case, the top-level impact contains aggregated values and each
+	// component contains per-service details.
+	ImpactComponents []*GoogleCloudRecommenderV1Impact `json:"impactComponents,omitempty"`
 	// ReliabilityProjection: Use with CategoryType.RELIABILITY
 	ReliabilityProjection *GoogleCloudRecommenderV1ReliabilityProjection `json:"reliabilityProjection,omitempty"`
 	// SecurityProjection: Use with CategoryType.SECURITY
 	SecurityProjection *GoogleCloudRecommenderV1SecurityProjection `json:"securityProjection,omitempty"`
+	// Service: The service that this impact is associated with.
+	Service string `json:"service,omitempty"`
 	// SustainabilityProjection: Use with CategoryType.SUSTAINABILITY
 	SustainabilityProjection *GoogleCloudRecommenderV1SustainabilityProjection `json:"sustainabilityProjection,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Category") to
@@ -508,9 +517,9 @@ type GoogleCloudRecommenderV1Impact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1Impact) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1Impact) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1Impact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1Insight: An insight along with the information used
@@ -580,9 +589,9 @@ type GoogleCloudRecommenderV1Insight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1Insight) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1Insight) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1Insight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1InsightRecommendationReference: Reference to an
@@ -605,9 +614,9 @@ type GoogleCloudRecommenderV1InsightRecommendationReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1InsightRecommendationReference) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1InsightRecommendationReference) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1InsightRecommendationReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1InsightStateInfo: Information related to insight
@@ -643,9 +652,9 @@ type GoogleCloudRecommenderV1InsightStateInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1InsightStateInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1InsightStateInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1InsightStateInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1InsightTypeConfig: Configuration for an InsightType.
@@ -693,9 +702,9 @@ type GoogleCloudRecommenderV1InsightTypeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1InsightTypeConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1InsightTypeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1InsightTypeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1InsightTypeGenerationConfig: A configuration to
@@ -718,9 +727,9 @@ type GoogleCloudRecommenderV1InsightTypeGenerationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1InsightTypeGenerationConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1InsightTypeGenerationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1InsightTypeGenerationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1ListInsightsResponse: Response to the `ListInsights`
@@ -747,9 +756,9 @@ type GoogleCloudRecommenderV1ListInsightsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1ListInsightsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1ListInsightsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1ListInsightsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1ListRecommendationsResponse: Response to the
@@ -776,9 +785,9 @@ type GoogleCloudRecommenderV1ListRecommendationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1ListRecommendationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1ListRecommendationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1ListRecommendationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1MarkInsightAcceptedRequest: Request for the
@@ -802,9 +811,9 @@ type GoogleCloudRecommenderV1MarkInsightAcceptedRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1MarkInsightAcceptedRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1MarkInsightAcceptedRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1MarkInsightAcceptedRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1MarkRecommendationClaimedRequest: Request for the
@@ -830,9 +839,9 @@ type GoogleCloudRecommenderV1MarkRecommendationClaimedRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1MarkRecommendationClaimedRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1MarkRecommendationClaimedRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1MarkRecommendationClaimedRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1MarkRecommendationDismissedRequest: Request for the
@@ -853,9 +862,9 @@ type GoogleCloudRecommenderV1MarkRecommendationDismissedRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1MarkRecommendationDismissedRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1MarkRecommendationDismissedRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1MarkRecommendationDismissedRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1MarkRecommendationFailedRequest: Request for the
@@ -881,9 +890,9 @@ type GoogleCloudRecommenderV1MarkRecommendationFailedRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1MarkRecommendationFailedRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1MarkRecommendationFailedRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1MarkRecommendationFailedRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1MarkRecommendationSucceededRequest: Request for the
@@ -909,9 +918,9 @@ type GoogleCloudRecommenderV1MarkRecommendationSucceededRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1MarkRecommendationSucceededRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1MarkRecommendationSucceededRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1MarkRecommendationSucceededRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1Operation: Contains an operation for a resource
@@ -983,9 +992,9 @@ type GoogleCloudRecommenderV1Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1Operation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1OperationGroup: Group of operations that need to be
@@ -1008,9 +1017,9 @@ type GoogleCloudRecommenderV1OperationGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1OperationGroup) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1OperationGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1OperationGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1Recommendation: A recommendation along with a
@@ -1083,9 +1092,9 @@ type GoogleCloudRecommenderV1Recommendation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1Recommendation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1Recommendation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1Recommendation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1RecommendationContent: Contains what resources are
@@ -1110,9 +1119,9 @@ type GoogleCloudRecommenderV1RecommendationContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1RecommendationContent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1RecommendationContent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1RecommendationContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1RecommendationInsightReference: Reference to an
@@ -1135,9 +1144,9 @@ type GoogleCloudRecommenderV1RecommendationInsightReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1RecommendationInsightReference) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1RecommendationInsightReference) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1RecommendationInsightReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1RecommendationStateInfo: Information for state.
@@ -1178,9 +1187,9 @@ type GoogleCloudRecommenderV1RecommendationStateInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1RecommendationStateInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1RecommendationStateInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1RecommendationStateInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1RecommenderConfig: Configuration for a Recommender.
@@ -1228,9 +1237,9 @@ type GoogleCloudRecommenderV1RecommenderConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1RecommenderConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1RecommenderConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1RecommenderConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1RecommenderGenerationConfig: A Configuration to
@@ -1253,9 +1262,9 @@ type GoogleCloudRecommenderV1RecommenderGenerationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1RecommenderGenerationConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1RecommenderGenerationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1RecommenderGenerationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1ReliabilityProjection: Contains information on the
@@ -1285,9 +1294,9 @@ type GoogleCloudRecommenderV1ReliabilityProjection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1ReliabilityProjection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1ReliabilityProjection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1ReliabilityProjection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1SecurityProjection: Contains various ways of
@@ -1309,9 +1318,9 @@ type GoogleCloudRecommenderV1SecurityProjection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1SecurityProjection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1SecurityProjection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1SecurityProjection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommenderV1SustainabilityProjection: Contains metadata about
@@ -1335,9 +1344,9 @@ type GoogleCloudRecommenderV1SustainabilityProjection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1SustainabilityProjection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1SustainabilityProjection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1SustainabilityProjection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecommenderV1SustainabilityProjection) UnmarshalJSON(data []byte) error {
@@ -1374,9 +1383,9 @@ type GoogleCloudRecommenderV1ValueMatcher struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommenderV1ValueMatcher) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommenderV1ValueMatcher) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommenderV1ValueMatcher
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeMoney: Represents an amount of money with its currency type.
@@ -1405,9 +1414,9 @@ type GoogleTypeMoney struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeMoney) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeMoney) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeMoney
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BillingAccountsLocationsInsightTypesGetConfigCall struct {
@@ -1473,12 +1482,11 @@ func (c *BillingAccountsLocationsInsightTypesGetConfigCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1486,6 +1494,7 @@ func (c *BillingAccountsLocationsInsightTypesGetConfigCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1521,9 +1530,11 @@ func (c *BillingAccountsLocationsInsightTypesGetConfigCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1588,8 +1599,7 @@ func (c *BillingAccountsLocationsInsightTypesUpdateConfigCall) Header() http.Hea
 
 func (c *BillingAccountsLocationsInsightTypesUpdateConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1insighttypeconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1insighttypeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1605,6 +1615,7 @@ func (c *BillingAccountsLocationsInsightTypesUpdateConfigCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.updateConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1640,9 +1651,11 @@ func (c *BillingAccountsLocationsInsightTypesUpdateConfigCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.updateConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1701,12 +1714,11 @@ func (c *BillingAccountsLocationsInsightTypesInsightsGetCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1714,6 +1726,7 @@ func (c *BillingAccountsLocationsInsightTypesInsightsGetCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.insights.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1749,9 +1762,11 @@ func (c *BillingAccountsLocationsInsightTypesInsightsGetCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.insights.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1857,12 +1872,11 @@ func (c *BillingAccountsLocationsInsightTypesInsightsListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/insights")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1870,6 +1884,7 @@ func (c *BillingAccountsLocationsInsightTypesInsightsListCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.insights.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1905,9 +1920,11 @@ func (c *BillingAccountsLocationsInsightTypesInsightsListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.insights.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1980,8 +1997,7 @@ func (c *BillingAccountsLocationsInsightTypesInsightsMarkAcceptedCall) Header() 
 
 func (c *BillingAccountsLocationsInsightTypesInsightsMarkAcceptedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markinsightacceptedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markinsightacceptedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1997,6 +2013,7 @@ func (c *BillingAccountsLocationsInsightTypesInsightsMarkAcceptedCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.insights.markAccepted", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2032,9 +2049,11 @@ func (c *BillingAccountsLocationsInsightTypesInsightsMarkAcceptedCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.insightTypes.insights.markAccepted", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2101,12 +2120,11 @@ func (c *BillingAccountsLocationsRecommendersGetConfigCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2114,6 +2132,7 @@ func (c *BillingAccountsLocationsRecommendersGetConfigCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2149,9 +2168,11 @@ func (c *BillingAccountsLocationsRecommendersGetConfigCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2216,8 +2237,7 @@ func (c *BillingAccountsLocationsRecommendersUpdateConfigCall) Header() http.Hea
 
 func (c *BillingAccountsLocationsRecommendersUpdateConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1recommenderconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1recommenderconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -2233,6 +2253,7 @@ func (c *BillingAccountsLocationsRecommendersUpdateConfigCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.updateConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2268,9 +2289,11 @@ func (c *BillingAccountsLocationsRecommendersUpdateConfigCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.updateConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2329,12 +2352,11 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsGetCall) doRequest(a
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2342,6 +2364,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsGetCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2377,9 +2400,11 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsGetCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2484,12 +2509,11 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsListCall) doRequest(
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/recommendations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2497,6 +2521,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsListCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2532,9 +2557,11 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsListCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2609,8 +2636,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkClaimedCall) Hea
 
 func (c *BillingAccountsLocationsRecommendersRecommendationsMarkClaimedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationclaimedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationclaimedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2626,6 +2652,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkClaimedCall) doR
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.markClaimed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2661,9 +2688,11 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkClaimedCall) Do(
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.markClaimed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2715,8 +2744,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkDismissedCall) H
 
 func (c *BillingAccountsLocationsRecommendersRecommendationsMarkDismissedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationdismissedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationdismissedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2732,6 +2760,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkDismissedCall) d
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.markDismissed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2767,9 +2796,11 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkDismissedCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.markDismissed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2823,8 +2854,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkFailedCall) Head
 
 func (c *BillingAccountsLocationsRecommendersRecommendationsMarkFailedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationfailedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationfailedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2840,6 +2870,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkFailedCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.markFailed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2875,9 +2906,11 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkFailedCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.markFailed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2931,8 +2964,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkSucceededCall) H
 
 func (c *BillingAccountsLocationsRecommendersRecommendationsMarkSucceededCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationsucceededrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationsucceededrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2948,6 +2980,7 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkSucceededCall) d
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.markSucceeded", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2983,9 +3016,11 @@ func (c *BillingAccountsLocationsRecommendersRecommendationsMarkSucceededCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.billingAccounts.locations.recommenders.recommendations.markSucceeded", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3044,12 +3079,11 @@ func (c *FoldersLocationsInsightTypesInsightsGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3057,6 +3091,7 @@ func (c *FoldersLocationsInsightTypesInsightsGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.insightTypes.insights.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3092,9 +3127,11 @@ func (c *FoldersLocationsInsightTypesInsightsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.insightTypes.insights.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3200,12 +3237,11 @@ func (c *FoldersLocationsInsightTypesInsightsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/insights")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3213,6 +3249,7 @@ func (c *FoldersLocationsInsightTypesInsightsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.insightTypes.insights.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3248,9 +3285,11 @@ func (c *FoldersLocationsInsightTypesInsightsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.insightTypes.insights.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3323,8 +3362,7 @@ func (c *FoldersLocationsInsightTypesInsightsMarkAcceptedCall) Header() http.Hea
 
 func (c *FoldersLocationsInsightTypesInsightsMarkAcceptedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markinsightacceptedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markinsightacceptedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3340,6 +3378,7 @@ func (c *FoldersLocationsInsightTypesInsightsMarkAcceptedCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.insightTypes.insights.markAccepted", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3375,9 +3414,11 @@ func (c *FoldersLocationsInsightTypesInsightsMarkAcceptedCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.insightTypes.insights.markAccepted", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3436,12 +3477,11 @@ func (c *FoldersLocationsRecommendersRecommendationsGetCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3449,6 +3489,7 @@ func (c *FoldersLocationsRecommendersRecommendationsGetCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3484,9 +3525,11 @@ func (c *FoldersLocationsRecommendersRecommendationsGetCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3591,12 +3634,11 @@ func (c *FoldersLocationsRecommendersRecommendationsListCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/recommendations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3604,6 +3646,7 @@ func (c *FoldersLocationsRecommendersRecommendationsListCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3639,9 +3682,11 @@ func (c *FoldersLocationsRecommendersRecommendationsListCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3716,8 +3761,7 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkClaimedCall) Header() ht
 
 func (c *FoldersLocationsRecommendersRecommendationsMarkClaimedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationclaimedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationclaimedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3733,6 +3777,7 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkClaimedCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.markClaimed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3768,9 +3813,11 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkClaimedCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.markClaimed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3822,8 +3869,7 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkDismissedCall) Header() 
 
 func (c *FoldersLocationsRecommendersRecommendationsMarkDismissedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationdismissedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationdismissedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3839,6 +3885,7 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkDismissedCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.markDismissed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3874,9 +3921,11 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkDismissedCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.markDismissed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3930,8 +3979,7 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkFailedCall) Header() htt
 
 func (c *FoldersLocationsRecommendersRecommendationsMarkFailedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationfailedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationfailedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3947,6 +3995,7 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkFailedCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.markFailed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3982,9 +4031,11 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkFailedCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.markFailed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4038,8 +4089,7 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkSucceededCall) Header() 
 
 func (c *FoldersLocationsRecommendersRecommendationsMarkSucceededCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationsucceededrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationsucceededrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4055,6 +4105,7 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkSucceededCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.markSucceeded", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4090,9 +4141,11 @@ func (c *FoldersLocationsRecommendersRecommendationsMarkSucceededCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.folders.locations.recommenders.recommendations.markSucceeded", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4159,12 +4212,11 @@ func (c *OrganizationsLocationsInsightTypesGetConfigCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4172,6 +4224,7 @@ func (c *OrganizationsLocationsInsightTypesGetConfigCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4207,9 +4260,11 @@ func (c *OrganizationsLocationsInsightTypesGetConfigCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4274,8 +4329,7 @@ func (c *OrganizationsLocationsInsightTypesUpdateConfigCall) Header() http.Heade
 
 func (c *OrganizationsLocationsInsightTypesUpdateConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1insighttypeconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1insighttypeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -4291,6 +4345,7 @@ func (c *OrganizationsLocationsInsightTypesUpdateConfigCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.updateConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4326,9 +4381,11 @@ func (c *OrganizationsLocationsInsightTypesUpdateConfigCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.updateConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4387,12 +4444,11 @@ func (c *OrganizationsLocationsInsightTypesInsightsGetCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4400,6 +4456,7 @@ func (c *OrganizationsLocationsInsightTypesInsightsGetCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.insights.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4435,9 +4492,11 @@ func (c *OrganizationsLocationsInsightTypesInsightsGetCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.insights.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4543,12 +4602,11 @@ func (c *OrganizationsLocationsInsightTypesInsightsListCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/insights")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4556,6 +4614,7 @@ func (c *OrganizationsLocationsInsightTypesInsightsListCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.insights.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4591,9 +4650,11 @@ func (c *OrganizationsLocationsInsightTypesInsightsListCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.insights.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4666,8 +4727,7 @@ func (c *OrganizationsLocationsInsightTypesInsightsMarkAcceptedCall) Header() ht
 
 func (c *OrganizationsLocationsInsightTypesInsightsMarkAcceptedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markinsightacceptedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markinsightacceptedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4683,6 +4743,7 @@ func (c *OrganizationsLocationsInsightTypesInsightsMarkAcceptedCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.insights.markAccepted", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4718,9 +4779,11 @@ func (c *OrganizationsLocationsInsightTypesInsightsMarkAcceptedCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.insightTypes.insights.markAccepted", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4787,12 +4850,11 @@ func (c *OrganizationsLocationsRecommendersGetConfigCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4800,6 +4862,7 @@ func (c *OrganizationsLocationsRecommendersGetConfigCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4835,9 +4898,11 @@ func (c *OrganizationsLocationsRecommendersGetConfigCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4902,8 +4967,7 @@ func (c *OrganizationsLocationsRecommendersUpdateConfigCall) Header() http.Heade
 
 func (c *OrganizationsLocationsRecommendersUpdateConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1recommenderconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1recommenderconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -4919,6 +4983,7 @@ func (c *OrganizationsLocationsRecommendersUpdateConfigCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.updateConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4954,9 +5019,11 @@ func (c *OrganizationsLocationsRecommendersUpdateConfigCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.updateConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5015,12 +5082,11 @@ func (c *OrganizationsLocationsRecommendersRecommendationsGetCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5028,6 +5094,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsGetCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5063,9 +5130,11 @@ func (c *OrganizationsLocationsRecommendersRecommendationsGetCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5170,12 +5239,11 @@ func (c *OrganizationsLocationsRecommendersRecommendationsListCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/recommendations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5183,6 +5251,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsListCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5218,9 +5287,11 @@ func (c *OrganizationsLocationsRecommendersRecommendationsListCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5295,8 +5366,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkClaimedCall) Heade
 
 func (c *OrganizationsLocationsRecommendersRecommendationsMarkClaimedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationclaimedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationclaimedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5312,6 +5382,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkClaimedCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.markClaimed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5347,9 +5418,11 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkClaimedCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.markClaimed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5401,8 +5474,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkDismissedCall) Hea
 
 func (c *OrganizationsLocationsRecommendersRecommendationsMarkDismissedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationdismissedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationdismissedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5418,6 +5490,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkDismissedCall) doR
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.markDismissed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5453,9 +5526,11 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkDismissedCall) Do(
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.markDismissed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5509,8 +5584,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkFailedCall) Header
 
 func (c *OrganizationsLocationsRecommendersRecommendationsMarkFailedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationfailedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationfailedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5526,6 +5600,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkFailedCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.markFailed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5561,9 +5636,11 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkFailedCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.markFailed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5617,8 +5694,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkSucceededCall) Hea
 
 func (c *OrganizationsLocationsRecommendersRecommendationsMarkSucceededCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationsucceededrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationsucceededrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5634,6 +5710,7 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkSucceededCall) doR
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.markSucceeded", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5669,9 +5746,11 @@ func (c *OrganizationsLocationsRecommendersRecommendationsMarkSucceededCall) Do(
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.organizations.locations.recommenders.recommendations.markSucceeded", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5738,12 +5817,11 @@ func (c *ProjectsLocationsInsightTypesGetConfigCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5751,6 +5829,7 @@ func (c *ProjectsLocationsInsightTypesGetConfigCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5786,9 +5865,11 @@ func (c *ProjectsLocationsInsightTypesGetConfigCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5853,8 +5934,7 @@ func (c *ProjectsLocationsInsightTypesUpdateConfigCall) Header() http.Header {
 
 func (c *ProjectsLocationsInsightTypesUpdateConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1insighttypeconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1insighttypeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -5870,6 +5950,7 @@ func (c *ProjectsLocationsInsightTypesUpdateConfigCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.updateConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5905,9 +5986,11 @@ func (c *ProjectsLocationsInsightTypesUpdateConfigCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.updateConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5966,12 +6049,11 @@ func (c *ProjectsLocationsInsightTypesInsightsGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5979,6 +6061,7 @@ func (c *ProjectsLocationsInsightTypesInsightsGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.insights.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6014,9 +6097,11 @@ func (c *ProjectsLocationsInsightTypesInsightsGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.insights.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6122,12 +6207,11 @@ func (c *ProjectsLocationsInsightTypesInsightsListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/insights")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6135,6 +6219,7 @@ func (c *ProjectsLocationsInsightTypesInsightsListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.insights.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6170,9 +6255,11 @@ func (c *ProjectsLocationsInsightTypesInsightsListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.insights.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6245,8 +6332,7 @@ func (c *ProjectsLocationsInsightTypesInsightsMarkAcceptedCall) Header() http.He
 
 func (c *ProjectsLocationsInsightTypesInsightsMarkAcceptedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markinsightacceptedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markinsightacceptedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6262,6 +6348,7 @@ func (c *ProjectsLocationsInsightTypesInsightsMarkAcceptedCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.insights.markAccepted", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6297,9 +6384,11 @@ func (c *ProjectsLocationsInsightTypesInsightsMarkAcceptedCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.insightTypes.insights.markAccepted", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6366,12 +6455,11 @@ func (c *ProjectsLocationsRecommendersGetConfigCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6379,6 +6467,7 @@ func (c *ProjectsLocationsRecommendersGetConfigCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6414,9 +6503,11 @@ func (c *ProjectsLocationsRecommendersGetConfigCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6481,8 +6572,7 @@ func (c *ProjectsLocationsRecommendersUpdateConfigCall) Header() http.Header {
 
 func (c *ProjectsLocationsRecommendersUpdateConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1recommenderconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1recommenderconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -6498,6 +6588,7 @@ func (c *ProjectsLocationsRecommendersUpdateConfigCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.updateConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6533,9 +6624,11 @@ func (c *ProjectsLocationsRecommendersUpdateConfigCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.updateConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6594,12 +6687,11 @@ func (c *ProjectsLocationsRecommendersRecommendationsGetCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6607,6 +6699,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsGetCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6642,9 +6735,11 @@ func (c *ProjectsLocationsRecommendersRecommendationsGetCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6749,12 +6844,11 @@ func (c *ProjectsLocationsRecommendersRecommendationsListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/recommendations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6762,6 +6856,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsListCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6797,9 +6892,11 @@ func (c *ProjectsLocationsRecommendersRecommendationsListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6874,8 +6971,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkClaimedCall) Header() h
 
 func (c *ProjectsLocationsRecommendersRecommendationsMarkClaimedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationclaimedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationclaimedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6891,6 +6987,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkClaimedCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.markClaimed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6926,9 +7023,11 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkClaimedCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.markClaimed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6980,8 +7079,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkDismissedCall) Header()
 
 func (c *ProjectsLocationsRecommendersRecommendationsMarkDismissedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationdismissedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationdismissedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6997,6 +7095,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkDismissedCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.markDismissed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7032,9 +7131,11 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkDismissedCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.markDismissed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7088,8 +7189,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkFailedCall) Header() ht
 
 func (c *ProjectsLocationsRecommendersRecommendationsMarkFailedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationfailedrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationfailedrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7105,6 +7205,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkFailedCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.markFailed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7140,9 +7241,11 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkFailedCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.markFailed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7196,8 +7299,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkSucceededCall) Header()
 
 func (c *ProjectsLocationsRecommendersRecommendationsMarkSucceededCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommenderv1markrecommendationsucceededrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommenderv1markrecommendationsucceededrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7213,6 +7315,7 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkSucceededCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.markSucceeded", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7248,8 +7351,10 @@ func (c *ProjectsLocationsRecommendersRecommendationsMarkSucceededCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommender.projects.locations.recommenders.recommendations.markSucceeded", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

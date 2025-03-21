@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "identitytoolkit:v3"
 const apiName = "identitytoolkit"
@@ -121,7 +124,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Relyingparty = NewRelyingpartyService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -140,13 +144,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Relyingparty = NewRelyingpartyService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -206,9 +209,9 @@ type CreateAuthUriResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateAuthUriResponse) MarshalJSON() ([]byte, error) {
+func (s CreateAuthUriResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateAuthUriResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeleteAccountResponse: Respone of deleting account.
@@ -231,9 +234,9 @@ type DeleteAccountResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeleteAccountResponse) MarshalJSON() ([]byte, error) {
+func (s DeleteAccountResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DeleteAccountResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DownloadAccountResponse: Response of downloading accounts in batch.
@@ -261,9 +264,9 @@ type DownloadAccountResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DownloadAccountResponse) MarshalJSON() ([]byte, error) {
+func (s DownloadAccountResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DownloadAccountResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EmailLinkSigninResponse: Response of email signIn.
@@ -298,9 +301,9 @@ type EmailLinkSigninResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EmailLinkSigninResponse) MarshalJSON() ([]byte, error) {
+func (s EmailLinkSigninResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EmailLinkSigninResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EmailTemplate: Template for an email template.
@@ -330,9 +333,9 @@ type EmailTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EmailTemplate) MarshalJSON() ([]byte, error) {
+func (s EmailTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod EmailTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetAccountInfoResponse: Response of getting account information.
@@ -357,9 +360,9 @@ type GetAccountInfoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetAccountInfoResponse) MarshalJSON() ([]byte, error) {
+func (s GetAccountInfoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetAccountInfoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetOobConfirmationCodeResponse: Response of getting a code for user
@@ -387,9 +390,9 @@ type GetOobConfirmationCodeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetOobConfirmationCodeResponse) MarshalJSON() ([]byte, error) {
+func (s GetOobConfirmationCodeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetOobConfirmationCodeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetRecaptchaParamResponse: Response of getting recaptcha param.
@@ -417,9 +420,9 @@ type GetRecaptchaParamResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetRecaptchaParamResponse) MarshalJSON() ([]byte, error) {
+func (s GetRecaptchaParamResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetRecaptchaParamResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyCreateAuthUriRequest: Request to get the IDP
@@ -485,9 +488,9 @@ type IdentitytoolkitRelyingpartyCreateAuthUriRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyCreateAuthUriRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyCreateAuthUriRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyCreateAuthUriRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyDeleteAccountRequest: Request to delete account.
@@ -512,9 +515,9 @@ type IdentitytoolkitRelyingpartyDeleteAccountRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyDeleteAccountRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyDeleteAccountRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyDeleteAccountRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyDownloadAccountRequest: Request to download user
@@ -544,9 +547,9 @@ type IdentitytoolkitRelyingpartyDownloadAccountRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyDownloadAccountRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyDownloadAccountRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyDownloadAccountRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyEmailLinkSigninRequest: Request to sign in with
@@ -571,9 +574,9 @@ type IdentitytoolkitRelyingpartyEmailLinkSigninRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyEmailLinkSigninRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyEmailLinkSigninRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyEmailLinkSigninRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyGetAccountInfoRequest: Request to get the account
@@ -603,9 +606,9 @@ type IdentitytoolkitRelyingpartyGetAccountInfoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyGetAccountInfoRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyGetAccountInfoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyGetAccountInfoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyGetProjectConfigResponse: Response of getting the
@@ -650,9 +653,9 @@ type IdentitytoolkitRelyingpartyGetProjectConfigResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyGetProjectConfigResponse) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyGetProjectConfigResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyGetProjectConfigResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyResetPasswordRequest: Request to reset the
@@ -679,9 +682,9 @@ type IdentitytoolkitRelyingpartyResetPasswordRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyResetPasswordRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyResetPasswordRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyResetPasswordRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartySendVerificationCodeRequest: Request for
@@ -709,9 +712,9 @@ type IdentitytoolkitRelyingpartySendVerificationCodeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartySendVerificationCodeRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartySendVerificationCodeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartySendVerificationCodeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartySendVerificationCodeResponse: Response for
@@ -735,9 +738,9 @@ type IdentitytoolkitRelyingpartySendVerificationCodeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartySendVerificationCodeResponse) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartySendVerificationCodeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartySendVerificationCodeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartySetAccountInfoRequest: Request to set the account
@@ -804,9 +807,9 @@ type IdentitytoolkitRelyingpartySetAccountInfoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartySetAccountInfoRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartySetAccountInfoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartySetAccountInfoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartySetProjectConfigRequest: Request to set the
@@ -848,9 +851,9 @@ type IdentitytoolkitRelyingpartySetProjectConfigRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartySetProjectConfigRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartySetProjectConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartySetProjectConfigRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartySetProjectConfigResponse: Response of setting the
@@ -874,9 +877,9 @@ type IdentitytoolkitRelyingpartySetProjectConfigResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartySetProjectConfigResponse) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartySetProjectConfigResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartySetProjectConfigResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartySignOutUserRequest: Request to sign out user.
@@ -898,9 +901,9 @@ type IdentitytoolkitRelyingpartySignOutUserRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartySignOutUserRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartySignOutUserRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartySignOutUserRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartySignOutUserResponse: Response of signing out
@@ -924,9 +927,9 @@ type IdentitytoolkitRelyingpartySignOutUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartySignOutUserResponse) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartySignOutUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartySignOutUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartySignupNewUserRequest: Request to signup new user,
@@ -976,9 +979,9 @@ type IdentitytoolkitRelyingpartySignupNewUserRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartySignupNewUserRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartySignupNewUserRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartySignupNewUserRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyUploadAccountRequest: Request to upload user
@@ -1027,9 +1030,9 @@ type IdentitytoolkitRelyingpartyUploadAccountRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyUploadAccountRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyUploadAccountRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyUploadAccountRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyVerifyAssertionRequest: Request to verify the IDP
@@ -1084,9 +1087,9 @@ type IdentitytoolkitRelyingpartyVerifyAssertionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyVerifyAssertionRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyVerifyAssertionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyVerifyAssertionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyVerifyCustomTokenRequest: Request to verify a
@@ -1115,9 +1118,9 @@ type IdentitytoolkitRelyingpartyVerifyCustomTokenRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyVerifyCustomTokenRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyVerifyCustomTokenRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyVerifyCustomTokenRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyVerifyPasswordRequest: Request to verify the
@@ -1163,9 +1166,9 @@ type IdentitytoolkitRelyingpartyVerifyPasswordRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyVerifyPasswordRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyVerifyPasswordRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyVerifyPasswordRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyVerifyPhoneNumberRequest: Request for
@@ -1193,9 +1196,9 @@ type IdentitytoolkitRelyingpartyVerifyPhoneNumberRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyVerifyPhoneNumberRequest) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyVerifyPhoneNumberRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyVerifyPhoneNumberRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentitytoolkitRelyingpartyVerifyPhoneNumberResponse: Response for
@@ -1227,9 +1230,9 @@ type IdentitytoolkitRelyingpartyVerifyPhoneNumberResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentitytoolkitRelyingpartyVerifyPhoneNumberResponse) MarshalJSON() ([]byte, error) {
+func (s IdentitytoolkitRelyingpartyVerifyPhoneNumberResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentitytoolkitRelyingpartyVerifyPhoneNumberResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdpConfig: Template for a single idp configuration.
@@ -1260,9 +1263,9 @@ type IdpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdpConfig) MarshalJSON() ([]byte, error) {
+func (s IdpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod IdpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Relyingparty: Request of getting a code for user confirmation (reset
@@ -1317,9 +1320,9 @@ type Relyingparty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Relyingparty) MarshalJSON() ([]byte, error) {
+func (s Relyingparty) MarshalJSON() ([]byte, error) {
 	type NoMethod Relyingparty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResetPasswordResponse: Response of resetting the password.
@@ -1350,9 +1353,9 @@ type ResetPasswordResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResetPasswordResponse) MarshalJSON() ([]byte, error) {
+func (s ResetPasswordResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ResetPasswordResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetAccountInfoResponse: Respone of setting the account information.
@@ -1399,9 +1402,9 @@ type SetAccountInfoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetAccountInfoResponse) MarshalJSON() ([]byte, error) {
+func (s SetAccountInfoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SetAccountInfoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SetAccountInfoResponseProviderUserInfo struct {
@@ -1428,9 +1431,9 @@ type SetAccountInfoResponseProviderUserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetAccountInfoResponseProviderUserInfo) MarshalJSON() ([]byte, error) {
+func (s SetAccountInfoResponseProviderUserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SetAccountInfoResponseProviderUserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SignupNewUserResponse: Response of signing up new user, creating anonymous
@@ -1468,9 +1471,9 @@ type SignupNewUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SignupNewUserResponse) MarshalJSON() ([]byte, error) {
+func (s SignupNewUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SignupNewUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadAccountResponse: Respone of uploading accounts in batch.
@@ -1495,9 +1498,9 @@ type UploadAccountResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadAccountResponse) MarshalJSON() ([]byte, error) {
+func (s UploadAccountResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadAccountResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UploadAccountResponseError struct {
@@ -1518,9 +1521,9 @@ type UploadAccountResponseError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadAccountResponseError) MarshalJSON() ([]byte, error) {
+func (s UploadAccountResponseError) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadAccountResponseError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserInfo: Template for an individual account info.
@@ -1576,9 +1579,9 @@ type UserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserInfo) MarshalJSON() ([]byte, error) {
+func (s UserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod UserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *UserInfo) UnmarshalJSON(data []byte) error {
@@ -1627,9 +1630,9 @@ type UserInfoProviderUserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserInfoProviderUserInfo) MarshalJSON() ([]byte, error) {
+func (s UserInfoProviderUserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod UserInfoProviderUserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerifyAssertionResponse: Response of verifying the IDP assertion.
@@ -1745,9 +1748,9 @@ type VerifyAssertionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerifyAssertionResponse) MarshalJSON() ([]byte, error) {
+func (s VerifyAssertionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod VerifyAssertionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerifyCustomTokenResponse: Response from verifying a custom token
@@ -1780,9 +1783,9 @@ type VerifyCustomTokenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerifyCustomTokenResponse) MarshalJSON() ([]byte, error) {
+func (s VerifyCustomTokenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod VerifyCustomTokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerifyPasswordResponse: Request of verifying the password.
@@ -1831,9 +1834,9 @@ type VerifyPasswordResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerifyPasswordResponse) MarshalJSON() ([]byte, error) {
+func (s VerifyPasswordResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod VerifyPasswordResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RelyingpartyCreateAuthUriCall struct {
@@ -1876,8 +1879,7 @@ func (c *RelyingpartyCreateAuthUriCall) Header() http.Header {
 
 func (c *RelyingpartyCreateAuthUriCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartycreateauthurirequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartycreateauthurirequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1890,6 +1892,7 @@ func (c *RelyingpartyCreateAuthUriCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.createAuthUri", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1925,9 +1928,11 @@ func (c *RelyingpartyCreateAuthUriCall) Do(opts ...googleapi.CallOption) (*Creat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.createAuthUri", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1971,8 +1976,7 @@ func (c *RelyingpartyDeleteAccountCall) Header() http.Header {
 
 func (c *RelyingpartyDeleteAccountCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartydeleteaccountrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartydeleteaccountrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1985,6 +1989,7 @@ func (c *RelyingpartyDeleteAccountCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.deleteAccount", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2020,9 +2025,11 @@ func (c *RelyingpartyDeleteAccountCall) Do(opts ...googleapi.CallOption) (*Delet
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.deleteAccount", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2066,8 +2073,7 @@ func (c *RelyingpartyDownloadAccountCall) Header() http.Header {
 
 func (c *RelyingpartyDownloadAccountCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartydownloadaccountrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartydownloadaccountrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2080,6 +2086,7 @@ func (c *RelyingpartyDownloadAccountCall) doRequest(alt string) (*http.Response,
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.downloadAccount", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2115,9 +2122,11 @@ func (c *RelyingpartyDownloadAccountCall) Do(opts ...googleapi.CallOption) (*Dow
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.downloadAccount", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2182,8 +2191,7 @@ func (c *RelyingpartyEmailLinkSigninCall) Header() http.Header {
 
 func (c *RelyingpartyEmailLinkSigninCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyemaillinksigninrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartyemaillinksigninrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2196,6 +2204,7 @@ func (c *RelyingpartyEmailLinkSigninCall) doRequest(alt string) (*http.Response,
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.emailLinkSignin", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2231,9 +2240,11 @@ func (c *RelyingpartyEmailLinkSigninCall) Do(opts ...googleapi.CallOption) (*Ema
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.emailLinkSignin", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2277,8 +2288,7 @@ func (c *RelyingpartyGetAccountInfoCall) Header() http.Header {
 
 func (c *RelyingpartyGetAccountInfoCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartygetaccountinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartygetaccountinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2291,6 +2301,7 @@ func (c *RelyingpartyGetAccountInfoCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getAccountInfo", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2326,9 +2337,11 @@ func (c *RelyingpartyGetAccountInfoCall) Do(opts ...googleapi.CallOption) (*GetA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getAccountInfo", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2372,8 +2385,7 @@ func (c *RelyingpartyGetOobConfirmationCodeCall) Header() http.Header {
 
 func (c *RelyingpartyGetOobConfirmationCodeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.relyingparty)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.relyingparty)
 	if err != nil {
 		return nil, err
 	}
@@ -2386,6 +2398,7 @@ func (c *RelyingpartyGetOobConfirmationCodeCall) doRequest(alt string) (*http.Re
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getOobConfirmationCode", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2421,9 +2434,11 @@ func (c *RelyingpartyGetOobConfirmationCodeCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getOobConfirmationCode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2491,16 +2506,16 @@ func (c *RelyingpartyGetProjectConfigCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "getProjectConfig")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getProjectConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2536,9 +2551,11 @@ func (c *RelyingpartyGetProjectConfigCall) Do(opts ...googleapi.CallOption) (*Id
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getProjectConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2592,16 +2609,16 @@ func (c *RelyingpartyGetPublicKeysCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "publicKeys")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getPublicKeys", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2618,9 +2635,11 @@ func (c *RelyingpartyGetPublicKeysCall) Do(opts ...googleapi.CallOption) (map[st
 	}
 	var ret map[string]string
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getPublicKeys", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2674,16 +2693,16 @@ func (c *RelyingpartyGetRecaptchaParamCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "getRecaptchaParam")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getRecaptchaParam", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2719,9 +2738,11 @@ func (c *RelyingpartyGetRecaptchaParamCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.getRecaptchaParam", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2765,8 +2786,7 @@ func (c *RelyingpartyResetPasswordCall) Header() http.Header {
 
 func (c *RelyingpartyResetPasswordCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyresetpasswordrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartyresetpasswordrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2779,6 +2799,7 @@ func (c *RelyingpartyResetPasswordCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.resetPassword", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2814,9 +2835,11 @@ func (c *RelyingpartyResetPasswordCall) Do(opts ...googleapi.CallOption) (*Reset
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.resetPassword", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2860,8 +2883,7 @@ func (c *RelyingpartySendVerificationCodeCall) Header() http.Header {
 
 func (c *RelyingpartySendVerificationCodeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartysendverificationcoderequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartysendverificationcoderequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2874,6 +2896,7 @@ func (c *RelyingpartySendVerificationCodeCall) doRequest(alt string) (*http.Resp
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.sendVerificationCode", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2909,9 +2932,11 @@ func (c *RelyingpartySendVerificationCodeCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.sendVerificationCode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2955,8 +2980,7 @@ func (c *RelyingpartySetAccountInfoCall) Header() http.Header {
 
 func (c *RelyingpartySetAccountInfoCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartysetaccountinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartysetaccountinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2969,6 +2993,7 @@ func (c *RelyingpartySetAccountInfoCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.setAccountInfo", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3004,9 +3029,11 @@ func (c *RelyingpartySetAccountInfoCall) Do(opts ...googleapi.CallOption) (*SetA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.setAccountInfo", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3050,8 +3077,7 @@ func (c *RelyingpartySetProjectConfigCall) Header() http.Header {
 
 func (c *RelyingpartySetProjectConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartysetprojectconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartysetprojectconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3064,6 +3090,7 @@ func (c *RelyingpartySetProjectConfigCall) doRequest(alt string) (*http.Response
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.setProjectConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3099,9 +3126,11 @@ func (c *RelyingpartySetProjectConfigCall) Do(opts ...googleapi.CallOption) (*Id
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.setProjectConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3145,8 +3174,7 @@ func (c *RelyingpartySignOutUserCall) Header() http.Header {
 
 func (c *RelyingpartySignOutUserCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartysignoutuserrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartysignoutuserrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3159,6 +3187,7 @@ func (c *RelyingpartySignOutUserCall) doRequest(alt string) (*http.Response, err
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.signOutUser", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3194,9 +3223,11 @@ func (c *RelyingpartySignOutUserCall) Do(opts ...googleapi.CallOption) (*Identit
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.signOutUser", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3240,8 +3271,7 @@ func (c *RelyingpartySignupNewUserCall) Header() http.Header {
 
 func (c *RelyingpartySignupNewUserCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartysignupnewuserrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartysignupnewuserrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3254,6 +3284,7 @@ func (c *RelyingpartySignupNewUserCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.signupNewUser", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3289,9 +3320,11 @@ func (c *RelyingpartySignupNewUserCall) Do(opts ...googleapi.CallOption) (*Signu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.signupNewUser", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3335,8 +3368,7 @@ func (c *RelyingpartyUploadAccountCall) Header() http.Header {
 
 func (c *RelyingpartyUploadAccountCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyuploadaccountrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartyuploadaccountrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3349,6 +3381,7 @@ func (c *RelyingpartyUploadAccountCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.uploadAccount", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3384,9 +3417,11 @@ func (c *RelyingpartyUploadAccountCall) Do(opts ...googleapi.CallOption) (*Uploa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.uploadAccount", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3430,8 +3465,7 @@ func (c *RelyingpartyVerifyAssertionCall) Header() http.Header {
 
 func (c *RelyingpartyVerifyAssertionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyverifyassertionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartyverifyassertionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3444,6 +3478,7 @@ func (c *RelyingpartyVerifyAssertionCall) doRequest(alt string) (*http.Response,
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.verifyAssertion", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3479,9 +3514,11 @@ func (c *RelyingpartyVerifyAssertionCall) Do(opts ...googleapi.CallOption) (*Ver
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.verifyAssertion", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3525,8 +3562,7 @@ func (c *RelyingpartyVerifyCustomTokenCall) Header() http.Header {
 
 func (c *RelyingpartyVerifyCustomTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyverifycustomtokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartyverifycustomtokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3539,6 +3575,7 @@ func (c *RelyingpartyVerifyCustomTokenCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.verifyCustomToken", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3574,9 +3611,11 @@ func (c *RelyingpartyVerifyCustomTokenCall) Do(opts ...googleapi.CallOption) (*V
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.verifyCustomToken", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3620,8 +3659,7 @@ func (c *RelyingpartyVerifyPasswordCall) Header() http.Header {
 
 func (c *RelyingpartyVerifyPasswordCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyverifypasswordrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartyverifypasswordrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3634,6 +3672,7 @@ func (c *RelyingpartyVerifyPasswordCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.verifyPassword", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3669,9 +3708,11 @@ func (c *RelyingpartyVerifyPasswordCall) Do(opts ...googleapi.CallOption) (*Veri
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.verifyPassword", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3716,8 +3757,7 @@ func (c *RelyingpartyVerifyPhoneNumberCall) Header() http.Header {
 
 func (c *RelyingpartyVerifyPhoneNumberCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identitytoolkitrelyingpartyverifyphonenumberrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identitytoolkitrelyingpartyverifyphonenumberrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3730,6 +3770,7 @@ func (c *RelyingpartyVerifyPhoneNumberCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.verifyPhoneNumber", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3765,8 +3806,10 @@ func (c *RelyingpartyVerifyPhoneNumberCall) Do(opts ...googleapi.CallOption) (*I
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.relyingparty.verifyPhoneNumber", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

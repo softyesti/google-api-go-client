@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "alertcenter:v1beta1"
 const apiName = "alertcenter"
@@ -114,7 +117,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Alerts = NewAlertsService(s)
+	s.V1beta1 = NewV1beta1Service(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Alerts = NewAlertsService(s)
-	s.V1beta1 = NewV1beta1Service(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -223,9 +226,9 @@ type AbuseDetected struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AbuseDetected) MarshalJSON() ([]byte, error) {
+func (s AbuseDetected) MarshalJSON() ([]byte, error) {
 	type NoMethod AbuseDetected
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccessApproval: Alert that is triggered when Google support requests to
@@ -270,9 +273,9 @@ type AccessApproval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccessApproval) MarshalJSON() ([]byte, error) {
+func (s AccessApproval) MarshalJSON() ([]byte, error) {
 	type NoMethod AccessApproval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountSuspensionDetails: Details about why an account is receiving an
@@ -313,9 +316,9 @@ type AccountSuspensionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountSuspensionDetails) MarshalJSON() ([]byte, error) {
+func (s AccountSuspensionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountSuspensionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountSuspensionWarning: A warning that the customer's account is about to
@@ -352,9 +355,9 @@ type AccountSuspensionWarning struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountSuspensionWarning) MarshalJSON() ([]byte, error) {
+func (s AccountSuspensionWarning) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountSuspensionWarning
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountWarning: Alerts for user account warning events.
@@ -379,9 +382,9 @@ type AccountWarning struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountWarning) MarshalJSON() ([]byte, error) {
+func (s AccountWarning) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountWarning
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ActionInfo: Metadata related to the action.
@@ -433,9 +436,9 @@ type ActivityRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActivityRule) MarshalJSON() ([]byte, error) {
+func (s ActivityRule) MarshalJSON() ([]byte, error) {
 	type NoMethod ActivityRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Alert: An alert affecting a customer.
@@ -504,9 +507,9 @@ type Alert struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Alert) MarshalJSON() ([]byte, error) {
+func (s Alert) MarshalJSON() ([]byte, error) {
 	type NoMethod Alert
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AlertFeedback: A customer feedback about an alert.
@@ -546,9 +549,9 @@ type AlertFeedback struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AlertFeedback) MarshalJSON() ([]byte, error) {
+func (s AlertFeedback) MarshalJSON() ([]byte, error) {
 	type NoMethod AlertFeedback
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AlertMetadata: An alert metadata.
@@ -597,9 +600,9 @@ type AlertMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AlertMetadata) MarshalJSON() ([]byte, error) {
+func (s AlertMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod AlertMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApnsCertificateExpirationInfo: The explanation message associated with "APNS
@@ -625,9 +628,9 @@ type ApnsCertificateExpirationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApnsCertificateExpirationInfo) MarshalJSON() ([]byte, error) {
+func (s ApnsCertificateExpirationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ApnsCertificateExpirationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppMakerSqlSetupNotification: Alerts from App Maker to notify admins to set
@@ -648,12 +651,12 @@ type AppMakerSqlSetupNotification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppMakerSqlSetupNotification) MarshalJSON() ([]byte, error) {
+func (s AppMakerSqlSetupNotification) MarshalJSON() ([]byte, error) {
 	type NoMethod AppMakerSqlSetupNotification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// AppSettingsChanged: Alerts from AppSettingsChanged bucket Rules configured
+// AppSettingsChanged: * Alerts from AppSettingsChanged bucket Rules configured
 // by Admin which contain the below rules. Calendar settings changed Drive
 // settings changed Email settings changed Mobile settings changed
 type AppSettingsChanged struct {
@@ -675,9 +678,9 @@ type AppSettingsChanged struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppSettingsChanged) MarshalJSON() ([]byte, error) {
+func (s AppSettingsChanged) MarshalJSON() ([]byte, error) {
 	type NoMethod AppSettingsChanged
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppsOutage: An outage incident reported for a Google Workspace service.
@@ -721,9 +724,9 @@ type AppsOutage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppsOutage) MarshalJSON() ([]byte, error) {
+func (s AppsOutage) MarshalJSON() ([]byte, error) {
 	type NoMethod AppsOutage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Attachment: Attachment with application-specific information about an alert.
@@ -743,9 +746,9 @@ type Attachment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Attachment) MarshalJSON() ([]byte, error) {
+func (s Attachment) MarshalJSON() ([]byte, error) {
 	type NoMethod Attachment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BadWhitelist: Alert for setting the domain or IP that malicious email comes
@@ -773,9 +776,9 @@ type BadWhitelist struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BadWhitelist) MarshalJSON() ([]byte, error) {
+func (s BadWhitelist) MarshalJSON() ([]byte, error) {
 	type NoMethod BadWhitelist
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeleteAlertsRequest: A request to perform batch delete on alerts.
@@ -801,9 +804,9 @@ type BatchDeleteAlertsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeleteAlertsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchDeleteAlertsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeleteAlertsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeleteAlertsResponse: Response to batch delete operation on alerts.
@@ -828,9 +831,9 @@ type BatchDeleteAlertsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeleteAlertsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchDeleteAlertsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeleteAlertsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUndeleteAlertsRequest: A request to perform batch undelete on alerts.
@@ -856,9 +859,9 @@ type BatchUndeleteAlertsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUndeleteAlertsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUndeleteAlertsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUndeleteAlertsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUndeleteAlertsResponse: Response to batch undelete operation on alerts.
@@ -883,9 +886,9 @@ type BatchUndeleteAlertsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUndeleteAlertsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUndeleteAlertsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUndeleteAlertsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudPubsubTopic: A reference to a Cloud Pubsub topic. To register for
@@ -917,9 +920,9 @@ type CloudPubsubTopic struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudPubsubTopic) MarshalJSON() ([]byte, error) {
+func (s CloudPubsubTopic) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudPubsubTopic
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Csv: A representation of a CSV file attachment, as a list of column headers
@@ -943,9 +946,9 @@ type Csv struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Csv) MarshalJSON() ([]byte, error) {
+func (s Csv) MarshalJSON() ([]byte, error) {
 	type NoMethod Csv
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CsvRow: A representation of a single data row in a CSV file.
@@ -966,9 +969,9 @@ type CsvRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CsvRow) MarshalJSON() ([]byte, error) {
+func (s CsvRow) MarshalJSON() ([]byte, error) {
 	type NoMethod CsvRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceCompromised: A mobile device compromised alert. Derived from audit
@@ -991,9 +994,9 @@ type DeviceCompromised struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceCompromised) MarshalJSON() ([]byte, error) {
+func (s DeviceCompromised) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceCompromised
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceCompromisedSecurityDetail: Detailed information of a single MDM device
@@ -1027,9 +1030,9 @@ type DeviceCompromisedSecurityDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceCompromisedSecurityDetail) MarshalJSON() ([]byte, error) {
+func (s DeviceCompromisedSecurityDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceCompromisedSecurityDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceManagementRule: Alerts from Device Management Rules configured by
@@ -1068,9 +1071,9 @@ type DeviceManagementRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceManagementRule) MarshalJSON() ([]byte, error) {
+func (s DeviceManagementRule) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceManagementRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DlpRuleViolation: Alerts that get triggered on violations of Data Loss
@@ -1095,9 +1098,9 @@ type DlpRuleViolation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DlpRuleViolation) MarshalJSON() ([]byte, error) {
+func (s DlpRuleViolation) MarshalJSON() ([]byte, error) {
 	type NoMethod DlpRuleViolation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DomainId: Domain ID of Gmail phishing alerts.
@@ -1117,9 +1120,9 @@ type DomainId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DomainId) MarshalJSON() ([]byte, error) {
+func (s DomainId) MarshalJSON() ([]byte, error) {
 	type NoMethod DomainId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DomainWideTakeoutInitiated: A takeout operation for the entire domain was
@@ -1142,9 +1145,9 @@ type DomainWideTakeoutInitiated struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DomainWideTakeoutInitiated) MarshalJSON() ([]byte, error) {
+func (s DomainWideTakeoutInitiated) MarshalJSON() ([]byte, error) {
 	type NoMethod DomainWideTakeoutInitiated
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1180,9 +1183,9 @@ type Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Entity) MarshalJSON() ([]byte, error) {
+func (s Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityList: EntityList stores entities in a format that can be translated to
@@ -1208,9 +1211,9 @@ type EntityList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityList) MarshalJSON() ([]byte, error) {
+func (s EntityList) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GmailMessageInfo: Details of a message in phishing spike alert.
@@ -1249,9 +1252,9 @@ type GmailMessageInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GmailMessageInfo) MarshalJSON() ([]byte, error) {
+func (s GmailMessageInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GmailMessageInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleOperations: An incident reported by Google Operations for a Google
@@ -1286,9 +1289,9 @@ type GoogleOperations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleOperations) MarshalJSON() ([]byte, error) {
+func (s GoogleOperations) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleOperations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAlertFeedbackResponse: Response message for an alert feedback listing
@@ -1313,9 +1316,9 @@ type ListAlertFeedbackResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAlertFeedbackResponse) MarshalJSON() ([]byte, error) {
+func (s ListAlertFeedbackResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAlertFeedbackResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAlertsResponse: Response message for an alert listing request.
@@ -1343,9 +1346,9 @@ type ListAlertsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAlertsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAlertsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAlertsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoginDetails: The details of the login action.
@@ -1369,9 +1372,9 @@ type LoginDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoginDetails) MarshalJSON() ([]byte, error) {
+func (s LoginDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod LoginDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MailPhishing: Proto for all phishing alerts with common payload. Supported
@@ -1407,9 +1410,9 @@ type MailPhishing struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MailPhishing) MarshalJSON() ([]byte, error) {
+func (s MailPhishing) MarshalJSON() ([]byte, error) {
 	type NoMethod MailPhishing
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MaliciousEntity: Entity whose actions triggered a Gmail phishing alert.
@@ -1433,9 +1436,9 @@ type MaliciousEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MaliciousEntity) MarshalJSON() ([]byte, error) {
+func (s MaliciousEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod MaliciousEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MandatoryServiceAnnouncement: Alert Created by the MSA team for
@@ -1458,9 +1461,9 @@ type MandatoryServiceAnnouncement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MandatoryServiceAnnouncement) MarshalJSON() ([]byte, error) {
+func (s MandatoryServiceAnnouncement) MarshalJSON() ([]byte, error) {
 	type NoMethod MandatoryServiceAnnouncement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MatchInfo: Proto that contains match information from the condition part of
@@ -1483,9 +1486,9 @@ type MatchInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MatchInfo) MarshalJSON() ([]byte, error) {
+func (s MatchInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod MatchInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MergeInfo: New alert tracking numbers.
@@ -1508,9 +1511,9 @@ type MergeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MergeInfo) MarshalJSON() ([]byte, error) {
+func (s MergeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod MergeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Notification: Settings for callback notifications. For more details see
@@ -1532,9 +1535,9 @@ type Notification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Notification) MarshalJSON() ([]byte, error) {
+func (s Notification) MarshalJSON() ([]byte, error) {
 	type NoMethod Notification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PhishingSpike: Alert for a spike in user reported phishing. *Warning*: This
@@ -1562,9 +1565,9 @@ type PhishingSpike struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PhishingSpike) MarshalJSON() ([]byte, error) {
+func (s PhishingSpike) MarshalJSON() ([]byte, error) {
 	type NoMethod PhishingSpike
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PredefinedDetectorInfo: Detector provided by Google.
@@ -1584,12 +1587,12 @@ type PredefinedDetectorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PredefinedDetectorInfo) MarshalJSON() ([]byte, error) {
+func (s PredefinedDetectorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod PredefinedDetectorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// PrimaryAdminChangedEvent: Event occurred when primary admin changed in
+// PrimaryAdminChangedEvent: * Event occurred when primary admin changed in
 // customer's account. The event are being received from insight forwarder
 type PrimaryAdminChangedEvent struct {
 	// Domain: domain in which actioned occurred
@@ -1612,9 +1615,9 @@ type PrimaryAdminChangedEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrimaryAdminChangedEvent) MarshalJSON() ([]byte, error) {
+func (s PrimaryAdminChangedEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod PrimaryAdminChangedEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportingRule: Alerts from Reporting Rules configured by Admin.
@@ -1641,9 +1644,9 @@ type ReportingRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportingRule) MarshalJSON() ([]byte, error) {
+func (s ReportingRule) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportingRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RequestInfo: Requests for one application that needs default SQL setup.
@@ -1669,9 +1672,9 @@ type RequestInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RequestInfo) MarshalJSON() ([]byte, error) {
+func (s RequestInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RequestInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResourceInfo: Proto that contains resource information.
@@ -1702,9 +1705,9 @@ type ResourceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResourceInfo) MarshalJSON() ([]byte, error) {
+func (s ResourceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ResourceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuleInfo: Proto that contains rule information.
@@ -1726,9 +1729,9 @@ type RuleInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuleInfo) MarshalJSON() ([]byte, error) {
+func (s RuleInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RuleInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuleViolationInfo: Common alert information about violated rules that are
@@ -1855,12 +1858,12 @@ type RuleViolationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuleViolationInfo) MarshalJSON() ([]byte, error) {
+func (s RuleViolationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RuleViolationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// SSOProfileCreatedEvent: Event occurred when SSO Profile created in
+// SSOProfileCreatedEvent: * Event occurred when SSO Profile created in
 // customer's account. The event are being received from insight forwarder
 type SSOProfileCreatedEvent struct {
 	// InboundSsoProfileName: sso profile name which got created
@@ -1878,12 +1881,12 @@ type SSOProfileCreatedEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SSOProfileCreatedEvent) MarshalJSON() ([]byte, error) {
+func (s SSOProfileCreatedEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod SSOProfileCreatedEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// SSOProfileDeletedEvent: Event occurred when SSO Profile deleted in
+// SSOProfileDeletedEvent: * Event occurred when SSO Profile deleted in
 // customer's account. The event are being received from insight forwarder
 type SSOProfileDeletedEvent struct {
 	// InboundSsoProfileName: sso profile name which got deleted
@@ -1901,12 +1904,12 @@ type SSOProfileDeletedEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SSOProfileDeletedEvent) MarshalJSON() ([]byte, error) {
+func (s SSOProfileDeletedEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod SSOProfileDeletedEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// SSOProfileUpdatedEvent: Event occurred when SSO Profile updated in
+// SSOProfileUpdatedEvent: * Event occurred when SSO Profile updated in
 // customer's account. The event are being received from insight forwarder
 type SSOProfileUpdatedEvent struct {
 	// InboundSsoProfileChanges: changes made to sso profile
@@ -1926,9 +1929,9 @@ type SSOProfileUpdatedEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SSOProfileUpdatedEvent) MarshalJSON() ([]byte, error) {
+func (s SSOProfileUpdatedEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod SSOProfileUpdatedEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SensitiveAdminAction: Alert that is triggered when Sensitive Admin Action
@@ -1966,9 +1969,9 @@ type SensitiveAdminAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SensitiveAdminAction) MarshalJSON() ([]byte, error) {
+func (s SensitiveAdminAction) MarshalJSON() ([]byte, error) {
 	type NoMethod SensitiveAdminAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Settings: Customer-level settings.
@@ -1991,9 +1994,9 @@ type Settings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Settings) MarshalJSON() ([]byte, error) {
+func (s Settings) MarshalJSON() ([]byte, error) {
 	type NoMethod Settings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StateSponsoredAttack: A state-sponsored attack alert. Derived from audit
@@ -2014,9 +2017,9 @@ type StateSponsoredAttack struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StateSponsoredAttack) MarshalJSON() ([]byte, error) {
+func (s StateSponsoredAttack) MarshalJSON() ([]byte, error) {
 	type NoMethod StateSponsoredAttack
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2048,12 +2051,12 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// SuperAdminPasswordResetEvent: Event occurred when password was reset for
+// SuperAdminPasswordResetEvent: * Event occurred when password was reset for
 // super admin in customer's account. The event are being received from insight
 // forwarder
 type SuperAdminPasswordResetEvent struct {
@@ -2072,9 +2075,9 @@ type SuperAdminPasswordResetEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SuperAdminPasswordResetEvent) MarshalJSON() ([]byte, error) {
+func (s SuperAdminPasswordResetEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod SuperAdminPasswordResetEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SupportTicket: Support ticket related to Access Approvals request
@@ -2096,9 +2099,9 @@ type SupportTicket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SupportTicket) MarshalJSON() ([]byte, error) {
+func (s SupportTicket) MarshalJSON() ([]byte, error) {
 	type NoMethod SupportTicket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SuspiciousActivity: A mobile suspicious activity alert. Derived from audit
@@ -2121,9 +2124,9 @@ type SuspiciousActivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SuspiciousActivity) MarshalJSON() ([]byte, error) {
+func (s SuspiciousActivity) MarshalJSON() ([]byte, error) {
 	type NoMethod SuspiciousActivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SuspiciousActivitySecurityDetail: Detailed information of a single MDM
@@ -2160,9 +2163,9 @@ type SuspiciousActivitySecurityDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SuspiciousActivitySecurityDetail) MarshalJSON() ([]byte, error) {
+func (s SuspiciousActivitySecurityDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod SuspiciousActivitySecurityDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferError: Details for an invalid transfer or forward.
@@ -2208,9 +2211,9 @@ type TransferError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferError) MarshalJSON() ([]byte, error) {
+func (s TransferError) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferMisconfiguration: Error related to transferring or forwarding a
@@ -2231,9 +2234,9 @@ type TransferMisconfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferMisconfiguration) MarshalJSON() ([]byte, error) {
+func (s TransferMisconfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferMisconfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UndeleteAlertRequest: A request to undelete a specific alert that was marked
@@ -2258,9 +2261,9 @@ type UndeleteAlertRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UndeleteAlertRequest) MarshalJSON() ([]byte, error) {
+func (s UndeleteAlertRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UndeleteAlertRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // User: A user.
@@ -2282,15 +2285,15 @@ type User struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *User) MarshalJSON() ([]byte, error) {
+func (s User) MarshalJSON() ([]byte, error) {
 	type NoMethod User
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// UserChanges: Alerts from UserChanges bucket Rules for predefined rules which
-// contain the below rules. Suspended user made active New user Added User
-// suspended (by admin) User granted admin privileges User admin privileges
-// revoked User deleted Users password changed
+// UserChanges: * Alerts from UserChanges bucket Rules for predefined rules
+// which contain the below rules. Suspended user made active New user Added
+// User suspended (by admin) User granted admin privileges User admin
+// privileges revoked User deleted Users password changed
 type UserChanges struct {
 	// Name: Rule name
 	Name string `json:"name,omitempty"`
@@ -2307,9 +2310,9 @@ type UserChanges struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserChanges) MarshalJSON() ([]byte, error) {
+func (s UserChanges) MarshalJSON() ([]byte, error) {
 	type NoMethod UserChanges
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserDefinedDetectorInfo: Detector defined by administrators.
@@ -2331,9 +2334,9 @@ type UserDefinedDetectorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserDefinedDetectorInfo) MarshalJSON() ([]byte, error) {
+func (s UserDefinedDetectorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod UserDefinedDetectorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoiceMisconfiguration: An alert triggered when Google Voice configuration
@@ -2371,9 +2374,9 @@ type VoiceMisconfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoiceMisconfiguration) MarshalJSON() ([]byte, error) {
+func (s VoiceMisconfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod VoiceMisconfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoicemailMisconfiguration: Issue(s) with sending to voicemail.
@@ -2393,9 +2396,9 @@ type VoicemailMisconfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoicemailMisconfiguration) MarshalJSON() ([]byte, error) {
+func (s VoicemailMisconfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod VoicemailMisconfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoicemailRecipientError: Issue(s) with a voicemail recipient.
@@ -2423,9 +2426,9 @@ type VoicemailRecipientError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoicemailRecipientError) MarshalJSON() ([]byte, error) {
+func (s VoicemailRecipientError) MarshalJSON() ([]byte, error) {
 	type NoMethod VoicemailRecipientError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AlertsBatchDeleteCall struct {
@@ -2468,8 +2471,7 @@ func (c *AlertsBatchDeleteCall) Header() http.Header {
 
 func (c *AlertsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchdeletealertsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchdeletealertsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2482,6 +2484,7 @@ func (c *AlertsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2517,9 +2520,11 @@ func (c *AlertsBatchDeleteCall) Do(opts ...googleapi.CallOption) (*BatchDeleteAl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2563,8 +2568,7 @@ func (c *AlertsBatchUndeleteCall) Header() http.Header {
 
 func (c *AlertsBatchUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchundeletealertsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchundeletealertsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2577,6 +2581,7 @@ func (c *AlertsBatchUndeleteCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.batchUndelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2612,9 +2617,11 @@ func (c *AlertsBatchUndeleteCall) Do(opts ...googleapi.CallOption) (*BatchUndele
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.batchUndelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2674,12 +2681,11 @@ func (c *AlertsDeleteCall) Header() http.Header {
 
 func (c *AlertsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/alerts/{alertId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2687,6 +2693,7 @@ func (c *AlertsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"alertId": c.alertId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2721,9 +2728,11 @@ func (c *AlertsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2792,12 +2801,11 @@ func (c *AlertsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/alerts/{alertId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2805,6 +2813,7 @@ func (c *AlertsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"alertId": c.alertId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2839,9 +2848,11 @@ func (c *AlertsGetCall) Do(opts ...googleapi.CallOption) (*Alert, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2911,12 +2922,11 @@ func (c *AlertsGetMetadataCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/alerts/{alertId}/metadata")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2924,6 +2934,7 @@ func (c *AlertsGetMetadataCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"alertId": c.alertId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.getMetadata", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2958,9 +2969,11 @@ func (c *AlertsGetMetadataCall) Do(opts ...googleapi.CallOption) (*AlertMetadata
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.getMetadata", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3061,16 +3074,16 @@ func (c *AlertsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/alerts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3106,9 +3119,11 @@ func (c *AlertsListCall) Do(opts ...googleapi.CallOption) (*ListAlertsResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3181,8 +3196,7 @@ func (c *AlertsUndeleteCall) Header() http.Header {
 
 func (c *AlertsUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.undeletealertrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.undeletealertrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3198,6 +3212,7 @@ func (c *AlertsUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"alertId": c.alertId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3232,9 +3247,11 @@ func (c *AlertsUndeleteCall) Do(opts ...googleapi.CallOption) (*Alert, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3295,8 +3312,7 @@ func (c *AlertsFeedbackCreateCall) Header() http.Header {
 
 func (c *AlertsFeedbackCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.alertfeedback)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.alertfeedback)
 	if err != nil {
 		return nil, err
 	}
@@ -3312,6 +3328,7 @@ func (c *AlertsFeedbackCreateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"alertId": c.alertId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.feedback.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3346,9 +3363,11 @@ func (c *AlertsFeedbackCreateCall) Do(opts ...googleapi.CallOption) (*AlertFeedb
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.feedback.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3428,12 +3447,11 @@ func (c *AlertsFeedbackListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/alerts/{alertId}/feedback")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3441,6 +3459,7 @@ func (c *AlertsFeedbackListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"alertId": c.alertId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.alerts.feedback.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3476,9 +3495,11 @@ func (c *AlertsFeedbackListCall) Do(opts ...googleapi.CallOption) (*ListAlertFee
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.alerts.feedback.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3543,16 +3564,16 @@ func (c *V1beta1GetSettingsCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/settings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.getSettings", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3587,9 +3608,11 @@ func (c *V1beta1GetSettingsCall) Do(opts ...googleapi.CallOption) (*Settings, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.getSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3644,8 +3667,7 @@ func (c *V1beta1UpdateSettingsCall) Header() http.Header {
 
 func (c *V1beta1UpdateSettingsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.settings)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.settings)
 	if err != nil {
 		return nil, err
 	}
@@ -3658,6 +3680,7 @@ func (c *V1beta1UpdateSettingsCall) doRequest(alt string) (*http.Response, error
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alertcenter.updateSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3692,8 +3715,10 @@ func (c *V1beta1UpdateSettingsCall) Do(opts ...googleapi.CallOption) (*Settings,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alertcenter.updateSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

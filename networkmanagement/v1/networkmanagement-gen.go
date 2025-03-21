@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "networkmanagement:v1"
 const apiName = "networkmanagement"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -169,6 +172,7 @@ type ProjectsService struct {
 func NewProjectsLocationsService(s *Service) *ProjectsLocationsService {
 	rs := &ProjectsLocationsService{s: s}
 	rs.Global = NewProjectsLocationsGlobalService(s)
+	rs.VpcFlowLogsConfigs = NewProjectsLocationsVpcFlowLogsConfigsService(s)
 	return rs
 }
 
@@ -176,6 +180,8 @@ type ProjectsLocationsService struct {
 	s *Service
 
 	Global *ProjectsLocationsGlobalService
+
+	VpcFlowLogsConfigs *ProjectsLocationsVpcFlowLogsConfigsService
 }
 
 func NewProjectsLocationsGlobalService(s *Service) *ProjectsLocationsGlobalService {
@@ -208,6 +214,15 @@ func NewProjectsLocationsGlobalOperationsService(s *Service) *ProjectsLocationsG
 }
 
 type ProjectsLocationsGlobalOperationsService struct {
+	s *Service
+}
+
+func NewProjectsLocationsVpcFlowLogsConfigsService(s *Service) *ProjectsLocationsVpcFlowLogsConfigsService {
+	rs := &ProjectsLocationsVpcFlowLogsConfigsService{s: s}
+	return rs
+}
+
+type ProjectsLocationsVpcFlowLogsConfigsService struct {
 	s *Service
 }
 
@@ -248,6 +263,8 @@ type AbortInfo struct {
 	//   "PERMISSION_DENIED_NO_NEG_ENDPOINT_CONFIGS" - Aborted because user lacks
 	// permission to access Network endpoint group endpoint configs required to run
 	// the test.
+	//   "PERMISSION_DENIED_NO_CLOUD_ROUTER_CONFIGS" - Aborted because user lacks
+	// permission to access Cloud Router configs required to run the test.
 	//   "NO_SOURCE_LOCATION" - Aborted because no valid source or destination
 	// endpoint is derived from the input test request.
 	//   "INVALID_ARGUMENT" - Aborted because the source or destination endpoint
@@ -280,6 +297,10 @@ type AbortInfo struct {
 	// endpoints satisfy test input).
 	//   "SOURCE_PSC_CLOUD_SQL_UNSUPPORTED" - Aborted because tests with a
 	// PSC-based Cloud SQL instance as a source are not supported.
+	//   "SOURCE_REDIS_CLUSTER_UNSUPPORTED" - Aborted because tests with a Redis
+	// Cluster as a source are not supported.
+	//   "SOURCE_REDIS_INSTANCE_UNSUPPORTED" - Aborted because tests with a Redis
+	// Instance as a source are not supported.
 	//   "SOURCE_FORWARDING_RULE_UNSUPPORTED" - Aborted because tests with a
 	// forwarding rule as a source are not supported.
 	//   "NON_ROUTABLE_IP_ADDRESS" - Aborted because one of the endpoints is a
@@ -288,6 +309,9 @@ type AbortInfo struct {
 	// issue in the Google-managed project.
 	//   "UNSUPPORTED_GOOGLE_MANAGED_PROJECT_CONFIG" - Aborted due to an
 	// unsupported configuration of the Google-managed project.
+	//   "NO_SERVERLESS_IP_RANGES" - Aborted because the source endpoint is a Cloud
+	// Run revision with direct VPC access enabled, but there are no reserved
+	// serverless IP ranges.
 	Cause string `json:"cause,omitempty"`
 	// IpAddress: IP address that caused the abort.
 	IpAddress string `json:"ipAddress,omitempty"`
@@ -310,9 +334,9 @@ type AbortInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AbortInfo) MarshalJSON() ([]byte, error) {
+func (s AbortInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AbortInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppEngineVersionEndpoint: Wrapper for the App Engine service version
@@ -335,9 +359,9 @@ type AppEngineVersionEndpoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppEngineVersionEndpoint) MarshalJSON() ([]byte, error) {
+func (s AppEngineVersionEndpoint) MarshalJSON() ([]byte, error) {
 	type NoMethod AppEngineVersionEndpoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppEngineVersionInfo: For display only. Metadata associated with an App
@@ -364,9 +388,9 @@ type AppEngineVersionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppEngineVersionInfo) MarshalJSON() ([]byte, error) {
+func (s AppEngineVersionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AppEngineVersionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -405,9 +429,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -440,9 +464,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -539,9 +563,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -565,9 +589,9 @@ type CloudFunctionEndpoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudFunctionEndpoint) MarshalJSON() ([]byte, error) {
+func (s CloudFunctionEndpoint) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudFunctionEndpoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudFunctionInfo: For display only. Metadata associated with a Cloud
@@ -594,9 +618,9 @@ type CloudFunctionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudFunctionInfo) MarshalJSON() ([]byte, error) {
+func (s CloudFunctionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudFunctionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudRunRevisionEndpoint: Wrapper for Cloud Run revision attributes.
@@ -619,9 +643,9 @@ type CloudRunRevisionEndpoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudRunRevisionEndpoint) MarshalJSON() ([]byte, error) {
+func (s CloudRunRevisionEndpoint) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudRunRevisionEndpoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudRunRevisionInfo: For display only. Metadata associated with a Cloud Run
@@ -648,9 +672,9 @@ type CloudRunRevisionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudRunRevisionInfo) MarshalJSON() ([]byte, error) {
+func (s CloudRunRevisionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudRunRevisionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudSQLInstanceInfo: For display only. Metadata associated with a Cloud SQL
@@ -682,9 +706,9 @@ type CloudSQLInstanceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudSQLInstanceInfo) MarshalJSON() ([]byte, error) {
+func (s CloudSQLInstanceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudSQLInstanceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConnectivityTest: A Connectivity Test for a network reachability analysis.
@@ -731,6 +755,14 @@ type ConnectivityTest struct {
 	// analysis. This is applicable to scenarios where a test can cross project
 	// boundaries.
 	RelatedProjects []string `json:"relatedProjects,omitempty"`
+	// ReturnReachabilityDetails: Output only. The reachability details of this
+	// test from the latest run for the return path. The details are updated when
+	// creating a new test, updating an existing test, or triggering a one-time
+	// rerun of an existing test.
+	ReturnReachabilityDetails *ReachabilityDetails `json:"returnReachabilityDetails,omitempty"`
+	// RoundTrip: Whether run analysis for the return path from destination to
+	// source. Default value is false.
+	RoundTrip bool `json:"roundTrip,omitempty"`
 	// Source: Required. Source specification of the Connectivity Test. You can use
 	// a combination of source IP address, virtual machine (VM) instance, or
 	// Compute Engine network to uniquely identify the source location. Examples:
@@ -764,9 +796,9 @@ type ConnectivityTest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConnectivityTest) MarshalJSON() ([]byte, error) {
+func (s ConnectivityTest) MarshalJSON() ([]byte, error) {
 	type NoMethod ConnectivityTest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeliverInfo: Details of the final state "deliver" and associated resource.
@@ -812,6 +844,8 @@ type DeliverInfo struct {
 	// return traces.
 	//   "GOOGLE_MANAGED_SERVICE" - Target is a Google-managed service. Used only
 	// for return traces.
+	//   "REDIS_INSTANCE" - Target is a Redis Instance.
+	//   "REDIS_CLUSTER" - Target is a Redis Cluster.
 	Target string `json:"target,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "IpAddress") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -826,9 +860,40 @@ type DeliverInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeliverInfo) MarshalJSON() ([]byte, error) {
+func (s DeliverInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DeliverInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DirectVpcEgressConnectionInfo: For display only. Metadata associated with a
+// serverless direct VPC egress connection.
+type DirectVpcEgressConnectionInfo struct {
+	// NetworkUri: URI of direct access network.
+	NetworkUri string `json:"networkUri,omitempty"`
+	// Region: Region in which the Direct VPC egress is deployed.
+	Region string `json:"region,omitempty"`
+	// SelectedIpAddress: Selected starting IP address, from the selected IP range.
+	SelectedIpAddress string `json:"selectedIpAddress,omitempty"`
+	// SelectedIpRange: Selected IP range.
+	SelectedIpRange string `json:"selectedIpRange,omitempty"`
+	// SubnetworkUri: URI of direct access subnetwork.
+	SubnetworkUri string `json:"subnetworkUri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "NetworkUri") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NetworkUri") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DirectVpcEgressConnectionInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod DirectVpcEgressConnectionInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DropInfo: Details of the final state "drop" and associated resource.
@@ -898,12 +963,20 @@ type DropInfo struct {
 	// [Health check firewall
 	// rules](https://cloud.google.com/load-balancing/docs/health-checks#firewall_ru
 	// les).
+	//   "INGRESS_FIREWALL_TAGS_UNSUPPORTED_BY_DIRECT_VPC_EGRESS" - Matching
+	// ingress firewall rules by network tags for packets sent via serverless VPC
+	// direct egress is unsupported. Behavior is undefined.
+	// https://cloud.google.com/run/docs/configuring/vpc-direct-vpc#limitations
 	//   "INSTANCE_NOT_RUNNING" - Packet is sent from or to a Compute Engine
 	// instance that is not in a running state.
 	//   "GKE_CLUSTER_NOT_RUNNING" - Packet sent from or to a GKE cluster that is
 	// not in running state.
 	//   "CLOUD_SQL_INSTANCE_NOT_RUNNING" - Packet sent from or to a Cloud SQL
 	// instance that is not in running state.
+	//   "REDIS_INSTANCE_NOT_RUNNING" - Packet sent from or to a Redis Instance
+	// that is not in running state.
+	//   "REDIS_CLUSTER_NOT_RUNNING" - Packet sent from or to a Redis Cluster that
+	// is not in running state.
 	//   "TRAFFIC_TYPE_BLOCKED" - The type of traffic is blocked and the user
 	// cannot configure a firewall rule to enable it. See [Always blocked
 	// traffic](https://cloud.google.com/vpc/docs/firewalls#blockedtraffic) for
@@ -946,6 +1019,9 @@ type DropInfo struct {
 	// Cloud SQL instance with only a public IP address to a private IP address.
 	//   "CLOUD_SQL_INSTANCE_NO_ROUTE" - Packet was dropped because there is no
 	// route from a Cloud SQL instance to a destination network.
+	//   "CLOUD_SQL_CONNECTOR_REQUIRED" - Packet was dropped because the Cloud SQL
+	// instance requires all connections to use Cloud SQL connectors and to target
+	// the Cloud SQL proxy port (3307).
 	//   "CLOUD_FUNCTION_NOT_ACTIVE" - Packet could be dropped because the Cloud
 	// Function is not in an active status.
 	//   "VPC_CONNECTOR_NOT_SET" - Packet could be dropped because no VPC connector
@@ -976,6 +1052,8 @@ type DropInfo struct {
 	// service attachment, but this configuration is not supported.
 	//   "NO_NAT_SUBNETS_FOR_PSC_SERVICE_ATTACHMENT" - No NAT subnets are defined
 	// for the PSC service attachment.
+	//   "PSC_TRANSITIVITY_NOT_PROPAGATED" - PSC endpoint is accessed via NCC, but
+	// PSC transitivity configuration is not yet propagated.
 	//   "HYBRID_NEG_NON_DYNAMIC_ROUTE_MATCHED" - The packet sent from the hybrid
 	// NEG proxy matches a non-dynamic route, but such a configuration is not
 	// supported.
@@ -991,9 +1069,55 @@ type DropInfo struct {
 	//   "CLOUD_NAT_NO_ADDRESSES" - Packet sent to Cloud Nat without active NAT
 	// IPs.
 	//   "ROUTING_LOOP" - Packet is stuck in a routing loop.
-	//   "DROPPED_INSIDE_GOOGLE_MANAGED_SERVICE" - Packet is dropped due to an
-	// unspecified reason inside a Google-managed service. Used only for return
-	// traces.
+	//   "DROPPED_INSIDE_GOOGLE_MANAGED_SERVICE" - Packet is dropped inside a
+	// Google-managed service due to being delivered in return trace to an endpoint
+	// that doesn't match the endpoint the packet was sent from in forward trace.
+	// Used only for return traces.
+	//   "LOAD_BALANCER_BACKEND_INVALID_NETWORK" - Packet is dropped due to a load
+	// balancer backend instance not having a network interface in the network
+	// expected by the load balancer.
+	//   "BACKEND_SERVICE_NAMED_PORT_NOT_DEFINED" - Packet is dropped due to a
+	// backend service named port not being defined on the instance group level.
+	//   "DESTINATION_IS_PRIVATE_NAT_IP_RANGE" - Packet is dropped due to a
+	// destination IP range being part of a Private NAT IP range.
+	//   "DROPPED_INSIDE_REDIS_INSTANCE_SERVICE" - Generic drop cause for a packet
+	// being dropped inside a Redis Instance service project.
+	//   "REDIS_INSTANCE_UNSUPPORTED_PORT" - Packet is dropped due to an
+	// unsupported port being used to connect to a Redis Instance. Port 6379 should
+	// be used to connect to a Redis Instance.
+	//   "REDIS_INSTANCE_CONNECTING_FROM_PUPI_ADDRESS" - Packet is dropped due to
+	// connecting from PUPI address to a PSA based Redis Instance.
+	//   "REDIS_INSTANCE_NO_ROUTE_TO_DESTINATION_NETWORK" - Packet is dropped due
+	// to no route to the destination network.
+	//   "REDIS_INSTANCE_NO_EXTERNAL_IP" - Redis Instance does not have an external
+	// IP address.
+	//   "REDIS_INSTANCE_UNSUPPORTED_PROTOCOL" - Packet is dropped due to an
+	// unsupported protocol being used to connect to a Redis Instance. Only TCP
+	// connections are accepted by a Redis Instance.
+	//   "DROPPED_INSIDE_REDIS_CLUSTER_SERVICE" - Generic drop cause for a packet
+	// being dropped inside a Redis Cluster service project.
+	//   "REDIS_CLUSTER_UNSUPPORTED_PORT" - Packet is dropped due to an unsupported
+	// port being used to connect to a Redis Cluster. Ports 6379 and 11000 to 13047
+	// should be used to connect to a Redis Cluster.
+	//   "REDIS_CLUSTER_NO_EXTERNAL_IP" - Redis Cluster does not have an external
+	// IP address.
+	//   "REDIS_CLUSTER_UNSUPPORTED_PROTOCOL" - Packet is dropped due to an
+	// unsupported protocol being used to connect to a Redis Cluster. Only TCP
+	// connections are accepted by a Redis Cluster.
+	//   "NO_ADVERTISED_ROUTE_TO_GCP_DESTINATION" - Packet from the non-GCP
+	// (on-prem) or unknown GCP network is dropped due to the destination IP
+	// address not belonging to any IP prefix advertised via BGP by the Cloud
+	// Router.
+	//   "NO_TRAFFIC_SELECTOR_TO_GCP_DESTINATION" - Packet from the non-GCP
+	// (on-prem) or unknown GCP network is dropped due to the destination IP
+	// address not belonging to any IP prefix included to the local traffic
+	// selector of the VPN tunnel.
+	//   "NO_KNOWN_ROUTE_FROM_PEERED_NETWORK_TO_DESTINATION" - Packet from the
+	// unknown peered network is dropped due to no known route from the source
+	// network to the destination IP address.
+	//   "PRIVATE_NAT_TO_PSC_ENDPOINT_UNSUPPORTED" - Sending packets processed by
+	// the Private NAT Gateways to the Private Service Connect endpoints is not
+	// supported.
 	Cause string `json:"cause,omitempty"`
 	// DestinationIp: Destination IP address of the dropped packet (if relevant).
 	DestinationIp string `json:"destinationIp,omitempty"`
@@ -1016,9 +1140,9 @@ type DropInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DropInfo) MarshalJSON() ([]byte, error) {
+func (s DropInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DropInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EdgeLocation: Representation of a network edge location as per
@@ -1039,9 +1163,9 @@ type EdgeLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EdgeLocation) MarshalJSON() ([]byte, error) {
+func (s EdgeLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod EdgeLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1086,7 +1210,13 @@ type Endpoint struct {
 	//   "VPN_GATEWAY" - Classic Cloud VPN Gateway.
 	//   "PSC" - Forwarding Rule is a Private Service Connect endpoint.
 	ForwardingRuleTarget string `json:"forwardingRuleTarget,omitempty"`
-	// GkeMasterCluster: A cluster URI for Google Kubernetes Engine master
+	// Fqdn: DNS endpoint of Google Kubernetes Engine cluster control plane
+	// (https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-architecture).
+	// Requires gke_master_cluster to be set, can't be used simultaneoulsly with
+	// ip_address or network. Applicable only to destination endpoint.
+	Fqdn string `json:"fqdn,omitempty"`
+	// GkeMasterCluster: A cluster URI for Google Kubernetes Engine cluster control
+	// plane
 	// (https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-architecture).
 	GkeMasterCluster string `json:"gkeMasterCluster,omitempty"`
 	// Instance: A Compute Engine instance URI.
@@ -1140,6 +1270,12 @@ type Endpoint struct {
 	// provide is from the service project. In this case, the network that the IP
 	// address resides in is defined in the host project.
 	ProjectId string `json:"projectId,omitempty"`
+	// RedisCluster: A Redis Cluster
+	// (https://cloud.google.com/memorystore/docs/cluster) URI.
+	RedisCluster string `json:"redisCluster,omitempty"`
+	// RedisInstance: A Redis Instance
+	// (https://cloud.google.com/memorystore/docs/redis) URI.
+	RedisInstance string `json:"redisInstance,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AppEngineVersion") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1153,9 +1289,9 @@ type Endpoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Endpoint) MarshalJSON() ([]byte, error) {
+func (s Endpoint) MarshalJSON() ([]byte, error) {
 	type NoMethod Endpoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EndpointInfo: For display only. The specification of the endpoints for the
@@ -1192,9 +1328,9 @@ type EndpointInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EndpointInfo) MarshalJSON() ([]byte, error) {
+func (s EndpointInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod EndpointInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -1240,20 +1376,20 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FirewallInfo: For display only. Metadata associated with a VPC firewall
-// rule, an implied VPC firewall rule, or a hierarchical firewall policy rule.
+// rule, an implied VPC firewall rule, or a firewall policy rule.
 type FirewallInfo struct {
 	// Action: Possible values: ALLOW, DENY, APPLY_SECURITY_PROFILE_GROUP
 	Action string `json:"action,omitempty"`
 	// Direction: Possible values: INGRESS, EGRESS
 	Direction string `json:"direction,omitempty"`
-	// DisplayName: The display name of the VPC firewall rule. This field is not
-	// applicable to hierarchical firewall policy rules.
+	// DisplayName: The display name of the firewall rule. This field might be
+	// empty for firewall policy rules.
 	DisplayName string `json:"displayName,omitempty"`
 	// FirewallRuleType: The firewall rule's type.
 	//
@@ -1290,23 +1426,30 @@ type FirewallInfo struct {
 	// rules
 	// specifications](https://cloud.google.com/firewall/docs/firewalls#specificatio
 	// ns)
+	//   "ANALYSIS_SKIPPED" - Firewall analysis was skipped due to executing
+	// Connectivity Test in the BypassFirewallChecks mode
 	FirewallRuleType string `json:"firewallRuleType,omitempty"`
 	// NetworkUri: The URI of the VPC network that the firewall rule is associated
 	// with. This field is not applicable to hierarchical firewall policy rules.
 	NetworkUri string `json:"networkUri,omitempty"`
-	// Policy: The hierarchical firewall policy that this rule is associated with.
-	// This field is not applicable to VPC firewall rules.
+	// Policy: The name of the firewall policy that this rule is associated with.
+	// This field is not applicable to VPC firewall rules and implied VPC firewall
+	// rules.
 	Policy string `json:"policy,omitempty"`
+	// PolicyUri: The URI of the firewall policy that this rule is associated with.
+	// This field is not applicable to VPC firewall rules and implied VPC firewall
+	// rules.
+	PolicyUri string `json:"policyUri,omitempty"`
 	// Priority: The priority of the firewall rule.
 	Priority int64 `json:"priority,omitempty"`
 	// TargetServiceAccounts: The target service accounts specified by the firewall
 	// rule.
 	TargetServiceAccounts []string `json:"targetServiceAccounts,omitempty"`
 	// TargetTags: The target tags defined by the VPC firewall rule. This field is
-	// not applicable to hierarchical firewall policy rules.
+	// not applicable to firewall policy rules.
 	TargetTags []string `json:"targetTags,omitempty"`
-	// Uri: The URI of the VPC firewall rule. This field is not applicable to
-	// implied firewall rules or hierarchical firewall policy rules.
+	// Uri: The URI of the firewall rule. This field is not applicable to implied
+	// VPC firewall rules.
 	Uri string `json:"uri,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Action") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1321,9 +1464,9 @@ type FirewallInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FirewallInfo) MarshalJSON() ([]byte, error) {
+func (s FirewallInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod FirewallInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ForwardInfo: Details of the final state "forward" and associated resource.
@@ -1361,9 +1504,9 @@ type ForwardInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ForwardInfo) MarshalJSON() ([]byte, error) {
+func (s ForwardInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ForwardInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ForwardingRuleInfo: For display only. Metadata associated with a Compute
@@ -1411,9 +1554,9 @@ type ForwardingRuleInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ForwardingRuleInfo) MarshalJSON() ([]byte, error) {
+func (s ForwardingRuleInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ForwardingRuleInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GKEMasterInfo: For display only. Metadata associated with a Google
@@ -1423,9 +1566,11 @@ type GKEMasterInfo struct {
 	ClusterNetworkUri string `json:"clusterNetworkUri,omitempty"`
 	// ClusterUri: URI of a GKE cluster.
 	ClusterUri string `json:"clusterUri,omitempty"`
-	// ExternalIp: External IP address of a GKE cluster master.
+	// DnsEndpoint: DNS endpoint of a GKE cluster control plane.
+	DnsEndpoint string `json:"dnsEndpoint,omitempty"`
+	// ExternalIp: External IP address of a GKE cluster control plane.
 	ExternalIp string `json:"externalIp,omitempty"`
-	// InternalIp: Internal IP address of a GKE cluster master.
+	// InternalIp: Internal IP address of a GKE cluster control plane.
 	InternalIp string `json:"internalIp,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ClusterNetworkUri") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1440,9 +1585,9 @@ type GKEMasterInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GKEMasterInfo) MarshalJSON() ([]byte, error) {
+func (s GKEMasterInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GKEMasterInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleServiceInfo: For display only. Details of a Google Service sending
@@ -1485,9 +1630,9 @@ type GoogleServiceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleServiceInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleServiceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleServiceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceInfo: For display only. Metadata associated with a Compute Engine
@@ -1505,6 +1650,9 @@ type InstanceInfo struct {
 	NetworkTags []string `json:"networkTags,omitempty"`
 	// NetworkUri: URI of a Compute Engine network.
 	NetworkUri string `json:"networkUri,omitempty"`
+	// PscNetworkAttachmentUri: URI of the PSC network attachment the NIC is
+	// attached to (if relevant).
+	PscNetworkAttachmentUri string `json:"pscNetworkAttachmentUri,omitempty"`
 	// ServiceAccount: Service account authorized for the instance.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 	// Uri: URI of a Compute Engine instance.
@@ -1522,9 +1670,9 @@ type InstanceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceInfo) MarshalJSON() ([]byte, error) {
+func (s InstanceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LatencyDistribution: Describes measured latency distribution.
@@ -1544,9 +1692,9 @@ type LatencyDistribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatencyDistribution) MarshalJSON() ([]byte, error) {
+func (s LatencyDistribution) MarshalJSON() ([]byte, error) {
 	type NoMethod LatencyDistribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LatencyPercentile: Latency percentile rank and value.
@@ -1570,9 +1718,9 @@ type LatencyPercentile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatencyPercentile) MarshalJSON() ([]byte, error) {
+func (s LatencyPercentile) MarshalJSON() ([]byte, error) {
 	type NoMethod LatencyPercentile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListConnectivityTestsResponse: Response for the `ListConnectivityTests`
@@ -1601,9 +1749,9 @@ type ListConnectivityTestsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConnectivityTestsResponse) MarshalJSON() ([]byte, error) {
+func (s ListConnectivityTestsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConnectivityTestsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -1629,9 +1777,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1657,9 +1805,40 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListVpcFlowLogsConfigsResponse: Response for the `ListVpcFlowLogsConfigs`
+// method.
+type ListVpcFlowLogsConfigsResponse struct {
+	// NextPageToken: Page token to fetch the next set of configurations.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// Unreachable: Locations that could not be reached (when querying all
+	// locations with `-`).
+	Unreachable []string `json:"unreachable,omitempty"`
+	// VpcFlowLogsConfigs: List of VPC Flow Log configurations.
+	VpcFlowLogsConfigs []*VpcFlowLogsConfig `json:"vpcFlowLogsConfigs,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListVpcFlowLogsConfigsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListVpcFlowLogsConfigsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoadBalancerBackend: For display only. Metadata associated with a specific
@@ -1701,9 +1880,9 @@ type LoadBalancerBackend struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoadBalancerBackend) MarshalJSON() ([]byte, error) {
+func (s LoadBalancerBackend) MarshalJSON() ([]byte, error) {
 	type NoMethod LoadBalancerBackend
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoadBalancerBackendInfo: For display only. Metadata associated with the load
@@ -1774,9 +1953,9 @@ type LoadBalancerBackendInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoadBalancerBackendInfo) MarshalJSON() ([]byte, error) {
+func (s LoadBalancerBackendInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod LoadBalancerBackendInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoadBalancerInfo: For display only. Metadata associated with a load
@@ -1821,9 +2000,9 @@ type LoadBalancerInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoadBalancerInfo) MarshalJSON() ([]byte, error) {
+func (s LoadBalancerInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod LoadBalancerInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -1859,9 +2038,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NatInfo: For display only. Metadata associated with NAT.
@@ -1919,18 +2098,24 @@ type NatInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NatInfo) MarshalJSON() ([]byte, error) {
+func (s NatInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod NatInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkInfo: For display only. Metadata associated with a Compute Engine
-// network.
+// network. Next ID: 7
 type NetworkInfo struct {
 	// DisplayName: Name of a Compute Engine network.
 	DisplayName string `json:"displayName,omitempty"`
-	// MatchedIpRange: The IP range that matches the test.
+	// MatchedIpRange: The IP range of the subnet matching the source IP address of
+	// the test.
 	MatchedIpRange string `json:"matchedIpRange,omitempty"`
+	// MatchedSubnetUri: URI of the subnet matching the source IP address of the
+	// test.
+	MatchedSubnetUri string `json:"matchedSubnetUri,omitempty"`
+	// Region: The region of the subnet matching the source IP address of the test.
+	Region string `json:"region,omitempty"`
 	// Uri: URI of a Compute Engine network.
 	Uri string `json:"uri,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DisplayName") to
@@ -1946,9 +2131,9 @@ type NetworkInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkInfo) MarshalJSON() ([]byte, error) {
+func (s NetworkInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1993,9 +2178,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Metadata describing an Operation
@@ -2028,9 +2213,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -2120,9 +2305,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProbingDetails: Results of active probing from the last run of the test.
@@ -2183,9 +2368,9 @@ type ProbingDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProbingDetails) MarshalJSON() ([]byte, error) {
+func (s ProbingDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ProbingDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProxyConnectionInfo: For display only. Metadata associated with
@@ -2230,9 +2415,9 @@ type ProxyConnectionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProxyConnectionInfo) MarshalJSON() ([]byte, error) {
+func (s ProxyConnectionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ProxyConnectionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReachabilityDetails: Results of the configuration analysis from the last run
@@ -2282,9 +2467,81 @@ type ReachabilityDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReachabilityDetails) MarshalJSON() ([]byte, error) {
+func (s ReachabilityDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ReachabilityDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RedisClusterInfo: For display only. Metadata associated with a Redis
+// Cluster.
+type RedisClusterInfo struct {
+	// DiscoveryEndpointIpAddress: Discovery endpoint IP address of a Redis
+	// Cluster.
+	DiscoveryEndpointIpAddress string `json:"discoveryEndpointIpAddress,omitempty"`
+	// DisplayName: Name of a Redis Cluster.
+	DisplayName string `json:"displayName,omitempty"`
+	// Location: Name of the region in which the Redis Cluster is defined. For
+	// example, "us-central1".
+	Location string `json:"location,omitempty"`
+	// NetworkUri: URI of the network containing the Redis Cluster endpoints in
+	// format "projects/{project_id}/global/networks/{network_id}".
+	NetworkUri string `json:"networkUri,omitempty"`
+	// SecondaryEndpointIpAddress: Secondary endpoint IP address of a Redis
+	// Cluster.
+	SecondaryEndpointIpAddress string `json:"secondaryEndpointIpAddress,omitempty"`
+	// Uri: URI of a Redis Cluster in format
+	// "projects/{project_id}/locations/{location}/clusters/{cluster_id}"
+	Uri string `json:"uri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DiscoveryEndpointIpAddress")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DiscoveryEndpointIpAddress") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RedisClusterInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod RedisClusterInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RedisInstanceInfo: For display only. Metadata associated with a Cloud Redis
+// Instance.
+type RedisInstanceInfo struct {
+	// DisplayName: Name of a Cloud Redis Instance.
+	DisplayName string `json:"displayName,omitempty"`
+	// NetworkUri: URI of a Cloud Redis Instance network.
+	NetworkUri string `json:"networkUri,omitempty"`
+	// PrimaryEndpointIp: Primary endpoint IP address of a Cloud Redis Instance.
+	PrimaryEndpointIp string `json:"primaryEndpointIp,omitempty"`
+	// ReadEndpointIp: Read endpoint IP address of a Cloud Redis Instance (if
+	// applicable).
+	ReadEndpointIp string `json:"readEndpointIp,omitempty"`
+	// Region: Region in which the Cloud Redis Instance is defined.
+	Region string `json:"region,omitempty"`
+	// Uri: URI of a Cloud Redis Instance.
+	Uri string `json:"uri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DisplayName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DisplayName") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RedisInstanceInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod RedisInstanceInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RerunConnectivityTestRequest: Request for the `RerunConnectivityTest`
@@ -2295,23 +2552,43 @@ type RerunConnectivityTestRequest struct {
 // RouteInfo: For display only. Metadata associated with a Compute Engine
 // route.
 type RouteInfo struct {
+	// AdvertisedRouteNextHopUri: For ADVERTISED routes, the URI of their next hop,
+	// i.e. the URI of the hybrid endpoint (VPN tunnel, Interconnect attachment,
+	// NCC router appliance) the advertised prefix is advertised through, or URI of
+	// the source peered network. Deprecated in favor of the next_hop_uri field,
+	// not used in new tests.
+	AdvertisedRouteNextHopUri string `json:"advertisedRouteNextHopUri,omitempty"`
+	// AdvertisedRouteSourceRouterUri: For ADVERTISED dynamic routes, the URI of
+	// the Cloud Router that advertised the corresponding IP prefix.
+	AdvertisedRouteSourceRouterUri string `json:"advertisedRouteSourceRouterUri,omitempty"`
 	// DestIpRange: Destination IP range of the route.
 	DestIpRange string `json:"destIpRange,omitempty"`
-	// DestPortRanges: Destination port ranges of the route. Policy based routes
+	// DestPortRanges: Destination port ranges of the route. POLICY_BASED routes
 	// only.
 	DestPortRanges []string `json:"destPortRanges,omitempty"`
 	// DisplayName: Name of a route.
 	DisplayName string `json:"displayName,omitempty"`
 	// InstanceTags: Instance tags of the route.
 	InstanceTags []string `json:"instanceTags,omitempty"`
-	// NccHubUri: URI of a NCC Hub. NCC_HUB routes only.
+	// NccHubRouteUri: For PEERING_SUBNET and PEERING_DYNAMIC routes that are
+	// advertised by NCC Hub, the URI of the corresponding route in NCC Hub's
+	// routing table.
+	NccHubRouteUri string `json:"nccHubRouteUri,omitempty"`
+	// NccHubUri: URI of the NCC Hub the route is advertised by. PEERING_SUBNET and
+	// PEERING_DYNAMIC routes that are advertised by NCC Hub only.
 	NccHubUri string `json:"nccHubUri,omitempty"`
-	// NccSpokeUri: URI of a NCC Spoke. NCC_HUB routes only.
+	// NccSpokeUri: URI of the destination NCC Spoke. PEERING_SUBNET and
+	// PEERING_DYNAMIC routes that are advertised by NCC Hub only.
 	NccSpokeUri string `json:"nccSpokeUri,omitempty"`
-	// NetworkUri: URI of a Compute Engine network. NETWORK routes only.
+	// NetworkUri: URI of a VPC network where route is located.
 	NetworkUri string `json:"networkUri,omitempty"`
-	// NextHop: Next hop of the route.
+	// NextHop: String type of the next hop of the route (for example, "VPN
+	// tunnel"). Deprecated in favor of the next_hop_type and next_hop_uri fields,
+	// not used in new tests.
 	NextHop string `json:"nextHop,omitempty"`
+	// NextHopNetworkUri: URI of a VPC network where the next hop resource is
+	// located.
+	NextHopNetworkUri string `json:"nextHopNetworkUri,omitempty"`
 	// NextHopType: Type of next hop.
 	//
 	// Possible values:
@@ -2319,7 +2596,9 @@ type RouteInfo struct {
 	//   "NEXT_HOP_IP" - Next hop is an IP address.
 	//   "NEXT_HOP_INSTANCE" - Next hop is a Compute Engine instance.
 	//   "NEXT_HOP_NETWORK" - Next hop is a VPC network gateway.
-	//   "NEXT_HOP_PEERING" - Next hop is a peering VPC.
+	//   "NEXT_HOP_PEERING" - Next hop is a peering VPC. This scenario only happens
+	// when the user doesn't have permissions to the project where the next hop
+	// resource is located.
 	//   "NEXT_HOP_INTERCONNECT" - Next hop is an interconnect.
 	//   "NEXT_HOP_VPN_TUNNEL" - Next hop is a VPN tunnel.
 	//   "NEXT_HOP_VPN_GATEWAY" - Next hop is a VPN gateway. This scenario only
@@ -2329,19 +2608,35 @@ type RouteInfo struct {
 	// gateway.
 	//   "NEXT_HOP_INTERNET_GATEWAY" - Next hop is an internet gateway.
 	//   "NEXT_HOP_BLACKHOLE" - Next hop is blackhole; that is, the next hop either
-	// does not exist or is not running.
+	// does not exist or is unusable.
 	//   "NEXT_HOP_ILB" - Next hop is the forwarding rule of an Internal Load
 	// Balancer.
 	//   "NEXT_HOP_ROUTER_APPLIANCE" - Next hop is a [router appliance
 	// instance](https://cloud.google.com/network-connectivity/docs/network-connecti
 	// vity-center/concepts/ra-overview).
-	//   "NEXT_HOP_NCC_HUB" - Next hop is an NCC hub.
+	//   "NEXT_HOP_NCC_HUB" - Next hop is an NCC hub. This scenario only happens
+	// when the user doesn't have permissions to the project where the next hop
+	// resource is located.
 	NextHopType string `json:"nextHopType,omitempty"`
+	// NextHopUri: URI of the next hop resource.
+	NextHopUri string `json:"nextHopUri,omitempty"`
+	// OriginatingRouteDisplayName: For PEERING_SUBNET, PEERING_STATIC and
+	// PEERING_DYNAMIC routes, the name of the originating SUBNET/STATIC/DYNAMIC
+	// route.
+	OriginatingRouteDisplayName string `json:"originatingRouteDisplayName,omitempty"`
+	// OriginatingRouteUri: For PEERING_SUBNET and PEERING_STATIC routes, the URI
+	// of the originating SUBNET/STATIC route.
+	OriginatingRouteUri string `json:"originatingRouteUri,omitempty"`
 	// Priority: Priority of the route.
 	Priority int64 `json:"priority,omitempty"`
-	// Protocols: Protocols of the route. Policy based routes only.
+	// Protocols: Protocols of the route. POLICY_BASED routes only.
 	Protocols []string `json:"protocols,omitempty"`
-	// RouteScope: Indicates where route is applicable.
+	// Region: Region of the route. DYNAMIC, PEERING_DYNAMIC, POLICY_BASED and
+	// ADVERTISED routes only. If set for POLICY_BASED route, this is a region of
+	// VLAN attachments for Cloud Interconnect the route applies to.
+	Region string `json:"region,omitempty"`
+	// RouteScope: Indicates where route is applicable. Deprecated, routes with
+	// NCC_HUB scope are not included in the trace in new tests.
 	//
 	// Possible values:
 	//   "ROUTE_SCOPE_UNSPECIFIED" - Unspecified scope. Default value.
@@ -2356,35 +2651,62 @@ type RouteInfo struct {
 	//   "STATIC" - Static route created by the user, including the default route
 	// to the internet.
 	//   "DYNAMIC" - Dynamic route exchanged between BGP peers.
-	//   "PEERING_SUBNET" - A subnet route received from peering network.
+	//   "PEERING_SUBNET" - A subnet route received from peering network or NCC
+	// Hub.
 	//   "PEERING_STATIC" - A static route received from peering network.
-	//   "PEERING_DYNAMIC" - A dynamic route received from peering network.
+	//   "PEERING_DYNAMIC" - A dynamic route received from peering network or NCC
+	// Hub.
 	//   "POLICY_BASED" - Policy based route.
+	//   "ADVERTISED" - Advertised route. Synthetic route which is used to
+	// transition from the StartFromPrivateNetwork state in Connectivity tests.
 	RouteType string `json:"routeType,omitempty"`
-	// SrcIpRange: Source IP address range of the route. Policy based routes only.
+	// SrcIpRange: Source IP address range of the route. POLICY_BASED routes only.
 	SrcIpRange string `json:"srcIpRange,omitempty"`
-	// SrcPortRanges: Source port ranges of the route. Policy based routes only.
+	// SrcPortRanges: Source port ranges of the route. POLICY_BASED routes only.
 	SrcPortRanges []string `json:"srcPortRanges,omitempty"`
-	// Uri: URI of a route. Dynamic, peering static and peering dynamic routes do
-	// not have an URI. Advertised route from Google Cloud VPC to on-premises
-	// network also does not have an URI.
+	// Uri: URI of a route. SUBNET, STATIC, PEERING_SUBNET (only for peering
+	// network) and POLICY_BASED routes only.
 	Uri string `json:"uri,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "DestIpRange") to
+	// ForceSendFields is a list of field names (e.g. "AdvertisedRouteNextHopUri")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AdvertisedRouteNextHopUri") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RouteInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod RouteInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ServerlessExternalConnectionInfo: For display only. Metadata associated with
+// a serverless public connection.
+type ServerlessExternalConnectionInfo struct {
+	// SelectedIpAddress: Selected starting IP address, from the Google dynamic
+	// address pool.
+	SelectedIpAddress string `json:"selectedIpAddress,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SelectedIpAddress") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "DestIpRange") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "SelectedIpAddress") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *RouteInfo) MarshalJSON() ([]byte, error) {
-	type NoMethod RouteInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+func (s ServerlessExternalConnectionInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod ServerlessExternalConnectionInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServerlessNegInfo: For display only. Metadata associated with the serverless
@@ -2405,9 +2727,9 @@ type ServerlessNegInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServerlessNegInfo) MarshalJSON() ([]byte, error) {
+func (s ServerlessNegInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ServerlessNegInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -2434,9 +2756,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2468,9 +2790,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Step: A simulated forwarding path is composed of multiple steps. Each step
@@ -2493,6 +2815,9 @@ type Step struct {
 	// Description: A description of the step. Usually this is a summary of the
 	// state.
 	Description string `json:"description,omitempty"`
+	// DirectVpcEgressConnection: Display information of a serverless direct VPC
+	// egress connection.
+	DirectVpcEgressConnection *DirectVpcEgressConnectionInfo `json:"directVpcEgressConnection,omitempty"`
 	// Drop: Display information of the final state "drop" and reason.
 	Drop *DropInfo `json:"drop,omitempty"`
 	// Endpoint: Display information of the source and destination under analysis.
@@ -2527,8 +2852,15 @@ type Step struct {
 	ProjectId string `json:"projectId,omitempty"`
 	// ProxyConnection: Display information of a ProxyConnection.
 	ProxyConnection *ProxyConnectionInfo `json:"proxyConnection,omitempty"`
+	// RedisCluster: Display information of a Redis Cluster.
+	RedisCluster *RedisClusterInfo `json:"redisCluster,omitempty"`
+	// RedisInstance: Display information of a Redis Instance.
+	RedisInstance *RedisInstanceInfo `json:"redisInstance,omitempty"`
 	// Route: Display information of a Compute Engine route.
 	Route *RouteInfo `json:"route,omitempty"`
+	// ServerlessExternalConnection: Display information of a serverless public
+	// (external) connection.
+	ServerlessExternalConnection *ServerlessExternalConnectionInfo `json:"serverlessExternalConnection,omitempty"`
 	// ServerlessNeg: Display information of a Serverless network endpoint group
 	// backend. Used only for return traces.
 	ServerlessNeg *ServerlessNegInfo `json:"serverlessNeg,omitempty"`
@@ -2553,6 +2885,12 @@ type Step struct {
 	//   "START_FROM_CLOUD_SQL_INSTANCE" - Initial state: packet originating from a
 	// Cloud SQL instance. A CloudSQLInstanceInfo is populated with starting
 	// instance information.
+	//   "START_FROM_REDIS_INSTANCE" - Initial state: packet originating from a
+	// Redis instance. A RedisInstanceInfo is populated with starting instance
+	// information.
+	//   "START_FROM_REDIS_CLUSTER" - Initial state: packet originating from a
+	// Redis Cluster. A RedisClusterInfo is populated with starting Cluster
+	// information.
 	//   "START_FROM_CLOUD_FUNCTION" - Initial state: packet originating from a
 	// Cloud Function. A CloudFunctionInfo is populated with starting function
 	// information.
@@ -2591,6 +2929,11 @@ type Step struct {
 	// gateway.
 	//   "ARRIVE_AT_VPN_TUNNEL" - Forwarding state: arriving at a Cloud VPN tunnel.
 	//   "ARRIVE_AT_VPC_CONNECTOR" - Forwarding state: arriving at a VPC connector.
+	//   "DIRECT_VPC_EGRESS_CONNECTION" - Forwarding state: for packets originating
+	// from a serverless endpoint forwarded through Direct VPC egress.
+	//   "SERVERLESS_EXTERNAL_CONNECTION" - Forwarding state: for packets
+	// originating from a serverless endpoint forwarded through public (external)
+	// connectivity.
 	//   "NAT" - Transition state: packet header translated.
 	//   "PROXY_CONNECTION" - Transition state: original connection is terminated
 	// and a new proxied connection is initiated.
@@ -2624,9 +2967,9 @@ type Step struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Step) MarshalJSON() ([]byte, error) {
+func (s Step) MarshalJSON() ([]byte, error) {
 	type NoMethod Step
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageBucketInfo: For display only. Metadata associated with Storage
@@ -2647,9 +2990,9 @@ type StorageBucketInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageBucketInfo) MarshalJSON() ([]byte, error) {
+func (s StorageBucketInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageBucketInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -2672,9 +3015,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -2699,9 +3042,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Trace: Trace represents one simulated packet forwarding path. * Each trace
@@ -2741,9 +3084,9 @@ type Trace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Trace) MarshalJSON() ([]byte, error) {
+func (s Trace) MarshalJSON() ([]byte, error) {
 	type NoMethod Trace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VpcConnectorInfo: For display only. Metadata associated with a VPC
@@ -2768,9 +3111,120 @@ type VpcConnectorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VpcConnectorInfo) MarshalJSON() ([]byte, error) {
+func (s VpcConnectorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VpcConnectorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// VpcFlowLogsConfig: A configuration to generate VPC Flow Logs.
+type VpcFlowLogsConfig struct {
+	// AggregationInterval: Optional. The aggregation interval for the logs.
+	// Default value is INTERVAL_5_SEC.
+	//
+	// Possible values:
+	//   "AGGREGATION_INTERVAL_UNSPECIFIED" - If not specified, will default to
+	// INTERVAL_5_SEC.
+	//   "INTERVAL_5_SEC" - Aggregate logs in 5s intervals.
+	//   "INTERVAL_30_SEC" - Aggregate logs in 30s intervals.
+	//   "INTERVAL_1_MIN" - Aggregate logs in 1m intervals.
+	//   "INTERVAL_5_MIN" - Aggregate logs in 5m intervals.
+	//   "INTERVAL_10_MIN" - Aggregate logs in 10m intervals.
+	//   "INTERVAL_15_MIN" - Aggregate logs in 15m intervals.
+	AggregationInterval string `json:"aggregationInterval,omitempty"`
+	// CreateTime: Output only. The time the config was created.
+	CreateTime string `json:"createTime,omitempty"`
+	// Description: Optional. The user-supplied description of the VPC Flow Logs
+	// configuration. Maximum of 512 characters.
+	Description string `json:"description,omitempty"`
+	// FilterExpr: Optional. Export filter used to define which VPC Flow Logs
+	// should be logged.
+	FilterExpr string `json:"filterExpr,omitempty"`
+	// FlowSampling: Optional. The value of the field must be in (0, 1]. The
+	// sampling rate of VPC Flow Logs where 1.0 means all collected logs are
+	// reported. Setting the sampling rate to 0.0 is not allowed. If you want to
+	// disable VPC Flow Logs, use the state field instead. Default value is 1.0.
+	FlowSampling float64 `json:"flowSampling,omitempty"`
+	// InterconnectAttachment: Traffic will be logged from the Interconnect
+	// Attachment. Format:
+	// projects/{project_id}/regions/{region}/interconnectAttachments/{name}
+	InterconnectAttachment string `json:"interconnectAttachment,omitempty"`
+	// Labels: Optional. Resource labels to represent user-provided metadata.
+	Labels map[string]string `json:"labels,omitempty"`
+	// Metadata: Optional. Configures whether all, none or a subset of metadata
+	// fields should be added to the reported VPC flow logs. Default value is
+	// INCLUDE_ALL_METADATA.
+	//
+	// Possible values:
+	//   "METADATA_UNSPECIFIED" - If not specified, will default to
+	// INCLUDE_ALL_METADATA.
+	//   "INCLUDE_ALL_METADATA" - Include all metadata fields.
+	//   "EXCLUDE_ALL_METADATA" - Exclude all metadata fields.
+	//   "CUSTOM_METADATA" - Include only custom fields (specified in
+	// metadata_fields).
+	Metadata string `json:"metadata,omitempty"`
+	// MetadataFields: Optional. Custom metadata fields to include in the reported
+	// VPC flow logs. Can only be specified if "metadata" was set to
+	// CUSTOM_METADATA.
+	MetadataFields []string `json:"metadataFields,omitempty"`
+	// Name: Identifier. Unique name of the configuration using the form:
+	// `projects/{project_id}/locations/global/vpcFlowLogsConfigs/{vpc_flow_logs_con
+	// fig_id}`
+	Name string `json:"name,omitempty"`
+	// State: Optional. The state of the VPC Flow Log configuration. Default value
+	// is ENABLED. When creating a new configuration, it must be enabled.
+	//
+	// Possible values:
+	//   "STATE_UNSPECIFIED" - If not specified, will default to ENABLED.
+	//   "ENABLED" - When ENABLED, this configuration will generate logs.
+	//   "DISABLED" - When DISABLED, this configuration will not generate logs.
+	State string `json:"state,omitempty"`
+	// TargetResourceState: Output only. A diagnostic bit - describes the state of
+	// the configured target resource for diagnostic purposes.
+	//
+	// Possible values:
+	//   "TARGET_RESOURCE_STATE_UNSPECIFIED" - Unspecified target resource state.
+	//   "TARGET_RESOURCE_EXISTS" - Indicates that the target resource exists.
+	//   "TARGET_RESOURCE_DOES_NOT_EXIST" - Indicates that the target resource does
+	// not exist.
+	TargetResourceState string `json:"targetResourceState,omitempty"`
+	// UpdateTime: Output only. The time the config was updated.
+	UpdateTime string `json:"updateTime,omitempty"`
+	// VpnTunnel: Traffic will be logged from the VPN Tunnel. Format:
+	// projects/{project_id}/regions/{region}/vpnTunnels/{name}
+	VpnTunnel string `json:"vpnTunnel,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "AggregationInterval") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AggregationInterval") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s VpcFlowLogsConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod VpcFlowLogsConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *VpcFlowLogsConfig) UnmarshalJSON(data []byte) error {
+	type NoMethod VpcFlowLogsConfig
+	var s1 struct {
+		FlowSampling gensupport.JSONFloat64 `json:"flowSampling"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.FlowSampling = float64(s1.FlowSampling)
+	return nil
 }
 
 // VpnGatewayInfo: For display only. Metadata associated with a Compute Engine
@@ -2804,9 +3258,9 @@ type VpnGatewayInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VpnGatewayInfo) MarshalJSON() ([]byte, error) {
+func (s VpnGatewayInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VpnGatewayInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VpnTunnelInfo: For display only. Metadata associated with a Compute Engine
@@ -2850,9 +3304,9 @@ type VpnTunnelInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VpnTunnelInfo) MarshalJSON() ([]byte, error) {
+func (s VpnTunnelInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VpnTunnelInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -2909,12 +3363,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2922,6 +3375,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2956,9 +3410,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3040,12 +3496,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3053,6 +3508,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3088,9 +3544,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3178,8 +3636,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsCreateCall) Header() http.Heade
 
 func (c *ProjectsLocationsGlobalConnectivityTestsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.connectivitytest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.connectivitytest)
 	if err != nil {
 		return nil, err
 	}
@@ -3195,6 +3652,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsCreateCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3229,9 +3687,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsCreateCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3278,12 +3738,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsDeleteCall) Header() http.Heade
 
 func (c *ProjectsLocationsGlobalConnectivityTestsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3291,6 +3750,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsDeleteCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3325,9 +3785,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsDeleteCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3386,12 +3848,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsGetCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3399,6 +3860,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsGetCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3434,9 +3896,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsGetCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3514,12 +3978,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsGetIamPolicyCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3527,6 +3990,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsGetIamPolicyCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3561,9 +4025,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsGetIamPolicyCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3658,12 +4124,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/connectivityTests")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3671,6 +4136,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3706,9 +4172,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3795,8 +4263,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsPatchCall) Header() http.Header
 
 func (c *ProjectsLocationsGlobalConnectivityTestsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.connectivitytest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.connectivitytest)
 	if err != nil {
 		return nil, err
 	}
@@ -3812,6 +4279,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsPatchCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3846,9 +4314,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsPatchCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3905,8 +4375,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsRerunCall) Header() http.Header
 
 func (c *ProjectsLocationsGlobalConnectivityTestsRerunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rerunconnectivitytestrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rerunconnectivitytestrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3922,6 +4391,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsRerunCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.rerun", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3956,9 +4426,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsRerunCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.rerun", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4010,8 +4482,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsSetIamPolicyCall) Header() http
 
 func (c *ProjectsLocationsGlobalConnectivityTestsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4027,6 +4498,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsSetIamPolicyCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4061,9 +4533,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsSetIamPolicyCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4118,8 +4592,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsTestIamPermissionsCall) Header(
 
 func (c *ProjectsLocationsGlobalConnectivityTestsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4135,6 +4608,7 @@ func (c *ProjectsLocationsGlobalConnectivityTestsTestIamPermissionsCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4170,9 +4644,11 @@ func (c *ProjectsLocationsGlobalConnectivityTestsTestIamPermissionsCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.connectivityTests.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4192,7 +4668,7 @@ type ProjectsLocationsGlobalOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -4228,8 +4704,7 @@ func (c *ProjectsLocationsGlobalOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsGlobalOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4245,6 +4720,7 @@ func (c *ProjectsLocationsGlobalOperationsCancelCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4279,9 +4755,11 @@ func (c *ProjectsLocationsGlobalOperationsCancelCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4330,12 +4808,11 @@ func (c *ProjectsLocationsGlobalOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsGlobalOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4343,6 +4820,7 @@ func (c *ProjectsLocationsGlobalOperationsDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4377,9 +4855,11 @@ func (c *ProjectsLocationsGlobalOperationsDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4439,12 +4919,11 @@ func (c *ProjectsLocationsGlobalOperationsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4452,6 +4931,7 @@ func (c *ProjectsLocationsGlobalOperationsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4486,9 +4966,11 @@ func (c *ProjectsLocationsGlobalOperationsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4567,12 +5049,11 @@ func (c *ProjectsLocationsGlobalOperationsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4580,6 +5061,7 @@ func (c *ProjectsLocationsGlobalOperationsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4615,9 +5097,11 @@ func (c *ProjectsLocationsGlobalOperationsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.global.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4640,4 +5124,613 @@ func (c *ProjectsLocationsGlobalOperationsListCall) Pages(ctx context.Context, f
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsLocationsVpcFlowLogsConfigsCreateCall struct {
+	s                 *Service
+	parent            string
+	vpcflowlogsconfig *VpcFlowLogsConfig
+	urlParams_        gensupport.URLParams
+	ctx_              context.Context
+	header_           http.Header
+}
+
+// Create: Creates a new `VpcFlowLogsConfig`. If a configuration with the exact
+// same settings already exists (even if the ID is different), the creation
+// fails. Notes: 1. Creating a configuration with state=DISABLED will fail 2.
+// The following fields are not considered as `settings` for the purpose of the
+// check mentioned above, therefore - creating another configuration with the
+// same fields but different values for the following fields will fail as well:
+// * name * create_time * update_time * labels * description
+//
+//   - parent: The parent resource of the VPC Flow Logs configuration to create:
+//     `projects/{project_id}/locations/global`.
+func (r *ProjectsLocationsVpcFlowLogsConfigsService) Create(parent string, vpcflowlogsconfig *VpcFlowLogsConfig) *ProjectsLocationsVpcFlowLogsConfigsCreateCall {
+	c := &ProjectsLocationsVpcFlowLogsConfigsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.vpcflowlogsconfig = vpcflowlogsconfig
+	return c
+}
+
+// VpcFlowLogsConfigId sets the optional parameter "vpcFlowLogsConfigId":
+// Required. ID of the `VpcFlowLogsConfig`.
+func (c *ProjectsLocationsVpcFlowLogsConfigsCreateCall) VpcFlowLogsConfigId(vpcFlowLogsConfigId string) *ProjectsLocationsVpcFlowLogsConfigsCreateCall {
+	c.urlParams_.Set("vpcFlowLogsConfigId", vpcFlowLogsConfigId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsVpcFlowLogsConfigsCreateCall) Fields(s ...googleapi.Field) *ProjectsLocationsVpcFlowLogsConfigsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsVpcFlowLogsConfigsCreateCall) Context(ctx context.Context) *ProjectsLocationsVpcFlowLogsConfigsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsVpcFlowLogsConfigsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsVpcFlowLogsConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.vpcflowlogsconfig)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/vpcFlowLogsConfigs")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "networkmanagement.projects.locations.vpcFlowLogsConfigs.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsVpcFlowLogsConfigsCreateCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsVpcFlowLogsConfigsDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Deletes a specific `VpcFlowLogsConfig`.
+//
+//   - name: `VpcFlowLogsConfig` resource name using the form:
+//     `projects/{project_id}/locations/global/vpcFlowLogsConfigs/{vpc_flow_logs_c
+//     onfig}`.
+func (r *ProjectsLocationsVpcFlowLogsConfigsService) Delete(name string) *ProjectsLocationsVpcFlowLogsConfigsDeleteCall {
+	c := &ProjectsLocationsVpcFlowLogsConfigsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsVpcFlowLogsConfigsDeleteCall) Fields(s ...googleapi.Field) *ProjectsLocationsVpcFlowLogsConfigsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsVpcFlowLogsConfigsDeleteCall) Context(ctx context.Context) *ProjectsLocationsVpcFlowLogsConfigsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsVpcFlowLogsConfigsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsVpcFlowLogsConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "networkmanagement.projects.locations.vpcFlowLogsConfigs.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsVpcFlowLogsConfigsDeleteCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsVpcFlowLogsConfigsGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets the details of a specific `VpcFlowLogsConfig`.
+//
+//   - name: `VpcFlowLogsConfig` resource name using the form:
+//     `projects/{project_id}/locations/global/vpcFlowLogsConfigs/{vpc_flow_logs_c
+//     onfig}`.
+func (r *ProjectsLocationsVpcFlowLogsConfigsService) Get(name string) *ProjectsLocationsVpcFlowLogsConfigsGetCall {
+	c := &ProjectsLocationsVpcFlowLogsConfigsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsVpcFlowLogsConfigsGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsVpcFlowLogsConfigsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsVpcFlowLogsConfigsGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsVpcFlowLogsConfigsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsVpcFlowLogsConfigsGetCall) Context(ctx context.Context) *ProjectsLocationsVpcFlowLogsConfigsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsVpcFlowLogsConfigsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsVpcFlowLogsConfigsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "networkmanagement.projects.locations.vpcFlowLogsConfigs.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *VpcFlowLogsConfig.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsVpcFlowLogsConfigsGetCall) Do(opts ...googleapi.CallOption) (*VpcFlowLogsConfig, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &VpcFlowLogsConfig{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsVpcFlowLogsConfigsListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists all `VpcFlowLogsConfigs` in a given project.
+//
+//   - parent: The parent resource of the VpcFlowLogsConfig:
+//     `projects/{project_id}/locations/global`.
+func (r *ProjectsLocationsVpcFlowLogsConfigsService) List(parent string) *ProjectsLocationsVpcFlowLogsConfigsListCall {
+	c := &ProjectsLocationsVpcFlowLogsConfigsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": Lists the `VpcFlowLogsConfigs`
+// that match the filter expression. A filter expression must use the supported
+// [CEL logic operators]
+// (https://cloud.google.com/vpc/docs/about-flow-logs-records#supported_cel_logic_operators).
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) Filter(filter string) *ProjectsLocationsVpcFlowLogsConfigsListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// OrderBy sets the optional parameter "orderBy": Field to use to sort the
+// list.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) OrderBy(orderBy string) *ProjectsLocationsVpcFlowLogsConfigsListCall {
+	c.urlParams_.Set("orderBy", orderBy)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Number of
+// `VpcFlowLogsConfigs` to return.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) PageSize(pageSize int64) *ProjectsLocationsVpcFlowLogsConfigsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": Page token from an
+// earlier query, as returned in `next_page_token`.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) PageToken(pageToken string) *ProjectsLocationsVpcFlowLogsConfigsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) Fields(s ...googleapi.Field) *ProjectsLocationsVpcFlowLogsConfigsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) IfNoneMatch(entityTag string) *ProjectsLocationsVpcFlowLogsConfigsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) Context(ctx context.Context) *ProjectsLocationsVpcFlowLogsConfigsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/vpcFlowLogsConfigs")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "networkmanagement.projects.locations.vpcFlowLogsConfigs.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListVpcFlowLogsConfigsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) Do(opts ...googleapi.CallOption) (*ListVpcFlowLogsConfigsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListVpcFlowLogsConfigsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsVpcFlowLogsConfigsListCall) Pages(ctx context.Context, f func(*ListVpcFlowLogsConfigsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsVpcFlowLogsConfigsPatchCall struct {
+	s                 *Service
+	name              string
+	vpcflowlogsconfig *VpcFlowLogsConfig
+	urlParams_        gensupport.URLParams
+	ctx_              context.Context
+	header_           http.Header
+}
+
+// Patch: Updates an existing `VpcFlowLogsConfig`. If a configuration with the
+// exact same settings already exists (even if the ID is different), the
+// creation fails. Notes: 1. Updating a configuration with state=DISABLED will
+// fail. 2. The following fields are not considered as `settings` for the
+// purpose of the check mentioned above, therefore - updating another
+// configuration with the same fields but different values for the following
+// fields will fail as well: * name * create_time * update_time * labels *
+// description
+//
+//   - name: Identifier. Unique name of the configuration using the form:
+//     `projects/{project_id}/locations/global/vpcFlowLogsConfigs/{vpc_flow_logs_c
+//     onfig_id}`.
+func (r *ProjectsLocationsVpcFlowLogsConfigsService) Patch(name string, vpcflowlogsconfig *VpcFlowLogsConfig) *ProjectsLocationsVpcFlowLogsConfigsPatchCall {
+	c := &ProjectsLocationsVpcFlowLogsConfigsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.vpcflowlogsconfig = vpcflowlogsconfig
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. Mask of
+// fields to update. At least one path must be supplied in this field.
+func (c *ProjectsLocationsVpcFlowLogsConfigsPatchCall) UpdateMask(updateMask string) *ProjectsLocationsVpcFlowLogsConfigsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsVpcFlowLogsConfigsPatchCall) Fields(s ...googleapi.Field) *ProjectsLocationsVpcFlowLogsConfigsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsVpcFlowLogsConfigsPatchCall) Context(ctx context.Context) *ProjectsLocationsVpcFlowLogsConfigsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsVpcFlowLogsConfigsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsVpcFlowLogsConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.vpcflowlogsconfig)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "networkmanagement.projects.locations.vpcFlowLogsConfigs.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsVpcFlowLogsConfigsPatchCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "networkmanagement.projects.locations.vpcFlowLogsConfigs.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }

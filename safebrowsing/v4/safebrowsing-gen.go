@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "safebrowsing:v4"
 const apiName = "safebrowsing"
@@ -103,7 +106,14 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.EncodedFullHashes = NewEncodedFullHashesService(s)
+	s.EncodedUpdates = NewEncodedUpdatesService(s)
+	s.FullHashes = NewFullHashesService(s)
+	s.ThreatHits = NewThreatHitsService(s)
+	s.ThreatListUpdates = NewThreatListUpdatesService(s)
+	s.ThreatLists = NewThreatListsService(s)
+	s.ThreatMatches = NewThreatMatchesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,19 +132,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.EncodedFullHashes = NewEncodedFullHashesService(s)
-	s.EncodedUpdates = NewEncodedUpdatesService(s)
-	s.FullHashes = NewFullHashesService(s)
-	s.ThreatHits = NewThreatHitsService(s)
-	s.ThreatListUpdates = NewThreatListUpdatesService(s)
-	s.ThreatLists = NewThreatListsService(s)
-	s.ThreatMatches = NewThreatMatchesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -252,9 +255,9 @@ type GoogleSecuritySafebrowsingV4Checksum struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4Checksum) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4Checksum) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4Checksum
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ClientInfo: The client metadata associated with
@@ -278,9 +281,9 @@ type GoogleSecuritySafebrowsingV4ClientInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ClientInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ClientInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ClientInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequest: Describes a Safe
@@ -305,9 +308,9 @@ type GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequest:
@@ -384,9 +387,9 @@ type GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequest 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequestCon
@@ -431,9 +434,9 @@ type GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequestC
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequestConstraints) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequestConstraints) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FetchThreatListUpdatesRequestListUpdateRequestConstraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponse struct {
@@ -462,9 +465,9 @@ type GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponseListUpdateResponse:
@@ -563,9 +566,9 @@ type GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponseListUpdateRespons
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponseListUpdateResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponseListUpdateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FetchThreatListUpdatesResponseListUpdateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4FindFullHashesRequest: Request to return full
@@ -594,9 +597,9 @@ type GoogleSecuritySafebrowsingV4FindFullHashesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FindFullHashesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FindFullHashesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FindFullHashesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleSecuritySafebrowsingV4FindFullHashesResponse struct {
@@ -625,9 +628,9 @@ type GoogleSecuritySafebrowsingV4FindFullHashesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FindFullHashesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FindFullHashesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FindFullHashesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4FindThreatMatchesRequest: Request to check
@@ -650,9 +653,9 @@ type GoogleSecuritySafebrowsingV4FindThreatMatchesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FindThreatMatchesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FindThreatMatchesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FindThreatMatchesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleSecuritySafebrowsingV4FindThreatMatchesResponse struct {
@@ -674,9 +677,9 @@ type GoogleSecuritySafebrowsingV4FindThreatMatchesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4FindThreatMatchesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4FindThreatMatchesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4FindThreatMatchesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleSecuritySafebrowsingV4ListThreatListsResponse struct {
@@ -698,9 +701,9 @@ type GoogleSecuritySafebrowsingV4ListThreatListsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ListThreatListsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ListThreatListsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ListThreatListsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4RawHashes: The uncompressed threat entries in
@@ -730,9 +733,9 @@ type GoogleSecuritySafebrowsingV4RawHashes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4RawHashes) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4RawHashes) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4RawHashes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4RawIndices: A set of raw indices to remove from
@@ -753,9 +756,9 @@ type GoogleSecuritySafebrowsingV4RawIndices struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4RawIndices) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4RawIndices) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4RawIndices
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4RiceDeltaEncoding: The Rice-Golomb encoded data.
@@ -788,9 +791,9 @@ type GoogleSecuritySafebrowsingV4RiceDeltaEncoding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4RiceDeltaEncoding) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4RiceDeltaEncoding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4RiceDeltaEncoding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatEntry: An individual threat; for example,
@@ -819,9 +822,9 @@ type GoogleSecuritySafebrowsingV4ThreatEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatEntry) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatEntryMetadata: The metadata associated
@@ -843,9 +846,9 @@ type GoogleSecuritySafebrowsingV4ThreatEntryMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatEntryMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatEntryMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatEntryMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatEntryMetadataMetadataEntry: A single
@@ -869,9 +872,9 @@ type GoogleSecuritySafebrowsingV4ThreatEntryMetadataMetadataEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatEntryMetadataMetadataEntry) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatEntryMetadataMetadataEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatEntryMetadataMetadataEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatEntrySet: A set of threats that should be
@@ -910,9 +913,9 @@ type GoogleSecuritySafebrowsingV4ThreatEntrySet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatEntrySet) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatEntrySet) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatEntrySet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleSecuritySafebrowsingV4ThreatHit struct {
@@ -980,9 +983,9 @@ type GoogleSecuritySafebrowsingV4ThreatHit struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatHit) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatHit) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatHit
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatHitThreatSource: A single resource related
@@ -1020,9 +1023,9 @@ type GoogleSecuritySafebrowsingV4ThreatHitThreatSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatHitThreatSource) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatHitThreatSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatHitThreatSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatHitUserInfo: Details about the user that
@@ -1045,9 +1048,9 @@ type GoogleSecuritySafebrowsingV4ThreatHitUserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatHitUserInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatHitUserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatHitUserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatInfo: The information regarding one or
@@ -1122,9 +1125,9 @@ type GoogleSecuritySafebrowsingV4ThreatInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatListDescriptor: Describes an individual
@@ -1198,9 +1201,9 @@ type GoogleSecuritySafebrowsingV4ThreatListDescriptor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatListDescriptor) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatListDescriptor) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatListDescriptor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleSecuritySafebrowsingV4ThreatMatch: A match when checking a threat
@@ -1279,9 +1282,9 @@ type GoogleSecuritySafebrowsingV4ThreatMatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleSecuritySafebrowsingV4ThreatMatch) MarshalJSON() ([]byte, error) {
+func (s GoogleSecuritySafebrowsingV4ThreatMatch) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleSecuritySafebrowsingV4ThreatMatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EncodedFullHashesGetCall struct {
@@ -1353,12 +1356,11 @@ func (c *EncodedFullHashesGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/encodedFullHashes/{encodedRequest}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1366,6 +1368,7 @@ func (c *EncodedFullHashesGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"encodedRequest": c.encodedRequest,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "safebrowsing.encodedFullHashes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1401,9 +1404,11 @@ func (c *EncodedFullHashesGetCall) Do(opts ...googleapi.CallOption) (*GoogleSecu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "safebrowsing.encodedFullHashes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1475,12 +1480,11 @@ func (c *EncodedUpdatesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/encodedUpdates/{encodedRequest}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1488,6 +1492,7 @@ func (c *EncodedUpdatesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"encodedRequest": c.encodedRequest,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "safebrowsing.encodedUpdates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1523,9 +1528,11 @@ func (c *EncodedUpdatesGetCall) Do(opts ...googleapi.CallOption) (*GoogleSecurit
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "safebrowsing.encodedUpdates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1569,8 +1576,7 @@ func (c *FullHashesFindCall) Header() http.Header {
 
 func (c *FullHashesFindCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlesecuritysafebrowsingv4findfullhashesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlesecuritysafebrowsingv4findfullhashesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1583,6 +1589,7 @@ func (c *FullHashesFindCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "safebrowsing.fullHashes.find", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1618,9 +1625,11 @@ func (c *FullHashesFindCall) Do(opts ...googleapi.CallOption) (*GoogleSecuritySa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "safebrowsing.fullHashes.find", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1665,8 +1674,7 @@ func (c *ThreatHitsCreateCall) Header() http.Header {
 
 func (c *ThreatHitsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlesecuritysafebrowsingv4threathit)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlesecuritysafebrowsingv4threathit)
 	if err != nil {
 		return nil, err
 	}
@@ -1679,6 +1687,7 @@ func (c *ThreatHitsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "safebrowsing.threatHits.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1714,9 +1723,11 @@ func (c *ThreatHitsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleProtobuf
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "safebrowsing.threatHits.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1761,8 +1772,7 @@ func (c *ThreatListUpdatesFetchCall) Header() http.Header {
 
 func (c *ThreatListUpdatesFetchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlesecuritysafebrowsingv4fetchthreatlistupdatesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlesecuritysafebrowsingv4fetchthreatlistupdatesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1775,6 +1785,7 @@ func (c *ThreatListUpdatesFetchCall) doRequest(alt string) (*http.Response, erro
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "safebrowsing.threatListUpdates.fetch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1810,9 +1821,11 @@ func (c *ThreatListUpdatesFetchCall) Do(opts ...googleapi.CallOption) (*GoogleSe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "safebrowsing.threatListUpdates.fetch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1866,16 +1879,16 @@ func (c *ThreatListsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v4/threatLists")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "safebrowsing.threatLists.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1911,9 +1924,11 @@ func (c *ThreatListsListCall) Do(opts ...googleapi.CallOption) (*GoogleSecurityS
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "safebrowsing.threatLists.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1957,8 +1972,7 @@ func (c *ThreatMatchesFindCall) Header() http.Header {
 
 func (c *ThreatMatchesFindCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlesecuritysafebrowsingv4findthreatmatchesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlesecuritysafebrowsingv4findthreatmatchesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1971,6 +1985,7 @@ func (c *ThreatMatchesFindCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "safebrowsing.threatMatches.find", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2006,8 +2021,10 @@ func (c *ThreatMatchesFindCall) Do(opts ...googleapi.CallOption) (*GoogleSecurit
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "safebrowsing.threatMatches.find", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

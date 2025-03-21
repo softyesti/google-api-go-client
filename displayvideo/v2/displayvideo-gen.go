@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "displayvideo:v2"
 const apiName = "displayvideo"
@@ -134,7 +137,21 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Advertisers = NewAdvertisersService(s)
+	s.CombinedAudiences = NewCombinedAudiencesService(s)
+	s.CustomBiddingAlgorithms = NewCustomBiddingAlgorithmsService(s)
+	s.CustomLists = NewCustomListsService(s)
+	s.FloodlightGroups = NewFloodlightGroupsService(s)
+	s.GoogleAudiences = NewGoogleAudiencesService(s)
+	s.GuaranteedOrders = NewGuaranteedOrdersService(s)
+	s.InventorySourceGroups = NewInventorySourceGroupsService(s)
+	s.InventorySources = NewInventorySourcesService(s)
+	s.Media = NewMediaService(s)
+	s.Partners = NewPartnersService(s)
+	s.Sdfdownloadtasks = NewSdfdownloadtasksService(s)
+	s.TargetingTypes = NewTargetingTypesService(s)
+	s.Users = NewUsersService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -153,27 +170,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Advertisers = NewAdvertisersService(s)
-	s.CombinedAudiences = NewCombinedAudiencesService(s)
-	s.CustomBiddingAlgorithms = NewCustomBiddingAlgorithmsService(s)
-	s.CustomLists = NewCustomListsService(s)
-	s.FirstAndThirdPartyAudiences = NewFirstAndThirdPartyAudiencesService(s)
-	s.FloodlightGroups = NewFloodlightGroupsService(s)
-	s.GoogleAudiences = NewGoogleAudiencesService(s)
-	s.GuaranteedOrders = NewGuaranteedOrdersService(s)
-	s.InventorySourceGroups = NewInventorySourceGroupsService(s)
-	s.InventorySources = NewInventorySourcesService(s)
-	s.Media = NewMediaService(s)
-	s.Partners = NewPartnersService(s)
-	s.Sdfdownloadtasks = NewSdfdownloadtasksService(s)
-	s.TargetingTypes = NewTargetingTypesService(s)
-	s.Users = NewUsersService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -184,8 +186,6 @@ type Service struct {
 	CustomBiddingAlgorithms *CustomBiddingAlgorithmsService
 
 	CustomLists *CustomListsService
-
-	FirstAndThirdPartyAudiences *FirstAndThirdPartyAudiencesService
 
 	FloodlightGroups *FloodlightGroupsService
 
@@ -274,34 +274,10 @@ type AdvertisersAssetsService struct {
 
 func NewAdvertisersCampaignsService(s *Service) *AdvertisersCampaignsService {
 	rs := &AdvertisersCampaignsService{s: s}
-	rs.TargetingTypes = NewAdvertisersCampaignsTargetingTypesService(s)
 	return rs
 }
 
 type AdvertisersCampaignsService struct {
-	s *Service
-
-	TargetingTypes *AdvertisersCampaignsTargetingTypesService
-}
-
-func NewAdvertisersCampaignsTargetingTypesService(s *Service) *AdvertisersCampaignsTargetingTypesService {
-	rs := &AdvertisersCampaignsTargetingTypesService{s: s}
-	rs.AssignedTargetingOptions = NewAdvertisersCampaignsTargetingTypesAssignedTargetingOptionsService(s)
-	return rs
-}
-
-type AdvertisersCampaignsTargetingTypesService struct {
-	s *Service
-
-	AssignedTargetingOptions *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsService
-}
-
-func NewAdvertisersCampaignsTargetingTypesAssignedTargetingOptionsService(s *Service) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsService {
-	rs := &AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsService{s: s}
-	return rs
-}
-
-type AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsService struct {
 	s *Service
 }
 
@@ -337,34 +313,10 @@ type AdvertisersCreativesService struct {
 
 func NewAdvertisersInsertionOrdersService(s *Service) *AdvertisersInsertionOrdersService {
 	rs := &AdvertisersInsertionOrdersService{s: s}
-	rs.TargetingTypes = NewAdvertisersInsertionOrdersTargetingTypesService(s)
 	return rs
 }
 
 type AdvertisersInsertionOrdersService struct {
-	s *Service
-
-	TargetingTypes *AdvertisersInsertionOrdersTargetingTypesService
-}
-
-func NewAdvertisersInsertionOrdersTargetingTypesService(s *Service) *AdvertisersInsertionOrdersTargetingTypesService {
-	rs := &AdvertisersInsertionOrdersTargetingTypesService{s: s}
-	rs.AssignedTargetingOptions = NewAdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService(s)
-	return rs
-}
-
-type AdvertisersInsertionOrdersTargetingTypesService struct {
-	s *Service
-
-	AssignedTargetingOptions *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService
-}
-
-func NewAdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService(s *Service) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService {
-	rs := &AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService{s: s}
-	return rs
-}
-
-type AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService struct {
 	s *Service
 }
 
@@ -560,15 +512,6 @@ func NewCustomListsService(s *Service) *CustomListsService {
 }
 
 type CustomListsService struct {
-	s *Service
-}
-
-func NewFirstAndThirdPartyAudiencesService(s *Service) *FirstAndThirdPartyAudiencesService {
-	rs := &FirstAndThirdPartyAudiencesService{s: s}
-	return rs
-}
-
-type FirstAndThirdPartyAudiencesService struct {
 	s *Service
 }
 
@@ -846,9 +789,9 @@ type ActiveViewVideoViewabilityMetricConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActiveViewVideoViewabilityMetricConfig) MarshalJSON() ([]byte, error) {
+func (s ActiveViewVideoViewabilityMetricConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ActiveViewVideoViewabilityMetricConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdUrl: Additional URLs related to the ad, including beacons.
@@ -881,18 +824,18 @@ type AdUrl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdUrl) MarshalJSON() ([]byte, error) {
+func (s AdUrl) MarshalJSON() ([]byte, error) {
 	type NoMethod AdUrl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Adloox: Details of Adloox settings.
+// Adloox: Details of Adloox brand safety settings.
 type Adloox struct {
-	// ExcludedAdlooxCategories: Adloox's brand safety settings.
+	// ExcludedAdlooxCategories: Adloox categories to exclude.
 	//
 	// Possible values:
-	//   "ADLOOX_UNSPECIFIED" - This enum is only a placeholder and it doesn't
-	// specify any Adloox option.
+	//   "ADLOOX_UNSPECIFIED" - Default value when a Adloox category is not
+	// specified or is unknown in this version.
 	//   "ADULT_CONTENT_HARD" - Adult content (hard).
 	//   "ADULT_CONTENT_SOFT" - Adult content (soft).
 	//   "ILLEGAL_CONTENT" - Illegal content.
@@ -915,9 +858,9 @@ type Adloox struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Adloox) MarshalJSON() ([]byte, error) {
+func (s Adloox) MarshalJSON() ([]byte, error) {
 	type NoMethod Adloox
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Advertiser: A single advertiser in Display & Video 360 (DV360).
@@ -928,9 +871,6 @@ type Advertiser struct {
 	// AdvertiserId: Output only. The unique ID of the advertiser. Assigned by the
 	// system.
 	AdvertiserId int64 `json:"advertiserId,omitempty,string"`
-	// BillingConfig: Optional. Required. Billing related settings of the
-	// advertiser.
-	BillingConfig *AdvertiserBillingConfig `json:"billingConfig,omitempty"`
 	// CreativeConfig: Required. Creative related settings of the advertiser.
 	CreativeConfig *AdvertiserCreativeConfig `json:"creativeConfig,omitempty"`
 	// DataAccessConfig: Settings that control how advertiser data may be accessed.
@@ -998,9 +938,9 @@ type Advertiser struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Advertiser) MarshalJSON() ([]byte, error) {
+func (s Advertiser) MarshalJSON() ([]byte, error) {
 	type NoMethod Advertiser
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvertiserAdServerConfig: Ad server related settings of an advertiser.
@@ -1024,32 +964,9 @@ type AdvertiserAdServerConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvertiserAdServerConfig) MarshalJSON() ([]byte, error) {
+func (s AdvertiserAdServerConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvertiserAdServerConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// AdvertiserBillingConfig: Billing related settings of an advertiser.
-type AdvertiserBillingConfig struct {
-	// BillingProfileId: Optional. The ID of a billing profile assigned to the
-	// advertiser.
-	BillingProfileId int64 `json:"billingProfileId,omitempty,string"`
-	// ForceSendFields is a list of field names (e.g. "BillingProfileId") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "BillingProfileId") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *AdvertiserBillingConfig) MarshalJSON() ([]byte, error) {
-	type NoMethod AdvertiserBillingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvertiserCreativeConfig: Creatives related settings of an advertiser.
@@ -1099,9 +1016,9 @@ type AdvertiserCreativeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvertiserCreativeConfig) MarshalJSON() ([]byte, error) {
+func (s AdvertiserCreativeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvertiserCreativeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvertiserDataAccessConfig: Settings that control how advertiser related
@@ -1123,9 +1040,9 @@ type AdvertiserDataAccessConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvertiserDataAccessConfig) MarshalJSON() ([]byte, error) {
+func (s AdvertiserDataAccessConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvertiserDataAccessConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvertiserGeneralConfig: General settings of an advertiser.
@@ -1171,9 +1088,9 @@ type AdvertiserGeneralConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvertiserGeneralConfig) MarshalJSON() ([]byte, error) {
+func (s AdvertiserGeneralConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvertiserGeneralConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvertiserSdfConfig: Structured Data Files (SDF) settings of an advertiser.
@@ -1201,9 +1118,9 @@ type AdvertiserSdfConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvertiserSdfConfig) MarshalJSON() ([]byte, error) {
+func (s AdvertiserSdfConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvertiserSdfConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvertiserTargetingConfig: Targeting settings related to ad serving of an
@@ -1228,9 +1145,9 @@ type AdvertiserTargetingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvertiserTargetingConfig) MarshalJSON() ([]byte, error) {
+func (s AdvertiserTargetingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvertiserTargetingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgeRangeAssignedTargetingOptionDetails: Represents a targetable age range.
@@ -1288,9 +1205,9 @@ type AgeRangeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgeRangeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AgeRangeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AgeRangeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgeRangeTargetingOptionDetails: Represents a targetable age range. This will
@@ -1344,9 +1261,9 @@ type AgeRangeTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgeRangeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AgeRangeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AgeRangeTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppAssignedTargetingOptionDetails: Details for assigned app targeting
@@ -1396,9 +1313,9 @@ type AppAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AppAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AppAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppCategoryAssignedTargetingOptionDetails: Details for assigned app category
@@ -1426,9 +1343,9 @@ type AppCategoryAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppCategoryAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AppCategoryAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AppCategoryAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppCategoryTargetingOptionDetails: Represents a targetable collection of
@@ -1452,9 +1369,9 @@ type AppCategoryTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppCategoryTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AppCategoryTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AppCategoryTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Asset: A single asset.
@@ -1482,16 +1399,16 @@ type Asset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Asset) MarshalJSON() ([]byte, error) {
+func (s Asset) MarshalJSON() ([]byte, error) {
 	type NoMethod Asset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetAssociation: Asset association for the creative.
 type AssetAssociation struct {
-	// Asset: The associated asset.
+	// Asset: Optional. The associated asset.
 	Asset *Asset `json:"asset,omitempty"`
-	// Role: The role of this asset for the creative.
+	// Role: Optional. The role of this asset for the creative.
 	//
 	// Possible values:
 	//   "ASSET_ROLE_UNSPECIFIED" - Asset role is not specified or is unknown in
@@ -1502,38 +1419,39 @@ type AssetAssociation struct {
 	// creative.
 	//   "ASSET_ROLE_HEADLINE" - Headline of a native creative. The content must be
 	// UTF-8 encoded with a length of no more than 25 characters. This role is only
-	// supported in following creative_type: * `CREATIVE_TYPE_NATIVE` *
+	// supported in the following creative_type: * `CREATIVE_TYPE_NATIVE` *
 	// `CREATIVE_TYPE_NATIVE_SITE_SQUARE` * `CREATIVE_TYPE_NATIVE_VIDEO`
 	//   "ASSET_ROLE_LONG_HEADLINE" - Long headline of a native creative. The
 	// content must be UTF-8 encoded with a length of no more than 50 characters.
-	// This role is only supported in following creative_type: *
+	// This role is only supported in the following creative_type: *
 	// `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` *
 	// `CREATIVE_TYPE_NATIVE_VIDEO`
 	//   "ASSET_ROLE_BODY" - Body text of a native creative. The content must be
 	// UTF-8 encoded with a length of no more than 90 characters. This role is only
-	// supported in following creative_type: * `CREATIVE_TYPE_NATIVE` *
+	// supported in the following creative_type: * `CREATIVE_TYPE_NATIVE` *
 	// `CREATIVE_TYPE_NATIVE_SITE_SQUARE` * `CREATIVE_TYPE_NATIVE_VIDEO`
 	//   "ASSET_ROLE_LONG_BODY" - Long body text of a native creative. The content
 	// must be UTF-8 encoded with a length of no more than 150 characters. This
-	// role is only supported in following creative_type: * `CREATIVE_TYPE_NATIVE`
-	// * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` * `CREATIVE_TYPE_NATIVE_VIDEO`
+	// role is only supported in the following creative_type: *
+	// `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` *
+	// `CREATIVE_TYPE_NATIVE_VIDEO`
 	//   "ASSET_ROLE_CAPTION_URL" - A short, friendly version of the landing page
 	// URL to show in the creative. This URL gives people an idea of where they'll
 	// arrive after they click on the creative. The content must be UTF-8 encoded
 	// with a length of no more than 30 characters. For example, if the landing
 	// page URL is 'http://www.example.com/page', the caption URL can be
 	// 'example.com'. The protocol (http://) is optional, but the URL can't contain
-	// spaces or special characters. This role is only supported in following
+	// spaces or special characters. This role is only supported in the following
 	// creative_type: * `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE`
 	// * `CREATIVE_TYPE_NATIVE_VIDEO`
 	//   "ASSET_ROLE_CALL_TO_ACTION" - The text to use on the call-to-action button
 	// of a native creative. The content must be UTF-8 encoded with a length of no
-	// more than 15 characters. This role is only supported in following
+	// more than 15 characters. This role is only supported in the following
 	// creative_type: * `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE`
 	// * `CREATIVE_TYPE_NATIVE_VIDEO`
 	//   "ASSET_ROLE_ADVERTISER_NAME" - The text that identifies the advertiser or
 	// brand name. The content must be UTF-8 encoded with a length of no more than
-	// 25 characters. This role is only supported in following creative_type: *
+	// 25 characters. This role is only supported in the following creative_type: *
 	// `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` *
 	// `CREATIVE_TYPE_NATIVE_VIDEO`
 	//   "ASSET_ROLE_PRICE" - The purchase price of your app in the Google play
@@ -1545,23 +1463,38 @@ type AssetAssociation struct {
 	//   "ASSET_ROLE_ANDROID_APP_ID" - The ID of an Android app in the Google play
 	// store. You can find this ID in the App’s Google Play Store URL after
 	// ‘id’. For example, in
-	// https://play.google.com/store/apps/details?id=com.company.appname the
+	// `https://play.google.com/store/apps/details?id=com.company.appname` the
 	// identifier is com.company.appname. Assets of this role are read-only.
 	//   "ASSET_ROLE_IOS_APP_ID" - The ID of an iOS app in the Apple app store.
 	// This ID number can be found in the Apple App Store URL as the string of
 	// numbers directly after "id". For example, in
-	// https://apps.apple.com/us/app/gmail-email-by-google/id422689480 the ID is
+	// `https://apps.apple.com/us/app/gmail-email-by-google/id422689480` the ID is
 	// 422689480. Assets of this role are read-only.
 	//   "ASSET_ROLE_RATING" - The rating of an app in the Google play store or iOS
 	// app store. Note that this value is not automatically synced with the actual
 	// rating in the store. It will always be the one provided when save the
 	// creative. Assets of this role are read-only.
 	//   "ASSET_ROLE_ICON" - The icon of a creative. This role is only supported
-	// and required in following creative_type: * `CREATIVE_TYPE_NATIVE` *
+	// and required in the following creative_type: * `CREATIVE_TYPE_NATIVE` *
 	// `CREATIVE_TYPE_NATIVE_SITE_SQUARE`
 	//   "ASSET_ROLE_COVER_IMAGE" - The cover image of a native video creative.
-	// This role is only supported and required in following creative_type: *
+	// This role is only supported and required in the following creative_type: *
 	// `CREATIVE_TYPE_VIDEO`
+	//   "ASSET_ROLE_BACKGROUND_COLOR" - The main color to use in a creative. This
+	// role is only supported and required in the following creative_type: *
+	// `CREATIVE_TYPE_ASSET_BASED_CREATIVE`
+	//   "ASSET_ROLE_ACCENT_COLOR" - The accent color to use in a creative. This
+	// role is only supported and required in the following creative_type: *
+	// `CREATIVE_TYPE_ASSET_BASED_CREATIVE`
+	//   "ASSET_ROLE_REQUIRE_LOGO" - Whether the creative must use a logo asset.
+	// This role is only supported and required in the following creative_type: *
+	// `CREATIVE_TYPE_ASSET_BASED_CREATIVE`
+	//   "ASSET_ROLE_REQUIRE_IMAGE" - Whether the creative must use an image asset.
+	// This role is only supported and required in the following creative_type: *
+	// `CREATIVE_TYPE_ASSET_BASED_CREATIVE`
+	//   "ASSET_ROLE_ENABLE_ASSET_ENHANCEMENTS" - Whether asset enhancements can be
+	// applied to the creative. This role is only supported and required in the
+	// following creative_type: * `CREATIVE_TYPE_ASSET_BASED_CREATIVE`
 	Role string `json:"role,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Asset") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1576,9 +1509,9 @@ type AssetAssociation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetAssociation) MarshalJSON() ([]byte, error) {
+func (s AssetAssociation) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetAssociation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssignedInventorySource: An assignment between a targetable inventory source
@@ -1609,9 +1542,9 @@ type AssignedInventorySource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssignedInventorySource) MarshalJSON() ([]byte, error) {
+func (s AssignedInventorySource) MarshalJSON() ([]byte, error) {
 	type NoMethod AssignedInventorySource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssignedLocation: An assignment between a location list and a relevant
@@ -1642,9 +1575,9 @@ type AssignedLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssignedLocation) MarshalJSON() ([]byte, error) {
+func (s AssignedLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod AssignedLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssignedTargetingOption: A single assigned targeting option, which defines
@@ -1986,9 +1919,9 @@ type AssignedTargetingOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssignedTargetingOption) MarshalJSON() ([]byte, error) {
+func (s AssignedTargetingOption) MarshalJSON() ([]byte, error) {
 	type NoMethod AssignedTargetingOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssignedUserRole: A single assigned user role, which defines a user's
@@ -2056,9 +1989,9 @@ type AssignedUserRole struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssignedUserRole) MarshalJSON() ([]byte, error) {
+func (s AssignedUserRole) MarshalJSON() ([]byte, error) {
 	type NoMethod AssignedUserRole
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AudienceGroupAssignedTargetingOptionDetails: Assigned audience group
@@ -2069,53 +2002,38 @@ func (s *AssignedUserRole) MarshalJSON() ([]byte, error) {
 // excluded_google_audience_group, of which COMPLEMENT is used as an
 // INTERSECTION with other groups.
 type AudienceGroupAssignedTargetingOptionDetails struct {
-	// ExcludedFirstAndThirdPartyAudienceGroup: The first and third party audience
-	// ids and recencies of the excluded first and third party audience group. Used
-	// for negative targeting. The COMPLEMENT of the UNION of this group and other
-	// excluded audience groups is used as an INTERSECTION to any positive audience
-	// targeting. All items are logically ‘OR’ of each other.
-	ExcludedFirstAndThirdPartyAudienceGroup *FirstAndThirdPartyAudienceGroup `json:"excludedFirstAndThirdPartyAudienceGroup,omitempty"`
-	// ExcludedGoogleAudienceGroup: The Google audience ids of the excluded Google
-	// audience group. Used for negative targeting. The COMPLEMENT of the UNION of
-	// this group and other excluded audience groups is used as an INTERSECTION to
-	// any positive audience targeting. Only contains Affinity, In-market and
-	// Installed-apps type Google audiences. All items are logically ‘OR’ of
-	// each other.
+	// ExcludedGoogleAudienceGroup: Optional. The Google audience ids of the
+	// excluded Google audience group. Used for negative targeting. The COMPLEMENT
+	// of the UNION of this group and other excluded audience groups is used as an
+	// INTERSECTION to any positive audience targeting. Only contains Affinity,
+	// In-market and Installed-apps type Google audiences. All items are logically
+	// ‘OR’ of each other.
 	ExcludedGoogleAudienceGroup *GoogleAudienceGroup `json:"excludedGoogleAudienceGroup,omitempty"`
-	// IncludedCombinedAudienceGroup: The combined audience ids of the included
-	// combined audience group. Contains combined audience ids only.
+	// IncludedCombinedAudienceGroup: Optional. The combined audience ids of the
+	// included combined audience group. Contains combined audience ids only.
 	IncludedCombinedAudienceGroup *CombinedAudienceGroup `json:"includedCombinedAudienceGroup,omitempty"`
-	// IncludedCustomListGroup: The custom list ids of the included custom list
-	// group. Contains custom list ids only.
+	// IncludedCustomListGroup: Optional. The custom list ids of the included
+	// custom list group. Contains custom list ids only.
 	IncludedCustomListGroup *CustomListGroup `json:"includedCustomListGroup,omitempty"`
-	// IncludedFirstAndThirdPartyAudienceGroups: The first and third party audience
-	// ids and recencies of included first and third party audience groups. Each
-	// first and third party audience group contains first and third party audience
-	// ids only. The relation between each first and third party audience group is
-	// INTERSECTION, and the result is UNION'ed with other audience groups.
-	// Repeated groups with same settings will be ignored.
-	IncludedFirstAndThirdPartyAudienceGroups []*FirstAndThirdPartyAudienceGroup `json:"includedFirstAndThirdPartyAudienceGroups,omitempty"`
-	// IncludedGoogleAudienceGroup: The Google audience ids of the included Google
-	// audience group. Contains Google audience ids only.
+	// IncludedGoogleAudienceGroup: Optional. The Google audience ids of the
+	// included Google audience group. Contains Google audience ids only.
 	IncludedGoogleAudienceGroup *GoogleAudienceGroup `json:"includedGoogleAudienceGroup,omitempty"`
 	// ForceSendFields is a list of field names (e.g.
-	// "ExcludedFirstAndThirdPartyAudienceGroup") to unconditionally include in API
-	// requests. By default, fields with empty or default values are omitted from
-	// API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g.
-	// "ExcludedFirstAndThirdPartyAudienceGroup") to include in API requests with
-	// the JSON null value. By default, fields with empty values are omitted from
-	// API requests. See https://pkg.go.dev/google.golang.org/api#hdr-NullFields
+	// "ExcludedGoogleAudienceGroup") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
 	// for more details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExcludedGoogleAudienceGroup") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *AudienceGroupAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AudienceGroupAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AudienceGroupAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AudioAd: Details for an audio ad.
@@ -2142,9 +2060,9 @@ type AudioAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AudioAd) MarshalJSON() ([]byte, error) {
+func (s AudioAd) MarshalJSON() ([]byte, error) {
 	type NoMethod AudioAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AudioContentTypeAssignedTargetingOptionDetails: Details for audio content
@@ -2178,9 +2096,9 @@ type AudioContentTypeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AudioContentTypeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AudioContentTypeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AudioContentTypeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AudioContentTypeTargetingOptionDetails: Represents a targetable audio
@@ -2211,16 +2129,18 @@ type AudioContentTypeTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AudioContentTypeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AudioContentTypeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AudioContentTypeTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AudioVideoOffset: The length an audio or a video has been played.
 type AudioVideoOffset struct {
-	// Percentage: The offset in percentage of the audio or video duration.
+	// Percentage: Optional. The offset in percentage of the audio or video
+	// duration.
 	Percentage int64 `json:"percentage,omitempty,string"`
-	// Seconds: The offset in seconds from the start of the audio or video.
+	// Seconds: Optional. The offset in seconds from the start of the audio or
+	// video.
 	Seconds int64 `json:"seconds,omitempty,string"`
 	// ForceSendFields is a list of field names (e.g. "Percentage") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2235,9 +2155,9 @@ type AudioVideoOffset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AudioVideoOffset) MarshalJSON() ([]byte, error) {
+func (s AudioVideoOffset) MarshalJSON() ([]byte, error) {
 	type NoMethod AudioVideoOffset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditAdvertiserResponse: Response message for
@@ -2300,9 +2220,9 @@ type AuditAdvertiserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditAdvertiserResponse) MarshalJSON() ([]byte, error) {
+func (s AuditAdvertiserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditAdvertiserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuthorizedSellerStatusAssignedTargetingOptionDetails: Represents an assigned
@@ -2345,9 +2265,9 @@ type AuthorizedSellerStatusAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuthorizedSellerStatusAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AuthorizedSellerStatusAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AuthorizedSellerStatusAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuthorizedSellerStatusTargetingOptionDetails: Represents a targetable
@@ -2385,9 +2305,9 @@ type AuthorizedSellerStatusTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuthorizedSellerStatusTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s AuthorizedSellerStatusTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AuthorizedSellerStatusTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BiddingStrategy: Settings that control the bid strategy. Bid strategy
@@ -2427,9 +2347,9 @@ type BiddingStrategy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BiddingStrategy) MarshalJSON() ([]byte, error) {
+func (s BiddingStrategy) MarshalJSON() ([]byte, error) {
 	type NoMethod BiddingStrategy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BrowserAssignedTargetingOptionDetails: Details for assigned browser
@@ -2458,9 +2378,9 @@ type BrowserAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BrowserAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s BrowserAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod BrowserAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BrowserTargetingOptionDetails: Represents a targetable browser. This will be
@@ -2482,9 +2402,9 @@ type BrowserTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BrowserTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s BrowserTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod BrowserTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BudgetSummary: Summarized information of an individual campaign budget.
@@ -2522,9 +2442,9 @@ type BudgetSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BudgetSummary) MarshalJSON() ([]byte, error) {
+func (s BudgetSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod BudgetSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditAdvertiserAssignedTargetingOptionsRequest: Request message for
@@ -2555,9 +2475,9 @@ type BulkEditAdvertiserAssignedTargetingOptionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAdvertiserAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
+func (s BulkEditAdvertiserAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAdvertiserAssignedTargetingOptionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BulkEditAdvertiserAssignedTargetingOptionsResponse struct {
@@ -2581,9 +2501,9 @@ type BulkEditAdvertiserAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAdvertiserAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkEditAdvertiserAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAdvertiserAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditAssignedInventorySourcesRequest: Request message for
@@ -2615,9 +2535,9 @@ type BulkEditAssignedInventorySourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAssignedInventorySourcesRequest) MarshalJSON() ([]byte, error) {
+func (s BulkEditAssignedInventorySourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAssignedInventorySourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditAssignedInventorySourcesResponse: Response message for
@@ -2642,9 +2562,9 @@ type BulkEditAssignedInventorySourcesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAssignedInventorySourcesResponse) MarshalJSON() ([]byte, error) {
+func (s BulkEditAssignedInventorySourcesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAssignedInventorySourcesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditAssignedLocationsRequest: Request message for
@@ -2669,9 +2589,9 @@ type BulkEditAssignedLocationsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAssignedLocationsRequest) MarshalJSON() ([]byte, error) {
+func (s BulkEditAssignedLocationsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAssignedLocationsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BulkEditAssignedLocationsResponse struct {
@@ -2694,9 +2614,9 @@ type BulkEditAssignedLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAssignedLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkEditAssignedLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAssignedLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditAssignedTargetingOptionsRequest: Request message for
@@ -2776,9 +2696,9 @@ type BulkEditAssignedTargetingOptionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
+func (s BulkEditAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAssignedTargetingOptionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BulkEditAssignedTargetingOptionsResponse struct {
@@ -2805,9 +2725,9 @@ type BulkEditAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkEditAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditAssignedUserRolesRequest: Request message for
@@ -2833,9 +2753,9 @@ type BulkEditAssignedUserRolesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAssignedUserRolesRequest) MarshalJSON() ([]byte, error) {
+func (s BulkEditAssignedUserRolesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAssignedUserRolesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BulkEditAssignedUserRolesResponse struct {
@@ -2858,9 +2778,9 @@ type BulkEditAssignedUserRolesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditAssignedUserRolesResponse) MarshalJSON() ([]byte, error) {
+func (s BulkEditAssignedUserRolesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditAssignedUserRolesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditNegativeKeywordsRequest: Request message for
@@ -2885,9 +2805,9 @@ type BulkEditNegativeKeywordsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditNegativeKeywordsRequest) MarshalJSON() ([]byte, error) {
+func (s BulkEditNegativeKeywordsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditNegativeKeywordsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditNegativeKeywordsResponse: Response message for
@@ -2912,9 +2832,9 @@ type BulkEditNegativeKeywordsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditNegativeKeywordsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkEditNegativeKeywordsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditNegativeKeywordsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditPartnerAssignedTargetingOptionsRequest: Request message for
@@ -2941,9 +2861,9 @@ type BulkEditPartnerAssignedTargetingOptionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditPartnerAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
+func (s BulkEditPartnerAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditPartnerAssignedTargetingOptionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BulkEditPartnerAssignedTargetingOptionsResponse struct {
@@ -2967,9 +2887,9 @@ type BulkEditPartnerAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditPartnerAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkEditPartnerAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditPartnerAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditSitesRequest: Request message for SiteService.BulkEditSites.
@@ -2996,9 +2916,9 @@ type BulkEditSitesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditSitesRequest) MarshalJSON() ([]byte, error) {
+func (s BulkEditSitesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditSitesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkEditSitesResponse: Response message for SiteService.BulkEditSites.
@@ -3022,9 +2942,9 @@ type BulkEditSitesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkEditSitesResponse) MarshalJSON() ([]byte, error) {
+func (s BulkEditSitesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkEditSitesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BulkListAdGroupAssignedTargetingOptionsResponse struct {
@@ -3054,9 +2974,9 @@ type BulkListAdGroupAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkListAdGroupAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkListAdGroupAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkListAdGroupAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BulkListAdvertiserAssignedTargetingOptionsResponse struct {
@@ -3085,9 +3005,9 @@ type BulkListAdvertiserAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkListAdvertiserAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkListAdvertiserAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkListAdvertiserAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BulkListAssignedTargetingOptionsResponse struct {
@@ -3119,71 +3039,9 @@ type BulkListAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkListAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkListAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkListAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-type BulkListCampaignAssignedTargetingOptionsResponse struct {
-	// AssignedTargetingOptions: The list of assigned targeting options. This list
-	// will be absent if empty.
-	AssignedTargetingOptions []*AssignedTargetingOption `json:"assignedTargetingOptions,omitempty"`
-	// NextPageToken: A token identifying the next page of results. This value
-	// should be specified as the pageToken in a subsequent
-	// BulkListCampaignAssignedTargetingOptionsRequest to fetch the next page of
-	// results. This token will be absent if there are no more
-	// assigned_targeting_options to return.
-	NextPageToken string `json:"nextPageToken,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "AssignedTargetingOptions")
-	// to unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AssignedTargetingOptions") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *BulkListCampaignAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod BulkListCampaignAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-type BulkListInsertionOrderAssignedTargetingOptionsResponse struct {
-	// AssignedTargetingOptions: The list of assigned targeting options. This list
-	// will be absent if empty.
-	AssignedTargetingOptions []*AssignedTargetingOption `json:"assignedTargetingOptions,omitempty"`
-	// NextPageToken: A token identifying the next page of results. This value
-	// should be specified as the pageToken in a subsequent
-	// BulkListInsertionOrderAssignedTargetingOptionsRequest to fetch the next page
-	// of results. This token will be absent if there are no more
-	// assigned_targeting_options to return.
-	NextPageToken string `json:"nextPageToken,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "AssignedTargetingOptions")
-	// to unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AssignedTargetingOptions") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *BulkListInsertionOrderAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod BulkListInsertionOrderAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkUpdateLineItemsRequest: Request message for
@@ -3211,9 +3069,9 @@ type BulkUpdateLineItemsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkUpdateLineItemsRequest) MarshalJSON() ([]byte, error) {
+func (s BulkUpdateLineItemsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkUpdateLineItemsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BulkUpdateLineItemsResponse: Response message for
@@ -3246,9 +3104,9 @@ type BulkUpdateLineItemsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BulkUpdateLineItemsResponse) MarshalJSON() ([]byte, error) {
+func (s BulkUpdateLineItemsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BulkUpdateLineItemsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BumperAd: Details for a bumper ad.
@@ -3268,9 +3126,9 @@ type BumperAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BumperAd) MarshalJSON() ([]byte, error) {
+func (s BumperAd) MarshalJSON() ([]byte, error) {
 	type NoMethod BumperAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BusinessChainAssignedTargetingOptionDetails: Details for assigned Business
@@ -3314,9 +3172,9 @@ type BusinessChainAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BusinessChainAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s BusinessChainAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod BusinessChainAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *BusinessChainAssignedTargetingOptionDetails) UnmarshalJSON(data []byte) error {
@@ -3355,9 +3213,9 @@ type BusinessChainSearchTerms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BusinessChainSearchTerms) MarshalJSON() ([]byte, error) {
+func (s BusinessChainSearchTerms) MarshalJSON() ([]byte, error) {
 	type NoMethod BusinessChainSearchTerms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BusinessChainTargetingOptionDetails: Represents a targetable business chain
@@ -3409,6 +3267,18 @@ type BusinessChainTargetingOptionDetails struct {
 	//   "GEO_REGION_TYPE_NEIGHBORHOOD" - The geographic region is a neighborhood.
 	//   "GEO_REGION_TYPE_UNIVERSITY" - The geographic region is a university.
 	//   "GEO_REGION_TYPE_DISTRICT" - The geographic region is a district.
+	//   "GEO_REGION_TYPE_NATIONAL_PARK" - The geographic region is a national
+	// park.
+	//   "GEO_REGION_TYPE_BARRIO" - The geographic region is a barrio.
+	//   "GEO_REGION_TYPE_SUB_WARD" - The geographic region is a sub ward.
+	//   "GEO_REGION_TYPE_MUNICIPALITY_DISTRICT" - The geographic region is a
+	// municipality district.
+	//   "GEO_REGION_TYPE_SUB_DISTRICT" - The geographic region is a sub district.
+	//   "GEO_REGION_TYPE_QUARTER" - The geographic region is a quarter.
+	//   "GEO_REGION_TYPE_DIVISION" - The geographic region is a division.
+	//   "GEO_REGION_TYPE_COMMUNE" - The geographic region is a commune.
+	//   "GEO_REGION_TYPE_COLLOQUIAL_AREA" - The geographic region is a colloquial
+	// area.
 	GeoRegionType string `json:"geoRegionType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "BusinessChain") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -3423,9 +3293,9 @@ type BusinessChainTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BusinessChainTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s BusinessChainTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod BusinessChainTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Campaign: A single campaign.
@@ -3467,6 +3337,9 @@ type Campaign struct {
 	// deletion.
 	EntityStatus string `json:"entityStatus,omitempty"`
 	// FrequencyCap: Required. The frequency cap setting of the campaign.
+	// *Warning*: On **February 28, 2025**, frequency cap time periods greater than
+	// 30 days will no longer be accepted. Read more about this announced change
+	// (/display-video/api/deprecations#features.lifetime_frequency_cap)
 	FrequencyCap *FrequencyCap `json:"frequencyCap,omitempty"`
 	// Name: Output only. The resource name of the campaign.
 	Name string `json:"name,omitempty"`
@@ -3489,9 +3362,9 @@ type Campaign struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Campaign) MarshalJSON() ([]byte, error) {
+func (s Campaign) MarshalJSON() ([]byte, error) {
 	type NoMethod Campaign
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CampaignBudget: Settings that control how the campaign budget is allocated.
@@ -3558,9 +3431,9 @@ type CampaignBudget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CampaignBudget) MarshalJSON() ([]byte, error) {
+func (s CampaignBudget) MarshalJSON() ([]byte, error) {
 	type NoMethod CampaignBudget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CampaignFlight: Settings that track the planned spend and duration of a
@@ -3594,9 +3467,9 @@ type CampaignFlight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CampaignFlight) MarshalJSON() ([]byte, error) {
+func (s CampaignFlight) MarshalJSON() ([]byte, error) {
 	type NoMethod CampaignFlight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CampaignGoal: Settings that control the goal of a campaign.
@@ -3631,9 +3504,9 @@ type CampaignGoal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CampaignGoal) MarshalJSON() ([]byte, error) {
+func (s CampaignGoal) MarshalJSON() ([]byte, error) {
 	type NoMethod CampaignGoal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CarrierAndIspAssignedTargetingOptionDetails: Details for assigned carrier
@@ -3663,9 +3536,9 @@ type CarrierAndIspAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CarrierAndIspAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s CarrierAndIspAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod CarrierAndIspAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CarrierAndIspTargetingOptionDetails: Represents a targetable carrier or ISP.
@@ -3697,9 +3570,9 @@ type CarrierAndIspTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CarrierAndIspTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s CarrierAndIspTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod CarrierAndIspTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CategoryAssignedTargetingOptionDetails: Assigned category targeting option
@@ -3726,9 +3599,9 @@ type CategoryAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CategoryAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s CategoryAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod CategoryAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CategoryTargetingOptionDetails: Represents a targetable category. This will
@@ -3750,9 +3623,9 @@ type CategoryTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CategoryTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s CategoryTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod CategoryTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Channel: A single channel. Channels are custom groups of related websites
@@ -3792,9 +3665,9 @@ type Channel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Channel) MarshalJSON() ([]byte, error) {
+func (s Channel) MarshalJSON() ([]byte, error) {
 	type NoMethod Channel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ChannelAssignedTargetingOptionDetails: Details for assigned channel
@@ -3822,9 +3695,9 @@ type ChannelAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ChannelAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ChannelAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ChannelAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CmHybridConfig: Settings for advertisers that use both Campaign Manager 360
@@ -3868,18 +3741,20 @@ type CmHybridConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CmHybridConfig) MarshalJSON() ([]byte, error) {
+func (s CmHybridConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CmHybridConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CmTrackingAd: A Campaign Manager 360 tracking ad.
 type CmTrackingAd struct {
-	// CmAdId: The ad ID of the campaign manager 360 tracking Ad.
+	// CmAdId: Optional. The ad ID of the campaign manager 360 tracking Ad.
 	CmAdId int64 `json:"cmAdId,omitempty,string"`
-	// CmCreativeId: The creative ID of the campaign manager 360 tracking Ad.
+	// CmCreativeId: Optional. The creative ID of the campaign manager 360 tracking
+	// Ad.
 	CmCreativeId int64 `json:"cmCreativeId,omitempty,string"`
-	// CmPlacementId: The placement ID of the campaign manager 360 tracking Ad.
+	// CmPlacementId: Optional. The placement ID of the campaign manager 360
+	// tracking Ad.
 	CmPlacementId int64 `json:"cmPlacementId,omitempty,string"`
 	// ForceSendFields is a list of field names (e.g. "CmAdId") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -3894,9 +3769,9 @@ type CmTrackingAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CmTrackingAd) MarshalJSON() ([]byte, error) {
+func (s CmTrackingAd) MarshalJSON() ([]byte, error) {
 	type NoMethod CmTrackingAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CombinedAudience: Describes a combined audience resource.
@@ -3924,18 +3799,18 @@ type CombinedAudience struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CombinedAudience) MarshalJSON() ([]byte, error) {
+func (s CombinedAudience) MarshalJSON() ([]byte, error) {
 	type NoMethod CombinedAudience
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CombinedAudienceGroup: Details of combined audience group. All combined
 // audience targeting settings are logically ‘OR’ of each other.
 type CombinedAudienceGroup struct {
 	// Settings: Required. All combined audience targeting settings in combined
-	// audience group. Repeated settings with same id will be ignored. The number
-	// of combined audience settings should be no more than five, error will be
-	// thrown otherwise.
+	// audience group. Repeated settings with the same id will be ignored. The
+	// number of combined audience settings should be no more than five, error will
+	// be thrown otherwise.
 	Settings []*CombinedAudienceTargetingSetting `json:"settings,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Settings") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -3950,9 +3825,9 @@ type CombinedAudienceGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CombinedAudienceGroup) MarshalJSON() ([]byte, error) {
+func (s CombinedAudienceGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod CombinedAudienceGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CombinedAudienceTargetingSetting: Details of combined audience targeting
@@ -3974,9 +3849,9 @@ type CombinedAudienceTargetingSetting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CombinedAudienceTargetingSetting) MarshalJSON() ([]byte, error) {
+func (s CombinedAudienceTargetingSetting) MarshalJSON() ([]byte, error) {
 	type NoMethod CombinedAudienceTargetingSetting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommonInStreamAttribute: Common attributes for in-stream, non-skippable and
@@ -4010,118 +3885,9 @@ type CommonInStreamAttribute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommonInStreamAttribute) MarshalJSON() ([]byte, error) {
+func (s CommonInStreamAttribute) MarshalJSON() ([]byte, error) {
 	type NoMethod CommonInStreamAttribute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// Consent: User consent status.
-type Consent struct {
-	// AdPersonalization: Represents consent for ad personalization.
-	//
-	// Possible values:
-	//   "CONSENT_STATUS_UNSPECIFIED" - Type value is not specified or is unknown
-	// in this version.
-	//   "CONSENT_STATUS_GRANTED" - Consent is granted.
-	//   "CONSENT_STATUS_DENIED" - Consent is denied.
-	AdPersonalization string `json:"adPersonalization,omitempty"`
-	// AdUserData: Represents consent for ad user data.
-	//
-	// Possible values:
-	//   "CONSENT_STATUS_UNSPECIFIED" - Type value is not specified or is unknown
-	// in this version.
-	//   "CONSENT_STATUS_GRANTED" - Consent is granted.
-	//   "CONSENT_STATUS_DENIED" - Consent is denied.
-	AdUserData string `json:"adUserData,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "AdPersonalization") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AdPersonalization") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *Consent) MarshalJSON() ([]byte, error) {
-	type NoMethod Consent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// ContactInfo: Contact information defining a Customer Match audience member.
-type ContactInfo struct {
-	// CountryCode: Country code of the member. Must also be set with the following
-	// fields: * hashed_first_name * hashed_last_name * zip_codes
-	CountryCode string `json:"countryCode,omitempty"`
-	// HashedEmails: A list of SHA256 hashed email of the member. Before hashing,
-	// remove all whitespace and make sure the string is all lowercase.
-	HashedEmails []string `json:"hashedEmails,omitempty"`
-	// HashedFirstName: SHA256 hashed first name of the member. Before hashing,
-	// remove all whitespace and make sure the string is all lowercase. Must also
-	// be set with the following fields: * country_code * hashed_last_name *
-	// zip_codes
-	HashedFirstName string `json:"hashedFirstName,omitempty"`
-	// HashedLastName: SHA256 hashed last name of the member. Before hashing,
-	// remove all whitespace and make sure the string is all lowercase. Must also
-	// be set with the following fields: * country_code * hashed_first_name *
-	// zip_codes
-	HashedLastName string `json:"hashedLastName,omitempty"`
-	// HashedPhoneNumbers: A list of SHA256 hashed phone numbers of the member.
-	// Before hashing, all phone numbers must be formatted using the E.164 format
-	// (//en.wikipedia.org/wiki/E.164) and include the country calling code.
-	HashedPhoneNumbers []string `json:"hashedPhoneNumbers,omitempty"`
-	// ZipCodes: A list of zip codes of the member. Must also be set with the
-	// following fields: * country_code * hashed_first_name * hashed_last_name
-	ZipCodes []string `json:"zipCodes,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "CountryCode") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CountryCode") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *ContactInfo) MarshalJSON() ([]byte, error) {
-	type NoMethod ContactInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// ContactInfoList: Wrapper message for a list of contact information defining
-// Customer Match audience members.
-type ContactInfoList struct {
-	// Consent: Input only. The consent setting for the users in contact_infos.
-	// Leaving this field unset indicates that consent is not specified. If
-	// ad_user_data or ad_personalization fields are set to
-	// `CONSENT_STATUS_DENIED`, the request will return an error.
-	Consent *Consent `json:"consent,omitempty"`
-	// ContactInfos: A list of ContactInfo objects defining Customer Match audience
-	// members. The size of members after splitting the contact_infos mustn't be
-	// greater than 500,000.
-	ContactInfos []*ContactInfo `json:"contactInfos,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Consent") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Consent") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *ContactInfoList) MarshalJSON() ([]byte, error) {
-	type NoMethod ContactInfoList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentDurationAssignedTargetingOptionDetails: Details for content duration
@@ -4161,9 +3927,9 @@ type ContentDurationAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentDurationAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentDurationAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentDurationAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentDurationTargetingOptionDetails: Represents a targetable content
@@ -4197,9 +3963,9 @@ type ContentDurationTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentDurationTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentDurationTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentDurationTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentGenreAssignedTargetingOptionDetails: Details for content genre
@@ -4229,9 +3995,9 @@ type ContentGenreAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentGenreAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentGenreAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentGenreAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentGenreTargetingOptionDetails: Represents a targetable content genre.
@@ -4253,9 +4019,9 @@ type ContentGenreTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentGenreTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentGenreTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentGenreTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentInstreamPositionAssignedTargetingOptionDetails: Assigned content
@@ -4308,9 +4074,9 @@ type ContentInstreamPositionAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentInstreamPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentInstreamPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentInstreamPositionAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentInstreamPositionTargetingOptionDetails: Represents a targetable
@@ -4345,9 +4111,9 @@ type ContentInstreamPositionTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentInstreamPositionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentInstreamPositionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentInstreamPositionTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentOutstreamPositionAssignedTargetingOptionDetails: Assigned content
@@ -4403,9 +4169,9 @@ type ContentOutstreamPositionAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentOutstreamPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentOutstreamPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentOutstreamPositionAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentOutstreamPositionTargetingOptionDetails: Represents a targetable
@@ -4444,9 +4210,9 @@ type ContentOutstreamPositionTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentOutstreamPositionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentOutstreamPositionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentOutstreamPositionTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentStreamTypeAssignedTargetingOptionDetails: Details for content stream
@@ -4481,9 +4247,9 @@ type ContentStreamTypeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentStreamTypeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentStreamTypeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentStreamTypeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentStreamTypeTargetingOptionDetails: Represents a targetable content
@@ -4512,9 +4278,9 @@ type ContentStreamTypeTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentStreamTypeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ContentStreamTypeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentStreamTypeTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConversionCountingConfig: Settings that control how conversions are counted.
@@ -4524,7 +4290,12 @@ type ConversionCountingConfig struct {
 	// FloodlightActivityConfigs: The Floodlight activity configs used to track
 	// conversions. The number of conversions counted is the sum of all of the
 	// conversions counted by all of the Floodlight activity IDs specified in this
-	// field.
+	// field. *Warning*: Starting **April 1, 2025**, this field will no longer be
+	// writable while a custom bidding algorithm is assigned to the line item. If
+	// you set this field and assign a custom bidding algorithm in the same
+	// request, the floodlight activities must match the ones used by the custom
+	// bidding algorithm. Read more about this announced change
+	// (/display-video/api/deprecations#features.custom_bidding_floodlight).
 	FloodlightActivityConfigs []*TrackingFloodlightActivityConfig `json:"floodlightActivityConfigs,omitempty"`
 	// PostViewCountPercentageMillis: The percentage of post-view conversions to
 	// count, in millis (1/1000 of a percent). Must be between 0 and 100000
@@ -4544,9 +4315,9 @@ type ConversionCountingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConversionCountingConfig) MarshalJSON() ([]byte, error) {
+func (s ConversionCountingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ConversionCountingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CounterEvent: Counter event of the creative.
@@ -4569,9 +4340,9 @@ type CounterEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CounterEvent) MarshalJSON() ([]byte, error) {
+func (s CounterEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod CounterEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateAssetRequest: A request message for CreateAsset.
@@ -4592,9 +4363,9 @@ type CreateAssetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateAssetRequest) MarshalJSON() ([]byte, error) {
+func (s CreateAssetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateAssetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateAssetResponse: A response message for CreateAsset.
@@ -4617,9 +4388,9 @@ type CreateAssetResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateAssetResponse) MarshalJSON() ([]byte, error) {
+func (s CreateAssetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateAssetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateAssignedTargetingOptionsRequest: A request listing which assigned
@@ -4752,9 +4523,9 @@ type CreateAssignedTargetingOptionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
+func (s CreateAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateAssignedTargetingOptionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateSdfDownloadTaskRequest: Request message for
@@ -4797,6 +4568,9 @@ type CreateSdfDownloadTaskRequest struct {
 	//   "SDF_VERSION_7_1" - SDF version 7.1. Read the [v7 migration
 	// guide](/display-video/api/structured-data-file/v7-migration-guide) before
 	// migrating to this version.
+	//   "SDF_VERSION_8" - SDF version 8. Read the [v8 migration
+	// guide](/display-video/api/structured-data-file/v8-migration-guide) before
+	// migrating to this version.
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AdvertiserId") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -4811,25 +4585,25 @@ type CreateSdfDownloadTaskRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateSdfDownloadTaskRequest) MarshalJSON() ([]byte, error) {
+func (s CreateSdfDownloadTaskRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateSdfDownloadTaskRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Creative: A single Creative.
 type Creative struct {
-	// AdditionalDimensions: Additional dimensions. Applicable when creative_type
-	// is one of: * `CREATIVE_TYPE_STANDARD` * `CREATIVE_TYPE_EXPANDABLE` *
-	// `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` *
-	// `CREATIVE_TYPE_LIGHTBOX` * `CREATIVE_TYPE_PUBLISHER_HOSTED` If this field is
-	// specified, width_pixels and height_pixels are both required and must be
-	// greater than or equal to 0.
+	// AdditionalDimensions: Optional. Additional dimensions. Applicable when
+	// creative_type is one of: * `CREATIVE_TYPE_STANDARD` *
+	// `CREATIVE_TYPE_EXPANDABLE` * `CREATIVE_TYPE_NATIVE` *
+	// `CREATIVE_TYPE_NATIVE_SITE_SQUARE` * `CREATIVE_TYPE_LIGHTBOX` *
+	// `CREATIVE_TYPE_PUBLISHER_HOSTED` If this field is specified, width_pixels
+	// and height_pixels are both required and must be greater than or equal to 0.
 	AdditionalDimensions []*Dimensions `json:"additionalDimensions,omitempty"`
 	// AdvertiserId: Output only. The unique ID of the advertiser the creative
 	// belongs to.
 	AdvertiserId int64 `json:"advertiserId,omitempty,string"`
-	// AppendedTag: Third-party HTML tracking tag to be appended to the creative
-	// tag.
+	// AppendedTag: Optional. Third-party HTML tracking tag to be appended to the
+	// creative tag.
 	AppendedTag string `json:"appendedTag,omitempty"`
 	// Assets: Required. Assets associated to this creative.
 	Assets []*AssetAssociation `json:"assets,omitempty"`
@@ -4837,26 +4611,26 @@ type Creative struct {
 	// placement associated with the creative. This field is only applicable for
 	// creatives that are synced from Campaign Manager.
 	CmPlacementId int64 `json:"cmPlacementId,omitempty,string"`
-	// CmTrackingAd: The Campaign Manager 360 tracking ad associated with the
-	// creative. Optional for the following creative_type when created by an
+	// CmTrackingAd: Optional. The Campaign Manager 360 tracking ad associated with
+	// the creative. Optional for the following creative_type when created by an
 	// advertiser that uses both Campaign Manager 360 and third-party ad serving: *
 	// `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` Output only for
 	// other cases.
 	CmTrackingAd *CmTrackingAd `json:"cmTrackingAd,omitempty"`
-	// CompanionCreativeIds: The IDs of companion creatives for a video creative.
-	// You can assign existing display creatives (with image or HTML5 assets) to
-	// serve surrounding the publisher's video player. Companions display around
-	// the video player while the video is playing and remain after the video has
-	// completed. Creatives contain additional dimensions can not be companion
-	// creatives. This field is only supported for following creative_type: *
-	// `CREATIVE_TYPE_AUDIO` * `CREATIVE_TYPE_VIDEO`
+	// CompanionCreativeIds: Optional. The IDs of companion creatives for a video
+	// creative. You can assign existing display creatives (with image or HTML5
+	// assets) to serve surrounding the publisher's video player. Companions
+	// display around the video player while the video is playing and remain after
+	// the video has completed. Creatives contain additional dimensions can not be
+	// companion creatives. This field is only supported for the following
+	// creative_type: * `CREATIVE_TYPE_AUDIO` * `CREATIVE_TYPE_VIDEO`
 	CompanionCreativeIds googleapi.Int64s `json:"companionCreativeIds,omitempty"`
-	// CounterEvents: Counter events for a rich media creative. Counters track the
-	// number of times that a user interacts with any part of a rich media creative
-	// in a specified way (mouse-overs, mouse-outs, clicks, taps, data loading,
-	// keyboard entries, etc.). Any event that can be captured in the creative can
-	// be recorded as a counter. Leave it empty or unset for creatives containing
-	// image assets only.
+	// CounterEvents: Optional. Counter events for a rich media creative. Counters
+	// track the number of times that a user interacts with any part of a rich
+	// media creative in a specified way (mouse-overs, mouse-outs, clicks, taps,
+	// data loading, keyboard entries, etc.). Any event that can be captured in the
+	// creative can be recorded as a counter. Leave it empty or unset for creatives
+	// containing image assets only.
 	CounterEvents []*CounterEvent `json:"counterEvents,omitempty"`
 	// CreateTime: Output only. The timestamp when the creative was created.
 	// Assigned by the system.
@@ -4920,6 +4694,9 @@ type Creative struct {
 	//   "CREATIVE_TYPE_TEMPLATED_APP_INSTALL_VIDEO" - Templated app install mobile
 	// video creative. Create and update methods are **not** supported for this
 	// creative type.
+	//   "CREATIVE_TYPE_ASSET_BASED_CREATIVE" - Asset-based creative. Create and
+	// update methods are supported for this creative type if the hosting_source is
+	// `HOSTING_SOURCE_HOSTED`.
 	CreativeType string `json:"creativeType,omitempty"`
 	// Dimensions: Required. Primary dimensions of the creative. Applicable to all
 	// creative types. The value of width_pixels and height_pixels defaults to `0`
@@ -5014,19 +4791,20 @@ type Creative struct {
 	// following hosting_source: * `HOSTING_SOURCE_THIRD_PARTY` combined with
 	// following creative_type: * `CREATIVE_TYPE_VIDEO`
 	Html5Video bool `json:"html5Video,omitempty"`
-	// IasCampaignMonitoring: Indicates whether Integral Ad Science (IAS) campaign
-	// monitoring is enabled. To enable this for the creative, make sure the
-	// Advertiser.creative_config.ias_client_id has been set to your IAS client ID.
+	// IasCampaignMonitoring: Optional. Indicates whether Integral Ad Science (IAS)
+	// campaign monitoring is enabled. To enable this for the creative, make sure
+	// the Advertiser.creative_config.ias_client_id has been set to your IAS client
+	// ID.
 	IasCampaignMonitoring bool `json:"iasCampaignMonitoring,omitempty"`
-	// IntegrationCode: ID information used to link this creative to an external
-	// system. Must be UTF-8 encoded with a length of no more than 10,000
+	// IntegrationCode: Optional. ID information used to link this creative to an
+	// external system. Must be UTF-8 encoded with a length of no more than 10,000
 	// characters.
 	IntegrationCode string `json:"integrationCode,omitempty"`
-	// JsTrackerUrl: JavaScript measurement URL from supported third-party
-	// verification providers (ComScore, DoubleVerify, IAS, Moat). HTML script tags
-	// are not supported. This field is only writeable in following creative_type:
-	// * `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` *
-	// `CREATIVE_TYPE_NATIVE_VIDEO`
+	// JsTrackerUrl: Optional. JavaScript measurement URL from supported
+	// third-party verification providers (ComScore, DoubleVerify, IAS, Moat). HTML
+	// script tags are not supported. This field is only writeable in the following
+	// creative_type: * `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE`
+	// * `CREATIVE_TYPE_NATIVE_VIDEO`
 	JsTrackerUrl string `json:"jsTrackerUrl,omitempty"`
 	// LineItemIds: Output only. The IDs of the line items this creative is
 	// associated with. To associate a creative to a line item, use
@@ -5044,11 +4822,11 @@ type Creative struct {
 	Mp3Audio bool `json:"mp3Audio,omitempty"`
 	// Name: Output only. The resource name of the creative.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes for this creative. Must be UTF-8 encoded with a length of
-	// no more than 20,000 characters.
+	// Notes: Optional. User notes for this creative. Must be UTF-8 encoded with a
+	// length of no more than 20,000 characters.
 	Notes string `json:"notes,omitempty"`
-	// ObaIcon: Specifies the OBA icon for a video creative. This field is only
-	// supported in following creative_type: * `CREATIVE_TYPE_VIDEO`
+	// ObaIcon: Optional. Specifies the OBA icon for a video creative. This field
+	// is only supported in the following creative_type: * `CREATIVE_TYPE_VIDEO`
 	ObaIcon *ObaIcon `json:"obaIcon,omitempty"`
 	// OggAudio: Output only. Indicates the third-party audio creative supports
 	// OGG. Output only and only valid for third-party audio creatives. Third-party
@@ -5056,9 +4834,9 @@ type Creative struct {
 	// `HOSTING_SOURCE_THIRD_PARTY` combined with following creative_type: *
 	// `CREATIVE_TYPE_AUDIO`
 	OggAudio bool `json:"oggAudio,omitempty"`
-	// ProgressOffset: Amount of time to play the video before counting a view.
-	// This field is required when skippable is true. This field is only supported
-	// for the following creative_type: * `CREATIVE_TYPE_VIDEO`
+	// ProgressOffset: Optional. Amount of time to play the video before counting a
+	// view. This field is required when skippable is true. This field is only
+	// supported for the following creative_type: * `CREATIVE_TYPE_VIDEO`
 	ProgressOffset *AudioVideoOffset `json:"progressOffset,omitempty"`
 	// RequireHtml5: Optional. Indicates that the creative relies on HTML5 to
 	// render properly. Optional and only valid for third-party tag creatives.
@@ -5088,12 +4866,13 @@ type Creative struct {
 	// ReviewStatus: Output only. The current status of the creative review
 	// process.
 	ReviewStatus *ReviewStatusInfo `json:"reviewStatus,omitempty"`
-	// SkipOffset: Amount of time to play the video before the skip button appears.
-	// This field is required when skippable is true. This field is only supported
-	// for the following creative_type: * `CREATIVE_TYPE_VIDEO`
+	// SkipOffset: Optional. Amount of time to play the video before the skip
+	// button appears. This field is required when skippable is true. This field is
+	// only supported for the following creative_type: * `CREATIVE_TYPE_VIDEO`
 	SkipOffset *AudioVideoOffset `json:"skipOffset,omitempty"`
-	// Skippable: Whether the user can choose to skip a video creative. This field
-	// is only supported for the following creative_type: * `CREATIVE_TYPE_VIDEO`
+	// Skippable: Optional. Whether the user can choose to skip a video creative.
+	// This field is only supported for the following creative_type: *
+	// `CREATIVE_TYPE_VIDEO`
 	Skippable bool `json:"skippable,omitempty"`
 	// ThirdPartyTag: Optional. The original third-party tag used for the creative.
 	// Required and only valid for third-party tag creatives. Third-party tag
@@ -5101,23 +4880,23 @@ type Creative struct {
 	// `HOSTING_SOURCE_THIRD_PARTY` combined with following creative_type: *
 	// `CREATIVE_TYPE_STANDARD` * `CREATIVE_TYPE_EXPANDABLE`
 	ThirdPartyTag string `json:"thirdPartyTag,omitempty"`
-	// ThirdPartyUrls: Tracking URLs from third parties to track interactions with
-	// a video creative. This field is only supported for the following
-	// creative_type: * `CREATIVE_TYPE_AUDIO` * `CREATIVE_TYPE_VIDEO` *
+	// ThirdPartyUrls: Optional. Tracking URLs from third parties to track
+	// interactions with a video creative. This field is only supported for the
+	// following creative_type: * `CREATIVE_TYPE_AUDIO` * `CREATIVE_TYPE_VIDEO` *
 	// `CREATIVE_TYPE_NATIVE_VIDEO`
 	ThirdPartyUrls []*ThirdPartyUrl `json:"thirdPartyUrls,omitempty"`
-	// TimerEvents: Timer custom events for a rich media creative. Timers track the
-	// time during which a user views and interacts with a specified part of a rich
-	// media creative. A creative can have multiple timer events, each timed
-	// independently. Leave it empty or unset for creatives containing image assets
-	// only.
+	// TimerEvents: Optional. Timer custom events for a rich media creative. Timers
+	// track the time during which a user views and interacts with a specified part
+	// of a rich media creative. A creative can have multiple timer events, each
+	// timed independently. Leave it empty or unset for creatives containing image
+	// assets only.
 	TimerEvents []*TimerEvent `json:"timerEvents,omitempty"`
-	// TrackerUrls: Tracking URLs for analytics providers or third-party ad
-	// technology vendors. The URLs must start with https (except on inventory that
-	// doesn't require SSL compliance). If using macros in your URL, use only
-	// macros supported by Display & Video 360. Standard URLs only, no IMG or
-	// SCRIPT tags. This field is only writeable in following creative_type: *
-	// `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` *
+	// TrackerUrls: Optional. Tracking URLs for analytics providers or third-party
+	// ad technology vendors. The URLs must start with `https:` (except on
+	// inventory that doesn't require SSL compliance). If using macros in your URL,
+	// use only macros supported by Display & Video 360. Standard URLs only, no IMG
+	// or SCRIPT tags. This field is only writeable in the following creative_type:
+	// * `CREATIVE_TYPE_NATIVE` * `CREATIVE_TYPE_NATIVE_SITE_SQUARE` *
 	// `CREATIVE_TYPE_NATIVE_VIDEO`
 	TrackerUrls []string `json:"trackerUrls,omitempty"`
 	// Transcodes: Output only. Audio/Video transcodes. Display & Video 360
@@ -5127,7 +4906,7 @@ type Creative struct {
 	// bandwidths. These transcodes give a publisher's system more options to
 	// choose from for each impression on your video and ensures that the
 	// appropriate file serves based on the viewer’s connection and screen size.
-	// This field is only supported in following creative_type: *
+	// This field is only supported in the following creative_type: *
 	// `CREATIVE_TYPE_VIDEO` * `CREATIVE_TYPE_NATIVE_VIDEO` * `CREATIVE_TYPE_AUDIO`
 	Transcodes []*Transcode `json:"transcodes,omitempty"`
 	// UniversalAdId: Optional. An optional creative identifier provided by a
@@ -5167,9 +4946,9 @@ type Creative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Creative) MarshalJSON() ([]byte, error) {
+func (s Creative) MarshalJSON() ([]byte, error) {
 	type NoMethod Creative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreativeConfig: Creative requirements configuration for the inventory
@@ -5221,6 +5000,9 @@ type CreativeConfig struct {
 	//   "CREATIVE_TYPE_TEMPLATED_APP_INSTALL_VIDEO" - Templated app install mobile
 	// video creative. Create and update methods are **not** supported for this
 	// creative type.
+	//   "CREATIVE_TYPE_ASSET_BASED_CREATIVE" - Asset-based creative. Create and
+	// update methods are supported for this creative type if the hosting_source is
+	// `HOSTING_SOURCE_HOSTED`.
 	CreativeType string `json:"creativeType,omitempty"`
 	// DisplayCreativeConfig: The configuration for display creatives. Applicable
 	// when creative_type is `CREATIVE_TYPE_STANDARD`.
@@ -5241,9 +5023,9 @@ type CreativeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreativeConfig) MarshalJSON() ([]byte, error) {
+func (s CreativeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CreativeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomBiddingAlgorithm: A single custom bidding algorithm.
@@ -5262,8 +5044,6 @@ type CustomBiddingAlgorithm struct {
 	// specified or is unknown in this version.
 	//   "SCRIPT_BASED" - Algorithm generated through customer-uploaded custom
 	// bidding script files.
-	//   "ADS_DATA_HUB_BASED" - Algorithm created through Ads Data Hub product.
-	//   "GOAL_BUILDER_BASED" - Algorithm created through goal builder in DV3 UI.
 	CustomBiddingAlgorithmType string `json:"customBiddingAlgorithmType,omitempty"`
 	// DisplayName: Required. The display name of the custom bidding algorithm.
 	// Must be UTF-8 encoded with a maximum size of 240 bytes.
@@ -5325,9 +5105,9 @@ type CustomBiddingAlgorithm struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomBiddingAlgorithm) MarshalJSON() ([]byte, error) {
+func (s CustomBiddingAlgorithm) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomBiddingAlgorithm
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomBiddingModelDetails: The details of a custom bidding algorithm model
@@ -5378,9 +5158,9 @@ type CustomBiddingModelDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomBiddingModelDetails) MarshalJSON() ([]byte, error) {
+func (s CustomBiddingModelDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomBiddingModelDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomBiddingScript: A single custom bidding script.
@@ -5429,9 +5209,9 @@ type CustomBiddingScript struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomBiddingScript) MarshalJSON() ([]byte, error) {
+func (s CustomBiddingScript) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomBiddingScript
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomBiddingScriptRef: The reference to the uploaded custom bidding script
@@ -5458,9 +5238,9 @@ type CustomBiddingScriptRef struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomBiddingScriptRef) MarshalJSON() ([]byte, error) {
+func (s CustomBiddingScriptRef) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomBiddingScriptRef
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomLabel: The key and value of a custom label.
@@ -5490,9 +5270,9 @@ type CustomLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomLabel) MarshalJSON() ([]byte, error) {
+func (s CustomLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomList: Describes a custom list entity, such as a custom affinity or
@@ -5521,16 +5301,16 @@ type CustomList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomList) MarshalJSON() ([]byte, error) {
+func (s CustomList) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomListGroup: Details of custom list group. All custom list targeting
 // settings are logically ‘OR’ of each other.
 type CustomListGroup struct {
 	// Settings: Required. All custom list targeting settings in custom list group.
-	// Repeated settings with same id will be ignored.
+	// Repeated settings with the same id will be ignored.
 	Settings []*CustomListTargetingSetting `json:"settings,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Settings") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -5545,9 +5325,9 @@ type CustomListGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomListGroup) MarshalJSON() ([]byte, error) {
+func (s CustomListGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomListGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomListTargetingSetting: Details of custom list targeting setting.
@@ -5568,9 +5348,9 @@ type CustomListTargetingSetting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomListTargetingSetting) MarshalJSON() ([]byte, error) {
+func (s CustomListTargetingSetting) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomListTargetingSetting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -5606,9 +5386,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DateRange: A date range.
@@ -5632,9 +5412,9 @@ type DateRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DateRange) MarshalJSON() ([]byte, error) {
+func (s DateRange) MarshalJSON() ([]byte, error) {
 	type NoMethod DateRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DayAndTimeAssignedTargetingOptionDetails: Representation of a segment of
@@ -5685,9 +5465,9 @@ type DayAndTimeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DayAndTimeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s DayAndTimeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DayAndTimeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeactivateManualTriggerRequest: Request message for
@@ -5825,9 +5605,9 @@ type DeleteAssignedTargetingOptionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeleteAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
+func (s DeleteAssignedTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DeleteAssignedTargetingOptionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceMakeModelAssignedTargetingOptionDetails: Assigned device make and
@@ -5855,9 +5635,9 @@ type DeviceMakeModelAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceMakeModelAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s DeviceMakeModelAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceMakeModelAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceMakeModelTargetingOptionDetails: Represents a targetable device make
@@ -5879,9 +5659,9 @@ type DeviceMakeModelTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceMakeModelTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s DeviceMakeModelTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceMakeModelTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceTypeAssignedTargetingOptionDetails: Targeting details for device type.
@@ -5898,6 +5678,7 @@ type DeviceTypeAssignedTargetingOptionDetails struct {
 	//   "DEVICE_TYPE_CONNECTED_TV" - Connected TV.
 	//   "DEVICE_TYPE_SMART_PHONE" - Smart phone.
 	//   "DEVICE_TYPE_TABLET" - Tablet.
+	//   "DEVICE_TYPE_CONNECTED_DEVICE" - Connected device.
 	DeviceType string `json:"deviceType,omitempty"`
 	// YoutubeAndPartnersBidMultiplier: Output only. Bid multiplier allows you to
 	// show your ads more or less frequently based on the device type. It will
@@ -5920,9 +5701,9 @@ type DeviceTypeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceTypeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s DeviceTypeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceTypeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DeviceTypeAssignedTargetingOptionDetails) UnmarshalJSON(data []byte) error {
@@ -5953,6 +5734,7 @@ type DeviceTypeTargetingOptionDetails struct {
 	//   "DEVICE_TYPE_CONNECTED_TV" - Connected TV.
 	//   "DEVICE_TYPE_SMART_PHONE" - Smart phone.
 	//   "DEVICE_TYPE_TABLET" - Tablet.
+	//   "DEVICE_TYPE_CONNECTED_DEVICE" - Connected device.
 	DeviceType string `json:"deviceType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DeviceType") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -5967,9 +5749,9 @@ type DeviceTypeTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceTypeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s DeviceTypeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceTypeTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DigitalContentLabelAssignedTargetingOptionDetails: Targeting details for
@@ -6008,9 +5790,9 @@ type DigitalContentLabelAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DigitalContentLabelAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s DigitalContentLabelAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DigitalContentLabelAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DigitalContentLabelTargetingOptionDetails: Represents a targetable digital
@@ -6049,9 +5831,9 @@ type DigitalContentLabelTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DigitalContentLabelTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s DigitalContentLabelTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DigitalContentLabelTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Dimensions: Dimensions.
@@ -6073,9 +5855,9 @@ type Dimensions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Dimensions) MarshalJSON() ([]byte, error) {
+func (s Dimensions) MarshalJSON() ([]byte, error) {
 	type NoMethod Dimensions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DisplayVideoSourceAd: The ad sourced from a DV360 creative.
@@ -6095,9 +5877,9 @@ type DisplayVideoSourceAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DisplayVideoSourceAd) MarshalJSON() ([]byte, error) {
+func (s DisplayVideoSourceAd) MarshalJSON() ([]byte, error) {
 	type NoMethod DisplayVideoSourceAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DoubleVerify: Details of DoubleVerify settings.
@@ -6144,9 +5926,9 @@ type DoubleVerify struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DoubleVerify) MarshalJSON() ([]byte, error) {
+func (s DoubleVerify) MarshalJSON() ([]byte, error) {
 	type NoMethod DoubleVerify
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DoubleVerifyAppStarRating: Details of DoubleVerify star ratings settings.
@@ -6180,9 +5962,9 @@ type DoubleVerifyAppStarRating struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DoubleVerifyAppStarRating) MarshalJSON() ([]byte, error) {
+func (s DoubleVerifyAppStarRating) MarshalJSON() ([]byte, error) {
 	type NoMethod DoubleVerifyAppStarRating
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DoubleVerifyBrandSafetyCategories: Settings for brand safety controls.
@@ -6246,9 +6028,9 @@ type DoubleVerifyBrandSafetyCategories struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DoubleVerifyBrandSafetyCategories) MarshalJSON() ([]byte, error) {
+func (s DoubleVerifyBrandSafetyCategories) MarshalJSON() ([]byte, error) {
 	type NoMethod DoubleVerifyBrandSafetyCategories
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DoubleVerifyDisplayViewability: Details of DoubleVerify display viewability
@@ -6304,9 +6086,9 @@ type DoubleVerifyDisplayViewability struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DoubleVerifyDisplayViewability) MarshalJSON() ([]byte, error) {
+func (s DoubleVerifyDisplayViewability) MarshalJSON() ([]byte, error) {
 	type NoMethod DoubleVerifyDisplayViewability
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DoubleVerifyFraudInvalidTraffic: DoubleVerify Fraud & Invalid Traffic
@@ -6341,9 +6123,9 @@ type DoubleVerifyFraudInvalidTraffic struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DoubleVerifyFraudInvalidTraffic) MarshalJSON() ([]byte, error) {
+func (s DoubleVerifyFraudInvalidTraffic) MarshalJSON() ([]byte, error) {
 	type NoMethod DoubleVerifyFraudInvalidTraffic
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DoubleVerifyVideoViewability: Details of DoubleVerify video viewability
@@ -6415,9 +6197,9 @@ type DoubleVerifyVideoViewability struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DoubleVerifyVideoViewability) MarshalJSON() ([]byte, error) {
+func (s DoubleVerifyVideoViewability) MarshalJSON() ([]byte, error) {
 	type NoMethod DoubleVerifyVideoViewability
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DuplicateLineItemRequest: Request message for
@@ -6439,9 +6221,9 @@ type DuplicateLineItemRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DuplicateLineItemRequest) MarshalJSON() ([]byte, error) {
+func (s DuplicateLineItemRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DuplicateLineItemRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DuplicateLineItemResponse struct {
@@ -6463,72 +6245,9 @@ type DuplicateLineItemResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DuplicateLineItemResponse) MarshalJSON() ([]byte, error) {
+func (s DuplicateLineItemResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DuplicateLineItemResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// EditCustomerMatchMembersRequest: Request message for
-// FirstAndThirdPartyAudienceService.EditCustomerMatchMembers.
-type EditCustomerMatchMembersRequest struct {
-	// AddedContactInfoList: Input only. A list of contact information to define
-	// the members to be added.
-	AddedContactInfoList *ContactInfoList `json:"addedContactInfoList,omitempty"`
-	// AddedMobileDeviceIdList: Input only. A list of mobile device IDs to define
-	// the members to be added.
-	AddedMobileDeviceIdList *MobileDeviceIdList `json:"addedMobileDeviceIdList,omitempty"`
-	// AdvertiserId: Required. The ID of the owner advertiser of the updated
-	// Customer Match FirstAndThirdPartyAudience.
-	AdvertiserId int64 `json:"advertiserId,omitempty,string"`
-	// RemovedContactInfoList: Input only. A list of contact information to define
-	// the members to be removed.
-	RemovedContactInfoList *ContactInfoList `json:"removedContactInfoList,omitempty"`
-	// RemovedMobileDeviceIdList: Input only. A list of mobile device IDs to define
-	// the members to be removed.
-	RemovedMobileDeviceIdList *MobileDeviceIdList `json:"removedMobileDeviceIdList,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "AddedContactInfoList") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AddedContactInfoList") to include
-	// in API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *EditCustomerMatchMembersRequest) MarshalJSON() ([]byte, error) {
-	type NoMethod EditCustomerMatchMembersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// EditCustomerMatchMembersResponse: The response of
-// FirstAndThirdPartyAudienceService.EditCustomerMatchMembers.
-type EditCustomerMatchMembersResponse struct {
-	// FirstAndThirdPartyAudienceId: Required. The ID of the updated Customer Match
-	// FirstAndThirdPartyAudience.
-	FirstAndThirdPartyAudienceId int64 `json:"firstAndThirdPartyAudienceId,omitempty,string"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g.
-	// "FirstAndThirdPartyAudienceId") to unconditionally include in API requests.
-	// By default, fields with empty or default values are omitted from API
-	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
-	// for more details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "FirstAndThirdPartyAudienceId") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *EditCustomerMatchMembersResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod EditCustomerMatchMembersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EditGuaranteedOrderReadAccessorsRequest: Request message for
@@ -6559,9 +6278,9 @@ type EditGuaranteedOrderReadAccessorsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EditGuaranteedOrderReadAccessorsRequest) MarshalJSON() ([]byte, error) {
+func (s EditGuaranteedOrderReadAccessorsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EditGuaranteedOrderReadAccessorsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EditGuaranteedOrderReadAccessorsResponse struct {
@@ -6587,9 +6306,9 @@ type EditGuaranteedOrderReadAccessorsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EditGuaranteedOrderReadAccessorsResponse) MarshalJSON() ([]byte, error) {
+func (s EditGuaranteedOrderReadAccessorsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EditGuaranteedOrderReadAccessorsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EditInventorySourceReadWriteAccessorsRequest: Request message for
@@ -6619,9 +6338,9 @@ type EditInventorySourceReadWriteAccessorsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EditInventorySourceReadWriteAccessorsRequest) MarshalJSON() ([]byte, error) {
+func (s EditInventorySourceReadWriteAccessorsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EditInventorySourceReadWriteAccessorsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EditInventorySourceReadWriteAccessorsRequestAdvertisersUpdate: Update to the
@@ -6644,9 +6363,9 @@ type EditInventorySourceReadWriteAccessorsRequestAdvertisersUpdate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EditInventorySourceReadWriteAccessorsRequestAdvertisersUpdate) MarshalJSON() ([]byte, error) {
+func (s EditInventorySourceReadWriteAccessorsRequestAdvertisersUpdate) MarshalJSON() ([]byte, error) {
 	type NoMethod EditInventorySourceReadWriteAccessorsRequestAdvertisersUpdate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -6693,9 +6412,9 @@ type EnvironmentAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnvironmentAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s EnvironmentAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod EnvironmentAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EnvironmentTargetingOptionDetails: Represents a targetable environment. This
@@ -6733,9 +6452,9 @@ type EnvironmentTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnvironmentTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s EnvironmentTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod EnvironmentTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExchangeAssignedTargetingOptionDetails: Details for assigned exchange
@@ -6829,6 +6548,9 @@ type ExchangeAssignedTargetingOptionDetails struct {
 	//   "EXCHANGE_CHARTBOOST_GBID" - Chartboost Mediation.
 	//   "EXCHANGE_ADMOST_GBID" - AdMost.
 	//   "EXCHANGE_TOPON_GBID" - TopOn.
+	//   "EXCHANGE_NETFLIX" - Netflix.
+	//   "EXCHANGE_CORE" - Core.
+	//   "EXCHANGE_TUBI" - Tubi.
 	Exchange string `json:"exchange,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Exchange") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -6843,9 +6565,9 @@ type ExchangeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExchangeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ExchangeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ExchangeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExchangeConfig: Settings that control which exchanges are enabled for a
@@ -6867,9 +6589,9 @@ type ExchangeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExchangeConfig) MarshalJSON() ([]byte, error) {
+func (s ExchangeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ExchangeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExchangeConfigEnabledExchange: An enabled exchange in the partner.
@@ -6961,6 +6683,9 @@ type ExchangeConfigEnabledExchange struct {
 	//   "EXCHANGE_CHARTBOOST_GBID" - Chartboost Mediation.
 	//   "EXCHANGE_ADMOST_GBID" - AdMost.
 	//   "EXCHANGE_TOPON_GBID" - TopOn.
+	//   "EXCHANGE_NETFLIX" - Netflix.
+	//   "EXCHANGE_CORE" - Core.
+	//   "EXCHANGE_TUBI" - Tubi.
 	Exchange string `json:"exchange,omitempty"`
 	// GoogleAdManagerAgencyId: Output only. Agency ID of Google Ad Manager. The
 	// field is only relevant when Google Ad Manager is the enabled exchange.
@@ -6983,9 +6708,9 @@ type ExchangeConfigEnabledExchange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExchangeConfigEnabledExchange) MarshalJSON() ([]byte, error) {
+func (s ExchangeConfigEnabledExchange) MarshalJSON() ([]byte, error) {
 	type NoMethod ExchangeConfigEnabledExchange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExchangeReviewStatus: Exchange review status for the creative.
@@ -7077,6 +6802,9 @@ type ExchangeReviewStatus struct {
 	//   "EXCHANGE_CHARTBOOST_GBID" - Chartboost Mediation.
 	//   "EXCHANGE_ADMOST_GBID" - AdMost.
 	//   "EXCHANGE_TOPON_GBID" - TopOn.
+	//   "EXCHANGE_NETFLIX" - Netflix.
+	//   "EXCHANGE_CORE" - Core.
+	//   "EXCHANGE_TUBI" - Tubi.
 	Exchange string `json:"exchange,omitempty"`
 	// Status: Status of the exchange review.
 	//
@@ -7100,9 +6828,9 @@ type ExchangeReviewStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExchangeReviewStatus) MarshalJSON() ([]byte, error) {
+func (s ExchangeReviewStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod ExchangeReviewStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExchangeTargetingOptionDetails: Represents a targetable exchange. This will
@@ -7196,6 +6924,9 @@ type ExchangeTargetingOptionDetails struct {
 	//   "EXCHANGE_CHARTBOOST_GBID" - Chartboost Mediation.
 	//   "EXCHANGE_ADMOST_GBID" - AdMost.
 	//   "EXCHANGE_TOPON_GBID" - TopOn.
+	//   "EXCHANGE_NETFLIX" - Netflix.
+	//   "EXCHANGE_CORE" - Core.
+	//   "EXCHANGE_TUBI" - Tubi.
 	Exchange string `json:"exchange,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Exchange") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -7210,19 +6941,19 @@ type ExchangeTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExchangeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ExchangeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ExchangeTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExitEvent: Exit event of the creative.
 type ExitEvent struct {
-	// Name: The name of the click tag of the exit event. The name must be unique
-	// within one creative. Leave it empty or unset for creatives containing image
-	// assets only.
+	// Name: Optional. The name of the click tag of the exit event. The name must
+	// be unique within one creative. Leave it empty or unset for creatives
+	// containing image assets only.
 	Name string `json:"name,omitempty"`
-	// ReportingName: The name used to identify this event in reports. Leave it
-	// empty or unset for creatives containing image assets only.
+	// ReportingName: Optional. The name used to identify this event in reports.
+	// Leave it empty or unset for creatives containing image assets only.
 	ReportingName string `json:"reportingName,omitempty"`
 	// Type: Required. The type of the exit event.
 	//
@@ -7249,236 +6980,9 @@ type ExitEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExitEvent) MarshalJSON() ([]byte, error) {
+func (s ExitEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod ExitEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// FirstAndThirdPartyAudience: Describes a first or third party audience list
-// used for targeting. First party audiences are created via usage of client
-// data. Third party audiences are provided by Third Party data providers and
-// can only be licensed to customers.
-type FirstAndThirdPartyAudience struct {
-	// ActiveDisplayAudienceSize: Output only. The estimated audience size for the
-	// Display network in the past month. If the size is less than 1000, the number
-	// will be hidden and 0 will be returned due to privacy reasons. Otherwise, the
-	// number will be rounded off to two significant digits. Only returned in GET
-	// request.
-	ActiveDisplayAudienceSize int64 `json:"activeDisplayAudienceSize,omitempty,string"`
-	// AppId: The app_id matches with the type of the mobile_device_ids being
-	// uploaded. Only applicable to audience_type `CUSTOMER_MATCH_DEVICE_ID`
-	AppId string `json:"appId,omitempty"`
-	// AudienceSource: Output only. The source of the audience.
-	//
-	// Possible values:
-	//   "AUDIENCE_SOURCE_UNSPECIFIED" - Default value when audience source is not
-	// specified or is unknown.
-	//   "DISPLAY_VIDEO_360" - Originated from Display & Video 360.
-	//   "CAMPAIGN_MANAGER" - Originated from Campaign Manager 360.
-	//   "AD_MANAGER" - Originated from Google Ad Manager.
-	//   "SEARCH_ADS_360" - Originated from Search Ads 360.
-	//   "YOUTUBE" - Originated from Youtube.
-	//   "ADS_DATA_HUB" - Originated from Ads Data Hub.
-	AudienceSource string `json:"audienceSource,omitempty"`
-	// AudienceType: The type of the audience.
-	//
-	// Possible values:
-	//   "AUDIENCE_TYPE_UNSPECIFIED" - Default value when type is not specified or
-	// is unknown.
-	//   "CUSTOMER_MATCH_CONTACT_INFO" - Audience was generated through matching
-	// customers to known contact information.
-	//   "CUSTOMER_MATCH_DEVICE_ID" - Audience was generated through matching
-	// customers to known Mobile device IDs.
-	//   "CUSTOMER_MATCH_USER_ID" - Audience was generated through matching
-	// customers to known User IDs.
-	//   "ACTIVITY_BASED" - Audience was created based on campaign activity.
-	//   "FREQUENCY_CAP" - Audience was created based on excluding the number of
-	// impressions they were served.
-	//   "TAG_BASED" - Audience was created based on custom variables attached to
-	// pixel.
-	//   "YOUTUBE_USERS" - Audience was created based on past interactions with
-	// videos, YouTube ads, or YouTube channel.
-	//   "LICENSED" - Subtype of third party audience type.
-	AudienceType string `json:"audienceType,omitempty"`
-	// ContactInfoList: Input only. A list of contact information to define the
-	// initial audience members. Only applicable to audience_type
-	// `CUSTOMER_MATCH_CONTACT_INFO`
-	ContactInfoList *ContactInfoList `json:"contactInfoList,omitempty"`
-	// Description: The user-provided description of the audience. Only applicable
-	// to first party audiences.
-	Description string `json:"description,omitempty"`
-	// DisplayAudienceSize: Output only. The estimated audience size for the
-	// Display network. If the size is less than 1000, the number will be hidden
-	// and 0 will be returned due to privacy reasons. Otherwise, the number will be
-	// rounded off to two significant digits. Only returned in GET request.
-	DisplayAudienceSize int64 `json:"displayAudienceSize,omitempty,string"`
-	// DisplayDesktopAudienceSize: Output only. The estimated desktop audience size
-	// in Display network. If the size is less than 1000, the number will be hidden
-	// and 0 will be returned due to privacy reasons. Otherwise, the number will be
-	// rounded off to two significant digits. Only applicable to first party
-	// audiences. Only returned in GET request.
-	DisplayDesktopAudienceSize int64 `json:"displayDesktopAudienceSize,omitempty,string"`
-	// DisplayMobileAppAudienceSize: Output only. The estimated mobile app audience
-	// size in Display network. If the size is less than 1000, the number will be
-	// hidden and 0 will be returned due to privacy reasons. Otherwise, the number
-	// will be rounded off to two significant digits. Only applicable to first
-	// party audiences. Only returned in GET request.
-	DisplayMobileAppAudienceSize int64 `json:"displayMobileAppAudienceSize,omitempty,string"`
-	// DisplayMobileWebAudienceSize: Output only. The estimated mobile web audience
-	// size in Display network. If the size is less than 1000, the number will be
-	// hidden and 0 will be returned due to privacy reasons. Otherwise, the number
-	// will be rounded off to two significant digits. Only applicable to first
-	// party audiences. Only returned in GET request.
-	DisplayMobileWebAudienceSize int64 `json:"displayMobileWebAudienceSize,omitempty,string"`
-	// DisplayName: The display name of the first and third party audience.
-	DisplayName string `json:"displayName,omitempty"`
-	// FirstAndThirdPartyAudienceId: Output only. The unique ID of the first and
-	// third party audience. Assigned by the system.
-	FirstAndThirdPartyAudienceId int64 `json:"firstAndThirdPartyAudienceId,omitempty,string"`
-	// FirstAndThirdPartyAudienceType: Whether the audience is a first or third
-	// party audience.
-	//
-	// Possible values:
-	//   "FIRST_AND_THIRD_PARTY_AUDIENCE_TYPE_UNSPECIFIED" - Default value when
-	// type is not specified or is unknown.
-	//   "FIRST_AND_THIRD_PARTY_AUDIENCE_TYPE_FIRST_PARTY" - Audience that is
-	// created via usage of client data.
-	//   "FIRST_AND_THIRD_PARTY_AUDIENCE_TYPE_THIRD_PARTY" - Audience that is
-	// provided by Third Party data providers.
-	FirstAndThirdPartyAudienceType string `json:"firstAndThirdPartyAudienceType,omitempty"`
-	// GmailAudienceSize: Output only. The estimated audience size for Gmail
-	// network. If the size is less than 1000, the number will be hidden and 0 will
-	// be returned due to privacy reasons. Otherwise, the number will be rounded
-	// off to two significant digits. Only applicable to first party audiences.
-	// Only returned in GET request.
-	GmailAudienceSize int64 `json:"gmailAudienceSize,omitempty,string"`
-	// MembershipDurationDays: The duration in days that an entry remains in the
-	// audience after the qualifying event. If the audience has no expiration, set
-	// the value of this field to 10000. Otherwise, the set value must be greater
-	// than 0 and less than or equal to 540. Only applicable to first party
-	// audiences. This field is required if one of the following audience_type is
-	// used: * `CUSTOMER_MATCH_CONTACT_INFO` * `CUSTOMER_MATCH_DEVICE_ID`
-	MembershipDurationDays int64 `json:"membershipDurationDays,omitempty,string"`
-	// MobileDeviceIdList: Input only. A list of mobile device IDs to define the
-	// initial audience members. Only applicable to audience_type
-	// `CUSTOMER_MATCH_DEVICE_ID`
-	MobileDeviceIdList *MobileDeviceIdList `json:"mobileDeviceIdList,omitempty"`
-	// Name: Output only. The resource name of the first and third party audience.
-	Name string `json:"name,omitempty"`
-	// YoutubeAudienceSize: Output only. The estimated audience size for YouTube
-	// network. If the size is less than 1000, the number will be hidden and 0 will
-	// be returned due to privacy reasons. Otherwise, the number will be rounded
-	// off to two significant digits. Only applicable to first party audiences.
-	// Only returned in GET request.
-	YoutubeAudienceSize int64 `json:"youtubeAudienceSize,omitempty,string"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "ActiveDisplayAudienceSize")
-	// to unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ActiveDisplayAudienceSize") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *FirstAndThirdPartyAudience) MarshalJSON() ([]byte, error) {
-	type NoMethod FirstAndThirdPartyAudience
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// FirstAndThirdPartyAudienceGroup: Details of first and third party audience
-// group. All first and third party audience targeting settings are logically
-// ‘OR’ of each other.
-type FirstAndThirdPartyAudienceGroup struct {
-	// Settings: Required. All first and third party audience targeting settings in
-	// first and third party audience group. Repeated settings with same id are not
-	// allowed.
-	Settings []*FirstAndThirdPartyAudienceTargetingSetting `json:"settings,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Settings") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Settings") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *FirstAndThirdPartyAudienceGroup) MarshalJSON() ([]byte, error) {
-	type NoMethod FirstAndThirdPartyAudienceGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// FirstAndThirdPartyAudienceTargetingSetting: Details of first and third party
-// audience targeting setting.
-type FirstAndThirdPartyAudienceTargetingSetting struct {
-	// FirstAndThirdPartyAudienceId: Required. First and third party audience id of
-	// the first and third party audience targeting setting. This id is
-	// first_and_third_party_audience_id.
-	FirstAndThirdPartyAudienceId int64 `json:"firstAndThirdPartyAudienceId,omitempty,string"`
-	// Recency: The recency of the first and third party audience targeting
-	// setting. Only applicable to first party audiences, otherwise will be
-	// ignored. For more info, refer to
-	// https://support.google.com/displayvideo/answer/2949947#recency When
-	// unspecified, no recency limit will be used.
-	//
-	// Possible values:
-	//   "RECENCY_NO_LIMIT" - No limit of recency.
-	//   "RECENCY_1_MINUTE" - Recency is 1 minute.
-	//   "RECENCY_5_MINUTES" - Recency is 5 minutes.
-	//   "RECENCY_10_MINUTES" - Recency is 10 minutes.
-	//   "RECENCY_15_MINUTES" - Recency is 15 minutes.
-	//   "RECENCY_30_MINUTES" - Recency is 30 minutes.
-	//   "RECENCY_1_HOUR" - Recency is 1 hour.
-	//   "RECENCY_2_HOURS" - Recency is 2 hours.
-	//   "RECENCY_3_HOURS" - Recency is 3 hours.
-	//   "RECENCY_6_HOURS" - Recency is 6 hours.
-	//   "RECENCY_12_HOURS" - Recency is 12 hours.
-	//   "RECENCY_1_DAY" - Recency is 1 day.
-	//   "RECENCY_2_DAYS" - Recency is 2 days.
-	//   "RECENCY_3_DAYS" - Recency is 3 days.
-	//   "RECENCY_5_DAYS" - Recency is 5 days.
-	//   "RECENCY_7_DAYS" - Recency is 7 days.
-	//   "RECENCY_10_DAYS" - Recency is 10 days.
-	//   "RECENCY_14_DAYS" - Recency is 14 days.
-	//   "RECENCY_15_DAYS" - Recency is 15 days.
-	//   "RECENCY_21_DAYS" - Recency is 21 days.
-	//   "RECENCY_28_DAYS" - Recency is 28 days.
-	//   "RECENCY_30_DAYS" - Recency is 30 days.
-	//   "RECENCY_40_DAYS" - Recency is 40 days.
-	//   "RECENCY_45_DAYS" - Recency is 45 days.
-	//   "RECENCY_60_DAYS" - Recency is 60 days.
-	//   "RECENCY_90_DAYS" - Recency is 90 days.
-	//   "RECENCY_120_DAYS" - Recency is 120 days.
-	//   "RECENCY_180_DAYS" - Recency is 180 days.
-	//   "RECENCY_270_DAYS" - Recency is 270 days.
-	//   "RECENCY_365_DAYS" - Recency is 365 days.
-	Recency string `json:"recency,omitempty"`
-	// ForceSendFields is a list of field names (e.g.
-	// "FirstAndThirdPartyAudienceId") to unconditionally include in API requests.
-	// By default, fields with empty or default values are omitted from API
-	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
-	// for more details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "FirstAndThirdPartyAudienceId") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *FirstAndThirdPartyAudienceTargetingSetting) MarshalJSON() ([]byte, error) {
-	type NoMethod FirstAndThirdPartyAudienceTargetingSetting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FixedBidStrategy: A strategy that uses a fixed bidding price.
@@ -7503,9 +7007,9 @@ type FixedBidStrategy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FixedBidStrategy) MarshalJSON() ([]byte, error) {
+func (s FixedBidStrategy) MarshalJSON() ([]byte, error) {
 	type NoMethod FixedBidStrategy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FloodlightActivity: A single Floodlight activity.
@@ -7556,9 +7060,9 @@ type FloodlightActivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FloodlightActivity) MarshalJSON() ([]byte, error) {
+func (s FloodlightActivity) MarshalJSON() ([]byte, error) {
 	type NoMethod FloodlightActivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FloodlightGroup: A single Floodlight group.
@@ -7617,9 +7121,9 @@ type FloodlightGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FloodlightGroup) MarshalJSON() ([]byte, error) {
+func (s FloodlightGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod FloodlightGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FrequencyCap: Settings that control the number of times a user may be shown
@@ -7654,11 +7158,10 @@ type FrequencyCap struct {
 	TimeUnit string `json:"timeUnit,omitempty"`
 	// TimeUnitCount: The number of time_unit the frequency cap will last. Required
 	// when unlimited is `false`. The following restrictions apply based on the
-	// value of time_unit: * `TIME_UNIT_LIFETIME` - this field is output only and
-	// will default to 1 * `TIME_UNIT_MONTHS` - must be between 1 and 2 *
-	// `TIME_UNIT_WEEKS` - must be between 1 and 4 * `TIME_UNIT_DAYS` - must be
-	// between 1 and 6 * `TIME_UNIT_HOURS` - must be between 1 and 23 *
-	// `TIME_UNIT_MINUTES` - must be between 1 and 59
+	// value of time_unit: * `TIME_UNIT_MONTHS` - must be 1 * `TIME_UNIT_WEEKS` -
+	// must be between 1 and 4 * `TIME_UNIT_DAYS` - must be between 1 and 6 *
+	// `TIME_UNIT_HOURS` - must be between 1 and 23 * `TIME_UNIT_MINUTES` - must be
+	// between 1 and 59
 	TimeUnitCount int64 `json:"timeUnitCount,omitempty"`
 	// Unlimited: Whether unlimited frequency capping is applied. When this field
 	// is set to `true`, the remaining frequency cap fields are not applicable.
@@ -7676,9 +7179,9 @@ type FrequencyCap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FrequencyCap) MarshalJSON() ([]byte, error) {
+func (s FrequencyCap) MarshalJSON() ([]byte, error) {
 	type NoMethod FrequencyCap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenderAssignedTargetingOptionDetails: Details for assigned gender targeting
@@ -7708,9 +7211,9 @@ type GenderAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenderAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s GenderAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GenderAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenderTargetingOptionDetails: Represents a targetable gender. This will be
@@ -7740,9 +7243,9 @@ type GenderTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenderTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s GenderTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GenderTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenerateDefaultLineItemRequest: Request message for
@@ -7842,9 +7345,9 @@ type GenerateDefaultLineItemRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenerateDefaultLineItemRequest) MarshalJSON() ([]byte, error) {
+func (s GenerateDefaultLineItemRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GenerateDefaultLineItemRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeoRegionAssignedTargetingOptionDetails: Details for assigned geographic
@@ -7893,6 +7396,18 @@ type GeoRegionAssignedTargetingOptionDetails struct {
 	//   "GEO_REGION_TYPE_NEIGHBORHOOD" - The geographic region is a neighborhood.
 	//   "GEO_REGION_TYPE_UNIVERSITY" - The geographic region is a university.
 	//   "GEO_REGION_TYPE_DISTRICT" - The geographic region is a district.
+	//   "GEO_REGION_TYPE_NATIONAL_PARK" - The geographic region is a national
+	// park.
+	//   "GEO_REGION_TYPE_BARRIO" - The geographic region is a barrio.
+	//   "GEO_REGION_TYPE_SUB_WARD" - The geographic region is a sub ward.
+	//   "GEO_REGION_TYPE_MUNICIPALITY_DISTRICT" - The geographic region is a
+	// municipality district.
+	//   "GEO_REGION_TYPE_SUB_DISTRICT" - The geographic region is a sub district.
+	//   "GEO_REGION_TYPE_QUARTER" - The geographic region is a quarter.
+	//   "GEO_REGION_TYPE_DIVISION" - The geographic region is a division.
+	//   "GEO_REGION_TYPE_COMMUNE" - The geographic region is a commune.
+	//   "GEO_REGION_TYPE_COLLOQUIAL_AREA" - The geographic region is a colloquial
+	// area.
 	GeoRegionType string `json:"geoRegionType,omitempty"`
 	// Negative: Indicates if this option is being negatively targeted.
 	Negative bool `json:"negative,omitempty"`
@@ -7912,9 +7427,9 @@ type GeoRegionAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeoRegionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s GeoRegionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GeoRegionAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeoRegionSearchTerms: Search terms for geo region targeting options.
@@ -7935,9 +7450,9 @@ type GeoRegionSearchTerms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeoRegionSearchTerms) MarshalJSON() ([]byte, error) {
+func (s GeoRegionSearchTerms) MarshalJSON() ([]byte, error) {
 	type NoMethod GeoRegionSearchTerms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GeoRegionTargetingOptionDetails: Represents a targetable geographic region.
@@ -7986,6 +7501,18 @@ type GeoRegionTargetingOptionDetails struct {
 	//   "GEO_REGION_TYPE_NEIGHBORHOOD" - The geographic region is a neighborhood.
 	//   "GEO_REGION_TYPE_UNIVERSITY" - The geographic region is a university.
 	//   "GEO_REGION_TYPE_DISTRICT" - The geographic region is a district.
+	//   "GEO_REGION_TYPE_NATIONAL_PARK" - The geographic region is a national
+	// park.
+	//   "GEO_REGION_TYPE_BARRIO" - The geographic region is a barrio.
+	//   "GEO_REGION_TYPE_SUB_WARD" - The geographic region is a sub ward.
+	//   "GEO_REGION_TYPE_MUNICIPALITY_DISTRICT" - The geographic region is a
+	// municipality district.
+	//   "GEO_REGION_TYPE_SUB_DISTRICT" - The geographic region is a sub district.
+	//   "GEO_REGION_TYPE_QUARTER" - The geographic region is a quarter.
+	//   "GEO_REGION_TYPE_DIVISION" - The geographic region is a division.
+	//   "GEO_REGION_TYPE_COMMUNE" - The geographic region is a commune.
+	//   "GEO_REGION_TYPE_COLLOQUIAL_AREA" - The geographic region is a colloquial
+	// area.
 	GeoRegionType string `json:"geoRegionType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DisplayName") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -8000,9 +7527,9 @@ type GeoRegionTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeoRegionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s GeoRegionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GeoRegionTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAudience: Describes a Google audience resource. Includes Google
@@ -8046,16 +7573,16 @@ type GoogleAudience struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAudience) MarshalJSON() ([]byte, error) {
+func (s GoogleAudience) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAudience
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAudienceGroup: Details of Google audience group. All Google audience
 // targeting settings are logically ‘OR’ of each other.
 type GoogleAudienceGroup struct {
 	// Settings: Required. All Google audience targeting settings in Google
-	// audience group. Repeated settings with same id will be ignored.
+	// audience group. Repeated settings with the same id will be ignored.
 	Settings []*GoogleAudienceTargetingSetting `json:"settings,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Settings") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -8070,9 +7597,9 @@ type GoogleAudienceGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAudienceGroup) MarshalJSON() ([]byte, error) {
+func (s GoogleAudienceGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAudienceGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAudienceTargetingSetting: Details of Google audience targeting
@@ -8094,9 +7621,9 @@ type GoogleAudienceTargetingSetting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAudienceTargetingSetting) MarshalJSON() ([]byte, error) {
+func (s GoogleAudienceTargetingSetting) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAudienceTargetingSetting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleBytestreamMedia: Media resource.
@@ -8119,9 +7646,9 @@ type GoogleBytestreamMedia struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBytestreamMedia) MarshalJSON() ([]byte, error) {
+func (s GoogleBytestreamMedia) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBytestreamMedia
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuaranteedOrder: A guaranteed order. Guaranteed orders are parent entity of
@@ -8228,6 +7755,9 @@ type GuaranteedOrder struct {
 	//   "EXCHANGE_CHARTBOOST_GBID" - Chartboost Mediation.
 	//   "EXCHANGE_ADMOST_GBID" - AdMost.
 	//   "EXCHANGE_TOPON_GBID" - TopOn.
+	//   "EXCHANGE_NETFLIX" - Netflix.
+	//   "EXCHANGE_CORE" - Core.
+	//   "EXCHANGE_TUBI" - Tubi.
 	Exchange string `json:"exchange,omitempty"`
 	// GuaranteedOrderId: Output only. The unique identifier of the guaranteed
 	// order. The guaranteed order IDs have the format
@@ -8281,9 +7811,9 @@ type GuaranteedOrder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuaranteedOrder) MarshalJSON() ([]byte, error) {
+func (s GuaranteedOrder) MarshalJSON() ([]byte, error) {
 	type NoMethod GuaranteedOrder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuaranteedOrderStatus: The status settings of the guaranteed order.
@@ -8336,9 +7866,9 @@ type GuaranteedOrderStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuaranteedOrderStatus) MarshalJSON() ([]byte, error) {
+func (s GuaranteedOrderStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GuaranteedOrderStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HouseholdIncomeAssignedTargetingOptionDetails: Details for assigned
@@ -8380,9 +7910,9 @@ type HouseholdIncomeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HouseholdIncomeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s HouseholdIncomeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod HouseholdIncomeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HouseholdIncomeTargetingOptionDetails: Represents a targetable household
@@ -8423,9 +7953,9 @@ type HouseholdIncomeTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HouseholdIncomeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s HouseholdIncomeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod HouseholdIncomeTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdFilter: A filtering option that filters entities by their entity IDs.
@@ -8461,9 +7991,9 @@ type IdFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdFilter) MarshalJSON() ([]byte, error) {
+func (s IdFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod IdFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageAsset: Meta data of an image asset.
@@ -8487,9 +8017,9 @@ type ImageAsset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageAsset) MarshalJSON() ([]byte, error) {
+func (s ImageAsset) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageAsset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InStreamAd: Details for an in-stream ad.
@@ -8512,9 +8042,9 @@ type InStreamAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InStreamAd) MarshalJSON() ([]byte, error) {
+func (s InStreamAd) MarshalJSON() ([]byte, error) {
 	type NoMethod InStreamAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InsertionOrder: A single insertion order.
@@ -8522,8 +8052,8 @@ type InsertionOrder struct {
 	// AdvertiserId: Output only. The unique ID of the advertiser the insertion
 	// order belongs to.
 	AdvertiserId int64 `json:"advertiserId,omitempty,string"`
-	// BidStrategy: The bidding strategy of the insertion order. By default,
-	// fixed_bid is set.
+	// BidStrategy: Optional. The bidding strategy of the insertion order. By
+	// default, fixed_bid is set.
 	BidStrategy *BiddingStrategy `json:"bidStrategy,omitempty"`
 	// BillableOutcome: Immutable. The billable outcome of the insertion order.
 	// Outcome based buying is deprecated. `BILLABLE_OUTCOME_PAY_PER_IMPRESSION` is
@@ -8572,7 +8102,7 @@ type InsertionOrder struct {
 	// InsertionOrderId: Output only. The unique ID of the insertion order.
 	// Assigned by the system.
 	InsertionOrderId int64 `json:"insertionOrderId,omitempty,string"`
-	// InsertionOrderType: The type of insertion order. If this field is
+	// InsertionOrderType: Optional. The type of insertion order. If this field is
 	// unspecified in creation, the value defaults to `RTB`.
 	//
 	// Possible values:
@@ -8581,15 +8111,18 @@ type InsertionOrder struct {
 	//   "RTB" - Real-time bidding.
 	//   "OVER_THE_TOP" - Over-the-top.
 	InsertionOrderType string `json:"insertionOrderType,omitempty"`
-	// IntegrationDetails: Additional integration details of the insertion order.
+	// IntegrationDetails: Optional. Additional integration details of the
+	// insertion order.
 	IntegrationDetails *IntegrationDetails `json:"integrationDetails,omitempty"`
 	// Name: Output only. The resource name of the insertion order.
 	Name string `json:"name,omitempty"`
 	// Pacing: Required. The budget spending speed setting of the insertion order.
+	// pacing_type `PACING_TYPE_ASAP` is not compatible with pacing_period
+	// `PACING_PERIOD_FLIGHT`.
 	Pacing *Pacing `json:"pacing,omitempty"`
-	// PartnerCosts: The partner costs associated with the insertion order. If
-	// absent or empty in CreateInsertionOrder method, the newly created insertion
-	// order will inherit partner costs from the partner settings.
+	// PartnerCosts: Optional. The partner costs associated with the insertion
+	// order. If absent or empty in CreateInsertionOrder method, the newly created
+	// insertion order will inherit partner costs from the partner settings.
 	PartnerCosts []*PartnerCost `json:"partnerCosts,omitempty"`
 	// PerformanceGoal: Required. Performance goal of the insertion order.
 	PerformanceGoal *PerformanceGoal `json:"performanceGoal,omitempty"`
@@ -8628,17 +8161,17 @@ type InsertionOrder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InsertionOrder) MarshalJSON() ([]byte, error) {
+func (s InsertionOrder) MarshalJSON() ([]byte, error) {
 	type NoMethod InsertionOrder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InsertionOrderBudget: Settings that control how insertion order budget is
 // allocated.
 type InsertionOrderBudget struct {
-	// AutomationType: The type of automation used to manage bid and budget for the
-	// insertion order. If this field is unspecified in creation, the value
-	// defaults to `INSERTION_ORDER_AUTOMATION_TYPE_NONE`.
+	// AutomationType: Optional. The type of automation used to manage bid and
+	// budget for the insertion order. If this field is unspecified in creation,
+	// the value defaults to `INSERTION_ORDER_AUTOMATION_TYPE_NONE`.
 	//
 	// Possible values:
 	//   "INSERTION_ORDER_AUTOMATION_TYPE_UNSPECIFIED" - Insertion order automation
@@ -8679,9 +8212,9 @@ type InsertionOrderBudget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InsertionOrderBudget) MarshalJSON() ([]byte, error) {
+func (s InsertionOrderBudget) MarshalJSON() ([]byte, error) {
 	type NoMethod InsertionOrderBudget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InsertionOrderBudgetSegment: Settings that control the budget of a single
@@ -8692,8 +8225,8 @@ type InsertionOrderBudgetSegment struct {
 	// than 0. For example, 500000000 represents 500 standard units of the
 	// currency.
 	BudgetAmountMicros int64 `json:"budgetAmountMicros,omitempty,string"`
-	// CampaignBudgetId: The budget_id of the campaign budget that this insertion
-	// order budget segment is a part of.
+	// CampaignBudgetId: Optional. The budget_id of the campaign budget that this
+	// insertion order budget segment is a part of.
 	CampaignBudgetId int64 `json:"campaignBudgetId,omitempty,string"`
 	// DateRange: Required. The start and end date settings of the budget segment.
 	// They are resolved relative to the parent advertiser's time zone. * When
@@ -8702,9 +8235,9 @@ type InsertionOrderBudgetSegment struct {
 	// a mutable `end_date` but an immutable `start_date`. * `end_date` must be the
 	// `start_date` or later, both before the year 2037.
 	DateRange *DateRange `json:"dateRange,omitempty"`
-	// Description: The budget segment description. It can be used to enter
-	// Purchase Order information for each budget segment and have that information
-	// printed on the invoices. Must be UTF-8 encoded.
+	// Description: Optional. The budget segment description. It can be used to
+	// enter Purchase Order information for each budget segment and have that
+	// information printed on the invoices. Must be UTF-8 encoded.
 	Description string `json:"description,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "BudgetAmountMicros") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -8719,15 +8252,16 @@ type InsertionOrderBudgetSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InsertionOrderBudgetSegment) MarshalJSON() ([]byte, error) {
+func (s InsertionOrderBudgetSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod InsertionOrderBudgetSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntegralAdScience: Details of Integral Ad Science settings.
 type IntegralAdScience struct {
 	// CustomSegmentId: The custom segment ID provided by Integral Ad Science. The
-	// ID must be between `1000001` and `1999999`, inclusive.
+	// ID must be between `1000001` and `1999999` or `3000001` and `3999999`,
+	// inclusive.
 	CustomSegmentId googleapi.Int64s `json:"customSegmentId,omitempty"`
 	// DisplayViewability: Display Viewability section (applicable to display line
 	// items only).
@@ -8854,9 +8388,9 @@ type IntegralAdScience struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntegralAdScience) MarshalJSON() ([]byte, error) {
+func (s IntegralAdScience) MarshalJSON() ([]byte, error) {
 	type NoMethod IntegralAdScience
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntegrationDetails: Integration details of an entry.
@@ -8882,9 +8416,9 @@ type IntegrationDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntegrationDetails) MarshalJSON() ([]byte, error) {
+func (s IntegrationDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod IntegrationDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySource: An inventory source.
@@ -9010,6 +8544,9 @@ type InventorySource struct {
 	//   "EXCHANGE_CHARTBOOST_GBID" - Chartboost Mediation.
 	//   "EXCHANGE_ADMOST_GBID" - AdMost.
 	//   "EXCHANGE_TOPON_GBID" - TopOn.
+	//   "EXCHANGE_NETFLIX" - Netflix.
+	//   "EXCHANGE_CORE" - Core.
+	//   "EXCHANGE_TUBI" - Tubi.
 	Exchange string `json:"exchange,omitempty"`
 	// GuaranteedOrderId: Immutable. The ID of the guaranteed order that this
 	// inventory source belongs to. Only applicable when commitment is
@@ -9103,9 +8640,9 @@ type InventorySource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySource) MarshalJSON() ([]byte, error) {
+func (s InventorySource) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceAccessors: The partner or advertisers with access to the
@@ -9132,9 +8669,9 @@ type InventorySourceAccessors struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceAccessors) MarshalJSON() ([]byte, error) {
+func (s InventorySourceAccessors) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceAccessors
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceAccessorsAdvertiserAccessors: The advertisers with access to
@@ -9155,9 +8692,9 @@ type InventorySourceAccessorsAdvertiserAccessors struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceAccessorsAdvertiserAccessors) MarshalJSON() ([]byte, error) {
+func (s InventorySourceAccessorsAdvertiserAccessors) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceAccessorsAdvertiserAccessors
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceAccessorsPartnerAccessor: The partner with access to the
@@ -9178,9 +8715,9 @@ type InventorySourceAccessorsPartnerAccessor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceAccessorsPartnerAccessor) MarshalJSON() ([]byte, error) {
+func (s InventorySourceAccessorsPartnerAccessor) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceAccessorsPartnerAccessor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceAssignedTargetingOptionDetails: Targeting details for
@@ -9204,9 +8741,9 @@ type InventorySourceAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s InventorySourceAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceDisplayCreativeConfig: The configuration for display
@@ -9228,9 +8765,9 @@ type InventorySourceDisplayCreativeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceDisplayCreativeConfig) MarshalJSON() ([]byte, error) {
+func (s InventorySourceDisplayCreativeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceDisplayCreativeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceFilter: A filtering option for filtering on Inventory Source
@@ -9254,9 +8791,9 @@ type InventorySourceFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceFilter) MarshalJSON() ([]byte, error) {
+func (s InventorySourceFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceGroup: A collection of targetable inventory sources.
@@ -9285,9 +8822,9 @@ type InventorySourceGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceGroup) MarshalJSON() ([]byte, error) {
+func (s InventorySourceGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceGroupAssignedTargetingOptionDetails: Targeting details for
@@ -9312,9 +8849,9 @@ type InventorySourceGroupAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceGroupAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s InventorySourceGroupAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceGroupAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceStatus: The status related settings of the inventory source.
@@ -9393,9 +8930,9 @@ type InventorySourceStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceStatus) MarshalJSON() ([]byte, error) {
+func (s InventorySourceStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySourceVideoCreativeConfig: The configuration for video creatives.
@@ -9416,9 +8953,9 @@ type InventorySourceVideoCreativeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySourceVideoCreativeConfig) MarshalJSON() ([]byte, error) {
+func (s InventorySourceVideoCreativeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySourceVideoCreativeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Invoice: A single invoice.
@@ -9510,9 +9047,9 @@ type Invoice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Invoice) MarshalJSON() ([]byte, error) {
+func (s Invoice) MarshalJSON() ([]byte, error) {
 	type NoMethod Invoice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeywordAssignedTargetingOptionDetails: Details for assigned keyword
@@ -9539,9 +9076,9 @@ type KeywordAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeywordAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s KeywordAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod KeywordAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LanguageAssignedTargetingOptionDetails: Details for assigned language
@@ -9570,9 +9107,9 @@ type LanguageAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LanguageAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s LanguageAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod LanguageAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LanguageTargetingOptionDetails: Represents a targetable language. This will
@@ -9594,9 +9131,9 @@ type LanguageTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LanguageTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s LanguageTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod LanguageTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LineItem: A single line item.
@@ -9612,6 +9149,12 @@ type LineItem struct {
 	// belongs to.
 	CampaignId int64 `json:"campaignId,omitempty,string"`
 	// ConversionCounting: The conversion tracking setting of the line item.
+	// *Warning*: Starting **April 1, 2025**, the floodlight_activity_configs field
+	// will no longer be writable while a custom bidding algorithm is assigned to
+	// the line item. If you set this field and assign a custom bidding algorithm
+	// in the same request, the floodlight activities must match the ones used by
+	// the custom bidding algorithm. Read more about this announced change
+	// (/display-video/api/deprecations#features.custom_bidding_floodlight).
 	ConversionCounting *ConversionCountingConfig `json:"conversionCounting,omitempty"`
 	// CreativeIds: The IDs of the creatives associated with the line item.
 	CreativeIds googleapi.Int64s `json:"creativeIds,omitempty"`
@@ -9821,9 +9364,9 @@ type LineItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LineItem) MarshalJSON() ([]byte, error) {
+func (s LineItem) MarshalJSON() ([]byte, error) {
 	type NoMethod LineItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LineItemAssignedTargetingOption: Wrapper object associating an
@@ -9847,9 +9390,9 @@ type LineItemAssignedTargetingOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LineItemAssignedTargetingOption) MarshalJSON() ([]byte, error) {
+func (s LineItemAssignedTargetingOption) MarshalJSON() ([]byte, error) {
 	type NoMethod LineItemAssignedTargetingOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LineItemBudget: Settings that control how budget is allocated.
@@ -9902,9 +9445,9 @@ type LineItemBudget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LineItemBudget) MarshalJSON() ([]byte, error) {
+func (s LineItemBudget) MarshalJSON() ([]byte, error) {
 	type NoMethod LineItemBudget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LineItemFlight: Settings that control the active duration of a line item.
@@ -9940,9 +9483,9 @@ type LineItemFlight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LineItemFlight) MarshalJSON() ([]byte, error) {
+func (s LineItemFlight) MarshalJSON() ([]byte, error) {
 	type NoMethod LineItemFlight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAdvertiserAssignedTargetingOptionsResponse: Response message for
@@ -9973,9 +9516,9 @@ type ListAdvertiserAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAdvertiserAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAdvertiserAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAdvertiserAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListAdvertisersResponse struct {
@@ -10001,9 +9544,9 @@ type ListAdvertisersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAdvertisersResponse) MarshalJSON() ([]byte, error) {
+func (s ListAdvertisersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAdvertisersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAssignedInventorySourcesResponse: Response message for
@@ -10032,9 +9575,9 @@ type ListAssignedInventorySourcesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAssignedInventorySourcesResponse) MarshalJSON() ([]byte, error) {
+func (s ListAssignedInventorySourcesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAssignedInventorySourcesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAssignedLocationsResponse: Response message for
@@ -10063,42 +9606,9 @@ type ListAssignedLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAssignedLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAssignedLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAssignedLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// ListCampaignAssignedTargetingOptionsResponse: Response message for
-// ListCampaignAssignedTargetingOptions.
-type ListCampaignAssignedTargetingOptionsResponse struct {
-	// AssignedTargetingOptions: The list of assigned targeting options. This list
-	// will be absent if empty.
-	AssignedTargetingOptions []*AssignedTargetingOption `json:"assignedTargetingOptions,omitempty"`
-	// NextPageToken: A token identifying the next page of results. This value
-	// should be specified as the pageToken in a subsequent
-	// ListCampaignAssignedTargetingOptionsRequest to fetch the next page of
-	// results. This token will be absent if there are no more
-	// assigned_targeting_options to return.
-	NextPageToken string `json:"nextPageToken,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "AssignedTargetingOptions")
-	// to unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AssignedTargetingOptions") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *ListCampaignAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod ListCampaignAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListCampaignsResponse struct {
@@ -10124,9 +9634,9 @@ type ListCampaignsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCampaignsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCampaignsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCampaignsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListChannelsResponse struct {
@@ -10152,9 +9662,9 @@ type ListChannelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListChannelsResponse) MarshalJSON() ([]byte, error) {
+func (s ListChannelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListChannelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListCombinedAudiencesResponse struct {
@@ -10181,9 +9691,9 @@ type ListCombinedAudiencesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCombinedAudiencesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCombinedAudiencesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCombinedAudiencesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListCreativesResponse struct {
@@ -10210,9 +9720,9 @@ type ListCreativesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCreativesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCreativesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCreativesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListCustomBiddingAlgorithmsResponse struct {
@@ -10240,9 +9750,9 @@ type ListCustomBiddingAlgorithmsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCustomBiddingAlgorithmsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCustomBiddingAlgorithmsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCustomBiddingAlgorithmsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListCustomBiddingScriptsResponse struct {
@@ -10270,9 +9780,9 @@ type ListCustomBiddingScriptsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCustomBiddingScriptsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCustomBiddingScriptsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCustomBiddingScriptsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListCustomListsResponse struct {
@@ -10298,40 +9808,9 @@ type ListCustomListsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCustomListsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCustomListsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCustomListsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-type ListFirstAndThirdPartyAudiencesResponse struct {
-	// FirstAndThirdPartyAudiences: The list of first and third party audiences.
-	// Audience size properties will not be included. This list will be absent if
-	// empty.
-	FirstAndThirdPartyAudiences []*FirstAndThirdPartyAudience `json:"firstAndThirdPartyAudiences,omitempty"`
-	// NextPageToken: A token to retrieve the next page of results. Pass this value
-	// in the page_token field in the subsequent call to
-	// `ListFirstAndThirdPartyAudiences` method to retrieve the next page of
-	// results.
-	NextPageToken string `json:"nextPageToken,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g.
-	// "FirstAndThirdPartyAudiences") to unconditionally include in API requests.
-	// By default, fields with empty or default values are omitted from API
-	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
-	// for more details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "FirstAndThirdPartyAudiences") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *ListFirstAndThirdPartyAudiencesResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod ListFirstAndThirdPartyAudiencesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListFloodlightActivitiesResponse struct {
@@ -10358,9 +9837,9 @@ type ListFloodlightActivitiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFloodlightActivitiesResponse) MarshalJSON() ([]byte, error) {
+func (s ListFloodlightActivitiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFloodlightActivitiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListGoogleAudiencesResponse struct {
@@ -10387,9 +9866,9 @@ type ListGoogleAudiencesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGoogleAudiencesResponse) MarshalJSON() ([]byte, error) {
+func (s ListGoogleAudiencesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGoogleAudiencesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListGuaranteedOrdersResponse struct {
@@ -10416,40 +9895,9 @@ type ListGuaranteedOrdersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGuaranteedOrdersResponse) MarshalJSON() ([]byte, error) {
+func (s ListGuaranteedOrdersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGuaranteedOrdersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-type ListInsertionOrderAssignedTargetingOptionsResponse struct {
-	// AssignedTargetingOptions: The list of assigned targeting options. This list
-	// will be absent if empty.
-	AssignedTargetingOptions []*AssignedTargetingOption `json:"assignedTargetingOptions,omitempty"`
-	// NextPageToken: A token identifying the next page of results. This value
-	// should be specified as the pageToken in a subsequent
-	// ListInsertionOrderAssignedTargetingOptionsRequest to fetch the next page of
-	// results. This token will be absent if there are no more
-	// assigned_targeting_options to return.
-	NextPageToken string `json:"nextPageToken,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "AssignedTargetingOptions")
-	// to unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AssignedTargetingOptions") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *ListInsertionOrderAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod ListInsertionOrderAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListInsertionOrdersResponse struct {
@@ -10476,9 +9924,9 @@ type ListInsertionOrdersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInsertionOrdersResponse) MarshalJSON() ([]byte, error) {
+func (s ListInsertionOrdersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInsertionOrdersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInventorySourceGroupsResponse: Response message for
@@ -10507,9 +9955,9 @@ type ListInventorySourceGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInventorySourceGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListInventorySourceGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInventorySourceGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListInventorySourcesResponse struct {
@@ -10536,9 +9984,9 @@ type ListInventorySourcesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInventorySourcesResponse) MarshalJSON() ([]byte, error) {
+func (s ListInventorySourcesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInventorySourcesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListInvoicesResponse struct {
@@ -10565,9 +10013,9 @@ type ListInvoicesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInvoicesResponse) MarshalJSON() ([]byte, error) {
+func (s ListInvoicesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInvoicesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLineItemAssignedTargetingOptionsResponse: Response message for
@@ -10598,9 +10046,9 @@ type ListLineItemAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLineItemAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLineItemAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLineItemAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListLineItemsResponse struct {
@@ -10626,9 +10074,9 @@ type ListLineItemsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLineItemsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLineItemsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLineItemsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListLocationListsResponse struct {
@@ -10655,9 +10103,9 @@ type ListLocationListsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationListsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationListsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationListsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListManualTriggersResponse struct {
@@ -10684,9 +10132,9 @@ type ListManualTriggersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListManualTriggersResponse) MarshalJSON() ([]byte, error) {
+func (s ListManualTriggersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListManualTriggersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListNegativeKeywordListsResponse: Response message for
@@ -10715,9 +10163,9 @@ type ListNegativeKeywordListsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListNegativeKeywordListsResponse) MarshalJSON() ([]byte, error) {
+func (s ListNegativeKeywordListsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListNegativeKeywordListsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListNegativeKeywordsResponse: Response message for
@@ -10746,9 +10194,9 @@ type ListNegativeKeywordsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListNegativeKeywordsResponse) MarshalJSON() ([]byte, error) {
+func (s ListNegativeKeywordsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListNegativeKeywordsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListPartnerAssignedTargetingOptionsResponse struct {
@@ -10777,9 +10225,9 @@ type ListPartnerAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPartnerAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPartnerAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPartnerAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListPartnersResponse struct {
@@ -10805,9 +10253,9 @@ type ListPartnersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPartnersResponse) MarshalJSON() ([]byte, error) {
+func (s ListPartnersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPartnersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSitesResponse: Response message for SiteService.ListSites.
@@ -10834,9 +10282,9 @@ type ListSitesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSitesResponse) MarshalJSON() ([]byte, error) {
+func (s ListSitesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSitesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTargetingOptionsResponse: Response message for ListTargetingOptions.
@@ -10864,9 +10312,9 @@ type ListTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListUsersResponse struct {
@@ -10893,9 +10341,9 @@ type ListUsersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUsersResponse) MarshalJSON() ([]byte, error) {
+func (s ListUsersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUsersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListYoutubeAdGroupAdsResponse struct {
@@ -10922,9 +10370,9 @@ type ListYoutubeAdGroupAdsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListYoutubeAdGroupAdsResponse) MarshalJSON() ([]byte, error) {
+func (s ListYoutubeAdGroupAdsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListYoutubeAdGroupAdsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListYoutubeAdGroupAssignedTargetingOptionsResponse: Response message for
@@ -10955,9 +10403,9 @@ type ListYoutubeAdGroupAssignedTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListYoutubeAdGroupAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListYoutubeAdGroupAssignedTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListYoutubeAdGroupAssignedTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListYoutubeAdGroupsResponse struct {
@@ -10983,9 +10431,9 @@ type ListYoutubeAdGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListYoutubeAdGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListYoutubeAdGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListYoutubeAdGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LocationList: A list of locations used for targeting.
@@ -11026,9 +10474,9 @@ type LocationList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LocationList) MarshalJSON() ([]byte, error) {
+func (s LocationList) MarshalJSON() ([]byte, error) {
 	type NoMethod LocationList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookbackWindow: Specifies how many days into the past to look when
@@ -11053,9 +10501,9 @@ type LookbackWindow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookbackWindow) MarshalJSON() ([]byte, error) {
+func (s LookbackWindow) MarshalJSON() ([]byte, error) {
 	type NoMethod LookbackWindow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LookupInvoiceCurrencyResponse struct {
@@ -11077,9 +10525,9 @@ type LookupInvoiceCurrencyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupInvoiceCurrencyResponse) MarshalJSON() ([]byte, error) {
+func (s LookupInvoiceCurrencyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupInvoiceCurrencyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManualTrigger: A single manual trigger in Display & Video 360. **Warning:**
@@ -11130,9 +10578,9 @@ type ManualTrigger struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManualTrigger) MarshalJSON() ([]byte, error) {
+func (s ManualTrigger) MarshalJSON() ([]byte, error) {
 	type NoMethod ManualTrigger
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MastheadAd: Details for a Masthead Ad.
@@ -11183,9 +10631,9 @@ type MastheadAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MastheadAd) MarshalJSON() ([]byte, error) {
+func (s MastheadAd) MarshalJSON() ([]byte, error) {
 	type NoMethod MastheadAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MaximizeSpendBidStrategy: A strategy that automatically adjusts the bid to
@@ -11193,7 +10641,11 @@ func (s *MastheadAd) MarshalJSON() ([]byte, error) {
 type MaximizeSpendBidStrategy struct {
 	// CustomBiddingAlgorithmId: The ID of the Custom Bidding Algorithm used by
 	// this strategy. Only applicable when performance_goal_type is set to
-	// `BIDDING_STRATEGY_PERFORMANCE_GOAL_TYPE_CUSTOM_ALGO`.
+	// `BIDDING_STRATEGY_PERFORMANCE_GOAL_TYPE_CUSTOM_ALGO`. *Warning*: Starting
+	// **April 1, 2025**, assigning a custom bidding algorithm that uses floodlight
+	// activities not identified in floodlightActivityConfigs will return an error.
+	// Read more about this announced change
+	// (/display-video/api/deprecations#features.custom_bidding_floodlight).
 	CustomBiddingAlgorithmId int64 `json:"customBiddingAlgorithmId,omitempty,string"`
 	// MaxAverageCpmBidAmountMicros: The maximum average CPM that may be bid, in
 	// micros of the advertiser's currency. Must be greater than or equal to a
@@ -11234,9 +10686,9 @@ type MaximizeSpendBidStrategy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MaximizeSpendBidStrategy) MarshalJSON() ([]byte, error) {
+func (s MaximizeSpendBidStrategy) MarshalJSON() ([]byte, error) {
 	type NoMethod MaximizeSpendBidStrategy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MeasurementConfig: Measurement settings of a partner.
@@ -11259,9 +10711,9 @@ type MeasurementConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MeasurementConfig) MarshalJSON() ([]byte, error) {
+func (s MeasurementConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod MeasurementConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MobileApp: A mobile app promoted by a mobile app install line item.
@@ -11295,39 +10747,9 @@ type MobileApp struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MobileApp) MarshalJSON() ([]byte, error) {
+func (s MobileApp) MarshalJSON() ([]byte, error) {
 	type NoMethod MobileApp
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// MobileDeviceIdList: Wrapper message for a list of mobile device IDs defining
-// Customer Match audience members.
-type MobileDeviceIdList struct {
-	// Consent: Input only. The consent setting for the users in mobile_device_ids.
-	// Leaving this field unset indicates that consent is not specified. If
-	// ad_user_data or ad_personalization fields are set to
-	// `CONSENT_STATUS_DENIED`, the request will return an error.
-	Consent *Consent `json:"consent,omitempty"`
-	// MobileDeviceIds: A list of mobile device IDs defining Customer Match
-	// audience members. The size of mobile_device_ids mustn't be greater than
-	// 500,000.
-	MobileDeviceIds []string `json:"mobileDeviceIds,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Consent") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Consent") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *MobileDeviceIdList) MarshalJSON() ([]byte, error) {
-	type NoMethod MobileDeviceIdList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Money: Represents an amount of money with its currency type.
@@ -11356,9 +10778,9 @@ type Money struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Money) MarshalJSON() ([]byte, error) {
+func (s Money) MarshalJSON() ([]byte, error) {
 	type NoMethod Money
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NativeContentPositionAssignedTargetingOptionDetails: Details for native
@@ -11401,9 +10823,9 @@ type NativeContentPositionAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NativeContentPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s NativeContentPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod NativeContentPositionAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NativeContentPositionTargetingOptionDetails: Represents a targetable native
@@ -11444,9 +10866,9 @@ type NativeContentPositionTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NativeContentPositionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s NativeContentPositionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod NativeContentPositionTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NegativeKeyword: A negatively targeted keyword that belongs to a negative
@@ -11477,9 +10899,9 @@ type NegativeKeyword struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NegativeKeyword) MarshalJSON() ([]byte, error) {
+func (s NegativeKeyword) MarshalJSON() ([]byte, error) {
 	type NoMethod NegativeKeyword
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NegativeKeywordList: A list of negative keywords used for targeting.
@@ -11514,9 +10936,9 @@ type NegativeKeywordList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NegativeKeywordList) MarshalJSON() ([]byte, error) {
+func (s NegativeKeywordList) MarshalJSON() ([]byte, error) {
 	type NoMethod NegativeKeywordList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NegativeKeywordListAssignedTargetingOptionDetails: Targeting details for
@@ -11541,9 +10963,9 @@ type NegativeKeywordListAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NegativeKeywordListAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s NegativeKeywordListAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod NegativeKeywordListAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NonSkippableAd: Details for a non-skippable ad.
@@ -11566,24 +10988,24 @@ type NonSkippableAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NonSkippableAd) MarshalJSON() ([]byte, error) {
+func (s NonSkippableAd) MarshalJSON() ([]byte, error) {
 	type NoMethod NonSkippableAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObaIcon: OBA Icon for a Creative
 type ObaIcon struct {
 	// ClickTrackingUrl: Required. The click tracking URL of the OBA icon. Only
-	// URLs of the following domains are allowed: * https://info.evidon.com *
-	// https://l.betrad.com
+	// URLs of the following domains are allowed: * `https://info.evidon.com` *
+	// `https://l.betrad.com`
 	ClickTrackingUrl string `json:"clickTrackingUrl,omitempty"`
-	// Dimensions: The dimensions of the OBA icon.
+	// Dimensions: Optional. The dimensions of the OBA icon.
 	Dimensions *Dimensions `json:"dimensions,omitempty"`
 	// LandingPageUrl: Required. The landing page URL of the OBA icon. Only URLs of
-	// the following domains are allowed: * https://info.evidon.com *
-	// https://l.betrad.com
+	// the following domains are allowed: * `https://info.evidon.com` *
+	// `https://l.betrad.com`
 	LandingPageUrl string `json:"landingPageUrl,omitempty"`
-	// Position: The position of the OBA icon on the creative.
+	// Position: Optional. The position of the OBA icon on the creative.
 	//
 	// Possible values:
 	//   "OBA_ICON_POSITION_UNSPECIFIED" - The OBA icon position is not specified.
@@ -11592,15 +11014,16 @@ type ObaIcon struct {
 	//   "OBA_ICON_POSITION_LOWER_RIGHT" - At the lower right side of the creative.
 	//   "OBA_ICON_POSITION_LOWER_LEFT" - At the lower left side of the creative.
 	Position string `json:"position,omitempty"`
-	// Program: The program of the OBA icon. For example: “AdChoices”.
+	// Program: Optional. The program of the OBA icon. For example:
+	// “AdChoices”.
 	Program string `json:"program,omitempty"`
-	// ResourceMimeType: The MIME type of the OBA icon resource.
+	// ResourceMimeType: Optional. The MIME type of the OBA icon resource.
 	ResourceMimeType string `json:"resourceMimeType,omitempty"`
-	// ResourceUrl: The URL of the OBA icon resource.
+	// ResourceUrl: Optional. The URL of the OBA icon resource.
 	ResourceUrl string `json:"resourceUrl,omitempty"`
 	// ViewTrackingUrl: Required. The view tracking URL of the OBA icon. Only URLs
-	// of the following domains are allowed: * https://info.evidon.com *
-	// https://l.betrad.com
+	// of the following domains are allowed: * `https://info.evidon.com` *
+	// `https://l.betrad.com`
 	ViewTrackingUrl string `json:"viewTrackingUrl,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ClickTrackingUrl") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -11615,9 +11038,9 @@ type ObaIcon struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObaIcon) MarshalJSON() ([]byte, error) {
+func (s ObaIcon) MarshalJSON() ([]byte, error) {
 	type NoMethod ObaIcon
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OmidAssignedTargetingOptionDetails: Represents a targetable Open Measurement
@@ -11645,9 +11068,9 @@ type OmidAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OmidAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s OmidAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod OmidAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OmidTargetingOptionDetails: Represents a targetable Open Measurement enabled
@@ -11675,9 +11098,9 @@ type OmidTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OmidTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s OmidTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod OmidTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OnScreenPositionAssignedTargetingOptionDetails: On screen position targeting
@@ -11727,9 +11150,9 @@ type OnScreenPositionAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OnScreenPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s OnScreenPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod OnScreenPositionAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OnScreenPositionTargetingOptionDetails: Represents a targetable on screen
@@ -11760,9 +11183,9 @@ type OnScreenPositionTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OnScreenPositionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s OnScreenPositionTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod OnScreenPositionTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperatingSystemAssignedTargetingOptionDetails: Assigned operating system
@@ -11791,9 +11214,9 @@ type OperatingSystemAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperatingSystemAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s OperatingSystemAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod OperatingSystemAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperatingSystemTargetingOptionDetails: Represents a targetable operating
@@ -11815,9 +11238,9 @@ type OperatingSystemTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperatingSystemTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s OperatingSystemTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod OperatingSystemTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -11862,9 +11285,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Pacing: Settings that control the rate at which a budget is spent.
@@ -11896,7 +11319,8 @@ type Pacing struct {
 	// flight duration.
 	PacingPeriod string `json:"pacingPeriod,omitempty"`
 	// PacingType: Required. The type of pacing that defines how the budget amount
-	// will be spent across the pacing_period.
+	// will be spent across the pacing_period. `PACING_TYPE_ASAP` is not compatible
+	// with pacing_period `PACING_PERIOD_FLIGHT` for insertion orders.
 	//
 	// Possible values:
 	//   "PACING_TYPE_UNSPECIFIED" - Pacing mode value is not specified or is
@@ -11922,9 +11346,9 @@ type Pacing struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Pacing) MarshalJSON() ([]byte, error) {
+func (s Pacing) MarshalJSON() ([]byte, error) {
 	type NoMethod Pacing
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParentEntityFilter: A filtering option that filters on selected file types
@@ -11968,11 +11392,13 @@ type ParentEntityFilter struct {
 	// filter IDs must be Insertion Order IDs that belong to the Advertiser or
 	// Partner specified in CreateSdfDownloadTaskRequest. Can only be used for
 	// downloading `FILE_TYPE_INSERTION_ORDER`, `FILE_TYPE_LINE_ITEM`,
-	// `FILE_TYPE_AD_GROUP`, and `FILE_TYPE_AD`.
+	// `FILE_TYPE_LINE_ITEM_QA`, `FILE_TYPE_AD_GROUP`, `FILE_TYPE_AD_GROUP_QA`, and
+	// `FILE_TYPE_AD`.
 	//   "FILTER_TYPE_LINE_ITEM_ID" - Line Item ID. If selected, all filter IDs
 	// must be Line Item IDs that belong to the Advertiser or Partner specified in
 	// CreateSdfDownloadTaskRequest. Can only be used for downloading
-	// `FILE_TYPE_LINE_ITEM`, `FILE_TYPE_AD_GROUP`, and `FILE_TYPE_AD`.
+	// `FILE_TYPE_LINE_ITEM`, `FILE_TYPE_LINE_ITEM_QA`,`FILE_TYPE_AD_GROUP`,
+	// `FILE_TYPE_AD_GROUP_QA`, and `FILE_TYPE_AD`.
 	FilterType string `json:"filterType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "FileType") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -11987,9 +11413,9 @@ type ParentEntityFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParentEntityFilter) MarshalJSON() ([]byte, error) {
+func (s ParentEntityFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod ParentEntityFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParentalStatusAssignedTargetingOptionDetails: Details for assigned parental
@@ -12021,9 +11447,9 @@ type ParentalStatusAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParentalStatusAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ParentalStatusAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ParentalStatusAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParentalStatusTargetingOptionDetails: Represents a targetable parental
@@ -12054,9 +11480,9 @@ type ParentalStatusTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParentalStatusTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ParentalStatusTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ParentalStatusTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Partner: A single partner in Display & Video 360 (DV360).
@@ -12113,9 +11539,9 @@ type Partner struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Partner) MarshalJSON() ([]byte, error) {
+func (s Partner) MarshalJSON() ([]byte, error) {
 	type NoMethod Partner
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartnerAdServerConfig: Ad server related settings of a partner.
@@ -12135,9 +11561,9 @@ type PartnerAdServerConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartnerAdServerConfig) MarshalJSON() ([]byte, error) {
+func (s PartnerAdServerConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PartnerAdServerConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartnerCost: Settings that control a partner cost. A partner cost is any
@@ -12264,9 +11690,9 @@ type PartnerCost struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartnerCost) MarshalJSON() ([]byte, error) {
+func (s PartnerCost) MarshalJSON() ([]byte, error) {
 	type NoMethod PartnerCost
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartnerDataAccessConfig: Settings that control how partner related data may
@@ -12288,9 +11714,9 @@ type PartnerDataAccessConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartnerDataAccessConfig) MarshalJSON() ([]byte, error) {
+func (s PartnerDataAccessConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PartnerDataAccessConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartnerGeneralConfig: General settings of a partner.
@@ -12314,9 +11740,9 @@ type PartnerGeneralConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartnerGeneralConfig) MarshalJSON() ([]byte, error) {
+func (s PartnerGeneralConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PartnerGeneralConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartnerRevenueModel: Settings that control how partner revenue is
@@ -12360,9 +11786,9 @@ type PartnerRevenueModel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartnerRevenueModel) MarshalJSON() ([]byte, error) {
+func (s PartnerRevenueModel) MarshalJSON() ([]byte, error) {
 	type NoMethod PartnerRevenueModel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerformanceGoal: Settings that control the performance goal of a campaign.
@@ -12406,6 +11832,8 @@ type PerformanceGoal struct {
 	// (cost per impression audible and visible at completion).
 	//   "PERFORMANCE_GOAL_TYPE_CPE" - The performance goal is set in CPE (cost per
 	// engagement).
+	//   "PERFORMANCE_GOAL_TYPE_CPV" - The performance goal is set in CPV (cost per
+	// view).
 	//   "PERFORMANCE_GOAL_TYPE_CLICK_CVR" - The performance goal is set in click
 	// conversion rate (conversions per click) percentage.
 	//   "PERFORMANCE_GOAL_TYPE_IMPRESSION_CVR" - The performance goal is set in
@@ -12435,9 +11863,9 @@ type PerformanceGoal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerformanceGoal) MarshalJSON() ([]byte, error) {
+func (s PerformanceGoal) MarshalJSON() ([]byte, error) {
 	type NoMethod PerformanceGoal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerformanceGoalBidStrategy: A strategy that automatically adjusts the bid to
@@ -12445,7 +11873,11 @@ func (s *PerformanceGoal) MarshalJSON() ([]byte, error) {
 type PerformanceGoalBidStrategy struct {
 	// CustomBiddingAlgorithmId: The ID of the Custom Bidding Algorithm used by
 	// this strategy. Only applicable when performance_goal_type is set to
-	// `BIDDING_STRATEGY_PERFORMANCE_GOAL_TYPE_CUSTOM_ALGO`.
+	// `BIDDING_STRATEGY_PERFORMANCE_GOAL_TYPE_CUSTOM_ALGO`. *Warning*: Starting
+	// **April 1, 2025**, assigning a custom bidding algorithm that uses floodlight
+	// activities not identified in floodlightActivityConfigs will return an error.
+	// Read more about this announced change
+	// (/display-video/api/deprecations#features.custom_bidding_floodlight).
 	CustomBiddingAlgorithmId int64 `json:"customBiddingAlgorithmId,omitempty,string"`
 	// MaxAverageCpmBidAmountMicros: The maximum average CPM that may be bid, in
 	// micros of the advertiser's currency. Must be greater than or equal to a
@@ -12508,9 +11940,9 @@ type PerformanceGoalBidStrategy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerformanceGoalBidStrategy) MarshalJSON() ([]byte, error) {
+func (s PerformanceGoalBidStrategy) MarshalJSON() ([]byte, error) {
 	type NoMethod PerformanceGoalBidStrategy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PoiAssignedTargetingOptionDetails: Details for assigned POI targeting
@@ -12563,9 +11995,9 @@ type PoiAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PoiAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s PoiAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod PoiAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *PoiAssignedTargetingOptionDetails) UnmarshalJSON(data []byte) error {
@@ -12605,9 +12037,9 @@ type PoiSearchTerms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PoiSearchTerms) MarshalJSON() ([]byte, error) {
+func (s PoiSearchTerms) MarshalJSON() ([]byte, error) {
 	type NoMethod PoiSearchTerms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PoiTargetingOptionDetails: Represents a targetable point of interest(POI).
@@ -12634,9 +12066,9 @@ type PoiTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PoiTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s PoiTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod PoiTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *PoiTargetingOptionDetails) UnmarshalJSON(data []byte) error {
@@ -12687,9 +12119,9 @@ type PrismaConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrismaConfig) MarshalJSON() ([]byte, error) {
+func (s PrismaConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PrismaConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrismaCpeCode: Google Payments Center supports searching and filtering on
@@ -12714,9 +12146,9 @@ type PrismaCpeCode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrismaCpeCode) MarshalJSON() ([]byte, error) {
+func (s PrismaCpeCode) MarshalJSON() ([]byte, error) {
 	type NoMethod PrismaCpeCode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProductFeedData: The details of product feed.
@@ -12746,9 +12178,9 @@ type ProductFeedData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProductFeedData) MarshalJSON() ([]byte, error) {
+func (s ProductFeedData) MarshalJSON() ([]byte, error) {
 	type NoMethod ProductFeedData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProductMatchDimension: A dimension used to match products.
@@ -12771,9 +12203,9 @@ type ProductMatchDimension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProductMatchDimension) MarshalJSON() ([]byte, error) {
+func (s ProductMatchDimension) MarshalJSON() ([]byte, error) {
 	type NoMethod ProductMatchDimension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProximityLocationListAssignedTargetingOptionDetails: Targeting details for
@@ -12812,9 +12244,9 @@ type ProximityLocationListAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProximityLocationListAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ProximityLocationListAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ProximityLocationListAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ProximityLocationListAssignedTargetingOptionDetails) UnmarshalJSON(data []byte) error {
@@ -12857,9 +12289,9 @@ type PublisherReviewStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublisherReviewStatus) MarshalJSON() ([]byte, error) {
+func (s PublisherReviewStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod PublisherReviewStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RateDetails: The rate related settings of the inventory source.
@@ -12899,9 +12331,9 @@ type RateDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RateDetails) MarshalJSON() ([]byte, error) {
+func (s RateDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod RateDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RegionalLocationListAssignedTargetingOptionDetails: Targeting details for
@@ -12928,9 +12360,9 @@ type RegionalLocationListAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegionalLocationListAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s RegionalLocationListAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod RegionalLocationListAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemarketingConfig: Settings that control the whether remarketing is enabled
@@ -12954,9 +12386,9 @@ type RemarketingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemarketingConfig) MarshalJSON() ([]byte, error) {
+func (s RemarketingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RemarketingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceNegativeKeywordsRequest: Request message for
@@ -12979,9 +12411,9 @@ type ReplaceNegativeKeywordsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplaceNegativeKeywordsRequest) MarshalJSON() ([]byte, error) {
+func (s ReplaceNegativeKeywordsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplaceNegativeKeywordsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceNegativeKeywordsResponse: Response message for
@@ -13006,9 +12438,9 @@ type ReplaceNegativeKeywordsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplaceNegativeKeywordsResponse) MarshalJSON() ([]byte, error) {
+func (s ReplaceNegativeKeywordsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplaceNegativeKeywordsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceSitesRequest: Request message for SiteService.ReplaceSites.
@@ -13033,9 +12465,9 @@ type ReplaceSitesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplaceSitesRequest) MarshalJSON() ([]byte, error) {
+func (s ReplaceSitesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplaceSitesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceSitesResponse: Response message for SiteService.ReplaceSites.
@@ -13058,9 +12490,9 @@ type ReplaceSitesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplaceSitesResponse) MarshalJSON() ([]byte, error) {
+func (s ReplaceSitesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplaceSitesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReviewStatusInfo: Review statuses for the creative.
@@ -13105,10 +12537,6 @@ type ReviewStatusInfo struct {
 	// ExchangeReviewStatuses: Exchange review statuses for the creative.
 	ExchangeReviewStatuses []*ExchangeReviewStatus `json:"exchangeReviewStatuses,omitempty"`
 	// PublisherReviewStatuses: Publisher review statuses for the creative.
-	// **Warning:** This field will be deprecated on June 26th, 2024. After this
-	// date, this field will be empty. Read our feature deprecation announcement
-	// (/display-video/api/deprecations#features.creative_publisher_review_statuses)
-	//  for more information.
 	PublisherReviewStatuses []*PublisherReviewStatus `json:"publisherReviewStatuses,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ApprovalStatus") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -13123,9 +12551,9 @@ type ReviewStatusInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReviewStatusInfo) MarshalJSON() ([]byte, error) {
+func (s ReviewStatusInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ReviewStatusInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScriptError: An error message for a custom bidding script.
@@ -13159,9 +12587,9 @@ type ScriptError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScriptError) MarshalJSON() ([]byte, error) {
+func (s ScriptError) MarshalJSON() ([]byte, error) {
 	type NoMethod ScriptError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SdfConfig: Structured Data File (SDF) related settings.
@@ -13191,6 +12619,9 @@ type SdfConfig struct {
 	//   "SDF_VERSION_7_1" - SDF version 7.1. Read the [v7 migration
 	// guide](/display-video/api/structured-data-file/v7-migration-guide) before
 	// migrating to this version.
+	//   "SDF_VERSION_8" - SDF version 8. Read the [v8 migration
+	// guide](/display-video/api/structured-data-file/v8-migration-guide) before
+	// migrating to this version.
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AdminEmail") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -13205,9 +12636,9 @@ type SdfConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SdfConfig) MarshalJSON() ([]byte, error) {
+func (s SdfConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SdfConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SdfDownloadTask: Type for the response returned by
@@ -13232,9 +12663,9 @@ type SdfDownloadTask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SdfDownloadTask) MarshalJSON() ([]byte, error) {
+func (s SdfDownloadTask) MarshalJSON() ([]byte, error) {
 	type NoMethod SdfDownloadTask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SdfDownloadTaskMetadata: Type for the metadata returned by
@@ -13266,6 +12697,9 @@ type SdfDownloadTaskMetadata struct {
 	//   "SDF_VERSION_7_1" - SDF version 7.1. Read the [v7 migration
 	// guide](/display-video/api/structured-data-file/v7-migration-guide) before
 	// migrating to this version.
+	//   "SDF_VERSION_8" - SDF version 8. Read the [v8 migration
+	// guide](/display-video/api/structured-data-file/v8-migration-guide) before
+	// migrating to this version.
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CreateTime") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -13280,9 +12714,9 @@ type SdfDownloadTaskMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SdfDownloadTaskMetadata) MarshalJSON() ([]byte, error) {
+func (s SdfDownloadTaskMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod SdfDownloadTaskMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchTargetingOptionsRequest: Request message for SearchTargetingOptions.
@@ -13321,9 +12755,9 @@ type SearchTargetingOptionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
+func (s SearchTargetingOptionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchTargetingOptionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchTargetingOptionsResponse: Response message for SearchTargetingOptions.
@@ -13351,9 +12785,9 @@ type SearchTargetingOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchTargetingOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchTargetingOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SensitiveCategoryAssignedTargetingOptionDetails: Targeting details for
@@ -13414,9 +12848,9 @@ type SensitiveCategoryAssignedTargetingOptionDetails struct {
 	//   "SENSITIVE_CATEGORY_SHOCKING" - Content which may be considered shocking
 	// or disturbing, such as violent news stories, stunts, or toilet humor.
 	//   "SENSITIVE_CATEGORY_EMBEDDED_VIDEO" - YouTube videos embedded on websites
-	// outside of YouTube.com. Only applicable to YouTube and Partners line items.
+	// outside of YouTube.com.
 	//   "SENSITIVE_CATEGORY_LIVE_STREAMING_VIDEO" - Video of live events streamed
-	// over the internet. Only applicable to YouTube and Partners line items.
+	// over the internet.
 	ExcludedSensitiveCategory string `json:"excludedSensitiveCategory,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExcludedSensitiveCategory")
 	// to unconditionally include in API requests. By default, fields with empty or
@@ -13431,9 +12865,9 @@ type SensitiveCategoryAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SensitiveCategoryAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s SensitiveCategoryAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod SensitiveCategoryAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SensitiveCategoryTargetingOptionDetails: Represents a targetable sensitive
@@ -13494,9 +12928,9 @@ type SensitiveCategoryTargetingOptionDetails struct {
 	//   "SENSITIVE_CATEGORY_SHOCKING" - Content which may be considered shocking
 	// or disturbing, such as violent news stories, stunts, or toilet humor.
 	//   "SENSITIVE_CATEGORY_EMBEDDED_VIDEO" - YouTube videos embedded on websites
-	// outside of YouTube.com. Only applicable to YouTube and Partners line items.
+	// outside of YouTube.com.
 	//   "SENSITIVE_CATEGORY_LIVE_STREAMING_VIDEO" - Video of live events streamed
-	// over the internet. Only applicable to YouTube and Partners line items.
+	// over the internet.
 	SensitiveCategory string `json:"sensitiveCategory,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "SensitiveCategory") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -13511,9 +12945,9 @@ type SensitiveCategoryTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SensitiveCategoryTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s SensitiveCategoryTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod SensitiveCategoryTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SessionPositionAssignedTargetingOptionDetails: Details for session position
@@ -13541,9 +12975,9 @@ type SessionPositionAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SessionPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s SessionPositionAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod SessionPositionAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Site: A single site. Sites are apps or websites belonging to a channel.
@@ -13569,9 +13003,9 @@ type Site struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Site) MarshalJSON() ([]byte, error) {
+func (s Site) MarshalJSON() ([]byte, error) {
 	type NoMethod Site
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -13603,9 +13037,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubExchangeAssignedTargetingOptionDetails: Details for assigned sub-exchange
@@ -13629,9 +13063,9 @@ type SubExchangeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubExchangeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s SubExchangeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod SubExchangeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubExchangeTargetingOptionDetails: Represents a targetable sub-exchange.
@@ -13653,9 +13087,9 @@ type SubExchangeTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubExchangeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s SubExchangeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod SubExchangeTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetFrequency: Setting that controls the average number of times the ads
@@ -13700,9 +13134,9 @@ type TargetFrequency struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetFrequency) MarshalJSON() ([]byte, error) {
+func (s TargetFrequency) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetFrequency
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetingExpansionConfig: Settings that control the optimized targeting
@@ -13751,9 +13185,9 @@ type TargetingExpansionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetingExpansionConfig) MarshalJSON() ([]byte, error) {
+func (s TargetingExpansionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetingExpansionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetingOption: Represents a single targeting option, which is a targetable
@@ -13956,9 +13390,9 @@ type TargetingOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetingOption) MarshalJSON() ([]byte, error) {
+func (s TargetingOption) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetingOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ThirdPartyOnlyConfig: Settings for advertisers that use third-party ad
@@ -13980,15 +13414,16 @@ type ThirdPartyOnlyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ThirdPartyOnlyConfig) MarshalJSON() ([]byte, error) {
+func (s ThirdPartyOnlyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ThirdPartyOnlyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ThirdPartyUrl: Tracking URLs from third parties to track interactions with
 // an audio or a video creative.
 type ThirdPartyUrl struct {
-	// Type: The type of interaction needs to be tracked by the tracking URL
+	// Type: Optional. The type of interaction needs to be tracked by the tracking
+	// URL
 	//
 	// Possible values:
 	//   "THIRD_PARTY_URL_TYPE_UNSPECIFIED" - The type of third-party URL is
@@ -14025,9 +13460,9 @@ type ThirdPartyUrl struct {
 	// times the audio or video plays to an offset determined by the
 	// progress_offset.
 	Type string `json:"type,omitempty"`
-	// Url: Tracking URL used to track the interaction. Provide a URL with optional
-	// path or query string, beginning with `https:`. For example,
-	// https://www.example.com/path
+	// Url: Optional. Tracking URL used to track the interaction. Provide a URL
+	// with optional path or query string, beginning with `https:`. For example,
+	// `https://www.example.com/path`
 	Url string `json:"url,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Type") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -14042,9 +13477,9 @@ type ThirdPartyUrl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ThirdPartyUrl) MarshalJSON() ([]byte, error) {
+func (s ThirdPartyUrl) MarshalJSON() ([]byte, error) {
 	type NoMethod ThirdPartyUrl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ThirdPartyVendorConfig: Settings that control how third-party measurement
@@ -14081,9 +13516,9 @@ type ThirdPartyVendorConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ThirdPartyVendorConfig) MarshalJSON() ([]byte, error) {
+func (s ThirdPartyVendorConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ThirdPartyVendorConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ThirdPartyVerifierAssignedTargetingOptionDetails: Assigned third party
@@ -14110,9 +13545,9 @@ type ThirdPartyVerifierAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ThirdPartyVerifierAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ThirdPartyVerifierAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ThirdPartyVerifierAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeRange: A time range.
@@ -14134,9 +13569,9 @@ type TimeRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeRange) MarshalJSON() ([]byte, error) {
+func (s TimeRange) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimerEvent: Timer event of the creative.
@@ -14159,9 +13594,9 @@ type TimerEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimerEvent) MarshalJSON() ([]byte, error) {
+func (s TimerEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod TimerEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TrackingFloodlightActivityConfig: Settings that control the behavior of a
@@ -14190,33 +13625,35 @@ type TrackingFloodlightActivityConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TrackingFloodlightActivityConfig) MarshalJSON() ([]byte, error) {
+func (s TrackingFloodlightActivityConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TrackingFloodlightActivityConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Transcode: Represents information about the transcoded audio or video file.
 type Transcode struct {
-	// AudioBitRateKbps: The bit rate for the audio stream of the transcoded video,
-	// or the bit rate for the transcoded audio, in kilobits per second.
+	// AudioBitRateKbps: Optional. The bit rate for the audio stream of the
+	// transcoded video, or the bit rate for the transcoded audio, in kilobits per
+	// second.
 	AudioBitRateKbps int64 `json:"audioBitRateKbps,omitempty,string"`
-	// AudioSampleRateHz: The sample rate for the audio stream of the transcoded
-	// video, or the sample rate for the transcoded audio, in hertz.
+	// AudioSampleRateHz: Optional. The sample rate for the audio stream of the
+	// transcoded video, or the sample rate for the transcoded audio, in hertz.
 	AudioSampleRateHz int64 `json:"audioSampleRateHz,omitempty,string"`
-	// BitRateKbps: The transcoding bit rate of the transcoded video, in kilobits
-	// per second.
+	// BitRateKbps: Optional. The transcoding bit rate of the transcoded video, in
+	// kilobits per second.
 	BitRateKbps int64 `json:"bitRateKbps,omitempty,string"`
-	// Dimensions: The dimensions of the transcoded video.
+	// Dimensions: Optional. The dimensions of the transcoded video.
 	Dimensions *Dimensions `json:"dimensions,omitempty"`
-	// FileSizeBytes: The size of the transcoded file, in bytes.
+	// FileSizeBytes: Optional. The size of the transcoded file, in bytes.
 	FileSizeBytes int64 `json:"fileSizeBytes,omitempty,string"`
-	// FrameRate: The frame rate of the transcoded video, in frames per second.
+	// FrameRate: Optional. The frame rate of the transcoded video, in frames per
+	// second.
 	FrameRate float64 `json:"frameRate,omitempty"`
-	// MimeType: The MIME type of the transcoded file.
+	// MimeType: Optional. The MIME type of the transcoded file.
 	MimeType string `json:"mimeType,omitempty"`
-	// Name: The name of the transcoded file.
+	// Name: Optional. The name of the transcoded file.
 	Name string `json:"name,omitempty"`
-	// Transcoded: Indicates if the transcoding was successful.
+	// Transcoded: Optional. Indicates if the transcoding was successful.
 	Transcoded bool `json:"transcoded,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AudioBitRateKbps") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -14231,9 +13668,9 @@ type Transcode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Transcode) MarshalJSON() ([]byte, error) {
+func (s Transcode) MarshalJSON() ([]byte, error) {
 	type NoMethod Transcode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Transcode) UnmarshalJSON(data []byte) error {
@@ -14253,9 +13690,9 @@ func (s *Transcode) UnmarshalJSON(data []byte) error {
 // UniversalAdId: A creative identifier provided by a registry that is unique
 // across all platforms. This is part of the VAST 4.0 standard.
 type UniversalAdId struct {
-	// Id: The unique creative identifier.
+	// Id: Optional. The unique creative identifier.
 	Id string `json:"id,omitempty"`
-	// Registry: The registry provides unique creative identifiers.
+	// Registry: Optional. The registry provides unique creative identifiers.
 	//
 	// Possible values:
 	//   "UNIVERSAL_AD_REGISTRY_UNSPECIFIED" - The Universal Ad registry is
@@ -14283,9 +13720,9 @@ type UniversalAdId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UniversalAdId) MarshalJSON() ([]byte, error) {
+func (s UniversalAdId) MarshalJSON() ([]byte, error) {
 	type NoMethod UniversalAdId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UrlAssignedTargetingOptionDetails: Details for assigned URL targeting
@@ -14312,9 +13749,9 @@ type UrlAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UrlAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s UrlAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod UrlAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // User: A single user in Display & Video 360.
@@ -14350,9 +13787,9 @@ type User struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *User) MarshalJSON() ([]byte, error) {
+func (s User) MarshalJSON() ([]byte, error) {
 	type NoMethod User
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserRewardedContentAssignedTargetingOptionDetails: User rewarded content
@@ -14387,9 +13824,9 @@ type UserRewardedContentAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserRewardedContentAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s UserRewardedContentAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod UserRewardedContentAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserRewardedContentTargetingOptionDetails: Represents a targetable user
@@ -14421,9 +13858,9 @@ type UserRewardedContentTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserRewardedContentTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s UserRewardedContentTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod UserRewardedContentTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoAdSequenceSettings: Settings related to VideoAdSequence.
@@ -14451,9 +13888,9 @@ type VideoAdSequenceSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoAdSequenceSettings) MarshalJSON() ([]byte, error) {
+func (s VideoAdSequenceSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoAdSequenceSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoAdSequenceStep: The detail of a single step in a VideoAdSequence.
@@ -14490,9 +13927,9 @@ type VideoAdSequenceStep struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoAdSequenceStep) MarshalJSON() ([]byte, error) {
+func (s VideoAdSequenceStep) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoAdSequenceStep
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoDiscoveryAd: Details for a video discovery ad.
@@ -14528,9 +13965,9 @@ type VideoDiscoveryAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoDiscoveryAd) MarshalJSON() ([]byte, error) {
+func (s VideoDiscoveryAd) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoDiscoveryAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoPerformanceAd: Details for a video performance ad.
@@ -14576,9 +14013,9 @@ type VideoPerformanceAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoPerformanceAd) MarshalJSON() ([]byte, error) {
+func (s VideoPerformanceAd) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoPerformanceAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoPlayerSizeAssignedTargetingOptionDetails: Video player size targeting
@@ -14616,9 +14053,9 @@ type VideoPlayerSizeAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoPlayerSizeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s VideoPlayerSizeAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoPlayerSizeAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoPlayerSizeTargetingOptionDetails: Represents a targetable video player
@@ -14654,9 +14091,9 @@ type VideoPlayerSizeTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoPlayerSizeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s VideoPlayerSizeTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoPlayerSizeTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ViewabilityAssignedTargetingOptionDetails: Assigned viewability targeting
@@ -14702,9 +14139,9 @@ type ViewabilityAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ViewabilityAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ViewabilityAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ViewabilityAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ViewabilityTargetingOptionDetails: Represents a targetable viewability. This
@@ -14749,9 +14186,9 @@ type ViewabilityTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ViewabilityTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s ViewabilityTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ViewabilityTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeAdGroup: A single YouTube ad group associated with a YouTube and
@@ -14835,9 +14272,9 @@ type YoutubeAdGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeAdGroup) MarshalJSON() ([]byte, error) {
+func (s YoutubeAdGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeAdGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeAdGroupAd: A single ad associated with a YouTube ad group.
@@ -14917,9 +14354,9 @@ type YoutubeAdGroupAd struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeAdGroupAd) MarshalJSON() ([]byte, error) {
+func (s YoutubeAdGroupAd) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeAdGroupAd
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeAdGroupAssignedTargetingOption: Wrapper object associating an
@@ -14943,9 +14380,9 @@ type YoutubeAdGroupAssignedTargetingOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeAdGroupAssignedTargetingOption) MarshalJSON() ([]byte, error) {
+func (s YoutubeAdGroupAssignedTargetingOption) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeAdGroupAssignedTargetingOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeAndPartnersBiddingStrategy: Settings that control the bid strategy
@@ -15022,9 +14459,9 @@ type YoutubeAndPartnersBiddingStrategy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeAndPartnersBiddingStrategy) MarshalJSON() ([]byte, error) {
+func (s YoutubeAndPartnersBiddingStrategy) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeAndPartnersBiddingStrategy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeAndPartnersInventorySourceConfig: Settings that control what YouTube
@@ -15056,9 +14493,9 @@ type YoutubeAndPartnersInventorySourceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeAndPartnersInventorySourceConfig) MarshalJSON() ([]byte, error) {
+func (s YoutubeAndPartnersInventorySourceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeAndPartnersInventorySourceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeAndPartnersSettings: Settings for YouTube and Partners line items.
@@ -15138,9 +14575,9 @@ type YoutubeAndPartnersSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeAndPartnersSettings) MarshalJSON() ([]byte, error) {
+func (s YoutubeAndPartnersSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeAndPartnersSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeAndPartnersThirdPartyMeasurementSettings: Settings that control what
@@ -15178,9 +14615,9 @@ type YoutubeAndPartnersThirdPartyMeasurementSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeAndPartnersThirdPartyMeasurementSettings) MarshalJSON() ([]byte, error) {
+func (s YoutubeAndPartnersThirdPartyMeasurementSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeAndPartnersThirdPartyMeasurementSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeChannelAssignedTargetingOptionDetails: Details for YouTube channel
@@ -15206,9 +14643,9 @@ type YoutubeChannelAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeChannelAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s YoutubeChannelAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeChannelAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeVideoAssignedTargetingOptionDetails: Details for YouTube video
@@ -15233,9 +14670,9 @@ type YoutubeVideoAssignedTargetingOptionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeVideoAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
+func (s YoutubeVideoAssignedTargetingOptionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeVideoAssignedTargetingOptionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YoutubeVideoDetails: Details of a YouTube video.
@@ -15262,9 +14699,9 @@ type YoutubeVideoDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YoutubeVideoDetails) MarshalJSON() ([]byte, error) {
+func (s YoutubeVideoDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod YoutubeVideoDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AdvertisersAuditCall struct {
@@ -15334,12 +14771,11 @@ func (c *AdvertisersAuditCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}:audit")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15347,6 +14783,7 @@ func (c *AdvertisersAuditCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.audit", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15382,9 +14819,11 @@ func (c *AdvertisersAuditCall) Do(opts ...googleapi.CallOption) (*AuditAdvertise
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.audit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15432,8 +14871,7 @@ func (c *AdvertisersCreateCall) Header() http.Header {
 
 func (c *AdvertisersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advertiser)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.advertiser)
 	if err != nil {
 		return nil, err
 	}
@@ -15446,6 +14884,7 @@ func (c *AdvertisersCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15480,9 +14919,11 @@ func (c *AdvertisersCreateCall) Do(opts ...googleapi.CallOption) (*Advertiser, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15530,12 +14971,11 @@ func (c *AdvertisersDeleteCall) Header() http.Header {
 
 func (c *AdvertisersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15543,6 +14983,7 @@ func (c *AdvertisersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15577,9 +15018,11 @@ func (c *AdvertisersDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15632,8 +15075,7 @@ func (c *AdvertisersEditAssignedTargetingOptionsCall) Header() http.Header {
 
 func (c *AdvertisersEditAssignedTargetingOptionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditadvertiserassignedtargetingoptionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditadvertiserassignedtargetingoptionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15649,6 +15091,7 @@ func (c *AdvertisersEditAssignedTargetingOptionsCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.editAssignedTargetingOptions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15684,9 +15127,11 @@ func (c *AdvertisersEditAssignedTargetingOptionsCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.editAssignedTargetingOptions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15744,12 +15189,11 @@ func (c *AdvertisersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15757,6 +15201,7 @@ func (c *AdvertisersGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15791,9 +15236,11 @@ func (c *AdvertisersGetCall) Do(opts ...googleapi.CallOption) (*Advertiser, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15904,16 +15351,16 @@ func (c *AdvertisersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15949,9 +15396,11 @@ func (c *AdvertisersListCall) Do(opts ...googleapi.CallOption) (*ListAdvertisers
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16074,12 +15523,11 @@ func (c *AdvertisersListAssignedTargetingOptionsCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}:listAssignedTargetingOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16087,6 +15535,7 @@ func (c *AdvertisersListAssignedTargetingOptionsCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.listAssignedTargetingOptions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16122,9 +15571,11 @@ func (c *AdvertisersListAssignedTargetingOptionsCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.listAssignedTargetingOptions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16202,8 +15653,7 @@ func (c *AdvertisersPatchCall) Header() http.Header {
 
 func (c *AdvertisersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.advertiser)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.advertiser)
 	if err != nil {
 		return nil, err
 	}
@@ -16219,6 +15669,7 @@ func (c *AdvertisersPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16253,9 +15704,11 @@ func (c *AdvertisersPatchCall) Do(opts ...googleapi.CallOption) (*Advertiser, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16348,8 +15801,7 @@ func (c *AdvertisersAssetsUploadCall) Header() http.Header {
 
 func (c *AdvertisersAssetsUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createassetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createassetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16360,14 +15812,10 @@ func (c *AdvertisersAssetsUploadCall) doRequest(alt string) (*http.Response, err
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v2/advertisers/{+advertiserId}/assets")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -16376,6 +15824,7 @@ func (c *AdvertisersAssetsUploadCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.assets.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16428,9 +15877,11 @@ func (c *AdvertisersAssetsUploadCall) Do(opts ...googleapi.CallOption) (*CreateA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.assets.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16480,8 +15931,7 @@ func (c *AdvertisersCampaignsCreateCall) Header() http.Header {
 
 func (c *AdvertisersCampaignsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.campaign)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.campaign)
 	if err != nil {
 		return nil, err
 	}
@@ -16497,6 +15947,7 @@ func (c *AdvertisersCampaignsCreateCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16531,9 +15982,11 @@ func (c *AdvertisersCampaignsCreateCall) Do(opts ...googleapi.CallOption) (*Camp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16587,12 +16040,11 @@ func (c *AdvertisersCampaignsDeleteCall) Header() http.Header {
 
 func (c *AdvertisersCampaignsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/campaigns/{+campaignId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16601,6 +16053,7 @@ func (c *AdvertisersCampaignsDeleteCall) doRequest(alt string) (*http.Response, 
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"campaignId":   strconv.FormatInt(c.campaignId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16635,9 +16088,11 @@ func (c *AdvertisersCampaignsDeleteCall) Do(opts ...googleapi.CallOption) (*Empt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16698,12 +16153,11 @@ func (c *AdvertisersCampaignsGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/campaigns/{+campaignId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16712,6 +16166,7 @@ func (c *AdvertisersCampaignsGetCall) doRequest(alt string) (*http.Response, err
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"campaignId":   strconv.FormatInt(c.campaignId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16746,9 +16201,11 @@ func (c *AdvertisersCampaignsGetCall) Do(opts ...googleapi.CallOption) (*Campaig
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16857,12 +16314,11 @@ func (c *AdvertisersCampaignsListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/campaigns")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16870,6 +16326,7 @@ func (c *AdvertisersCampaignsListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16905,9 +16362,11 @@ func (c *AdvertisersCampaignsListCall) Do(opts ...googleapi.CallOption) (*ListCa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16915,187 +16374,6 @@ func (c *AdvertisersCampaignsListCall) Do(opts ...googleapi.CallOption) (*ListCa
 // A non-nil error returned from f will halt the iteration.
 // The provided context supersedes any context provided to the Context method.
 func (c *AdvertisersCampaignsListCall) Pages(ctx context.Context, f func(*ListCampaignsResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken"))
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
-}
-
-type AdvertisersCampaignsListAssignedTargetingOptionsCall struct {
-	s            *Service
-	advertiserId int64
-	campaignId   int64
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// ListAssignedTargetingOptions: Lists assigned targeting options of a campaign
-// across targeting types.
-//
-// - advertiserId: The ID of the advertiser the campaign belongs to.
-// - campaignId: The ID of the campaign to list assigned targeting options for.
-func (r *AdvertisersCampaignsService) ListAssignedTargetingOptions(advertiserId int64, campaignId int64) *AdvertisersCampaignsListAssignedTargetingOptionsCall {
-	c := &AdvertisersCampaignsListAssignedTargetingOptionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.advertiserId = advertiserId
-	c.campaignId = campaignId
-	return c
-}
-
-// Filter sets the optional parameter "filter": Allows filtering by assigned
-// targeting option fields. Supported syntax: * Filter expressions are made up
-// of one or more restrictions. * Restrictions can be combined by the `OR`
-// logical operator. * A restriction has the form of `{field} {operator}
-// {value}`. * All fields must use the `EQUALS (=)` operator. Supported fields:
-// * `targetingType` * `inheritance` Examples: * `AssignedTargetingOption`
-// resources of targeting type `TARGETING_TYPE_LANGUAGE` or
-// `TARGETING_TYPE_GENDER`: `targetingType="TARGETING_TYPE_LANGUAGE" OR
-// targetingType="TARGETING_TYPE_GENDER" * `AssignedTargetingOption` resources
-// with inheritance status of `NOT_INHERITED` or `INHERITED_FROM_PARTNER`:
-// `inheritance="NOT_INHERITED" OR inheritance="INHERITED_FROM_PARTNER" The
-// length of this field should be no more than 500 characters. Reference our
-// filter `LIST` requests (/display-video/api/guides/how-tos/filters) guide for
-// more information.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) Filter(filter string) *AdvertisersCampaignsListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("filter", filter)
-	return c
-}
-
-// OrderBy sets the optional parameter "orderBy": Field by which to sort the
-// list. Acceptable values are: * `targetingType` (default) The default sorting
-// order is ascending. To specify descending order for a field, a suffix "desc"
-// should be added to the field name. Example: `targetingType desc`.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) OrderBy(orderBy string) *AdvertisersCampaignsListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("orderBy", orderBy)
-	return c
-}
-
-// PageSize sets the optional parameter "pageSize": Requested page size. The
-// size must be an integer between `1` and `5000`. If unspecified, the default
-// is `5000`. Returns error code `INVALID_ARGUMENT` if an invalid value is
-// specified.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) PageSize(pageSize int64) *AdvertisersCampaignsListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": A token that lets the
-// client fetch the next page of results. Typically, this is the value of
-// next_page_token returned from the previous call to
-// `BulkListCampaignAssignedTargetingOptions` method. If not specified, the
-// first page of results will be returned.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) PageToken(pageToken string) *AdvertisersCampaignsListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) Fields(s ...googleapi.Field) *AdvertisersCampaignsListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) IfNoneMatch(entityTag string) *AdvertisersCampaignsListAssignedTargetingOptionsCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) Context(ctx context.Context) *AdvertisersCampaignsListAssignedTargetingOptionsCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/campaigns/{+campaignId}:listAssignedTargetingOptions")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
-		"campaignId":   strconv.FormatInt(c.campaignId, 10),
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.advertisers.campaigns.listAssignedTargetingOptions" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *BulkListCampaignAssignedTargetingOptionsResponse.ServerResponse.Header or
-// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) Do(opts ...googleapi.CallOption) (*BulkListCampaignAssignedTargetingOptionsResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &BulkListCampaignAssignedTargetingOptionsResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *AdvertisersCampaignsListAssignedTargetingOptionsCall) Pages(ctx context.Context, f func(*BulkListCampaignAssignedTargetingOptionsResponse) error) error {
 	c.ctx_ = ctx
 	defer c.PageToken(c.urlParams_.Get("pageToken"))
 	for {
@@ -17170,8 +16448,7 @@ func (c *AdvertisersCampaignsPatchCall) Header() http.Header {
 
 func (c *AdvertisersCampaignsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.campaign)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.campaign)
 	if err != nil {
 		return nil, err
 	}
@@ -17188,6 +16465,7 @@ func (c *AdvertisersCampaignsPatchCall) doRequest(alt string) (*http.Response, e
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"campaignId":   strconv.FormatInt(c.campaignId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17222,343 +16500,12 @@ func (c *AdvertisersCampaignsPatchCall) Do(opts ...googleapi.CallOption) (*Campa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.campaigns.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
-}
-
-type AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall struct {
-	s                         *Service
-	advertiserId              int64
-	campaignId                int64
-	targetingType             string
-	assignedTargetingOptionId string
-	urlParams_                gensupport.URLParams
-	ifNoneMatch_              string
-	ctx_                      context.Context
-	header_                   http.Header
-}
-
-// Get: Gets a single targeting option assigned to a campaign.
-//
-//   - advertiserId: The ID of the advertiser the campaign belongs to.
-//   - assignedTargetingOptionId: An identifier unique to the targeting type in
-//     this campaign that identifies the assigned targeting option being
-//     requested.
-//   - campaignId: The ID of the campaign the assigned targeting option belongs
-//     to.
-//   - targetingType: Identifies the type of this assigned targeting option.
-//     Supported targeting types: * `TARGETING_TYPE_AGE_RANGE` *
-//     `TARGETING_TYPE_AUTHORIZED_SELLER_STATUS` *
-//     `TARGETING_TYPE_CONTENT_INSTREAM_POSITION` *
-//     `TARGETING_TYPE_CONTENT_OUTSTREAM_POSITION` *
-//     `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` *
-//     `TARGETING_TYPE_ENVIRONMENT` * `TARGETING_TYPE_EXCHANGE` *
-//     `TARGETING_TYPE_GENDER` * `TARGETING_TYPE_GEO_REGION` *
-//     `TARGETING_TYPE_HOUSEHOLD_INCOME` * `TARGETING_TYPE_INVENTORY_SOURCE` *
-//     `TARGETING_TYPE_INVENTORY_SOURCE_GROUP` * `TARGETING_TYPE_LANGUAGE` *
-//     `TARGETING_TYPE_ON_SCREEN_POSITION` * `TARGETING_TYPE_PARENTAL_STATUS` *
-//     `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` *
-//     `TARGETING_TYPE_SUB_EXCHANGE` * `TARGETING_TYPE_THIRD_PARTY_VERIFIER` *
-//     `TARGETING_TYPE_VIEWABILITY`.
-func (r *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsService) Get(advertiserId int64, campaignId int64, targetingType string, assignedTargetingOptionId string) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall {
-	c := &AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.advertiserId = advertiserId
-	c.campaignId = campaignId
-	c.targetingType = targetingType
-	c.assignedTargetingOptionId = assignedTargetingOptionId
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall) Fields(s ...googleapi.Field) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall) IfNoneMatch(entityTag string) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall) Context(ctx context.Context) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/campaigns/{+campaignId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"advertiserId":              strconv.FormatInt(c.advertiserId, 10),
-		"campaignId":                strconv.FormatInt(c.campaignId, 10),
-		"targetingType":             c.targetingType,
-		"assignedTargetingOptionId": c.assignedTargetingOptionId,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.advertisers.campaigns.targetingTypes.assignedTargetingOptions.get" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *AssignedTargetingOption.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsGetCall) Do(opts ...googleapi.CallOption) (*AssignedTargetingOption, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &AssignedTargetingOption{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall struct {
-	s             *Service
-	advertiserId  int64
-	campaignId    int64
-	targetingType string
-	urlParams_    gensupport.URLParams
-	ifNoneMatch_  string
-	ctx_          context.Context
-	header_       http.Header
-}
-
-// List: Lists the targeting options assigned to a campaign for a specified
-// targeting type.
-//
-//   - advertiserId: The ID of the advertiser the campaign belongs to.
-//   - campaignId: The ID of the campaign to list assigned targeting options for.
-//   - targetingType: Identifies the type of assigned targeting options to list.
-//     Supported targeting types: * `TARGETING_TYPE_AGE_RANGE` *
-//     `TARGETING_TYPE_AUTHORIZED_SELLER_STATUS` *
-//     `TARGETING_TYPE_CONTENT_INSTREAM_POSITION` *
-//     `TARGETING_TYPE_CONTENT_OUTSTREAM_POSITION` *
-//     `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` *
-//     `TARGETING_TYPE_ENVIRONMENT` * `TARGETING_TYPE_EXCHANGE` *
-//     `TARGETING_TYPE_GENDER` * `TARGETING_TYPE_GEO_REGION` *
-//     `TARGETING_TYPE_HOUSEHOLD_INCOME` * `TARGETING_TYPE_INVENTORY_SOURCE` *
-//     `TARGETING_TYPE_INVENTORY_SOURCE_GROUP` * `TARGETING_TYPE_LANGUAGE` *
-//     `TARGETING_TYPE_ON_SCREEN_POSITION` * `TARGETING_TYPE_PARENTAL_STATUS` *
-//     `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` *
-//     `TARGETING_TYPE_SUB_EXCHANGE` * `TARGETING_TYPE_THIRD_PARTY_VERIFIER` *
-//     `TARGETING_TYPE_VIEWABILITY`.
-func (r *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsService) List(advertiserId int64, campaignId int64, targetingType string) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall {
-	c := &AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.advertiserId = advertiserId
-	c.campaignId = campaignId
-	c.targetingType = targetingType
-	return c
-}
-
-// Filter sets the optional parameter "filter": Allows filtering by assigned
-// targeting option fields. Supported syntax: * Filter expressions are made up
-// of one or more restrictions. * Restrictions can be combined by the `OR`
-// logical operator. * A restriction has the form of `{field} {operator}
-// {value}`. * All fields must use the `EQUALS (=)` operator. Supported fields:
-// * `assignedTargetingOptionId` * `inheritance` Examples: *
-// `AssignedTargetingOption` resources with ID 1 or 2
-// `assignedTargetingOptionId="1" OR assignedTargetingOptionId="2" *
-// `AssignedTargetingOption` resources with inheritance status of
-// `NOT_INHERITED` or `INHERITED_FROM_PARTNER` `inheritance="NOT_INHERITED" OR
-// inheritance="INHERITED_FROM_PARTNER" The length of this field should be no
-// more than 500 characters. Reference our filter `LIST` requests
-// (/display-video/api/guides/how-tos/filters) guide for more information.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) Filter(filter string) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("filter", filter)
-	return c
-}
-
-// OrderBy sets the optional parameter "orderBy": Field by which to sort the
-// list. Acceptable values are: * `assignedTargetingOptionId` (default) The
-// default sorting order is ascending. To specify descending order for a field,
-// a suffix "desc" should be added to the field name. Example:
-// `assignedTargetingOptionId desc`.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) OrderBy(orderBy string) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("orderBy", orderBy)
-	return c
-}
-
-// PageSize sets the optional parameter "pageSize": Requested page size. Must
-// be between `1` and `5000`. If unspecified will default to `100`. Returns
-// error code `INVALID_ARGUMENT` if an invalid value is specified.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) PageSize(pageSize int64) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": A token identifying a
-// page of results the server should return. Typically, this is the value of
-// next_page_token returned from the previous call to
-// `ListCampaignAssignedTargetingOptions` method. If not specified, the first
-// page of results will be returned.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) PageToken(pageToken string) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) Fields(s ...googleapi.Field) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) IfNoneMatch(entityTag string) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) Context(ctx context.Context) *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/campaigns/{+campaignId}/targetingTypes/{+targetingType}/assignedTargetingOptions")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"advertiserId":  strconv.FormatInt(c.advertiserId, 10),
-		"campaignId":    strconv.FormatInt(c.campaignId, 10),
-		"targetingType": c.targetingType,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.advertisers.campaigns.targetingTypes.assignedTargetingOptions.list" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *ListCampaignAssignedTargetingOptionsResponse.ServerResponse.Header or (if a
-// response was returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) Do(opts ...googleapi.CallOption) (*ListCampaignAssignedTargetingOptionsResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &ListCampaignAssignedTargetingOptionsResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *AdvertisersCampaignsTargetingTypesAssignedTargetingOptionsListCall) Pages(ctx context.Context, f func(*ListCampaignAssignedTargetingOptionsResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken"))
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
 }
 
 type AdvertisersChannelsCreateCall struct {
@@ -17613,8 +16560,7 @@ func (c *AdvertisersChannelsCreateCall) Header() http.Header {
 
 func (c *AdvertisersChannelsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.channel)
 	if err != nil {
 		return nil, err
 	}
@@ -17630,6 +16576,7 @@ func (c *AdvertisersChannelsCreateCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17664,9 +16611,11 @@ func (c *AdvertisersChannelsCreateCall) Do(opts ...googleapi.CallOption) (*Chann
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17734,12 +16683,11 @@ func (c *AdvertisersChannelsGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/channels/{+channelId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17748,6 +16696,7 @@ func (c *AdvertisersChannelsGetCall) doRequest(alt string) (*http.Response, erro
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"channelId":    strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17782,9 +16731,11 @@ func (c *AdvertisersChannelsGetCall) Do(opts ...googleapi.CallOption) (*Channel,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17889,12 +16840,11 @@ func (c *AdvertisersChannelsListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/channels")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17902,6 +16852,7 @@ func (c *AdvertisersChannelsListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17937,9 +16888,11 @@ func (c *AdvertisersChannelsListCall) Do(opts ...googleapi.CallOption) (*ListCha
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18026,8 +16979,7 @@ func (c *AdvertisersChannelsPatchCall) Header() http.Header {
 
 func (c *AdvertisersChannelsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.channel)
 	if err != nil {
 		return nil, err
 	}
@@ -18044,6 +16996,7 @@ func (c *AdvertisersChannelsPatchCall) doRequest(alt string) (*http.Response, er
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"channelId":    strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18078,9 +17031,11 @@ func (c *AdvertisersChannelsPatchCall) Do(opts ...googleapi.CallOption) (*Channe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18133,8 +17088,7 @@ func (c *AdvertisersChannelsSitesBulkEditCall) Header() http.Header {
 
 func (c *AdvertisersChannelsSitesBulkEditCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditsitesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditsitesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18151,6 +17105,7 @@ func (c *AdvertisersChannelsSitesBulkEditCall) doRequest(alt string) (*http.Resp
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"channelId":    strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.bulkEdit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18186,9 +17141,11 @@ func (c *AdvertisersChannelsSitesBulkEditCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.bulkEdit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18246,8 +17203,7 @@ func (c *AdvertisersChannelsSitesCreateCall) Header() http.Header {
 
 func (c *AdvertisersChannelsSitesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.site)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.site)
 	if err != nil {
 		return nil, err
 	}
@@ -18264,6 +17220,7 @@ func (c *AdvertisersChannelsSitesCreateCall) doRequest(alt string) (*http.Respon
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"channelId":    strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18298,9 +17255,11 @@ func (c *AdvertisersChannelsSitesCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18359,12 +17318,11 @@ func (c *AdvertisersChannelsSitesDeleteCall) Header() http.Header {
 
 func (c *AdvertisersChannelsSitesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{advertiserId}/channels/{+channelId}/sites/{+urlOrAppId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18374,6 +17332,7 @@ func (c *AdvertisersChannelsSitesDeleteCall) doRequest(alt string) (*http.Respon
 		"channelId":    strconv.FormatInt(c.channelId, 10),
 		"urlOrAppId":   c.urlOrAppId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18408,9 +17367,11 @@ func (c *AdvertisersChannelsSitesDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18518,12 +17479,11 @@ func (c *AdvertisersChannelsSitesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/channels/{+channelId}/sites")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18532,6 +17492,7 @@ func (c *AdvertisersChannelsSitesListCall) doRequest(alt string) (*http.Response
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"channelId":    strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18567,9 +17528,11 @@ func (c *AdvertisersChannelsSitesListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18646,8 +17609,7 @@ func (c *AdvertisersChannelsSitesReplaceCall) Header() http.Header {
 
 func (c *AdvertisersChannelsSitesReplaceCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.replacesitesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.replacesitesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18664,6 +17626,7 @@ func (c *AdvertisersChannelsSitesReplaceCall) doRequest(alt string) (*http.Respo
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"channelId":    strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.replace", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18699,9 +17662,11 @@ func (c *AdvertisersChannelsSitesReplaceCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.channels.sites.replace", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18753,8 +17718,7 @@ func (c *AdvertisersCreativesCreateCall) Header() http.Header {
 
 func (c *AdvertisersCreativesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.creative)
 	if err != nil {
 		return nil, err
 	}
@@ -18770,6 +17734,7 @@ func (c *AdvertisersCreativesCreateCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18804,9 +17769,11 @@ func (c *AdvertisersCreativesCreateCall) Do(opts ...googleapi.CallOption) (*Crea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18860,12 +17827,11 @@ func (c *AdvertisersCreativesDeleteCall) Header() http.Header {
 
 func (c *AdvertisersCreativesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/creatives/{+creativeId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18874,6 +17840,7 @@ func (c *AdvertisersCreativesDeleteCall) doRequest(alt string) (*http.Response, 
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"creativeId":   strconv.FormatInt(c.creativeId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18908,9 +17875,11 @@ func (c *AdvertisersCreativesDeleteCall) Do(opts ...googleapi.CallOption) (*Empt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18971,12 +17940,11 @@ func (c *AdvertisersCreativesGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/creatives/{+creativeId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18985,6 +17953,7 @@ func (c *AdvertisersCreativesGetCall) doRequest(alt string) (*http.Response, err
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"creativeId":   strconv.FormatInt(c.creativeId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19019,9 +17988,11 @@ func (c *AdvertisersCreativesGetCall) Do(opts ...googleapi.CallOption) (*Creativ
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19149,12 +18120,11 @@ func (c *AdvertisersCreativesListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/creatives")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19162,6 +18132,7 @@ func (c *AdvertisersCreativesListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19197,9 +18168,11 @@ func (c *AdvertisersCreativesListCall) Do(opts ...googleapi.CallOption) (*ListCr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19283,8 +18256,7 @@ func (c *AdvertisersCreativesPatchCall) Header() http.Header {
 
 func (c *AdvertisersCreativesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.creative)
 	if err != nil {
 		return nil, err
 	}
@@ -19301,6 +18273,7 @@ func (c *AdvertisersCreativesPatchCall) doRequest(alt string) (*http.Response, e
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"creativeId":   strconv.FormatInt(c.creativeId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19335,9 +18308,11 @@ func (c *AdvertisersCreativesPatchCall) Do(opts ...googleapi.CallOption) (*Creat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.creatives.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19387,8 +18362,7 @@ func (c *AdvertisersInsertionOrdersCreateCall) Header() http.Header {
 
 func (c *AdvertisersInsertionOrdersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.insertionorder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.insertionorder)
 	if err != nil {
 		return nil, err
 	}
@@ -19404,6 +18378,7 @@ func (c *AdvertisersInsertionOrdersCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19438,9 +18413,11 @@ func (c *AdvertisersInsertionOrdersCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19492,12 +18469,11 @@ func (c *AdvertisersInsertionOrdersDeleteCall) Header() http.Header {
 
 func (c *AdvertisersInsertionOrdersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/insertionOrders/{+insertionOrderId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19506,6 +18482,7 @@ func (c *AdvertisersInsertionOrdersDeleteCall) doRequest(alt string) (*http.Resp
 		"advertiserId":     strconv.FormatInt(c.advertiserId, 10),
 		"insertionOrderId": strconv.FormatInt(c.insertionOrderId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19540,9 +18517,11 @@ func (c *AdvertisersInsertionOrdersDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19604,12 +18583,11 @@ func (c *AdvertisersInsertionOrdersGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/insertionOrders/{+insertionOrderId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19618,6 +18596,7 @@ func (c *AdvertisersInsertionOrdersGetCall) doRequest(alt string) (*http.Respons
 		"advertiserId":     strconv.FormatInt(c.advertiserId, 10),
 		"insertionOrderId": strconv.FormatInt(c.insertionOrderId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19652,9 +18631,11 @@ func (c *AdvertisersInsertionOrdersGetCall) Do(opts ...googleapi.CallOption) (*I
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19765,12 +18746,11 @@ func (c *AdvertisersInsertionOrdersListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/insertionOrders")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19778,6 +18758,7 @@ func (c *AdvertisersInsertionOrdersListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19813,9 +18794,11 @@ func (c *AdvertisersInsertionOrdersListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19823,191 +18806,6 @@ func (c *AdvertisersInsertionOrdersListCall) Do(opts ...googleapi.CallOption) (*
 // A non-nil error returned from f will halt the iteration.
 // The provided context supersedes any context provided to the Context method.
 func (c *AdvertisersInsertionOrdersListCall) Pages(ctx context.Context, f func(*ListInsertionOrdersResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken"))
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
-}
-
-type AdvertisersInsertionOrdersListAssignedTargetingOptionsCall struct {
-	s                *Service
-	advertiserId     int64
-	insertionOrderId int64
-	urlParams_       gensupport.URLParams
-	ifNoneMatch_     string
-	ctx_             context.Context
-	header_          http.Header
-}
-
-// ListAssignedTargetingOptions: Lists assigned targeting options of an
-// insertion order across targeting types.
-//
-//   - advertiserId: The ID of the advertiser the insertion order belongs to.
-//   - insertionOrderId: The ID of the insertion order to list assigned targeting
-//     options for.
-func (r *AdvertisersInsertionOrdersService) ListAssignedTargetingOptions(advertiserId int64, insertionOrderId int64) *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall {
-	c := &AdvertisersInsertionOrdersListAssignedTargetingOptionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.advertiserId = advertiserId
-	c.insertionOrderId = insertionOrderId
-	return c
-}
-
-// Filter sets the optional parameter "filter": Allows filtering by assigned
-// targeting option fields. Supported syntax: * Filter expressions are made up
-// of one or more restrictions. * Restrictions can be combined by the logical
-// operator `OR`. * A restriction has the form of `{field} {operator} {value}`.
-// * All fields must use the `EQUALS (=)` operator. Supported fields: *
-// `targetingType` * `inheritance` Examples: * `AssignedTargetingOption`
-// resources of targeting type `TARGETING_TYPE_PROXIMITY_LOCATION_LIST` or
-// `TARGETING_TYPE_CHANNEL`:
-// `targetingType="TARGETING_TYPE_PROXIMITY_LOCATION_LIST" OR
-// targetingType="TARGETING_TYPE_CHANNEL" * `AssignedTargetingOption`
-// resources with inheritance status of `NOT_INHERITED` or
-// `INHERITED_FROM_PARTNER`: `inheritance="NOT_INHERITED" OR
-// inheritance="INHERITED_FROM_PARTNER" The length of this field should be no
-// more than 500 characters. Reference our filter `LIST` requests
-// (/display-video/api/guides/how-tos/filters) guide for more information.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) Filter(filter string) *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("filter", filter)
-	return c
-}
-
-// OrderBy sets the optional parameter "orderBy": Field by which to sort the
-// list. Acceptable values are: * `targetingType` (default) The default sorting
-// order is ascending. To specify descending order for a field, a suffix "desc"
-// should be added to the field name. Example: `targetingType desc`.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) OrderBy(orderBy string) *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("orderBy", orderBy)
-	return c
-}
-
-// PageSize sets the optional parameter "pageSize": Requested page size. The
-// size must be an integer between `1` and `5000`. If unspecified, the default
-// is `5000`. Returns error code `INVALID_ARGUMENT` if an invalid value is
-// specified.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) PageSize(pageSize int64) *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": A token that lets the
-// client fetch the next page of results. Typically, this is the value of
-// next_page_token returned from the previous call to
-// `BulkListInsertionOrderAssignedTargetingOptions` method. If not specified,
-// the first page of results will be returned.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) PageToken(pageToken string) *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) Fields(s ...googleapi.Field) *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) IfNoneMatch(entityTag string) *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) Context(ctx context.Context) *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/insertionOrders/{+insertionOrderId}:listAssignedTargetingOptions")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"advertiserId":     strconv.FormatInt(c.advertiserId, 10),
-		"insertionOrderId": strconv.FormatInt(c.insertionOrderId, 10),
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.advertisers.insertionOrders.listAssignedTargetingOptions" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *BulkListInsertionOrderAssignedTargetingOptionsResponse.ServerResponse.Header
-//
-//	or (if a response was returned at all) in error.(*googleapi.Error).Header.
-//
-// Use googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) Do(opts ...googleapi.CallOption) (*BulkListInsertionOrderAssignedTargetingOptionsResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &BulkListInsertionOrderAssignedTargetingOptionsResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *AdvertisersInsertionOrdersListAssignedTargetingOptionsCall) Pages(ctx context.Context, f func(*BulkListInsertionOrderAssignedTargetingOptionsResponse) error) error {
 	c.ctx_ = ctx
 	defer c.PageToken(c.urlParams_.Get("pageToken"))
 	for {
@@ -20082,8 +18880,7 @@ func (c *AdvertisersInsertionOrdersPatchCall) Header() http.Header {
 
 func (c *AdvertisersInsertionOrdersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.insertionorder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.insertionorder)
 	if err != nil {
 		return nil, err
 	}
@@ -20100,6 +18897,7 @@ func (c *AdvertisersInsertionOrdersPatchCall) doRequest(alt string) (*http.Respo
 		"advertiserId":     strconv.FormatInt(c.advertiserId, 10),
 		"insertionOrderId": strconv.FormatInt(c.insertionOrderId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20134,628 +18932,12 @@ func (c *AdvertisersInsertionOrdersPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.insertionOrders.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
-}
-
-type AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall struct {
-	s                       *Service
-	advertiserId            int64
-	insertionOrderId        int64
-	targetingType           string
-	assignedtargetingoption *AssignedTargetingOption
-	urlParams_              gensupport.URLParams
-	ctx_                    context.Context
-	header_                 http.Header
-}
-
-// Create: Assigns a targeting option to an insertion order. Returns the
-// assigned targeting option if successful. Supported targeting types: *
-// `TARGETING_TYPE_AGE_RANGE` * `TARGETING_TYPE_BROWSER` *
-// `TARGETING_TYPE_CATEGORY` * `TARGETING_TYPE_CHANNEL` *
-// `TARGETING_TYPE_DEVICE_MAKE_MODEL` *
-// `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` *
-// `TARGETING_TYPE_ENVIRONMENT` * `TARGETING_TYPE_GENDER` *
-// `TARGETING_TYPE_KEYWORD` * `TARGETING_TYPE_LANGUAGE` *
-// `TARGETING_TYPE_NEGATIVE_KEYWORD_LIST` * `TARGETING_TYPE_OPERATING_SYSTEM` *
-// `TARGETING_TYPE_PARENTAL_STATUS` *
-// `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` * `TARGETING_TYPE_VIEWABILITY`
-//
-//   - advertiserId: The ID of the advertiser the insertion order belongs to.
-//   - insertionOrderId: The ID of the insertion order the assigned targeting
-//     option will belong to.
-//   - targetingType: Identifies the type of this assigned targeting option.
-//     Supported targeting types: * `TARGETING_TYPE_AGE_RANGE` *
-//     `TARGETING_TYPE_BROWSER` * `TARGETING_TYPE_CATEGORY` *
-//     `TARGETING_TYPE_CHANNEL` * `TARGETING_TYPE_DEVICE_MAKE_MODEL` *
-//     `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` *
-//     `TARGETING_TYPE_ENVIRONMENT` * `TARGETING_TYPE_GENDER` *
-//     `TARGETING_TYPE_KEYWORD` * `TARGETING_TYPE_LANGUAGE` *
-//     `TARGETING_TYPE_NEGATIVE_KEYWORD_LIST` * `TARGETING_TYPE_OPERATING_SYSTEM`
-//   - `TARGETING_TYPE_PARENTAL_STATUS` *
-//     `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` *
-//     `TARGETING_TYPE_VIEWABILITY`.
-func (r *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService) Create(advertiserId int64, insertionOrderId int64, targetingType string, assignedtargetingoption *AssignedTargetingOption) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall {
-	c := &AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.advertiserId = advertiserId
-	c.insertionOrderId = insertionOrderId
-	c.targetingType = targetingType
-	c.assignedtargetingoption = assignedtargetingoption
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall) Fields(s ...googleapi.Field) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall) Context(ctx context.Context) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assignedtargetingoption)
-	if err != nil {
-		return nil, err
-	}
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/insertionOrders/{+insertionOrderId}/targetingTypes/{+targetingType}/assignedTargetingOptions")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"advertiserId":     strconv.FormatInt(c.advertiserId, 10),
-		"insertionOrderId": strconv.FormatInt(c.insertionOrderId, 10),
-		"targetingType":    c.targetingType,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.advertisers.insertionOrders.targetingTypes.assignedTargetingOptions.create" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *AssignedTargetingOption.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsCreateCall) Do(opts ...googleapi.CallOption) (*AssignedTargetingOption, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &AssignedTargetingOption{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall struct {
-	s                         *Service
-	advertiserId              int64
-	insertionOrderId          int64
-	targetingType             string
-	assignedTargetingOptionId string
-	urlParams_                gensupport.URLParams
-	ctx_                      context.Context
-	header_                   http.Header
-}
-
-// Delete: Deletes an assigned targeting option from an insertion order.
-// Supported targeting types: * `TARGETING_TYPE_AGE_RANGE` *
-// `TARGETING_TYPE_BROWSER` * `TARGETING_TYPE_CATEGORY` *
-// `TARGETING_TYPE_CHANNEL` * `TARGETING_TYPE_DEVICE_MAKE_MODEL` *
-// `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` *
-// `TARGETING_TYPE_ENVIRONMENT` * `TARGETING_TYPE_GENDER` *
-// `TARGETING_TYPE_KEYWORD` * `TARGETING_TYPE_LANGUAGE` *
-// `TARGETING_TYPE_NEGATIVE_KEYWORD_LIST` * `TARGETING_TYPE_OPERATING_SYSTEM` *
-// `TARGETING_TYPE_PARENTAL_STATUS` *
-// `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` * `TARGETING_TYPE_VIEWABILITY`
-//
-//   - advertiserId: The ID of the advertiser the insertion order belongs to.
-//   - assignedTargetingOptionId: The ID of the assigned targeting option to
-//     delete.
-//   - insertionOrderId: The ID of the insertion order the assigned targeting
-//     option belongs to.
-//   - targetingType: Identifies the type of this assigned targeting option.
-//     Supported targeting types: * `TARGETING_TYPE_AGE_RANGE` *
-//     `TARGETING_TYPE_BROWSER` * `TARGETING_TYPE_CATEGORY` *
-//     `TARGETING_TYPE_CHANNEL` * `TARGETING_TYPE_DEVICE_MAKE_MODEL` *
-//     `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` *
-//     `TARGETING_TYPE_ENVIRONMENT` * `TARGETING_TYPE_GENDER` *
-//     `TARGETING_TYPE_KEYWORD` * `TARGETING_TYPE_LANGUAGE` *
-//     `TARGETING_TYPE_NEGATIVE_KEYWORD_LIST` * `TARGETING_TYPE_OPERATING_SYSTEM`
-//   - `TARGETING_TYPE_PARENTAL_STATUS` *
-//     `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` *
-//     `TARGETING_TYPE_VIEWABILITY`.
-func (r *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService) Delete(advertiserId int64, insertionOrderId int64, targetingType string, assignedTargetingOptionId string) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall {
-	c := &AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.advertiserId = advertiserId
-	c.insertionOrderId = insertionOrderId
-	c.targetingType = targetingType
-	c.assignedTargetingOptionId = assignedTargetingOptionId
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall) Fields(s ...googleapi.Field) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall) Context(ctx context.Context) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/insertionOrders/{+insertionOrderId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"advertiserId":              strconv.FormatInt(c.advertiserId, 10),
-		"insertionOrderId":          strconv.FormatInt(c.insertionOrderId, 10),
-		"targetingType":             c.targetingType,
-		"assignedTargetingOptionId": c.assignedTargetingOptionId,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.advertisers.insertionOrders.targetingTypes.assignedTargetingOptions.delete" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *Empty.ServerResponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &Empty{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall struct {
-	s                         *Service
-	advertiserId              int64
-	insertionOrderId          int64
-	targetingType             string
-	assignedTargetingOptionId string
-	urlParams_                gensupport.URLParams
-	ifNoneMatch_              string
-	ctx_                      context.Context
-	header_                   http.Header
-}
-
-// Get: Gets a single targeting option assigned to an insertion order.
-//
-//   - advertiserId: The ID of the advertiser the insertion order belongs to.
-//   - assignedTargetingOptionId: An identifier unique to the targeting type in
-//     this insertion order that identifies the assigned targeting option being
-//     requested.
-//   - insertionOrderId: The ID of the insertion order the assigned targeting
-//     option belongs to.
-//   - targetingType: Identifies the type of this assigned targeting option.
-//     Supported targeting types include: * `TARGETING_TYPE_AGE_RANGE` *
-//     `TARGETING_TYPE_APP` * `TARGETING_TYPE_APP_CATEGORY` *
-//     `TARGETING_TYPE_AUDIENCE_GROUP` * `TARGETING_TYPE_AUDIO_CONTENT_TYPE` *
-//     `TARGETING_TYPE_AUTHORIZED_SELLER_STATUS` * `TARGETING_TYPE_BROWSER` *
-//     `TARGETING_TYPE_BUSINESS_CHAIN` * `TARGETING_TYPE_CARRIER_AND_ISP` *
-//     `TARGETING_TYPE_CATEGORY` * `TARGETING_TYPE_CHANNEL` *
-//     `TARGETING_TYPE_CONTENT_DURATION` * `TARGETING_TYPE_CONTENT_GENRE` *
-//     `TARGETING_TYPE_CONTENT_INSTREAM_POSITION` *
-//     `TARGETING_TYPE_CONTENT_OUTSTREAM_POSITION` *
-//     `TARGETING_TYPE_CONTENT_STREAM_TYPE` * `TARGETING_TYPE_DAY_AND_TIME` *
-//     `TARGETING_TYPE_DEVICE_MAKE_MODEL` * `TARGETING_TYPE_DEVICE_TYPE` *
-//     `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` *
-//     `TARGETING_TYPE_ENVIRONMENT` * `TARGETING_TYPE_EXCHANGE` *
-//     `TARGETING_TYPE_GENDER` * `TARGETING_TYPE_GEO_REGION` *
-//     `TARGETING_TYPE_HOUSEHOLD_INCOME` * `TARGETING_TYPE_INVENTORY_SOURCE` *
-//     `TARGETING_TYPE_INVENTORY_SOURCE_GROUP` * `TARGETING_TYPE_KEYWORD` *
-//     `TARGETING_TYPE_LANGUAGE` * `TARGETING_TYPE_NATIVE_CONTENT_POSITION` *
-//     `TARGETING_TYPE_NEGATIVE_KEYWORD_LIST` * `TARGETING_TYPE_OMID` *
-//     `TARGETING_TYPE_ON_SCREEN_POSITION` * `TARGETING_TYPE_OPERATING_SYSTEM` *
-//     `TARGETING_TYPE_PARENTAL_STATUS` * `TARGETING_TYPE_POI` *
-//     `TARGETING_TYPE_PROXIMITY_LOCATION_LIST` *
-//     `TARGETING_TYPE_REGIONAL_LOCATION_LIST` *
-//     `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` *
-//     `TARGETING_TYPE_SUB_EXCHANGE` * `TARGETING_TYPE_THIRD_PARTY_VERIFIER` *
-//     `TARGETING_TYPE_URL` * `TARGETING_TYPE_USER_REWARDED_CONTENT` *
-//     `TARGETING_TYPE_VIDEO_PLAYER_SIZE` * `TARGETING_TYPE_VIEWABILITY`.
-func (r *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService) Get(advertiserId int64, insertionOrderId int64, targetingType string, assignedTargetingOptionId string) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall {
-	c := &AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.advertiserId = advertiserId
-	c.insertionOrderId = insertionOrderId
-	c.targetingType = targetingType
-	c.assignedTargetingOptionId = assignedTargetingOptionId
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall) Fields(s ...googleapi.Field) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall) IfNoneMatch(entityTag string) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall) Context(ctx context.Context) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/insertionOrders/{+insertionOrderId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"advertiserId":              strconv.FormatInt(c.advertiserId, 10),
-		"insertionOrderId":          strconv.FormatInt(c.insertionOrderId, 10),
-		"targetingType":             c.targetingType,
-		"assignedTargetingOptionId": c.assignedTargetingOptionId,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.advertisers.insertionOrders.targetingTypes.assignedTargetingOptions.get" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *AssignedTargetingOption.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsGetCall) Do(opts ...googleapi.CallOption) (*AssignedTargetingOption, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &AssignedTargetingOption{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall struct {
-	s                *Service
-	advertiserId     int64
-	insertionOrderId int64
-	targetingType    string
-	urlParams_       gensupport.URLParams
-	ifNoneMatch_     string
-	ctx_             context.Context
-	header_          http.Header
-}
-
-// List: Lists the targeting options assigned to an insertion order.
-//
-//   - advertiserId: The ID of the advertiser the insertion order belongs to.
-//   - insertionOrderId: The ID of the insertion order to list assigned targeting
-//     options for.
-//   - targetingType: Identifies the type of assigned targeting options to list.
-//     Supported targeting types include: * `TARGETING_TYPE_AGE_RANGE` *
-//     `TARGETING_TYPE_APP` * `TARGETING_TYPE_APP_CATEGORY` *
-//     `TARGETING_TYPE_AUDIENCE_GROUP` * `TARGETING_TYPE_AUDIO_CONTENT_TYPE` *
-//     `TARGETING_TYPE_AUTHORIZED_SELLER_STATUS` * `TARGETING_TYPE_BROWSER` *
-//     `TARGETING_TYPE_BUSINESS_CHAIN` * `TARGETING_TYPE_CARRIER_AND_ISP` *
-//     `TARGETING_TYPE_CATEGORY` * `TARGETING_TYPE_CHANNEL` *
-//     `TARGETING_TYPE_CONTENT_DURATION` * `TARGETING_TYPE_CONTENT_GENRE` *
-//     `TARGETING_TYPE_CONTENT_INSTREAM_POSITION` *
-//     `TARGETING_TYPE_CONTENT_OUTSTREAM_POSITION` *
-//     `TARGETING_TYPE_CONTENT_STREAM_TYPE` * `TARGETING_TYPE_DAY_AND_TIME` *
-//     `TARGETING_TYPE_DEVICE_MAKE_MODEL` * `TARGETING_TYPE_DEVICE_TYPE` *
-//     `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` *
-//     `TARGETING_TYPE_ENVIRONMENT` * `TARGETING_TYPE_EXCHANGE` *
-//     `TARGETING_TYPE_GENDER` * `TARGETING_TYPE_GEO_REGION` *
-//     `TARGETING_TYPE_HOUSEHOLD_INCOME` * `TARGETING_TYPE_INVENTORY_SOURCE` *
-//     `TARGETING_TYPE_INVENTORY_SOURCE_GROUP` * `TARGETING_TYPE_KEYWORD` *
-//     `TARGETING_TYPE_LANGUAGE` * `TARGETING_TYPE_NATIVE_CONTENT_POSITION` *
-//     `TARGETING_TYPE_NEGATIVE_KEYWORD_LIST` * `TARGETING_TYPE_OMID` *
-//     `TARGETING_TYPE_ON_SCREEN_POSITION` * `TARGETING_TYPE_OPERATING_SYSTEM` *
-//     `TARGETING_TYPE_PARENTAL_STATUS` * `TARGETING_TYPE_POI` *
-//     `TARGETING_TYPE_PROXIMITY_LOCATION_LIST` *
-//     `TARGETING_TYPE_REGIONAL_LOCATION_LIST` *
-//     `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` *
-//     `TARGETING_TYPE_SUB_EXCHANGE` * `TARGETING_TYPE_THIRD_PARTY_VERIFIER` *
-//     `TARGETING_TYPE_URL` * `TARGETING_TYPE_USER_REWARDED_CONTENT` *
-//     `TARGETING_TYPE_VIDEO_PLAYER_SIZE` * `TARGETING_TYPE_VIEWABILITY`.
-func (r *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsService) List(advertiserId int64, insertionOrderId int64, targetingType string) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall {
-	c := &AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.advertiserId = advertiserId
-	c.insertionOrderId = insertionOrderId
-	c.targetingType = targetingType
-	return c
-}
-
-// Filter sets the optional parameter "filter": Allows filtering by assigned
-// targeting option fields. Supported syntax: * Filter expressions are made up
-// of one or more restrictions. * Restrictions can be combined by the logical
-// operator `OR`. * A restriction has the form of `{field} {operator} {value}`.
-// * All fields must use the `EQUALS (=)` operator. Supported fields: *
-// `assignedTargetingOptionId` * `inheritance` Examples: *
-// `AssignedTargetingOption` resources with ID 1 or 2:
-// `assignedTargetingOptionId="1" OR assignedTargetingOptionId="2" *
-// `AssignedTargetingOption` resources with inheritance status of
-// `NOT_INHERITED` or `INHERITED_FROM_PARTNER`: `inheritance="NOT_INHERITED" OR
-// inheritance="INHERITED_FROM_PARTNER" The length of this field should be no
-// more than 500 characters. Reference our filter `LIST` requests
-// (/display-video/api/guides/how-tos/filters) guide for more information.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) Filter(filter string) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("filter", filter)
-	return c
-}
-
-// OrderBy sets the optional parameter "orderBy": Field by which to sort the
-// list. Acceptable values are: * `assignedTargetingOptionId` (default) The
-// default sorting order is ascending. To specify descending order for a field,
-// a suffix "desc" should be added to the field name. Example:
-// `assignedTargetingOptionId desc`.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) OrderBy(orderBy string) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("orderBy", orderBy)
-	return c
-}
-
-// PageSize sets the optional parameter "pageSize": Requested page size. Must
-// be between `1` and `5000`. If unspecified will default to `100`. Returns
-// error code `INVALID_ARGUMENT` if an invalid value is specified.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) PageSize(pageSize int64) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": A token identifying a
-// page of results the server should return. Typically, this is the value of
-// next_page_token returned from the previous call to
-// `ListInsertionOrderAssignedTargetingOptions` method. If not specified, the
-// first page of results will be returned.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) PageToken(pageToken string) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) Fields(s ...googleapi.Field) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) IfNoneMatch(entityTag string) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) Context(ctx context.Context) *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/insertionOrders/{+insertionOrderId}/targetingTypes/{+targetingType}/assignedTargetingOptions")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"advertiserId":     strconv.FormatInt(c.advertiserId, 10),
-		"insertionOrderId": strconv.FormatInt(c.insertionOrderId, 10),
-		"targetingType":    c.targetingType,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.advertisers.insertionOrders.targetingTypes.assignedTargetingOptions.list" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *ListInsertionOrderAssignedTargetingOptionsResponse.ServerResponse.Header or
-// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) Do(opts ...googleapi.CallOption) (*ListInsertionOrderAssignedTargetingOptionsResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &ListInsertionOrderAssignedTargetingOptionsResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *AdvertisersInsertionOrdersTargetingTypesAssignedTargetingOptionsListCall) Pages(ctx context.Context, f func(*ListInsertionOrderAssignedTargetingOptionsResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken"))
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
 }
 
 type AdvertisersInvoicesListCall struct {
@@ -20853,12 +19035,11 @@ func (c *AdvertisersInvoicesListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/invoices")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20866,6 +19047,7 @@ func (c *AdvertisersInvoicesListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.invoices.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20901,9 +19083,11 @@ func (c *AdvertisersInvoicesListCall) Do(opts ...googleapi.CallOption) (*ListInv
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.invoices.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20991,12 +19175,11 @@ func (c *AdvertisersInvoicesLookupInvoiceCurrencyCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/invoices:lookupInvoiceCurrency")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21004,6 +19187,7 @@ func (c *AdvertisersInvoicesLookupInvoiceCurrencyCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.invoices.lookupInvoiceCurrency", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21039,9 +19223,11 @@ func (c *AdvertisersInvoicesLookupInvoiceCurrencyCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.invoices.lookupInvoiceCurrency", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21097,8 +19283,7 @@ func (c *AdvertisersLineItemsBulkEditAssignedTargetingOptionsCall) Header() http
 
 func (c *AdvertisersLineItemsBulkEditAssignedTargetingOptionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditassignedtargetingoptionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditassignedtargetingoptionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21114,6 +19299,7 @@ func (c *AdvertisersLineItemsBulkEditAssignedTargetingOptionsCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.bulkEditAssignedTargetingOptions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21149,9 +19335,11 @@ func (c *AdvertisersLineItemsBulkEditAssignedTargetingOptionsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.bulkEditAssignedTargetingOptions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21270,12 +19458,11 @@ func (c *AdvertisersLineItemsBulkListAssignedTargetingOptionsCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/lineItems:bulkListAssignedTargetingOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21283,6 +19470,7 @@ func (c *AdvertisersLineItemsBulkListAssignedTargetingOptionsCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.bulkListAssignedTargetingOptions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21318,9 +19506,11 @@ func (c *AdvertisersLineItemsBulkListAssignedTargetingOptionsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.bulkListAssignedTargetingOptions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21393,8 +19583,7 @@ func (c *AdvertisersLineItemsBulkUpdateCall) Header() http.Header {
 
 func (c *AdvertisersLineItemsBulkUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkupdatelineitemsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkupdatelineitemsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21410,6 +19599,7 @@ func (c *AdvertisersLineItemsBulkUpdateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.bulkUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21445,9 +19635,11 @@ func (c *AdvertisersLineItemsBulkUpdateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.bulkUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21498,8 +19690,7 @@ func (c *AdvertisersLineItemsCreateCall) Header() http.Header {
 
 func (c *AdvertisersLineItemsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.lineitem)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.lineitem)
 	if err != nil {
 		return nil, err
 	}
@@ -21515,6 +19706,7 @@ func (c *AdvertisersLineItemsCreateCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21549,9 +19741,11 @@ func (c *AdvertisersLineItemsCreateCall) Do(opts ...googleapi.CallOption) (*Line
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21603,12 +19797,11 @@ func (c *AdvertisersLineItemsDeleteCall) Header() http.Header {
 
 func (c *AdvertisersLineItemsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/lineItems/{+lineItemId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21617,6 +19810,7 @@ func (c *AdvertisersLineItemsDeleteCall) doRequest(alt string) (*http.Response, 
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"lineItemId":   strconv.FormatInt(c.lineItemId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21651,9 +19845,11 @@ func (c *AdvertisersLineItemsDeleteCall) Do(opts ...googleapi.CallOption) (*Empt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21709,8 +19905,7 @@ func (c *AdvertisersLineItemsDuplicateCall) Header() http.Header {
 
 func (c *AdvertisersLineItemsDuplicateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.duplicatelineitemrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.duplicatelineitemrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21727,6 +19922,7 @@ func (c *AdvertisersLineItemsDuplicateCall) doRequest(alt string) (*http.Respons
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"lineItemId":   strconv.FormatInt(c.lineItemId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.duplicate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21762,9 +19958,11 @@ func (c *AdvertisersLineItemsDuplicateCall) Do(opts ...googleapi.CallOption) (*D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.duplicate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21818,8 +20016,7 @@ func (c *AdvertisersLineItemsGenerateDefaultCall) Header() http.Header {
 
 func (c *AdvertisersLineItemsGenerateDefaultCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.generatedefaultlineitemrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.generatedefaultlineitemrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21835,6 +20032,7 @@ func (c *AdvertisersLineItemsGenerateDefaultCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.generateDefault", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21869,9 +20067,11 @@ func (c *AdvertisersLineItemsGenerateDefaultCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.generateDefault", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21932,12 +20132,11 @@ func (c *AdvertisersLineItemsGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/lineItems/{+lineItemId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21946,6 +20145,7 @@ func (c *AdvertisersLineItemsGetCall) doRequest(alt string) (*http.Response, err
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"lineItemId":   strconv.FormatInt(c.lineItemId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21980,9 +20180,11 @@ func (c *AdvertisersLineItemsGetCall) Do(opts ...googleapi.CallOption) (*LineIte
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22095,12 +20297,11 @@ func (c *AdvertisersLineItemsListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/lineItems")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22108,6 +20309,7 @@ func (c *AdvertisersLineItemsListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22143,9 +20345,11 @@ func (c *AdvertisersLineItemsListCall) Do(opts ...googleapi.CallOption) (*ListLi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22235,8 +20439,7 @@ func (c *AdvertisersLineItemsPatchCall) Header() http.Header {
 
 func (c *AdvertisersLineItemsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.lineitem)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.lineitem)
 	if err != nil {
 		return nil, err
 	}
@@ -22253,6 +20456,7 @@ func (c *AdvertisersLineItemsPatchCall) doRequest(alt string) (*http.Response, e
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"lineItemId":   strconv.FormatInt(c.lineItemId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22287,9 +20491,11 @@ func (c *AdvertisersLineItemsPatchCall) Do(opts ...googleapi.CallOption) (*LineI
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22375,8 +20581,7 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsCreateCall) H
 
 func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assignedtargetingoption)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.assignedtargetingoption)
 	if err != nil {
 		return nil, err
 	}
@@ -22394,6 +20599,7 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsCreateCall) d
 		"lineItemId":    strconv.FormatInt(c.lineItemId, 10),
 		"targetingType": c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.targetingTypes.assignedTargetingOptions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22429,9 +20635,11 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsCreateCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.targetingTypes.assignedTargetingOptions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22519,12 +20727,11 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsDeleteCall) H
 
 func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/lineItems/{+lineItemId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22535,6 +20742,7 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsDeleteCall) d
 		"targetingType":             c.targetingType,
 		"assignedTargetingOptionId": c.assignedTargetingOptionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.targetingTypes.assignedTargetingOptions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22569,9 +20777,11 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsDeleteCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.targetingTypes.assignedTargetingOptions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22671,12 +20881,11 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsGetCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/lineItems/{+lineItemId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22687,6 +20896,7 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsGetCall) doRe
 		"targetingType":             c.targetingType,
 		"assignedTargetingOptionId": c.assignedTargetingOptionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.targetingTypes.assignedTargetingOptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22722,9 +20932,11 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsGetCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.targetingTypes.assignedTargetingOptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22865,12 +21077,11 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsListCall) doR
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/lineItems/{+lineItemId}/targetingTypes/{+targetingType}/assignedTargetingOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22880,6 +21091,7 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsListCall) doR
 		"lineItemId":    strconv.FormatInt(c.lineItemId, 10),
 		"targetingType": c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.targetingTypes.assignedTargetingOptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22915,9 +21127,11 @@ func (c *AdvertisersLineItemsTargetingTypesAssignedTargetingOptionsListCall) Do(
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.lineItems.targetingTypes.assignedTargetingOptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22988,8 +21202,7 @@ func (c *AdvertisersLocationListsCreateCall) Header() http.Header {
 
 func (c *AdvertisersLocationListsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.locationlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.locationlist)
 	if err != nil {
 		return nil, err
 	}
@@ -23005,6 +21218,7 @@ func (c *AdvertisersLocationListsCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23039,9 +21253,11 @@ func (c *AdvertisersLocationListsCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23103,12 +21319,11 @@ func (c *AdvertisersLocationListsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/locationLists/{+locationListId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23117,6 +21332,7 @@ func (c *AdvertisersLocationListsGetCall) doRequest(alt string) (*http.Response,
 		"advertiserId":   strconv.FormatInt(c.advertiserId, 10),
 		"locationListId": strconv.FormatInt(c.locationListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23151,9 +21367,11 @@ func (c *AdvertisersLocationListsGetCall) Do(opts ...googleapi.CallOption) (*Loc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23255,12 +21473,11 @@ func (c *AdvertisersLocationListsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/locationLists")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23268,6 +21485,7 @@ func (c *AdvertisersLocationListsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23303,9 +21521,11 @@ func (c *AdvertisersLocationListsListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23387,8 +21607,7 @@ func (c *AdvertisersLocationListsPatchCall) Header() http.Header {
 
 func (c *AdvertisersLocationListsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.locationlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.locationlist)
 	if err != nil {
 		return nil, err
 	}
@@ -23405,6 +21624,7 @@ func (c *AdvertisersLocationListsPatchCall) doRequest(alt string) (*http.Respons
 		"advertiserId":   strconv.FormatInt(c.advertiserId, 10),
 		"locationListId": strconv.FormatInt(c.locationListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23439,9 +21659,11 @@ func (c *AdvertisersLocationListsPatchCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23497,8 +21719,7 @@ func (c *AdvertisersLocationListsAssignedLocationsBulkEditCall) Header() http.He
 
 func (c *AdvertisersLocationListsAssignedLocationsBulkEditCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditassignedlocationsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditassignedlocationsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -23515,6 +21736,7 @@ func (c *AdvertisersLocationListsAssignedLocationsBulkEditCall) doRequest(alt st
 		"advertiserId":   strconv.FormatInt(c.advertiserId, 10),
 		"locationListId": strconv.FormatInt(c.locationListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.assignedLocations.bulkEdit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23550,9 +21772,11 @@ func (c *AdvertisersLocationListsAssignedLocationsBulkEditCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.assignedLocations.bulkEdit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23605,8 +21829,7 @@ func (c *AdvertisersLocationListsAssignedLocationsCreateCall) Header() http.Head
 
 func (c *AdvertisersLocationListsAssignedLocationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assignedlocation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.assignedlocation)
 	if err != nil {
 		return nil, err
 	}
@@ -23623,6 +21846,7 @@ func (c *AdvertisersLocationListsAssignedLocationsCreateCall) doRequest(alt stri
 		"advertiserId":   strconv.FormatInt(c.advertiserId, 10),
 		"locationListId": strconv.FormatInt(c.locationListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.assignedLocations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23658,9 +21882,11 @@ func (c *AdvertisersLocationListsAssignedLocationsCreateCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.assignedLocations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23714,12 +21940,11 @@ func (c *AdvertisersLocationListsAssignedLocationsDeleteCall) Header() http.Head
 
 func (c *AdvertisersLocationListsAssignedLocationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{advertiserId}/locationLists/{locationListId}/assignedLocations/{+assignedLocationId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23729,6 +21954,7 @@ func (c *AdvertisersLocationListsAssignedLocationsDeleteCall) doRequest(alt stri
 		"locationListId":     strconv.FormatInt(c.locationListId, 10),
 		"assignedLocationId": strconv.FormatInt(c.assignedLocationId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.assignedLocations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23763,9 +21989,11 @@ func (c *AdvertisersLocationListsAssignedLocationsDeleteCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.assignedLocations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23868,12 +22096,11 @@ func (c *AdvertisersLocationListsAssignedLocationsListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{advertiserId}/locationLists/{locationListId}/assignedLocations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23882,6 +22109,7 @@ func (c *AdvertisersLocationListsAssignedLocationsListCall) doRequest(alt string
 		"advertiserId":   strconv.FormatInt(c.advertiserId, 10),
 		"locationListId": strconv.FormatInt(c.locationListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.assignedLocations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23917,9 +22145,11 @@ func (c *AdvertisersLocationListsAssignedLocationsListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.locationLists.assignedLocations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23997,8 +22227,7 @@ func (c *AdvertisersManualTriggersActivateCall) Header() http.Header {
 
 func (c *AdvertisersManualTriggersActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.activatemanualtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.activatemanualtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -24015,6 +22244,7 @@ func (c *AdvertisersManualTriggersActivateCall) doRequest(alt string) (*http.Res
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"triggerId":    strconv.FormatInt(c.triggerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24049,9 +22279,11 @@ func (c *AdvertisersManualTriggersActivateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24105,8 +22337,7 @@ func (c *AdvertisersManualTriggersCreateCall) Header() http.Header {
 
 func (c *AdvertisersManualTriggersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.manualtrigger)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.manualtrigger)
 	if err != nil {
 		return nil, err
 	}
@@ -24122,6 +22353,7 @@ func (c *AdvertisersManualTriggersCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24156,9 +22388,11 @@ func (c *AdvertisersManualTriggersCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24213,8 +22447,7 @@ func (c *AdvertisersManualTriggersDeactivateCall) Header() http.Header {
 
 func (c *AdvertisersManualTriggersDeactivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deactivatemanualtriggerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deactivatemanualtriggerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -24231,6 +22464,7 @@ func (c *AdvertisersManualTriggersDeactivateCall) doRequest(alt string) (*http.R
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"triggerId":    strconv.FormatInt(c.triggerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.deactivate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24265,9 +22499,11 @@ func (c *AdvertisersManualTriggersDeactivateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.deactivate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24332,12 +22568,11 @@ func (c *AdvertisersManualTriggersGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/manualTriggers/{+triggerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24346,6 +22581,7 @@ func (c *AdvertisersManualTriggersGetCall) doRequest(alt string) (*http.Response
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"triggerId":    strconv.FormatInt(c.triggerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24380,9 +22616,11 @@ func (c *AdvertisersManualTriggersGetCall) Do(opts ...googleapi.CallOption) (*Ma
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24488,12 +22726,11 @@ func (c *AdvertisersManualTriggersListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/manualTriggers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24501,6 +22738,7 @@ func (c *AdvertisersManualTriggersListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24536,9 +22774,11 @@ func (c *AdvertisersManualTriggersListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24623,8 +22863,7 @@ func (c *AdvertisersManualTriggersPatchCall) Header() http.Header {
 
 func (c *AdvertisersManualTriggersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.manualtrigger)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.manualtrigger)
 	if err != nil {
 		return nil, err
 	}
@@ -24641,6 +22880,7 @@ func (c *AdvertisersManualTriggersPatchCall) doRequest(alt string) (*http.Respon
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 		"triggerId":    strconv.FormatInt(c.triggerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24675,9 +22915,11 @@ func (c *AdvertisersManualTriggersPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.manualTriggers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24727,8 +22969,7 @@ func (c *AdvertisersNegativeKeywordListsCreateCall) Header() http.Header {
 
 func (c *AdvertisersNegativeKeywordListsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.negativekeywordlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.negativekeywordlist)
 	if err != nil {
 		return nil, err
 	}
@@ -24744,6 +22985,7 @@ func (c *AdvertisersNegativeKeywordListsCreateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24779,9 +23021,11 @@ func (c *AdvertisersNegativeKeywordListsCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24832,12 +23076,11 @@ func (c *AdvertisersNegativeKeywordListsDeleteCall) Header() http.Header {
 
 func (c *AdvertisersNegativeKeywordListsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/negativeKeywordLists/{+negativeKeywordListId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24846,6 +23089,7 @@ func (c *AdvertisersNegativeKeywordListsDeleteCall) doRequest(alt string) (*http
 		"advertiserId":          strconv.FormatInt(c.advertiserId, 10),
 		"negativeKeywordListId": strconv.FormatInt(c.negativeKeywordListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24880,9 +23124,11 @@ func (c *AdvertisersNegativeKeywordListsDeleteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24945,12 +23191,11 @@ func (c *AdvertisersNegativeKeywordListsGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/negativeKeywordLists/{+negativeKeywordListId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24959,6 +23204,7 @@ func (c *AdvertisersNegativeKeywordListsGetCall) doRequest(alt string) (*http.Re
 		"advertiserId":          strconv.FormatInt(c.advertiserId, 10),
 		"negativeKeywordListId": strconv.FormatInt(c.negativeKeywordListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24994,9 +23240,11 @@ func (c *AdvertisersNegativeKeywordListsGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25073,12 +23321,11 @@ func (c *AdvertisersNegativeKeywordListsListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/negativeKeywordLists")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25086,6 +23333,7 @@ func (c *AdvertisersNegativeKeywordListsListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25121,9 +23369,11 @@ func (c *AdvertisersNegativeKeywordListsListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25205,8 +23455,7 @@ func (c *AdvertisersNegativeKeywordListsPatchCall) Header() http.Header {
 
 func (c *AdvertisersNegativeKeywordListsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.negativekeywordlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.negativekeywordlist)
 	if err != nil {
 		return nil, err
 	}
@@ -25223,6 +23472,7 @@ func (c *AdvertisersNegativeKeywordListsPatchCall) doRequest(alt string) (*http.
 		"advertiserId":          strconv.FormatInt(c.advertiserId, 10),
 		"negativeKeywordListId": strconv.FormatInt(c.negativeKeywordListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25258,9 +23508,11 @@ func (c *AdvertisersNegativeKeywordListsPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25319,8 +23571,7 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsBulkEditCall) Header() h
 
 func (c *AdvertisersNegativeKeywordListsNegativeKeywordsBulkEditCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditnegativekeywordsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditnegativekeywordsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -25337,6 +23588,7 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsBulkEditCall) doRequest(
 		"advertiserId":          strconv.FormatInt(c.advertiserId, 10),
 		"negativeKeywordListId": strconv.FormatInt(c.negativeKeywordListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.bulkEdit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25372,9 +23624,11 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsBulkEditCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.bulkEdit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25427,8 +23681,7 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsCreateCall) Header() htt
 
 func (c *AdvertisersNegativeKeywordListsNegativeKeywordsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.negativekeyword)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.negativekeyword)
 	if err != nil {
 		return nil, err
 	}
@@ -25445,6 +23698,7 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsCreateCall) doRequest(al
 		"advertiserId":          strconv.FormatInt(c.advertiserId, 10),
 		"negativeKeywordListId": strconv.FormatInt(c.negativeKeywordListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25480,9 +23734,11 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsCreateCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25536,12 +23792,11 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsDeleteCall) Header() htt
 
 func (c *AdvertisersNegativeKeywordListsNegativeKeywordsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{advertiserId}/negativeKeywordLists/{+negativeKeywordListId}/negativeKeywords/{+keywordValue}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25551,6 +23806,7 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsDeleteCall) doRequest(al
 		"negativeKeywordListId": strconv.FormatInt(c.negativeKeywordListId, 10),
 		"keywordValue":          c.keywordValue,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25585,9 +23841,11 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsDeleteCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25690,12 +23948,11 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsListCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/negativeKeywordLists/{+negativeKeywordListId}/negativeKeywords")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25704,6 +23961,7 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsListCall) doRequest(alt 
 		"advertiserId":          strconv.FormatInt(c.advertiserId, 10),
 		"negativeKeywordListId": strconv.FormatInt(c.negativeKeywordListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25739,9 +23997,11 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsListCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25817,8 +24077,7 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsReplaceCall) Header() ht
 
 func (c *AdvertisersNegativeKeywordListsNegativeKeywordsReplaceCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.replacenegativekeywordsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.replacenegativekeywordsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -25835,6 +24094,7 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsReplaceCall) doRequest(a
 		"advertiserId":          strconv.FormatInt(c.advertiserId, 10),
 		"negativeKeywordListId": strconv.FormatInt(c.negativeKeywordListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.replace", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25870,9 +24130,11 @@ func (c *AdvertisersNegativeKeywordListsNegativeKeywordsReplaceCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.negativeKeywordLists.negativeKeywords.replace", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25927,8 +24189,7 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsCreateCall) Header() h
 
 func (c *AdvertisersTargetingTypesAssignedTargetingOptionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assignedtargetingoption)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.assignedtargetingoption)
 	if err != nil {
 		return nil, err
 	}
@@ -25945,6 +24206,7 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsCreateCall) doRequest(
 		"advertiserId":  strconv.FormatInt(c.advertiserId, 10),
 		"targetingType": c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.targetingTypes.assignedTargetingOptions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25980,9 +24242,11 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsCreateCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.targetingTypes.assignedTargetingOptions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26038,12 +24302,11 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsDeleteCall) Header() h
 
 func (c *AdvertisersTargetingTypesAssignedTargetingOptionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26053,6 +24316,7 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsDeleteCall) doRequest(
 		"targetingType":             c.targetingType,
 		"assignedTargetingOptionId": c.assignedTargetingOptionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.targetingTypes.assignedTargetingOptions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26087,9 +24351,11 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsDeleteCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.targetingTypes.assignedTargetingOptions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26114,7 +24380,8 @@ type AdvertisersTargetingTypesAssignedTargetingOptionsGetCall struct {
 //     Supported targeting types: * `TARGETING_TYPE_CHANNEL` *
 //     `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` * `TARGETING_TYPE_OMID` *
 //     `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` *
-//     `TARGETING_TYPE_YOUTUBE_VIDEO` * `TARGETING_TYPE_YOUTUBE_CHANNEL`.
+//     `TARGETING_TYPE_YOUTUBE_VIDEO` * `TARGETING_TYPE_YOUTUBE_CHANNEL` *
+//     `TARGETING_TYPE_KEYWORD`.
 func (r *AdvertisersTargetingTypesAssignedTargetingOptionsService) Get(advertiserId int64, targetingType string, assignedTargetingOptionId string) *AdvertisersTargetingTypesAssignedTargetingOptionsGetCall {
 	c := &AdvertisersTargetingTypesAssignedTargetingOptionsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.advertiserId = advertiserId
@@ -26159,12 +24426,11 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsGetCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26174,6 +24440,7 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsGetCall) doRequest(alt
 		"targetingType":             c.targetingType,
 		"assignedTargetingOptionId": c.assignedTargetingOptionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.targetingTypes.assignedTargetingOptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26209,9 +24476,11 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsGetCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.targetingTypes.assignedTargetingOptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26232,7 +24501,8 @@ type AdvertisersTargetingTypesAssignedTargetingOptionsListCall struct {
 //     Supported targeting types: * `TARGETING_TYPE_CHANNEL` *
 //     `TARGETING_TYPE_DIGITAL_CONTENT_LABEL_EXCLUSION` * `TARGETING_TYPE_OMID` *
 //     `TARGETING_TYPE_SENSITIVE_CATEGORY_EXCLUSION` *
-//     `TARGETING_TYPE_YOUTUBE_VIDEO` * `TARGETING_TYPE_YOUTUBE_CHANNEL`.
+//     `TARGETING_TYPE_YOUTUBE_VIDEO` * `TARGETING_TYPE_YOUTUBE_CHANNEL` *
+//     `TARGETING_TYPE_KEYWORD`.
 func (r *AdvertisersTargetingTypesAssignedTargetingOptionsService) List(advertiserId int64, targetingType string) *AdvertisersTargetingTypesAssignedTargetingOptionsListCall {
 	c := &AdvertisersTargetingTypesAssignedTargetingOptionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.advertiserId = advertiserId
@@ -26318,12 +24588,11 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsListCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/targetingTypes/{+targetingType}/assignedTargetingOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26332,6 +24601,7 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsListCall) doRequest(al
 		"advertiserId":  strconv.FormatInt(c.advertiserId, 10),
 		"targetingType": c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.targetingTypes.assignedTargetingOptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26367,9 +24637,11 @@ func (c *AdvertisersTargetingTypesAssignedTargetingOptionsListCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.targetingTypes.assignedTargetingOptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26451,12 +24723,11 @@ func (c *AdvertisersYoutubeAdGroupAdsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/youtubeAdGroupAds/{+youtubeAdGroupAdId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26465,6 +24736,7 @@ func (c *AdvertisersYoutubeAdGroupAdsGetCall) doRequest(alt string) (*http.Respo
 		"advertiserId":       strconv.FormatInt(c.advertiserId, 10),
 		"youtubeAdGroupAdId": strconv.FormatInt(c.youtubeAdGroupAdId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroupAds.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26500,9 +24772,11 @@ func (c *AdvertisersYoutubeAdGroupAdsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroupAds.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26606,12 +24880,11 @@ func (c *AdvertisersYoutubeAdGroupAdsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/youtubeAdGroupAds")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26619,6 +24892,7 @@ func (c *AdvertisersYoutubeAdGroupAdsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroupAds.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26654,9 +24928,11 @@ func (c *AdvertisersYoutubeAdGroupAdsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroupAds.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26793,12 +25069,11 @@ func (c *AdvertisersYoutubeAdGroupsBulkListAdGroupAssignedTargetingOptionsCall) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/youtubeAdGroups:bulkListAdGroupAssignedTargetingOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26806,6 +25081,7 @@ func (c *AdvertisersYoutubeAdGroupsBulkListAdGroupAssignedTargetingOptionsCall) 
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.bulkListAdGroupAssignedTargetingOptions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26841,9 +25117,11 @@ func (c *AdvertisersYoutubeAdGroupsBulkListAdGroupAssignedTargetingOptionsCall) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.bulkListAdGroupAssignedTargetingOptions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26925,12 +25203,11 @@ func (c *AdvertisersYoutubeAdGroupsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/youtubeAdGroups/{+youtubeAdGroupId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26939,6 +25216,7 @@ func (c *AdvertisersYoutubeAdGroupsGetCall) doRequest(alt string) (*http.Respons
 		"advertiserId":     strconv.FormatInt(c.advertiserId, 10),
 		"youtubeAdGroupId": strconv.FormatInt(c.youtubeAdGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26973,9 +25251,11 @@ func (c *AdvertisersYoutubeAdGroupsGetCall) Do(opts ...googleapi.CallOption) (*Y
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27080,12 +25360,11 @@ func (c *AdvertisersYoutubeAdGroupsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/youtubeAdGroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27093,6 +25372,7 @@ func (c *AdvertisersYoutubeAdGroupsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27128,9 +25408,11 @@ func (c *AdvertisersYoutubeAdGroupsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27229,12 +25511,11 @@ func (c *AdvertisersYoutubeAdGroupsTargetingTypesAssignedTargetingOptionsGetCall
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/youtubeAdGroups/{+youtubeAdGroupId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27245,6 +25526,7 @@ func (c *AdvertisersYoutubeAdGroupsTargetingTypesAssignedTargetingOptionsGetCall
 		"targetingType":             c.targetingType,
 		"assignedTargetingOptionId": c.assignedTargetingOptionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.targetingTypes.assignedTargetingOptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27280,9 +25562,11 @@ func (c *AdvertisersYoutubeAdGroupsTargetingTypesAssignedTargetingOptionsGetCall
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.targetingTypes.assignedTargetingOptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27398,12 +25682,11 @@ func (c *AdvertisersYoutubeAdGroupsTargetingTypesAssignedTargetingOptionsListCal
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/advertisers/{+advertiserId}/youtubeAdGroups/{+youtubeAdGroupId}/targetingTypes/{+targetingType}/assignedTargetingOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27413,6 +25696,7 @@ func (c *AdvertisersYoutubeAdGroupsTargetingTypesAssignedTargetingOptionsListCal
 		"youtubeAdGroupId": strconv.FormatInt(c.youtubeAdGroupId, 10),
 		"targetingType":    c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.targetingTypes.assignedTargetingOptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27448,9 +25732,11 @@ func (c *AdvertisersYoutubeAdGroupsTargetingTypesAssignedTargetingOptionsListCal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.advertisers.youtubeAdGroups.targetingTypes.assignedTargetingOptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27543,12 +25829,11 @@ func (c *CombinedAudiencesGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/combinedAudiences/{+combinedAudienceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27556,6 +25841,7 @@ func (c *CombinedAudiencesGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"combinedAudienceId": strconv.FormatInt(c.combinedAudienceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.combinedAudiences.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27591,9 +25877,11 @@ func (c *CombinedAudiencesGetCall) Do(opts ...googleapi.CallOption) (*CombinedAu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.combinedAudiences.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27703,16 +25991,16 @@ func (c *CombinedAudiencesListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/combinedAudiences")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.combinedAudiences.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27748,9 +26036,11 @@ func (c *CombinedAudiencesListCall) Do(opts ...googleapi.CallOption) (*ListCombi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.combinedAudiences.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27816,8 +26106,7 @@ func (c *CustomBiddingAlgorithmsCreateCall) Header() http.Header {
 
 func (c *CustomBiddingAlgorithmsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custombiddingalgorithm)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.custombiddingalgorithm)
 	if err != nil {
 		return nil, err
 	}
@@ -27830,6 +26119,7 @@ func (c *CustomBiddingAlgorithmsCreateCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27865,9 +26155,11 @@ func (c *CustomBiddingAlgorithmsCreateCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27939,12 +26231,11 @@ func (c *CustomBiddingAlgorithmsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/customBiddingAlgorithms/{+customBiddingAlgorithmId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27952,6 +26243,7 @@ func (c *CustomBiddingAlgorithmsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"customBiddingAlgorithmId": strconv.FormatInt(c.customBiddingAlgorithmId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27987,9 +26279,11 @@ func (c *CustomBiddingAlgorithmsGetCall) Do(opts ...googleapi.CallOption) (*Cust
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28104,16 +26398,16 @@ func (c *CustomBiddingAlgorithmsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/customBiddingAlgorithms")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28149,9 +26443,11 @@ func (c *CustomBiddingAlgorithmsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28186,7 +26482,10 @@ type CustomBiddingAlgorithmsPatchCall struct {
 }
 
 // Patch: Updates an existing custom bidding algorithm. Returns the updated
-// custom bidding algorithm if successful.
+// custom bidding algorithm if successful. *Warning*: Starting **April 1,
+// 2025**, requests updating custom bidding algorithms that are assigned to
+// line items will return an error. Read more about this announced change
+// (/display-video/api/deprecations#features.custom_bidding_floodlight).
 //
 //   - customBiddingAlgorithmId: Output only. The unique ID of the custom bidding
 //     algorithm. Assigned by the system.
@@ -28229,8 +26528,7 @@ func (c *CustomBiddingAlgorithmsPatchCall) Header() http.Header {
 
 func (c *CustomBiddingAlgorithmsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custombiddingalgorithm)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.custombiddingalgorithm)
 	if err != nil {
 		return nil, err
 	}
@@ -28246,6 +26544,7 @@ func (c *CustomBiddingAlgorithmsPatchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"customBiddingAlgorithmId": strconv.FormatInt(c.customBiddingAlgorithmId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28281,9 +26580,11 @@ func (c *CustomBiddingAlgorithmsPatchCall) Do(opts ...googleapi.CallOption) (*Cu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28360,12 +26661,11 @@ func (c *CustomBiddingAlgorithmsUploadScriptCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/customBiddingAlgorithms/{+customBiddingAlgorithmId}:uploadScript")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28373,6 +26673,7 @@ func (c *CustomBiddingAlgorithmsUploadScriptCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"customBiddingAlgorithmId": strconv.FormatInt(c.customBiddingAlgorithmId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.uploadScript", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28408,9 +26709,11 @@ func (c *CustomBiddingAlgorithmsUploadScriptCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.uploadScript", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28424,7 +26727,10 @@ type CustomBiddingAlgorithmsScriptsCreateCall struct {
 }
 
 // Create: Creates a new custom bidding script. Returns the newly created
-// script if successful.
+// script if successful. *Warning*: Starting **April 1, 2025**, requests
+// updating custom bidding algorithms that are assigned to line items will
+// return an error. Read more about this announced change
+// (/display-video/api/deprecations#features.custom_bidding_floodlight).
 //
 //   - customBiddingAlgorithmId: The ID of the custom bidding algorithm that owns
 //     the script.
@@ -28475,8 +26781,7 @@ func (c *CustomBiddingAlgorithmsScriptsCreateCall) Header() http.Header {
 
 func (c *CustomBiddingAlgorithmsScriptsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custombiddingscript)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.custombiddingscript)
 	if err != nil {
 		return nil, err
 	}
@@ -28492,6 +26797,7 @@ func (c *CustomBiddingAlgorithmsScriptsCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"customBiddingAlgorithmId": strconv.FormatInt(c.customBiddingAlgorithmId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.scripts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28527,9 +26833,11 @@ func (c *CustomBiddingAlgorithmsScriptsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.scripts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28606,12 +26914,11 @@ func (c *CustomBiddingAlgorithmsScriptsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/customBiddingAlgorithms/{+customBiddingAlgorithmId}/scripts/{+customBiddingScriptId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28620,6 +26927,7 @@ func (c *CustomBiddingAlgorithmsScriptsGetCall) doRequest(alt string) (*http.Res
 		"customBiddingAlgorithmId": strconv.FormatInt(c.customBiddingAlgorithmId, 10),
 		"customBiddingScriptId":    strconv.FormatInt(c.customBiddingScriptId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.scripts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28655,9 +26963,11 @@ func (c *CustomBiddingAlgorithmsScriptsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.scripts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28759,12 +27069,11 @@ func (c *CustomBiddingAlgorithmsScriptsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/customBiddingAlgorithms/{+customBiddingAlgorithmId}/scripts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28772,6 +27081,7 @@ func (c *CustomBiddingAlgorithmsScriptsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"customBiddingAlgorithmId": strconv.FormatInt(c.customBiddingAlgorithmId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.scripts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28807,9 +27117,11 @@ func (c *CustomBiddingAlgorithmsScriptsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customBiddingAlgorithms.scripts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28895,12 +27207,11 @@ func (c *CustomListsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/customLists/{+customListId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28908,6 +27219,7 @@ func (c *CustomListsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"customListId": strconv.FormatInt(c.customListId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customLists.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28942,9 +27254,11 @@ func (c *CustomListsGetCall) Do(opts ...googleapi.CallOption) (*CustomList, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customLists.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29045,16 +27359,16 @@ func (c *CustomListsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/customLists")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.customLists.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29090,9 +27404,11 @@ func (c *CustomListsListCall) Do(opts ...googleapi.CallOption) (*ListCustomLists
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.customLists.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29115,637 +27431,6 @@ func (c *CustomListsListCall) Pages(ctx context.Context, f func(*ListCustomLists
 		}
 		c.PageToken(x.NextPageToken)
 	}
-}
-
-type FirstAndThirdPartyAudiencesCreateCall struct {
-	s                          *Service
-	firstandthirdpartyaudience *FirstAndThirdPartyAudience
-	urlParams_                 gensupport.URLParams
-	ctx_                       context.Context
-	header_                    http.Header
-}
-
-// Create: Creates a FirstAndThirdPartyAudience. Only supported for the
-// following audience_type: * `CUSTOMER_MATCH_CONTACT_INFO` *
-// `CUSTOMER_MATCH_DEVICE_ID`
-func (r *FirstAndThirdPartyAudiencesService) Create(firstandthirdpartyaudience *FirstAndThirdPartyAudience) *FirstAndThirdPartyAudiencesCreateCall {
-	c := &FirstAndThirdPartyAudiencesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.firstandthirdpartyaudience = firstandthirdpartyaudience
-	return c
-}
-
-// AdvertiserId sets the optional parameter "advertiserId": Required. The ID of
-// the advertiser under whom the FirstAndThirdPartyAudience will be created.
-func (c *FirstAndThirdPartyAudiencesCreateCall) AdvertiserId(advertiserId int64) *FirstAndThirdPartyAudiencesCreateCall {
-	c.urlParams_.Set("advertiserId", fmt.Sprint(advertiserId))
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *FirstAndThirdPartyAudiencesCreateCall) Fields(s ...googleapi.Field) *FirstAndThirdPartyAudiencesCreateCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *FirstAndThirdPartyAudiencesCreateCall) Context(ctx context.Context) *FirstAndThirdPartyAudiencesCreateCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *FirstAndThirdPartyAudiencesCreateCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *FirstAndThirdPartyAudiencesCreateCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.firstandthirdpartyaudience)
-	if err != nil {
-		return nil, err
-	}
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/firstAndThirdPartyAudiences")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.firstAndThirdPartyAudiences.create" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *FirstAndThirdPartyAudience.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *FirstAndThirdPartyAudiencesCreateCall) Do(opts ...googleapi.CallOption) (*FirstAndThirdPartyAudience, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &FirstAndThirdPartyAudience{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall struct {
-	s                               *Service
-	firstAndThirdPartyAudienceId    int64
-	editcustomermatchmembersrequest *EditCustomerMatchMembersRequest
-	urlParams_                      gensupport.URLParams
-	ctx_                            context.Context
-	header_                         http.Header
-}
-
-// EditCustomerMatchMembers: Updates the member list of a Customer Match
-// audience. Only supported for the following audience_type: *
-// `CUSTOMER_MATCH_CONTACT_INFO` * `CUSTOMER_MATCH_DEVICE_ID`
-//
-//   - firstAndThirdPartyAudienceId: The ID of the Customer Match
-//     FirstAndThirdPartyAudience whose members will be edited.
-func (r *FirstAndThirdPartyAudiencesService) EditCustomerMatchMembers(firstAndThirdPartyAudienceId int64, editcustomermatchmembersrequest *EditCustomerMatchMembersRequest) *FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall {
-	c := &FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.firstAndThirdPartyAudienceId = firstAndThirdPartyAudienceId
-	c.editcustomermatchmembersrequest = editcustomermatchmembersrequest
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall) Fields(s ...googleapi.Field) *FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall) Context(ctx context.Context) *FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.editcustomermatchmembersrequest)
-	if err != nil {
-		return nil, err
-	}
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/firstAndThirdPartyAudiences/{+firstAndThirdPartyAudienceId}:editCustomerMatchMembers")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"firstAndThirdPartyAudienceId": strconv.FormatInt(c.firstAndThirdPartyAudienceId, 10),
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.firstAndThirdPartyAudiences.editCustomerMatchMembers" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *EditCustomerMatchMembersResponse.ServerResponse.Header or (if a response
-// was returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *FirstAndThirdPartyAudiencesEditCustomerMatchMembersCall) Do(opts ...googleapi.CallOption) (*EditCustomerMatchMembersResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &EditCustomerMatchMembersResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type FirstAndThirdPartyAudiencesGetCall struct {
-	s                            *Service
-	firstAndThirdPartyAudienceId int64
-	urlParams_                   gensupport.URLParams
-	ifNoneMatch_                 string
-	ctx_                         context.Context
-	header_                      http.Header
-}
-
-// Get: Gets a first and third party audience.
-//
-//   - firstAndThirdPartyAudienceId: The ID of the first and third party audience
-//     to fetch.
-func (r *FirstAndThirdPartyAudiencesService) Get(firstAndThirdPartyAudienceId int64) *FirstAndThirdPartyAudiencesGetCall {
-	c := &FirstAndThirdPartyAudiencesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.firstAndThirdPartyAudienceId = firstAndThirdPartyAudienceId
-	return c
-}
-
-// AdvertiserId sets the optional parameter "advertiserId": The ID of the
-// advertiser that has access to the fetched first and third party audience.
-func (c *FirstAndThirdPartyAudiencesGetCall) AdvertiserId(advertiserId int64) *FirstAndThirdPartyAudiencesGetCall {
-	c.urlParams_.Set("advertiserId", fmt.Sprint(advertiserId))
-	return c
-}
-
-// PartnerId sets the optional parameter "partnerId": The ID of the partner
-// that has access to the fetched first and third party audience.
-func (c *FirstAndThirdPartyAudiencesGetCall) PartnerId(partnerId int64) *FirstAndThirdPartyAudiencesGetCall {
-	c.urlParams_.Set("partnerId", fmt.Sprint(partnerId))
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *FirstAndThirdPartyAudiencesGetCall) Fields(s ...googleapi.Field) *FirstAndThirdPartyAudiencesGetCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *FirstAndThirdPartyAudiencesGetCall) IfNoneMatch(entityTag string) *FirstAndThirdPartyAudiencesGetCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *FirstAndThirdPartyAudiencesGetCall) Context(ctx context.Context) *FirstAndThirdPartyAudiencesGetCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *FirstAndThirdPartyAudiencesGetCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *FirstAndThirdPartyAudiencesGetCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/firstAndThirdPartyAudiences/{+firstAndThirdPartyAudienceId}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"firstAndThirdPartyAudienceId": strconv.FormatInt(c.firstAndThirdPartyAudienceId, 10),
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.firstAndThirdPartyAudiences.get" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *FirstAndThirdPartyAudience.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *FirstAndThirdPartyAudiencesGetCall) Do(opts ...googleapi.CallOption) (*FirstAndThirdPartyAudience, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &FirstAndThirdPartyAudience{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type FirstAndThirdPartyAudiencesListCall struct {
-	s            *Service
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// List: Lists first and third party audiences. The order is defined by the
-// order_by parameter.
-func (r *FirstAndThirdPartyAudiencesService) List() *FirstAndThirdPartyAudiencesListCall {
-	c := &FirstAndThirdPartyAudiencesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	return c
-}
-
-// AdvertiserId sets the optional parameter "advertiserId": The ID of the
-// advertiser that has access to the fetched first and third party audiences.
-func (c *FirstAndThirdPartyAudiencesListCall) AdvertiserId(advertiserId int64) *FirstAndThirdPartyAudiencesListCall {
-	c.urlParams_.Set("advertiserId", fmt.Sprint(advertiserId))
-	return c
-}
-
-// Filter sets the optional parameter "filter": Allows filtering by first and
-// third party audience fields. Supported syntax: * Filter expressions for
-// first and third party audiences can only contain at most one restriction. *
-// A restriction has the form of `{field} {operator} {value}`. * All fields
-// must use the `HAS (:)` operator. Supported fields: * `displayName` Examples:
-// * All first and third party audiences for which the display name contains
-// "Google": `displayName:"Google". The length of this field should be no more
-// than 500 characters. Reference our filter `LIST` requests
-// (/display-video/api/guides/how-tos/filters) guide for more information.
-func (c *FirstAndThirdPartyAudiencesListCall) Filter(filter string) *FirstAndThirdPartyAudiencesListCall {
-	c.urlParams_.Set("filter", filter)
-	return c
-}
-
-// OrderBy sets the optional parameter "orderBy": Field by which to sort the
-// list. Acceptable values are: * `firstAndThirdPartyAudienceId` (default) *
-// `displayName` The default sorting order is ascending. To specify descending
-// order for a field, a suffix "desc" should be added to the field name.
-// Example: `displayName desc`.
-func (c *FirstAndThirdPartyAudiencesListCall) OrderBy(orderBy string) *FirstAndThirdPartyAudiencesListCall {
-	c.urlParams_.Set("orderBy", orderBy)
-	return c
-}
-
-// PageSize sets the optional parameter "pageSize": Requested page size. Must
-// be between `1` and `200`. If unspecified will default to `100`. Returns
-// error code `INVALID_ARGUMENT` if an invalid value is specified.
-func (c *FirstAndThirdPartyAudiencesListCall) PageSize(pageSize int64) *FirstAndThirdPartyAudiencesListCall {
-	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": A token identifying a
-// page of results the server should return. Typically, this is the value of
-// next_page_token returned from the previous call to
-// `ListFirstAndThirdPartyAudiences` method. If not specified, the first page
-// of results will be returned.
-func (c *FirstAndThirdPartyAudiencesListCall) PageToken(pageToken string) *FirstAndThirdPartyAudiencesListCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// PartnerId sets the optional parameter "partnerId": The ID of the partner
-// that has access to the fetched first and third party audiences.
-func (c *FirstAndThirdPartyAudiencesListCall) PartnerId(partnerId int64) *FirstAndThirdPartyAudiencesListCall {
-	c.urlParams_.Set("partnerId", fmt.Sprint(partnerId))
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *FirstAndThirdPartyAudiencesListCall) Fields(s ...googleapi.Field) *FirstAndThirdPartyAudiencesListCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *FirstAndThirdPartyAudiencesListCall) IfNoneMatch(entityTag string) *FirstAndThirdPartyAudiencesListCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *FirstAndThirdPartyAudiencesListCall) Context(ctx context.Context) *FirstAndThirdPartyAudiencesListCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *FirstAndThirdPartyAudiencesListCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *FirstAndThirdPartyAudiencesListCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/firstAndThirdPartyAudiences")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.firstAndThirdPartyAudiences.list" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *ListFirstAndThirdPartyAudiencesResponse.ServerResponse.Header or (if a
-// response was returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *FirstAndThirdPartyAudiencesListCall) Do(opts ...googleapi.CallOption) (*ListFirstAndThirdPartyAudiencesResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &ListFirstAndThirdPartyAudiencesResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *FirstAndThirdPartyAudiencesListCall) Pages(ctx context.Context, f func(*ListFirstAndThirdPartyAudiencesResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken"))
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
-}
-
-type FirstAndThirdPartyAudiencesPatchCall struct {
-	s                            *Service
-	firstAndThirdPartyAudienceId int64
-	firstandthirdpartyaudience   *FirstAndThirdPartyAudience
-	urlParams_                   gensupport.URLParams
-	ctx_                         context.Context
-	header_                      http.Header
-}
-
-// Patch: Updates an existing FirstAndThirdPartyAudience. Only supported for
-// the following audience_type: * `CUSTOMER_MATCH_CONTACT_INFO` *
-// `CUSTOMER_MATCH_DEVICE_ID`
-//
-//   - firstAndThirdPartyAudienceId: Output only. The unique ID of the first and
-//     third party audience. Assigned by the system.
-func (r *FirstAndThirdPartyAudiencesService) Patch(firstAndThirdPartyAudienceId int64, firstandthirdpartyaudience *FirstAndThirdPartyAudience) *FirstAndThirdPartyAudiencesPatchCall {
-	c := &FirstAndThirdPartyAudiencesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.firstAndThirdPartyAudienceId = firstAndThirdPartyAudienceId
-	c.firstandthirdpartyaudience = firstandthirdpartyaudience
-	return c
-}
-
-// AdvertiserId sets the optional parameter "advertiserId": Required. The ID of
-// the owner advertiser of the updated FirstAndThirdPartyAudience.
-func (c *FirstAndThirdPartyAudiencesPatchCall) AdvertiserId(advertiserId int64) *FirstAndThirdPartyAudiencesPatchCall {
-	c.urlParams_.Set("advertiserId", fmt.Sprint(advertiserId))
-	return c
-}
-
-// UpdateMask sets the optional parameter "updateMask": Required. The mask to
-// control which fields to update. Updates are only supported for the following
-// fields: * `displayName` * `description` * `membershipDurationDays`
-func (c *FirstAndThirdPartyAudiencesPatchCall) UpdateMask(updateMask string) *FirstAndThirdPartyAudiencesPatchCall {
-	c.urlParams_.Set("updateMask", updateMask)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *FirstAndThirdPartyAudiencesPatchCall) Fields(s ...googleapi.Field) *FirstAndThirdPartyAudiencesPatchCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *FirstAndThirdPartyAudiencesPatchCall) Context(ctx context.Context) *FirstAndThirdPartyAudiencesPatchCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *FirstAndThirdPartyAudiencesPatchCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *FirstAndThirdPartyAudiencesPatchCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.firstandthirdpartyaudience)
-	if err != nil {
-		return nil, err
-	}
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/firstAndThirdPartyAudiences/{+firstAndThirdPartyAudienceId}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("PATCH", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"firstAndThirdPartyAudienceId": strconv.FormatInt(c.firstAndThirdPartyAudienceId, 10),
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "displayvideo.firstAndThirdPartyAudiences.patch" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *FirstAndThirdPartyAudience.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *FirstAndThirdPartyAudiencesPatchCall) Do(opts ...googleapi.CallOption) (*FirstAndThirdPartyAudience, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &FirstAndThirdPartyAudience{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
 }
 
 type FloodlightGroupsGetCall struct {
@@ -29809,12 +27494,11 @@ func (c *FloodlightGroupsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/floodlightGroups/{+floodlightGroupId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -29822,6 +27506,7 @@ func (c *FloodlightGroupsGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"floodlightGroupId": strconv.FormatInt(c.floodlightGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.floodlightGroups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29857,9 +27542,11 @@ func (c *FloodlightGroupsGetCall) Do(opts ...googleapi.CallOption) (*FloodlightG
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.floodlightGroups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29923,8 +27610,7 @@ func (c *FloodlightGroupsPatchCall) Header() http.Header {
 
 func (c *FloodlightGroupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.floodlightgroup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.floodlightgroup)
 	if err != nil {
 		return nil, err
 	}
@@ -29940,6 +27626,7 @@ func (c *FloodlightGroupsPatchCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"floodlightGroupId": strconv.FormatInt(c.floodlightGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.floodlightGroups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29975,9 +27662,11 @@ func (c *FloodlightGroupsPatchCall) Do(opts ...googleapi.CallOption) (*Floodligh
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.floodlightGroups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30046,12 +27735,11 @@ func (c *FloodlightGroupsFloodlightActivitiesGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/floodlightGroups/{+floodlightGroupId}/floodlightActivities/{+floodlightActivityId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30060,6 +27748,7 @@ func (c *FloodlightGroupsFloodlightActivitiesGetCall) doRequest(alt string) (*ht
 		"floodlightGroupId":    strconv.FormatInt(c.floodlightGroupId, 10),
 		"floodlightActivityId": strconv.FormatInt(c.floodlightActivityId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.floodlightGroups.floodlightActivities.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30095,9 +27784,11 @@ func (c *FloodlightGroupsFloodlightActivitiesGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.floodlightGroups.floodlightActivities.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30191,12 +27882,11 @@ func (c *FloodlightGroupsFloodlightActivitiesListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/floodlightGroups/{+floodlightGroupId}/floodlightActivities")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30204,6 +27894,7 @@ func (c *FloodlightGroupsFloodlightActivitiesListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"floodlightGroupId": strconv.FormatInt(c.floodlightGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.floodlightGroups.floodlightActivities.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30239,9 +27930,11 @@ func (c *FloodlightGroupsFloodlightActivitiesListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.floodlightGroups.floodlightActivities.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30334,12 +28027,11 @@ func (c *GoogleAudiencesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/googleAudiences/{+googleAudienceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30347,6 +28039,7 @@ func (c *GoogleAudiencesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"googleAudienceId": strconv.FormatInt(c.googleAudienceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.googleAudiences.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30381,9 +28074,11 @@ func (c *GoogleAudiencesGetCall) Do(opts ...googleapi.CallOption) (*GoogleAudien
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.googleAudiences.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30493,16 +28188,16 @@ func (c *GoogleAudiencesListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/googleAudiences")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.googleAudiences.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30538,9 +28233,11 @@ func (c *GoogleAudiencesListCall) Do(opts ...googleapi.CallOption) (*ListGoogleA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.googleAudiences.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30620,8 +28317,7 @@ func (c *GuaranteedOrdersCreateCall) Header() http.Header {
 
 func (c *GuaranteedOrdersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.guaranteedorder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.guaranteedorder)
 	if err != nil {
 		return nil, err
 	}
@@ -30634,6 +28330,7 @@ func (c *GuaranteedOrdersCreateCall) doRequest(alt string) (*http.Response, erro
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30669,9 +28366,11 @@ func (c *GuaranteedOrdersCreateCall) Do(opts ...googleapi.CallOption) (*Guarante
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30721,8 +28420,7 @@ func (c *GuaranteedOrdersEditGuaranteedOrderReadAccessorsCall) Header() http.Hea
 
 func (c *GuaranteedOrdersEditGuaranteedOrderReadAccessorsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.editguaranteedorderreadaccessorsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.editguaranteedorderreadaccessorsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -30738,6 +28436,7 @@ func (c *GuaranteedOrdersEditGuaranteedOrderReadAccessorsCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"guaranteedOrderId": c.guaranteedOrderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.editGuaranteedOrderReadAccessors", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30773,9 +28472,11 @@ func (c *GuaranteedOrdersEditGuaranteedOrderReadAccessorsCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.editGuaranteedOrderReadAccessors", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30848,12 +28549,11 @@ func (c *GuaranteedOrdersGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/guaranteedOrders/{+guaranteedOrderId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30861,6 +28561,7 @@ func (c *GuaranteedOrdersGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"guaranteedOrderId": c.guaranteedOrderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30896,9 +28597,11 @@ func (c *GuaranteedOrdersGetCall) Do(opts ...googleapi.CallOption) (*GuaranteedO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31012,16 +28715,16 @@ func (c *GuaranteedOrdersListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/guaranteedOrders")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31057,9 +28760,11 @@ func (c *GuaranteedOrdersListCall) Do(opts ...googleapi.CallOption) (*ListGuaran
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31152,8 +28857,7 @@ func (c *GuaranteedOrdersPatchCall) Header() http.Header {
 
 func (c *GuaranteedOrdersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.guaranteedorder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.guaranteedorder)
 	if err != nil {
 		return nil, err
 	}
@@ -31169,6 +28873,7 @@ func (c *GuaranteedOrdersPatchCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"guaranteedOrderId": c.guaranteedOrderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31204,9 +28909,11 @@ func (c *GuaranteedOrdersPatchCall) Do(opts ...googleapi.CallOption) (*Guarantee
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.guaranteedOrders.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31268,8 +28975,7 @@ func (c *InventorySourceGroupsCreateCall) Header() http.Header {
 
 func (c *InventorySourceGroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inventorysourcegroup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inventorysourcegroup)
 	if err != nil {
 		return nil, err
 	}
@@ -31282,6 +28988,7 @@ func (c *InventorySourceGroupsCreateCall) doRequest(alt string) (*http.Response,
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31317,9 +29024,11 @@ func (c *InventorySourceGroupsCreateCall) Do(opts ...googleapi.CallOption) (*Inv
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31381,12 +29090,11 @@ func (c *InventorySourceGroupsDeleteCall) Header() http.Header {
 
 func (c *InventorySourceGroupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/inventorySourceGroups/{+inventorySourceGroupId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -31394,6 +29102,7 @@ func (c *InventorySourceGroupsDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceGroupId": strconv.FormatInt(c.inventorySourceGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31428,9 +29137,11 @@ func (c *InventorySourceGroupsDeleteCall) Do(opts ...googleapi.CallOption) (*Emp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31505,12 +29216,11 @@ func (c *InventorySourceGroupsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/inventorySourceGroups/{+inventorySourceGroupId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -31518,6 +29228,7 @@ func (c *InventorySourceGroupsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceGroupId": strconv.FormatInt(c.inventorySourceGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31553,9 +29264,11 @@ func (c *InventorySourceGroupsGetCall) Do(opts ...googleapi.CallOption) (*Invent
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31666,16 +29379,16 @@ func (c *InventorySourceGroupsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/inventorySourceGroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31711,9 +29424,11 @@ func (c *InventorySourceGroupsListCall) Do(opts ...googleapi.CallOption) (*ListI
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31807,8 +29522,7 @@ func (c *InventorySourceGroupsPatchCall) Header() http.Header {
 
 func (c *InventorySourceGroupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inventorysourcegroup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inventorysourcegroup)
 	if err != nil {
 		return nil, err
 	}
@@ -31824,6 +29538,7 @@ func (c *InventorySourceGroupsPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceGroupId": strconv.FormatInt(c.inventorySourceGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31859,9 +29574,11 @@ func (c *InventorySourceGroupsPatchCall) Do(opts ...googleapi.CallOption) (*Inve
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31915,8 +29632,7 @@ func (c *InventorySourceGroupsAssignedInventorySourcesBulkEditCall) Header() htt
 
 func (c *InventorySourceGroupsAssignedInventorySourcesBulkEditCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditassignedinventorysourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditassignedinventorysourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -31932,6 +29648,7 @@ func (c *InventorySourceGroupsAssignedInventorySourcesBulkEditCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceGroupId": strconv.FormatInt(c.inventorySourceGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.assignedInventorySources.bulkEdit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31967,9 +29684,11 @@ func (c *InventorySourceGroupsAssignedInventorySourcesBulkEditCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.assignedInventorySources.bulkEdit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32035,8 +29754,7 @@ func (c *InventorySourceGroupsAssignedInventorySourcesCreateCall) Header() http.
 
 func (c *InventorySourceGroupsAssignedInventorySourcesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assignedinventorysource)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.assignedinventorysource)
 	if err != nil {
 		return nil, err
 	}
@@ -32052,6 +29770,7 @@ func (c *InventorySourceGroupsAssignedInventorySourcesCreateCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceGroupId": strconv.FormatInt(c.inventorySourceGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.assignedInventorySources.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32087,9 +29806,11 @@ func (c *InventorySourceGroupsAssignedInventorySourcesCreateCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.assignedInventorySources.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32157,12 +29878,11 @@ func (c *InventorySourceGroupsAssignedInventorySourcesDeleteCall) Header() http.
 
 func (c *InventorySourceGroupsAssignedInventorySourcesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/inventorySourceGroups/{+inventorySourceGroupId}/assignedInventorySources/{+assignedInventorySourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -32171,6 +29891,7 @@ func (c *InventorySourceGroupsAssignedInventorySourcesDeleteCall) doRequest(alt 
 		"inventorySourceGroupId":    strconv.FormatInt(c.inventorySourceGroupId, 10),
 		"assignedInventorySourceId": strconv.FormatInt(c.assignedInventorySourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.assignedInventorySources.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32205,9 +29926,11 @@ func (c *InventorySourceGroupsAssignedInventorySourcesDeleteCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.assignedInventorySources.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32324,12 +30047,11 @@ func (c *InventorySourceGroupsAssignedInventorySourcesListCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/inventorySourceGroups/{+inventorySourceGroupId}/assignedInventorySources")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -32337,6 +30059,7 @@ func (c *InventorySourceGroupsAssignedInventorySourcesListCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceGroupId": strconv.FormatInt(c.inventorySourceGroupId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.assignedInventorySources.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32372,9 +30095,11 @@ func (c *InventorySourceGroupsAssignedInventorySourcesListCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySourceGroups.assignedInventorySources.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32454,8 +30179,7 @@ func (c *InventorySourcesCreateCall) Header() http.Header {
 
 func (c *InventorySourcesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inventorysource)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inventorysource)
 	if err != nil {
 		return nil, err
 	}
@@ -32468,6 +30192,7 @@ func (c *InventorySourcesCreateCall) doRequest(alt string) (*http.Response, erro
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32503,9 +30228,11 @@ func (c *InventorySourcesCreateCall) Do(opts ...googleapi.CallOption) (*Inventor
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32555,8 +30282,7 @@ func (c *InventorySourcesEditInventorySourceReadWriteAccessorsCall) Header() htt
 
 func (c *InventorySourcesEditInventorySourceReadWriteAccessorsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.editinventorysourcereadwriteaccessorsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.editinventorysourcereadwriteaccessorsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -32572,6 +30298,7 @@ func (c *InventorySourcesEditInventorySourceReadWriteAccessorsCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceId": strconv.FormatInt(c.inventorySourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.editInventorySourceReadWriteAccessors", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32607,9 +30334,11 @@ func (c *InventorySourcesEditInventorySourceReadWriteAccessorsCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.editInventorySourceReadWriteAccessors", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32674,12 +30403,11 @@ func (c *InventorySourcesGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/inventorySources/{+inventorySourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -32687,6 +30415,7 @@ func (c *InventorySourcesGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceId": strconv.FormatInt(c.inventorySourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32722,9 +30451,11 @@ func (c *InventorySourcesGetCall) Do(opts ...googleapi.CallOption) (*InventorySo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32839,16 +30570,16 @@ func (c *InventorySourcesListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/inventorySources")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32884,9 +30615,11 @@ func (c *InventorySourcesListCall) Do(opts ...googleapi.CallOption) (*ListInvent
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32978,8 +30711,7 @@ func (c *InventorySourcesPatchCall) Header() http.Header {
 
 func (c *InventorySourcesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inventorysource)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inventorysource)
 	if err != nil {
 		return nil, err
 	}
@@ -32995,6 +30727,7 @@ func (c *InventorySourcesPatchCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"inventorySourceId": strconv.FormatInt(c.inventorySourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33030,9 +30763,11 @@ func (c *InventorySourcesPatchCall) Do(opts ...googleapi.CallOption) (*Inventory
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.inventorySources.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33093,12 +30828,11 @@ func (c *MediaDownloadCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "download/{+resourceName}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33106,6 +30840,7 @@ func (c *MediaDownloadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.media.download", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33157,9 +30892,11 @@ func (c *MediaDownloadCall) Do(opts ...googleapi.CallOption) (*GoogleBytestreamM
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.media.download", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33250,8 +30987,7 @@ func (c *MediaUploadCall) Header() http.Header {
 
 func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlebytestreammedia)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlebytestreammedia)
 	if err != nil {
 		return nil, err
 	}
@@ -33262,14 +30998,10 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/media/{+resourceName}")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -33278,6 +31010,7 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.media.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33330,9 +31063,11 @@ func (c *MediaUploadCall) Do(opts ...googleapi.CallOption) (*GoogleBytestreamMed
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.media.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33384,8 +31119,7 @@ func (c *PartnersEditAssignedTargetingOptionsCall) Header() http.Header {
 
 func (c *PartnersEditAssignedTargetingOptionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditpartnerassignedtargetingoptionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditpartnerassignedtargetingoptionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -33401,6 +31135,7 @@ func (c *PartnersEditAssignedTargetingOptionsCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.editAssignedTargetingOptions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33436,9 +31171,11 @@ func (c *PartnersEditAssignedTargetingOptionsCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.editAssignedTargetingOptions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33496,12 +31233,11 @@ func (c *PartnersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners/{+partnerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33509,6 +31245,7 @@ func (c *PartnersGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33543,9 +31280,11 @@ func (c *PartnersGetCall) Do(opts ...googleapi.CallOption) (*Partner, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33640,16 +31379,16 @@ func (c *PartnersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33685,9 +31424,11 @@ func (c *PartnersListCall) Do(opts ...googleapi.CallOption) (*ListPartnersRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33764,8 +31505,7 @@ func (c *PartnersChannelsCreateCall) Header() http.Header {
 
 func (c *PartnersChannelsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.channel)
 	if err != nil {
 		return nil, err
 	}
@@ -33781,6 +31521,7 @@ func (c *PartnersChannelsCreateCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33815,9 +31556,11 @@ func (c *PartnersChannelsCreateCall) Do(opts ...googleapi.CallOption) (*Channel,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33885,12 +31628,11 @@ func (c *PartnersChannelsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners/{+partnerId}/channels/{+channelId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33899,6 +31641,7 @@ func (c *PartnersChannelsGetCall) doRequest(alt string) (*http.Response, error) 
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 		"channelId": strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33933,9 +31676,11 @@ func (c *PartnersChannelsGetCall) Do(opts ...googleapi.CallOption) (*Channel, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34040,12 +31785,11 @@ func (c *PartnersChannelsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners/{+partnerId}/channels")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34053,6 +31797,7 @@ func (c *PartnersChannelsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34088,9 +31833,11 @@ func (c *PartnersChannelsListCall) Do(opts ...googleapi.CallOption) (*ListChanne
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34177,8 +31924,7 @@ func (c *PartnersChannelsPatchCall) Header() http.Header {
 
 func (c *PartnersChannelsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.channel)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.channel)
 	if err != nil {
 		return nil, err
 	}
@@ -34195,6 +31941,7 @@ func (c *PartnersChannelsPatchCall) doRequest(alt string) (*http.Response, error
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 		"channelId": strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34229,9 +31976,11 @@ func (c *PartnersChannelsPatchCall) Do(opts ...googleapi.CallOption) (*Channel, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34284,8 +32033,7 @@ func (c *PartnersChannelsSitesBulkEditCall) Header() http.Header {
 
 func (c *PartnersChannelsSitesBulkEditCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditsitesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditsitesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -34302,6 +32050,7 @@ func (c *PartnersChannelsSitesBulkEditCall) doRequest(alt string) (*http.Respons
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 		"channelId": strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.bulkEdit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34337,9 +32086,11 @@ func (c *PartnersChannelsSitesBulkEditCall) Do(opts ...googleapi.CallOption) (*B
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.bulkEdit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34397,8 +32148,7 @@ func (c *PartnersChannelsSitesCreateCall) Header() http.Header {
 
 func (c *PartnersChannelsSitesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.site)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.site)
 	if err != nil {
 		return nil, err
 	}
@@ -34415,6 +32165,7 @@ func (c *PartnersChannelsSitesCreateCall) doRequest(alt string) (*http.Response,
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 		"channelId": strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34449,9 +32200,11 @@ func (c *PartnersChannelsSitesCreateCall) Do(opts ...googleapi.CallOption) (*Sit
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34510,12 +32263,11 @@ func (c *PartnersChannelsSitesDeleteCall) Header() http.Header {
 
 func (c *PartnersChannelsSitesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners/{partnerId}/channels/{+channelId}/sites/{+urlOrAppId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34525,6 +32277,7 @@ func (c *PartnersChannelsSitesDeleteCall) doRequest(alt string) (*http.Response,
 		"channelId":  strconv.FormatInt(c.channelId, 10),
 		"urlOrAppId": c.urlOrAppId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34559,9 +32312,11 @@ func (c *PartnersChannelsSitesDeleteCall) Do(opts ...googleapi.CallOption) (*Emp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34669,12 +32424,11 @@ func (c *PartnersChannelsSitesListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners/{+partnerId}/channels/{+channelId}/sites")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34683,6 +32437,7 @@ func (c *PartnersChannelsSitesListCall) doRequest(alt string) (*http.Response, e
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 		"channelId": strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34718,9 +32473,11 @@ func (c *PartnersChannelsSitesListCall) Do(opts ...googleapi.CallOption) (*ListS
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34797,8 +32554,7 @@ func (c *PartnersChannelsSitesReplaceCall) Header() http.Header {
 
 func (c *PartnersChannelsSitesReplaceCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.replacesitesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.replacesitesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -34815,6 +32571,7 @@ func (c *PartnersChannelsSitesReplaceCall) doRequest(alt string) (*http.Response
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 		"channelId": strconv.FormatInt(c.channelId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.replace", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34850,9 +32607,11 @@ func (c *PartnersChannelsSitesReplaceCall) Do(opts ...googleapi.CallOption) (*Re
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.channels.sites.replace", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34905,8 +32664,7 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsCreateCall) Header() http
 
 func (c *PartnersTargetingTypesAssignedTargetingOptionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assignedtargetingoption)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.assignedtargetingoption)
 	if err != nil {
 		return nil, err
 	}
@@ -34923,6 +32681,7 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsCreateCall) doRequest(alt
 		"partnerId":     strconv.FormatInt(c.partnerId, 10),
 		"targetingType": c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.targetingTypes.assignedTargetingOptions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34958,9 +32717,11 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsCreateCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.targetingTypes.assignedTargetingOptions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35014,12 +32775,11 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsDeleteCall) Header() http
 
 func (c *PartnersTargetingTypesAssignedTargetingOptionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners/{+partnerId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35029,6 +32789,7 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsDeleteCall) doRequest(alt
 		"targetingType":             c.targetingType,
 		"assignedTargetingOptionId": c.assignedTargetingOptionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.targetingTypes.assignedTargetingOptions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35063,9 +32824,11 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsDeleteCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.targetingTypes.assignedTargetingOptions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35132,12 +32895,11 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners/{+partnerId}/targetingTypes/{+targetingType}/assignedTargetingOptions/{+assignedTargetingOptionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35147,6 +32909,7 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsGetCall) doRequest(alt st
 		"targetingType":             c.targetingType,
 		"assignedTargetingOptionId": c.assignedTargetingOptionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.targetingTypes.assignedTargetingOptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35182,9 +32945,11 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.targetingTypes.assignedTargetingOptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35289,12 +33054,11 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/partners/{+partnerId}/targetingTypes/{+targetingType}/assignedTargetingOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35303,6 +33067,7 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsListCall) doRequest(alt s
 		"partnerId":     strconv.FormatInt(c.partnerId, 10),
 		"targetingType": c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.partners.targetingTypes.assignedTargetingOptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35338,9 +33103,11 @@ func (c *PartnersTargetingTypesAssignedTargetingOptionsListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.partners.targetingTypes.assignedTargetingOptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35412,8 +33179,7 @@ func (c *SdfdownloadtasksCreateCall) Header() http.Header {
 
 func (c *SdfdownloadtasksCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createsdfdownloadtaskrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createsdfdownloadtaskrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -35426,6 +33192,7 @@ func (c *SdfdownloadtasksCreateCall) doRequest(alt string) (*http.Response, erro
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.sdfdownloadtasks.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35460,9 +33227,11 @@ func (c *SdfdownloadtasksCreateCall) Do(opts ...googleapi.CallOption) (*Operatio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.sdfdownloadtasks.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35521,12 +33290,11 @@ func (c *SdfdownloadtasksOperationsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35534,6 +33302,7 @@ func (c *SdfdownloadtasksOperationsGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.sdfdownloadtasks.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35568,9 +33337,11 @@ func (c *SdfdownloadtasksOperationsGetCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.sdfdownloadtasks.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35653,12 +33424,11 @@ func (c *TargetingTypesTargetingOptionsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/targetingTypes/{+targetingType}/targetingOptions/{+targetingOptionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35667,6 +33437,7 @@ func (c *TargetingTypesTargetingOptionsGetCall) doRequest(alt string) (*http.Res
 		"targetingType":     c.targetingType,
 		"targetingOptionId": c.targetingOptionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.targetingTypes.targetingOptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35702,9 +33473,11 @@ func (c *TargetingTypesTargetingOptionsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.targetingTypes.targetingOptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35832,12 +33605,11 @@ func (c *TargetingTypesTargetingOptionsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/targetingTypes/{+targetingType}/targetingOptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35845,6 +33617,7 @@ func (c *TargetingTypesTargetingOptionsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"targetingType": c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.targetingTypes.targetingOptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35880,9 +33653,11 @@ func (c *TargetingTypesTargetingOptionsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.targetingTypes.targetingOptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35954,8 +33729,7 @@ func (c *TargetingTypesTargetingOptionsSearchCall) Header() http.Header {
 
 func (c *TargetingTypesTargetingOptionsSearchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchtargetingoptionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.searchtargetingoptionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -35971,6 +33745,7 @@ func (c *TargetingTypesTargetingOptionsSearchCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"targetingType": c.targetingType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.targetingTypes.targetingOptions.search", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36006,9 +33781,11 @@ func (c *TargetingTypesTargetingOptionsSearchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.targetingTypes.targetingOptions.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36085,8 +33862,7 @@ func (c *UsersBulkEditAssignedUserRolesCall) Header() http.Header {
 
 func (c *UsersBulkEditAssignedUserRolesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bulkeditassigneduserrolesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bulkeditassigneduserrolesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -36102,6 +33878,7 @@ func (c *UsersBulkEditAssignedUserRolesCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": strconv.FormatInt(c.userId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.users.bulkEditAssignedUserRoles", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36137,9 +33914,11 @@ func (c *UsersBulkEditAssignedUserRolesCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.users.bulkEditAssignedUserRoles", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36187,8 +33966,7 @@ func (c *UsersCreateCall) Header() http.Header {
 
 func (c *UsersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.user)
 	if err != nil {
 		return nil, err
 	}
@@ -36201,6 +33979,7 @@ func (c *UsersCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.users.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36235,9 +34014,11 @@ func (c *UsersCreateCall) Do(opts ...googleapi.CallOption) (*User, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.users.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36286,12 +34067,11 @@ func (c *UsersDeleteCall) Header() http.Header {
 
 func (c *UsersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/users/{+userId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -36299,6 +34079,7 @@ func (c *UsersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": strconv.FormatInt(c.userId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.users.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36333,9 +34114,11 @@ func (c *UsersDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.users.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36396,12 +34179,11 @@ func (c *UsersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/users/{+userId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -36409,6 +34191,7 @@ func (c *UsersGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": strconv.FormatInt(c.userId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.users.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36443,9 +34226,11 @@ func (c *UsersGetCall) Do(opts ...googleapi.CallOption) (*User, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.users.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36562,16 +34347,16 @@ func (c *UsersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/users")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.users.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36607,9 +34392,11 @@ func (c *UsersListCall) Do(opts ...googleapi.CallOption) (*ListUsersResponse, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.users.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36689,8 +34476,7 @@ func (c *UsersPatchCall) Header() http.Header {
 
 func (c *UsersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.user)
 	if err != nil {
 		return nil, err
 	}
@@ -36706,6 +34492,7 @@ func (c *UsersPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": strconv.FormatInt(c.userId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "displayvideo.users.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36740,8 +34527,10 @@ func (c *UsersPatchCall) Do(opts ...googleapi.CallOption) (*User, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "displayvideo.users.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "iam:v2"
 const apiName = "iam"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Policies = NewPoliciesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Policies = NewPoliciesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -205,9 +208,9 @@ type CloudControl2SharedOperationsReconciliationOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudControl2SharedOperationsReconciliationOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s CloudControl2SharedOperationsReconciliationOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudControl2SharedOperationsReconciliationOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudCommonOperationMetadata: Represents the metadata of the
@@ -217,8 +220,8 @@ type GoogleCloudCommonOperationMetadata struct {
 	ApiVersion string `json:"apiVersion,omitempty"`
 	// CancelRequested: Output only. Identifies whether the user has requested
 	// cancellation of the operation. Operations that have been cancelled
-	// successfully have Operation.error value with a google.rpc.Status.code of 1,
-	// corresponding to `Code.CANCELLED`.
+	// successfully have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 	CancelRequested bool `json:"cancelRequested,omitempty"`
 	// CreateTime: Output only. The time the operation was created.
 	CreateTime string `json:"createTime,omitempty"`
@@ -244,9 +247,9 @@ type GoogleCloudCommonOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudCommonOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudCommonOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudCommonOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamAdminV1AuditData: Audit log information specific to Cloud IAM admin
@@ -268,9 +271,9 @@ type GoogleIamAdminV1AuditData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamAdminV1AuditData) MarshalJSON() ([]byte, error) {
+func (s GoogleIamAdminV1AuditData) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamAdminV1AuditData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamAdminV1AuditDataPermissionDelta: A PermissionDelta message to
@@ -293,9 +296,9 @@ type GoogleIamAdminV1AuditDataPermissionDelta struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamAdminV1AuditDataPermissionDelta) MarshalJSON() ([]byte, error) {
+func (s GoogleIamAdminV1AuditDataPermissionDelta) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamAdminV1AuditDataPermissionDelta
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1BindingDelta: One delta entry for Binding. Each individual change
@@ -329,9 +332,9 @@ type GoogleIamV1BindingDelta struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1BindingDelta) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1BindingDelta) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1BindingDelta
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1LoggingAuditData: Audit log information specific to Cloud IAM.
@@ -354,9 +357,9 @@ type GoogleIamV1LoggingAuditData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1LoggingAuditData) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1LoggingAuditData) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1LoggingAuditData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1PolicyDelta: The difference delta between two policies.
@@ -376,9 +379,9 @@ type GoogleIamV1PolicyDelta struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1PolicyDelta) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1PolicyDelta) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1PolicyDelta
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1betaWorkloadIdentityPoolOperationMetadata: Metadata for
@@ -440,8 +443,16 @@ type GoogleIamV2DenyRule struct {
 	// `: All identities in a workload identity pool with a certain attribute. *
 	// `principalSet://iam.googleapis.com/projects/{project_number}/locations/global
 	// /workloadIdentityPools/{pool_id}/*`: All identities in a workload identity
-	// pool. * `deleted:principal://goog/subject/{email_id}?uid={uid}`: A specific
-	// Google Account that was deleted recently. For example,
+	// pool. *
+	// `principalSet://cloudresourcemanager.googleapis.com/[projects|folders|organiz
+	// ations]/{project_number|folder_number|org_number}/type/ServiceAccount`: All
+	// service accounts grouped under a resource (project, folder, or
+	// organization). *
+	// `principalSet://cloudresourcemanager.googleapis.com/[projects|folders|organiz
+	// ations]/{project_number|folder_number|org_number}/type/ServiceAgent`: All
+	// service agents grouped under a resource (project, folder, or organization).
+	// * `deleted:principal://goog/subject/{email_id}?uid={uid}`: A specific Google
+	// Account that was deleted recently. For example,
 	// `deleted:principal://goog/subject/alice@example.com?uid=1234567890`. If the
 	// Google Account is recovered, this identifier reverts to the standard
 	// identifier for a Google Account. *
@@ -489,9 +500,9 @@ type GoogleIamV2DenyRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV2DenyRule) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV2DenyRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV2DenyRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV2ListPoliciesResponse: Response message for `ListPolicies`.
@@ -518,9 +529,9 @@ type GoogleIamV2ListPoliciesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV2ListPoliciesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV2ListPoliciesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV2ListPoliciesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV2Policy: Data for an IAM policy.
@@ -578,9 +589,9 @@ type GoogleIamV2Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV2Policy) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV2Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV2Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV2PolicyOperationMetadata: Metadata for long-running `Policy`
@@ -601,9 +612,9 @@ type GoogleIamV2PolicyOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV2PolicyOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV2PolicyOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV2PolicyOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV2PolicyRule: A single rule in a `Policy`.
@@ -626,9 +637,9 @@ type GoogleIamV2PolicyRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV2PolicyRule) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV2PolicyRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV2PolicyRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV3OperationMetadata: Represents the metadata of the long-running
@@ -664,9 +675,9 @@ type GoogleIamV3OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV3OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV3OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV3OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV3alphaOperationMetadata: Represents the metadata of the
@@ -702,9 +713,9 @@ type GoogleIamV3alphaOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV3alphaOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV3alphaOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV3alphaOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV3betaOperationMetadata: Represents the metadata of the
@@ -740,9 +751,9 @@ type GoogleIamV3betaOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV3betaOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV3betaOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV3betaOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV3mainOperationMetadata: Represents the metadata of the
@@ -778,9 +789,9 @@ type GoogleIamV3mainOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV3mainOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV3mainOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV3mainOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -825,9 +836,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleRpcStatus: The `Status` type defines a logical error model that is
@@ -859,9 +870,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeExpr: Represents a textual expression in the Common Expression
@@ -907,9 +918,9 @@ type GoogleTypeExpr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeExpr) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeExpr) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeExpr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type PoliciesCreatePolicyCall struct {
@@ -974,8 +985,7 @@ func (c *PoliciesCreatePolicyCall) Header() http.Header {
 
 func (c *PoliciesCreatePolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv2policy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv2policy)
 	if err != nil {
 		return nil, err
 	}
@@ -991,6 +1001,7 @@ func (c *PoliciesCreatePolicyCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iam.policies.createPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1026,9 +1037,11 @@ func (c *PoliciesCreatePolicyCall) Do(opts ...googleapi.CallOption) (*GoogleLong
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iam.policies.createPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1090,12 +1103,11 @@ func (c *PoliciesDeleteCall) Header() http.Header {
 
 func (c *PoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1103,6 +1115,7 @@ func (c *PoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iam.policies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1138,9 +1151,11 @@ func (c *PoliciesDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iam.policies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1205,12 +1220,11 @@ func (c *PoliciesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1218,6 +1232,7 @@ func (c *PoliciesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iam.policies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1253,9 +1268,11 @@ func (c *PoliciesGetCall) Do(opts ...googleapi.CallOption) (*GoogleIamV2Policy, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iam.policies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1337,12 +1354,11 @@ func (c *PoliciesListPoliciesCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1350,6 +1366,7 @@ func (c *PoliciesListPoliciesCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iam.policies.listPolicies", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1385,9 +1402,11 @@ func (c *PoliciesListPoliciesCall) Do(opts ...googleapi.CallOption) (*GoogleIamV
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iam.policies.listPolicies", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1469,8 +1488,7 @@ func (c *PoliciesUpdateCall) Header() http.Header {
 
 func (c *PoliciesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv2policy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv2policy)
 	if err != nil {
 		return nil, err
 	}
@@ -1486,6 +1504,7 @@ func (c *PoliciesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iam.policies.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1521,9 +1540,11 @@ func (c *PoliciesUpdateCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iam.policies.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1583,12 +1604,11 @@ func (c *PoliciesOperationsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1596,6 +1616,7 @@ func (c *PoliciesOperationsGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iam.policies.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1631,8 +1652,10 @@ func (c *PoliciesOperationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleLon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iam.policies.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

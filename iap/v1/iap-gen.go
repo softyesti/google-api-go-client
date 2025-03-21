@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "iap:v1"
 const apiName = "iap"
@@ -115,7 +118,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
+	s.V1 = NewV1Service(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	s.V1 = NewV1Service(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -261,9 +264,9 @@ type AccessDeniedPageSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccessDeniedPageSettings) MarshalJSON() ([]byte, error) {
+func (s AccessDeniedPageSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod AccessDeniedPageSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccessSettings: Access related settings for IAP protected apps.
@@ -290,8 +293,8 @@ type AccessSettings struct {
 	IdentitySources []string `json:"identitySources,omitempty"`
 	// OauthSettings: Optional. Settings to configure IAP's OAuth behavior.
 	OauthSettings *OAuthSettings `json:"oauthSettings,omitempty"`
-	// PolicyDelegationSettings: Optional. Settings to configure Policy delegation
-	// for apps hosted in tenant projects. INTERNAL_ONLY.
+	// PolicyDelegationSettings: Optional. Settings to allow google-internal teams
+	// to use IAP for apps hosted in a tenant project.
 	PolicyDelegationSettings *PolicyDelegationSettings `json:"policyDelegationSettings,omitempty"`
 	// ReauthSettings: Optional. Settings to configure reauthentication policies in
 	// IAP.
@@ -312,9 +315,9 @@ type AccessSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccessSettings) MarshalJSON() ([]byte, error) {
+func (s AccessSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod AccessSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AllowedDomainsSettings: Configuration for IAP allowed domains. Lets you to
@@ -338,9 +341,9 @@ type AllowedDomainsSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllowedDomainsSettings) MarshalJSON() ([]byte, error) {
+func (s AllowedDomainsSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod AllowedDomainsSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationSettings: Wrapper over application specific settings for IAP.
@@ -370,9 +373,9 @@ type ApplicationSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationSettings) MarshalJSON() ([]byte, error) {
+func (s ApplicationSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttributePropagationSettings: Configuration for propagating attributes to
@@ -425,9 +428,9 @@ type AttributePropagationSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttributePropagationSettings) MarshalJSON() ([]byte, error) {
+func (s AttributePropagationSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod AttributePropagationSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -524,9 +527,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Brand: OAuth brand data. NOTE: Only contains a portion of the data that
@@ -559,9 +562,9 @@ type Brand struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Brand) MarshalJSON() ([]byte, error) {
+func (s Brand) MarshalJSON() ([]byte, error) {
 	type NoMethod Brand
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CorsSettings: Allows customers to configure HTTP request paths that'll allow
@@ -584,9 +587,9 @@ type CorsSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CorsSettings) MarshalJSON() ([]byte, error) {
+func (s CorsSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod CorsSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CsmSettings: Configuration for RCToken generated for service mesh workloads
@@ -611,9 +614,9 @@ type CsmSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CsmSettings) MarshalJSON() ([]byte, error) {
+func (s CsmSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod CsmSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -668,9 +671,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcipSettings: Allows customers to configure tenant_id for GCIP instance
@@ -700,9 +703,9 @@ type GcipSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcipSettings) MarshalJSON() ([]byte, error) {
+func (s GcipSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GcipSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIamPolicyRequest: Request message for `GetIamPolicy` method.
@@ -723,9 +726,9 @@ type GetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetPolicyOptions: Encapsulates settings provided to GetIamPolicy.
@@ -755,9 +758,9 @@ type GetPolicyOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetPolicyOptions) MarshalJSON() ([]byte, error) {
+func (s GetPolicyOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GetPolicyOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IapSettings: The IAP configurable settings.
@@ -786,9 +789,9 @@ type IapSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IapSettings) MarshalJSON() ([]byte, error) {
+func (s IapSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod IapSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentityAwareProxyClient: Contains the data that describes an Identity Aware
@@ -816,9 +819,9 @@ type IdentityAwareProxyClient struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentityAwareProxyClient) MarshalJSON() ([]byte, error) {
+func (s IdentityAwareProxyClient) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentityAwareProxyClient
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBrandsResponse: Response message for ListBrands.
@@ -841,9 +844,9 @@ type ListBrandsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBrandsResponse) MarshalJSON() ([]byte, error) {
+func (s ListBrandsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBrandsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListIdentityAwareProxyClientsResponse: Response message for
@@ -870,9 +873,9 @@ type ListIdentityAwareProxyClientsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListIdentityAwareProxyClientsResponse) MarshalJSON() ([]byte, error) {
+func (s ListIdentityAwareProxyClientsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListIdentityAwareProxyClientsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTunnelDestGroupsResponse: The response from ListTunnelDestGroups.
@@ -898,9 +901,35 @@ type ListTunnelDestGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTunnelDestGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTunnelDestGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTunnelDestGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// NextStateOfTags: Used for calculating the next state of tags on the resource
+// being passed for the CheckCustomConstraints RPC call. The detail evaluation
+// of each field is described in go/op-create-update-time-tags and
+// go/tags-in-orgpolicy-requests.
+type NextStateOfTags struct {
+	TagsFullState                 *TagsFullState                 `json:"tagsFullState,omitempty"`
+	TagsFullStateForChildResource *TagsFullStateForChildResource `json:"tagsFullStateForChildResource,omitempty"`
+	TagsPartialState              *TagsPartialState              `json:"tagsPartialState,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "TagsFullState") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "TagsFullState") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s NextStateOfTags) MarshalJSON() ([]byte, error) {
+	type NoMethod NextStateOfTags
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OAuth2: The OAuth 2.0 Settings
@@ -927,9 +956,9 @@ type OAuth2 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OAuth2) MarshalJSON() ([]byte, error) {
+func (s OAuth2) MarshalJSON() ([]byte, error) {
 	type NoMethod OAuth2
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OAuthSettings: Configuration for OAuth login&consent flow behavior as well
@@ -957,9 +986,9 @@ type OAuthSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OAuthSettings) MarshalJSON() ([]byte, error) {
+func (s OAuthSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod OAuthSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -1047,9 +1076,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PolicyDelegationSettings: PolicyDelegationConfig allows google-internal
@@ -1083,9 +1112,9 @@ type PolicyDelegationSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyDelegationSettings) MarshalJSON() ([]byte, error) {
+func (s PolicyDelegationSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyDelegationSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PolicyName: An internal name for an IAM policy, based on the resource to
@@ -1120,9 +1149,9 @@ type PolicyName struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyName) MarshalJSON() ([]byte, error) {
+func (s PolicyName) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyName
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReauthSettings: Configuration for IAP reauthentication policies.
@@ -1130,7 +1159,7 @@ type ReauthSettings struct {
 	// MaxAge: Optional. Reauth session lifetime, how long before a user has to
 	// reauthenticate again.
 	MaxAge string `json:"maxAge,omitempty"`
-	// Method: Reauth method requested.
+	// Method: Optional. Reauth method requested.
 	//
 	// Possible values:
 	//   "METHOD_UNSPECIFIED" - Reauthentication disabled.
@@ -1163,9 +1192,9 @@ type ReauthSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReauthSettings) MarshalJSON() ([]byte, error) {
+func (s ReauthSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ReauthSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResetIdentityAwareProxyClientSecretRequest: The request sent to
@@ -1180,13 +1209,10 @@ type Resource struct {
 	// this field. Services integrated with custom org policy must populate this
 	// field for all requests where the API call changes the state of the resource.
 	// Custom org policy backend uses these attributes to enforce custom org
-	// policies. When a proto is wrapped, it is generally the One Platform API
-	// proto. When a JSON string is wrapped, use `google.protobuf.StringValue` for
-	// the inner value. For create operations, GCP service is expected to pass
-	// resource from customer request as is. For update/patch operations, GCP
-	// service is expected to compute the next state with the patch provided by the
-	// user. See go/custom-constraints-org-policy-integration-guide for additional
-	// details.
+	// policies. For create operations, GCP service is expected to pass resource
+	// from customer request as is. For update/patch operations, GCP service is
+	// expected to compute the next state with the patch provided by the user. See
+	// go/custom-constraints-org-policy-integration-guide for additional details.
 	ExpectedNextState googleapi.RawMessage `json:"expectedNextState,omitempty"`
 	// Labels: The service defined labels of the resource on which the conditions
 	// will be evaluated. The semantics - including the key names - are vague to
@@ -1210,6 +1236,14 @@ type Resource struct {
 	// further details. See go/iam-conditions-sig-g3#populate-resource-attributes
 	// for specific details on populating this field.
 	Name string `json:"name,omitempty"`
+	// NextStateOfTags: Used for calculating the next state of tags on the resource
+	// being passed for Custom Org Policy enforcement. NOTE: Only one of the tags
+	// representations (i.e. numeric or namespaced) should be populated. The input
+	// tags will be converted to the same representation before the calculation.
+	// This behavior intentionally may differ from other tags related fields in
+	// CheckPolicy request, which may require both formats to be passed in.
+	// IMPORTANT: If tags are unchanged, this field should not be set.
+	NextStateOfTags *NextStateOfTags `json:"nextStateOfTags,omitempty"`
 	// Service: The name of the service this resource belongs to. It is configured
 	// using the official_service_name of the Service as defined in service
 	// configurations under //configs/cloud/resourcetypes. For example, the
@@ -1248,9 +1282,9 @@ type Resource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Resource) MarshalJSON() ([]byte, error) {
+func (s Resource) MarshalJSON() ([]byte, error) {
 	type NoMethod Resource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -1273,9 +1307,89 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type TagsFullState struct {
+	// Tags: If TagsFullState is initialized, the values in this field fully
+	// represent all the tags in the next state (the current tag values are not
+	// used). If tags.size() == 0, the next state of tags would be no tags for
+	// evaluation purposes. Only one type of tags reference (numeric or namespace)
+	// is required to be passed.
+	Tags map[string]string `json:"tags,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Tags") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Tags") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TagsFullState) MarshalJSON() ([]byte, error) {
+	type NoMethod TagsFullState
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type TagsFullStateForChildResource struct {
+	// Tags: If TagsFullStateForChildResource is initialized, the values in this
+	// field represent all the tags in the next state for the child resource. Only
+	// one type of tags reference (numeric or namespace) is required to be passed.
+	// IMPORTANT: This field should only be used when the target resource IAM
+	// policy name is UNKNOWN and the resource's parent IAM policy name is being
+	// passed in the request.
+	Tags map[string]string `json:"tags,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Tags") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Tags") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TagsFullStateForChildResource) MarshalJSON() ([]byte, error) {
+	type NoMethod TagsFullStateForChildResource
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type TagsPartialState struct {
+	// TagKeysToRemove: Keys of the tags that should be removed for evaluation
+	// purposes. IMPORTANT: Currently only numeric references are supported. Once
+	// support for namespace references is added, both the tag references (numeric
+	// and namespace) will be removed.
+	TagKeysToRemove []string `json:"tagKeysToRemove,omitempty"`
+	// TagsToUpsert: Tags that’ll be updated or added to the current state of
+	// tags for evaluation purposes. If a key exists in both "tags_to_upsert" and
+	// "tag_keys_to_remove", the one in "tag_keys_to_remove" is ignored. Only one
+	// type of tags reference (numeric or namespace) is required to be passed.
+	TagsToUpsert map[string]string `json:"tagsToUpsert,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "TagKeysToRemove") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "TagKeysToRemove") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TagsPartialState) MarshalJSON() ([]byte, error) {
+	type NoMethod TagsPartialState
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -1298,9 +1412,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -1325,9 +1439,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TunnelDestGroup: A TunnelDestGroup.
@@ -1355,9 +1469,9 @@ type TunnelDestGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TunnelDestGroup) MarshalJSON() ([]byte, error) {
+func (s TunnelDestGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod TunnelDestGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidateIapAttributeExpressionResponse: IAP Expression Linter endpoint
@@ -1390,9 +1504,9 @@ type WorkforceIdentitySettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkforceIdentitySettings) MarshalJSON() ([]byte, error) {
+func (s WorkforceIdentitySettings) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkforceIdentitySettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsBrandsCreateCall struct {
@@ -1447,8 +1561,7 @@ func (c *ProjectsBrandsCreateCall) Header() http.Header {
 
 func (c *ProjectsBrandsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.brand)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.brand)
 	if err != nil {
 		return nil, err
 	}
@@ -1464,6 +1577,7 @@ func (c *ProjectsBrandsCreateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.brands.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1498,9 +1612,11 @@ func (c *ProjectsBrandsCreateCall) Do(opts ...googleapi.CallOption) (*Brand, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.brands.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1559,12 +1675,11 @@ func (c *ProjectsBrandsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1572,6 +1687,7 @@ func (c *ProjectsBrandsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.brands.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1606,9 +1722,11 @@ func (c *ProjectsBrandsGetCall) Do(opts ...googleapi.CallOption) (*Brand, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.brands.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1667,12 +1785,11 @@ func (c *ProjectsBrandsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/brands")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1680,6 +1797,7 @@ func (c *ProjectsBrandsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.brands.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1715,9 +1833,11 @@ func (c *ProjectsBrandsListCall) Do(opts ...googleapi.CallOption) (*ListBrandsRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.brands.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1769,8 +1889,7 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsCreateCall) Header() http.Header
 
 func (c *ProjectsBrandsIdentityAwareProxyClientsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.identityawareproxyclient)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.identityawareproxyclient)
 	if err != nil {
 		return nil, err
 	}
@@ -1786,6 +1905,7 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsCreateCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1821,9 +1941,11 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsCreateCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1875,12 +1997,11 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsDeleteCall) Header() http.Header
 
 func (c *ProjectsBrandsIdentityAwareProxyClientsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1888,6 +2009,7 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsDeleteCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1922,9 +2044,11 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsDeleteCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1986,12 +2110,11 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsGetCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1999,6 +2122,7 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsGetCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2034,9 +2158,11 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsGetCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2114,12 +2240,11 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/identityAwareProxyClients")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2127,6 +2252,7 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2162,9 +2288,11 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2238,8 +2366,7 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsResetSecretCall) Header() http.H
 
 func (c *ProjectsBrandsIdentityAwareProxyClientsResetSecretCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resetidentityawareproxyclientsecretrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resetidentityawareproxyclientsecretrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2255,6 +2382,7 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsResetSecretCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.resetSecret", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2290,9 +2418,11 @@ func (c *ProjectsBrandsIdentityAwareProxyClientsResetSecretCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.brands.identityAwareProxyClients.resetSecret", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2350,8 +2480,7 @@ func (c *ProjectsIapTunnelLocationsDestGroupsCreateCall) Header() http.Header {
 
 func (c *ProjectsIapTunnelLocationsDestGroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tunneldestgroup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.tunneldestgroup)
 	if err != nil {
 		return nil, err
 	}
@@ -2367,6 +2496,7 @@ func (c *ProjectsIapTunnelLocationsDestGroupsCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2402,9 +2532,11 @@ func (c *ProjectsIapTunnelLocationsDestGroupsCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2452,12 +2584,11 @@ func (c *ProjectsIapTunnelLocationsDestGroupsDeleteCall) Header() http.Header {
 
 func (c *ProjectsIapTunnelLocationsDestGroupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2465,6 +2596,7 @@ func (c *ProjectsIapTunnelLocationsDestGroupsDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2499,9 +2631,11 @@ func (c *ProjectsIapTunnelLocationsDestGroupsDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2561,12 +2695,11 @@ func (c *ProjectsIapTunnelLocationsDestGroupsGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2574,6 +2707,7 @@ func (c *ProjectsIapTunnelLocationsDestGroupsGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2609,9 +2743,11 @@ func (c *ProjectsIapTunnelLocationsDestGroupsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2691,12 +2827,11 @@ func (c *ProjectsIapTunnelLocationsDestGroupsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/destGroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2704,6 +2839,7 @@ func (c *ProjectsIapTunnelLocationsDestGroupsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2739,9 +2875,11 @@ func (c *ProjectsIapTunnelLocationsDestGroupsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2821,8 +2959,7 @@ func (c *ProjectsIapTunnelLocationsDestGroupsPatchCall) Header() http.Header {
 
 func (c *ProjectsIapTunnelLocationsDestGroupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tunneldestgroup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.tunneldestgroup)
 	if err != nil {
 		return nil, err
 	}
@@ -2838,6 +2975,7 @@ func (c *ProjectsIapTunnelLocationsDestGroupsPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2873,9 +3011,11 @@ func (c *ProjectsIapTunnelLocationsDestGroupsPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.projects.iap_tunnel.locations.destGroups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2928,8 +3068,7 @@ func (c *V1GetIamPolicyCall) Header() http.Header {
 
 func (c *V1GetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2945,6 +3084,7 @@ func (c *V1GetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2979,9 +3119,11 @@ func (c *V1GetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3041,12 +3183,11 @@ func (c *V1GetIapSettingsCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:iapSettings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3054,6 +3195,7 @@ func (c *V1GetIapSettingsCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.getIapSettings", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3088,9 +3230,11 @@ func (c *V1GetIapSettingsCall) Do(opts ...googleapi.CallOption) (*IapSettings, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.getIapSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3143,8 +3287,7 @@ func (c *V1SetIamPolicyCall) Header() http.Header {
 
 func (c *V1SetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3160,6 +3303,7 @@ func (c *V1SetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3194,9 +3338,11 @@ func (c *V1SetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3250,8 +3396,7 @@ func (c *V1TestIamPermissionsCall) Header() http.Header {
 
 func (c *V1TestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3267,6 +3412,7 @@ func (c *V1TestIamPermissionsCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3302,9 +3448,11 @@ func (c *V1TestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*TestIamPer
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3364,8 +3512,7 @@ func (c *V1UpdateIapSettingsCall) Header() http.Header {
 
 func (c *V1UpdateIapSettingsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.iapsettings)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.iapsettings)
 	if err != nil {
 		return nil, err
 	}
@@ -3381,6 +3528,7 @@ func (c *V1UpdateIapSettingsCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.updateIapSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3415,9 +3563,11 @@ func (c *V1UpdateIapSettingsCall) Do(opts ...googleapi.CallOption) (*IapSettings
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.updateIapSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3473,12 +3623,11 @@ func (c *V1ValidateAttributeExpressionCall) Header() http.Header {
 
 func (c *V1ValidateAttributeExpressionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:validateAttributeExpression")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3486,6 +3635,7 @@ func (c *V1ValidateAttributeExpressionCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "iap.validateAttributeExpression", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3521,8 +3671,10 @@ func (c *V1ValidateAttributeExpressionCall) Do(opts ...googleapi.CallOption) (*V
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "iap.validateAttributeExpression", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

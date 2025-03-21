@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -59,11 +59,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -87,6 +89,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "videointelligence:v1p3beta1"
 const apiName = "videointelligence"
@@ -117,7 +120,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Videos = NewVideosService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -136,13 +140,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Videos = NewVideosService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -185,9 +188,9 @@ type GoogleCloudVideointelligenceV1AnnotateVideoProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1AnnotateVideoProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1AnnotateVideoResponse: Video annotation
@@ -210,9 +213,9 @@ type GoogleCloudVideointelligenceV1AnnotateVideoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1AnnotateVideoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1DetectedAttribute: A generic detected
@@ -240,9 +243,9 @@ type GoogleCloudVideointelligenceV1DetectedAttribute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1DetectedAttribute) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1DetectedAttribute) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1DetectedAttribute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1DetectedAttribute) UnmarshalJSON(data []byte) error {
@@ -282,9 +285,9 @@ type GoogleCloudVideointelligenceV1DetectedLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1DetectedLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1DetectedLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1DetectedLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1DetectedLandmark) UnmarshalJSON(data []byte) error {
@@ -323,9 +326,9 @@ type GoogleCloudVideointelligenceV1Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1Entity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1ExplicitContentAnnotation: Explicit content
@@ -349,9 +352,9 @@ type GoogleCloudVideointelligenceV1ExplicitContentAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1ExplicitContentAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1ExplicitContentFrame: Video frame level
@@ -383,9 +386,9 @@ type GoogleCloudVideointelligenceV1ExplicitContentFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1ExplicitContentFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1ExplicitContentFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1ExplicitContentFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1FaceAnnotation: Deprecated. No effect.
@@ -409,9 +412,9 @@ type GoogleCloudVideointelligenceV1FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1FaceDetectionAnnotation: Face detection
@@ -436,9 +439,9 @@ type GoogleCloudVideointelligenceV1FaceDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1FaceDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1FaceFrame: Deprecated. No effect.
@@ -463,9 +466,9 @@ type GoogleCloudVideointelligenceV1FaceFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1FaceFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1FaceFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1FaceFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1FaceSegment: Video segment level annotation
@@ -486,9 +489,9 @@ type GoogleCloudVideointelligenceV1FaceSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1FaceSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1FaceSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1FaceSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1LabelAnnotation: Label annotation.
@@ -519,9 +522,9 @@ type GoogleCloudVideointelligenceV1LabelAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1LabelAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1LabelAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1LabelAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1LabelFrame: Video frame level annotation
@@ -545,9 +548,9 @@ type GoogleCloudVideointelligenceV1LabelFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1LabelFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1LabelFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1LabelFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1LabelFrame) UnmarshalJSON(data []byte) error {
@@ -584,9 +587,9 @@ type GoogleCloudVideointelligenceV1LabelSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1LabelSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1LabelSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1LabelSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1LabelSegment) UnmarshalJSON(data []byte) error {
@@ -628,9 +631,9 @@ type GoogleCloudVideointelligenceV1LogoRecognitionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1LogoRecognitionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1NormalizedBoundingBox: Normalized bounding
@@ -658,9 +661,9 @@ type GoogleCloudVideointelligenceV1NormalizedBoundingBox struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1NormalizedBoundingBox
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1NormalizedBoundingBox) UnmarshalJSON(data []byte) error {
@@ -707,9 +710,9 @@ type GoogleCloudVideointelligenceV1NormalizedBoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1NormalizedBoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1NormalizedVertex: A vertex represents a 2D
@@ -733,9 +736,9 @@ type GoogleCloudVideointelligenceV1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -790,9 +793,9 @@ type GoogleCloudVideointelligenceV1ObjectTrackingAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1ObjectTrackingAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1ObjectTrackingAnnotation) UnmarshalJSON(data []byte) error {
@@ -831,9 +834,9 @@ type GoogleCloudVideointelligenceV1ObjectTrackingFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1ObjectTrackingFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1PersonDetectionAnnotation: Person detection
@@ -856,9 +859,9 @@ type GoogleCloudVideointelligenceV1PersonDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1PersonDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1SpeechRecognitionAlternative: Alternative
@@ -890,9 +893,9 @@ type GoogleCloudVideointelligenceV1SpeechRecognitionAlternative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1SpeechRecognitionAlternative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1SpeechRecognitionAlternative) UnmarshalJSON(data []byte) error {
@@ -935,9 +938,9 @@ type GoogleCloudVideointelligenceV1SpeechTranscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1SpeechTranscription) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1SpeechTranscription) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1SpeechTranscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1TextAnnotation: Annotations related to one
@@ -963,9 +966,9 @@ type GoogleCloudVideointelligenceV1TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1TextFrame: Video frame level annotation
@@ -990,9 +993,9 @@ type GoogleCloudVideointelligenceV1TextFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1TextFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1TextFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1TextFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1TextSegment: Video segment level annotation
@@ -1018,9 +1021,9 @@ type GoogleCloudVideointelligenceV1TextSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1TextSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1TextSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1TextSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1TextSegment) UnmarshalJSON(data []byte) error {
@@ -1064,9 +1067,9 @@ type GoogleCloudVideointelligenceV1TimestampedObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1TimestampedObject) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1TimestampedObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1TimestampedObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1Track: A track of an object instance.
@@ -1093,9 +1096,9 @@ type GoogleCloudVideointelligenceV1Track struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1Track) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1Track) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1Track
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1Track) UnmarshalJSON(data []byte) error {
@@ -1157,9 +1160,9 @@ type GoogleCloudVideointelligenceV1VideoAnnotationProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1VideoAnnotationProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1VideoAnnotationResults: Annotation results for
@@ -1234,9 +1237,9 @@ type GoogleCloudVideointelligenceV1VideoAnnotationResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1VideoAnnotationResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1VideoAnnotationResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1VideoAnnotationResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1VideoSegment: Video segment.
@@ -1260,9 +1263,9 @@ type GoogleCloudVideointelligenceV1VideoSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1VideoSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1VideoSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1VideoSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1WordInfo: Word-specific information for
@@ -1307,9 +1310,9 @@ type GoogleCloudVideointelligenceV1WordInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1WordInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1WordInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1WordInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1WordInfo) UnmarshalJSON(data []byte) error {
@@ -1346,9 +1349,9 @@ type GoogleCloudVideointelligenceV1beta2AnnotateVideoProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2AnnotateVideoProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2AnnotateVideoResponse: Video annotation
@@ -1371,9 +1374,9 @@ type GoogleCloudVideointelligenceV1beta2AnnotateVideoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2AnnotateVideoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2DetectedAttribute: A generic detected
@@ -1401,9 +1404,9 @@ type GoogleCloudVideointelligenceV1beta2DetectedAttribute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2DetectedAttribute) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2DetectedAttribute) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2DetectedAttribute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2DetectedAttribute) UnmarshalJSON(data []byte) error {
@@ -1443,9 +1446,9 @@ type GoogleCloudVideointelligenceV1beta2DetectedLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2DetectedLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2DetectedLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2DetectedLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2DetectedLandmark) UnmarshalJSON(data []byte) error {
@@ -1485,9 +1488,9 @@ type GoogleCloudVideointelligenceV1beta2Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2Entity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2ExplicitContentAnnotation: Explicit
@@ -1512,9 +1515,9 @@ type GoogleCloudVideointelligenceV1beta2ExplicitContentAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2ExplicitContentAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2ExplicitContentFrame: Video frame level
@@ -1546,9 +1549,9 @@ type GoogleCloudVideointelligenceV1beta2ExplicitContentFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2ExplicitContentFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2ExplicitContentFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2ExplicitContentFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2FaceAnnotation: Deprecated. No effect.
@@ -1572,9 +1575,9 @@ type GoogleCloudVideointelligenceV1beta2FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2FaceDetectionAnnotation: Face detection
@@ -1599,9 +1602,9 @@ type GoogleCloudVideointelligenceV1beta2FaceDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2FaceDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2FaceFrame: Deprecated. No effect.
@@ -1626,9 +1629,9 @@ type GoogleCloudVideointelligenceV1beta2FaceFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2FaceFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2FaceFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2FaceFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2FaceSegment: Video segment level
@@ -1649,9 +1652,9 @@ type GoogleCloudVideointelligenceV1beta2FaceSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2FaceSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2FaceSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2FaceSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2LabelAnnotation: Label annotation.
@@ -1682,9 +1685,9 @@ type GoogleCloudVideointelligenceV1beta2LabelAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2LabelAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2LabelAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2LabelAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2LabelFrame: Video frame level annotation
@@ -1708,9 +1711,9 @@ type GoogleCloudVideointelligenceV1beta2LabelFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2LabelFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2LabelFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2LabelFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2LabelFrame) UnmarshalJSON(data []byte) error {
@@ -1747,9 +1750,9 @@ type GoogleCloudVideointelligenceV1beta2LabelSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2LabelSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2LabelSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2LabelSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2LabelSegment) UnmarshalJSON(data []byte) error {
@@ -1791,9 +1794,9 @@ type GoogleCloudVideointelligenceV1beta2LogoRecognitionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2LogoRecognitionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2NormalizedBoundingBox: Normalized
@@ -1821,9 +1824,9 @@ type GoogleCloudVideointelligenceV1beta2NormalizedBoundingBox struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2NormalizedBoundingBox
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2NormalizedBoundingBox) UnmarshalJSON(data []byte) error {
@@ -1870,9 +1873,9 @@ type GoogleCloudVideointelligenceV1beta2NormalizedBoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2NormalizedBoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2NormalizedVertex: A vertex represents a
@@ -1896,9 +1899,9 @@ type GoogleCloudVideointelligenceV1beta2NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -1953,9 +1956,9 @@ type GoogleCloudVideointelligenceV1beta2ObjectTrackingAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2ObjectTrackingAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2ObjectTrackingAnnotation) UnmarshalJSON(data []byte) error {
@@ -1994,9 +1997,9 @@ type GoogleCloudVideointelligenceV1beta2ObjectTrackingFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2ObjectTrackingFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2PersonDetectionAnnotation: Person
@@ -2019,9 +2022,9 @@ type GoogleCloudVideointelligenceV1beta2PersonDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2PersonDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2SpeechRecognitionAlternative: Alternative
@@ -2053,9 +2056,9 @@ type GoogleCloudVideointelligenceV1beta2SpeechRecognitionAlternative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2SpeechRecognitionAlternative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2SpeechRecognitionAlternative) UnmarshalJSON(data []byte) error {
@@ -2098,9 +2101,9 @@ type GoogleCloudVideointelligenceV1beta2SpeechTranscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2SpeechTranscription) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2SpeechTranscription) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2SpeechTranscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2TextAnnotation: Annotations related to
@@ -2126,9 +2129,9 @@ type GoogleCloudVideointelligenceV1beta2TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2TextFrame: Video frame level annotation
@@ -2153,9 +2156,9 @@ type GoogleCloudVideointelligenceV1beta2TextFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2TextFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2TextFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2TextFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2TextSegment: Video segment level
@@ -2181,9 +2184,9 @@ type GoogleCloudVideointelligenceV1beta2TextSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2TextSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2TextSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2TextSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2TextSegment) UnmarshalJSON(data []byte) error {
@@ -2227,9 +2230,9 @@ type GoogleCloudVideointelligenceV1beta2TimestampedObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2TimestampedObject) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2TimestampedObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2TimestampedObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2Track: A track of an object instance.
@@ -2256,9 +2259,9 @@ type GoogleCloudVideointelligenceV1beta2Track struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2Track) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2Track) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2Track
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2Track) UnmarshalJSON(data []byte) error {
@@ -2320,9 +2323,9 @@ type GoogleCloudVideointelligenceV1beta2VideoAnnotationProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2VideoAnnotationProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2VideoAnnotationResults: Annotation
@@ -2397,9 +2400,9 @@ type GoogleCloudVideointelligenceV1beta2VideoAnnotationResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2VideoAnnotationResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2VideoAnnotationResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2VideoAnnotationResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2VideoSegment: Video segment.
@@ -2423,9 +2426,9 @@ type GoogleCloudVideointelligenceV1beta2VideoSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2VideoSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2VideoSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2VideoSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1beta2WordInfo: Word-specific information for
@@ -2470,9 +2473,9 @@ type GoogleCloudVideointelligenceV1beta2WordInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1beta2WordInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1beta2WordInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1beta2WordInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1beta2WordInfo) UnmarshalJSON(data []byte) error {
@@ -2509,9 +2512,9 @@ type GoogleCloudVideointelligenceV1p1beta1AnnotateVideoProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1AnnotateVideoProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1AnnotateVideoResponse: Video annotation
@@ -2534,9 +2537,9 @@ type GoogleCloudVideointelligenceV1p1beta1AnnotateVideoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1AnnotateVideoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1DetectedAttribute: A generic detected
@@ -2564,9 +2567,9 @@ type GoogleCloudVideointelligenceV1p1beta1DetectedAttribute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1DetectedAttribute) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1DetectedAttribute) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1DetectedAttribute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1DetectedAttribute) UnmarshalJSON(data []byte) error {
@@ -2606,9 +2609,9 @@ type GoogleCloudVideointelligenceV1p1beta1DetectedLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1DetectedLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1DetectedLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1DetectedLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1DetectedLandmark) UnmarshalJSON(data []byte) error {
@@ -2648,9 +2651,9 @@ type GoogleCloudVideointelligenceV1p1beta1Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1Entity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1ExplicitContentAnnotation: Explicit
@@ -2675,9 +2678,9 @@ type GoogleCloudVideointelligenceV1p1beta1ExplicitContentAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1ExplicitContentAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1ExplicitContentFrame: Video frame level
@@ -2709,9 +2712,9 @@ type GoogleCloudVideointelligenceV1p1beta1ExplicitContentFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1ExplicitContentFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1ExplicitContentFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1ExplicitContentFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1FaceAnnotation: Deprecated. No effect.
@@ -2735,9 +2738,9 @@ type GoogleCloudVideointelligenceV1p1beta1FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1FaceDetectionAnnotation: Face detection
@@ -2762,9 +2765,9 @@ type GoogleCloudVideointelligenceV1p1beta1FaceDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1FaceDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1FaceFrame: Deprecated. No effect.
@@ -2789,9 +2792,9 @@ type GoogleCloudVideointelligenceV1p1beta1FaceFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1FaceFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1FaceFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1FaceFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1FaceSegment: Video segment level
@@ -2812,9 +2815,9 @@ type GoogleCloudVideointelligenceV1p1beta1FaceSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1FaceSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1FaceSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1FaceSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1LabelAnnotation: Label annotation.
@@ -2845,9 +2848,9 @@ type GoogleCloudVideointelligenceV1p1beta1LabelAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1LabelAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1LabelAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1LabelAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1LabelFrame: Video frame level
@@ -2871,9 +2874,9 @@ type GoogleCloudVideointelligenceV1p1beta1LabelFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1LabelFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1LabelFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1LabelFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1LabelFrame) UnmarshalJSON(data []byte) error {
@@ -2910,9 +2913,9 @@ type GoogleCloudVideointelligenceV1p1beta1LabelSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1LabelSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1LabelSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1LabelSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1LabelSegment) UnmarshalJSON(data []byte) error {
@@ -2954,9 +2957,9 @@ type GoogleCloudVideointelligenceV1p1beta1LogoRecognitionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1LogoRecognitionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingBox: Normalized
@@ -2984,9 +2987,9 @@ type GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingBox struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingBox
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingBox) UnmarshalJSON(data []byte) error {
@@ -3033,9 +3036,9 @@ type GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1NormalizedVertex: A vertex represents a
@@ -3059,9 +3062,9 @@ type GoogleCloudVideointelligenceV1p1beta1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -3116,9 +3119,9 @@ type GoogleCloudVideointelligenceV1p1beta1ObjectTrackingAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1ObjectTrackingAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1ObjectTrackingAnnotation) UnmarshalJSON(data []byte) error {
@@ -3157,9 +3160,9 @@ type GoogleCloudVideointelligenceV1p1beta1ObjectTrackingFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1ObjectTrackingFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1PersonDetectionAnnotation: Person
@@ -3182,9 +3185,9 @@ type GoogleCloudVideointelligenceV1p1beta1PersonDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1PersonDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1SpeechRecognitionAlternative:
@@ -3216,9 +3219,9 @@ type GoogleCloudVideointelligenceV1p1beta1SpeechRecognitionAlternative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1SpeechRecognitionAlternative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1SpeechRecognitionAlternative) UnmarshalJSON(data []byte) error {
@@ -3261,9 +3264,9 @@ type GoogleCloudVideointelligenceV1p1beta1SpeechTranscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1SpeechTranscription) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1SpeechTranscription) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1SpeechTranscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1TextAnnotation: Annotations related to
@@ -3289,9 +3292,9 @@ type GoogleCloudVideointelligenceV1p1beta1TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1TextFrame: Video frame level annotation
@@ -3316,9 +3319,9 @@ type GoogleCloudVideointelligenceV1p1beta1TextFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1TextFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1TextFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1TextFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1TextSegment: Video segment level
@@ -3344,9 +3347,9 @@ type GoogleCloudVideointelligenceV1p1beta1TextSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1TextSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1TextSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1TextSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1TextSegment) UnmarshalJSON(data []byte) error {
@@ -3390,9 +3393,9 @@ type GoogleCloudVideointelligenceV1p1beta1TimestampedObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1TimestampedObject) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1TimestampedObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1TimestampedObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1Track: A track of an object instance.
@@ -3419,9 +3422,9 @@ type GoogleCloudVideointelligenceV1p1beta1Track struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1Track) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1Track) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1Track
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1Track) UnmarshalJSON(data []byte) error {
@@ -3483,9 +3486,9 @@ type GoogleCloudVideointelligenceV1p1beta1VideoAnnotationProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1VideoAnnotationProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1VideoAnnotationResults: Annotation
@@ -3560,9 +3563,9 @@ type GoogleCloudVideointelligenceV1p1beta1VideoAnnotationResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1VideoAnnotationResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1VideoAnnotationResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1VideoAnnotationResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1VideoSegment: Video segment.
@@ -3586,9 +3589,9 @@ type GoogleCloudVideointelligenceV1p1beta1VideoSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1VideoSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1VideoSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1VideoSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p1beta1WordInfo: Word-specific information for
@@ -3633,9 +3636,9 @@ type GoogleCloudVideointelligenceV1p1beta1WordInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p1beta1WordInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p1beta1WordInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p1beta1WordInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p1beta1WordInfo) UnmarshalJSON(data []byte) error {
@@ -3672,9 +3675,9 @@ type GoogleCloudVideointelligenceV1p2beta1AnnotateVideoProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1AnnotateVideoProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1AnnotateVideoResponse: Video annotation
@@ -3697,9 +3700,9 @@ type GoogleCloudVideointelligenceV1p2beta1AnnotateVideoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1AnnotateVideoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1DetectedAttribute: A generic detected
@@ -3727,9 +3730,9 @@ type GoogleCloudVideointelligenceV1p2beta1DetectedAttribute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1DetectedAttribute) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1DetectedAttribute) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1DetectedAttribute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1DetectedAttribute) UnmarshalJSON(data []byte) error {
@@ -3769,9 +3772,9 @@ type GoogleCloudVideointelligenceV1p2beta1DetectedLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1DetectedLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1DetectedLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1DetectedLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1DetectedLandmark) UnmarshalJSON(data []byte) error {
@@ -3811,9 +3814,9 @@ type GoogleCloudVideointelligenceV1p2beta1Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1Entity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1ExplicitContentAnnotation: Explicit
@@ -3838,9 +3841,9 @@ type GoogleCloudVideointelligenceV1p2beta1ExplicitContentAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1ExplicitContentAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1ExplicitContentFrame: Video frame level
@@ -3872,9 +3875,9 @@ type GoogleCloudVideointelligenceV1p2beta1ExplicitContentFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1ExplicitContentFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1ExplicitContentFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1ExplicitContentFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1FaceAnnotation: Deprecated. No effect.
@@ -3898,9 +3901,9 @@ type GoogleCloudVideointelligenceV1p2beta1FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1FaceDetectionAnnotation: Face detection
@@ -3925,9 +3928,9 @@ type GoogleCloudVideointelligenceV1p2beta1FaceDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1FaceDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1FaceFrame: Deprecated. No effect.
@@ -3952,9 +3955,9 @@ type GoogleCloudVideointelligenceV1p2beta1FaceFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1FaceFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1FaceFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1FaceFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1FaceSegment: Video segment level
@@ -3975,9 +3978,9 @@ type GoogleCloudVideointelligenceV1p2beta1FaceSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1FaceSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1FaceSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1FaceSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1LabelAnnotation: Label annotation.
@@ -4008,9 +4011,9 @@ type GoogleCloudVideointelligenceV1p2beta1LabelAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1LabelAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1LabelAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1LabelAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1LabelFrame: Video frame level
@@ -4034,9 +4037,9 @@ type GoogleCloudVideointelligenceV1p2beta1LabelFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1LabelFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1LabelFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1LabelFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1LabelFrame) UnmarshalJSON(data []byte) error {
@@ -4073,9 +4076,9 @@ type GoogleCloudVideointelligenceV1p2beta1LabelSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1LabelSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1LabelSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1LabelSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1LabelSegment) UnmarshalJSON(data []byte) error {
@@ -4117,9 +4120,9 @@ type GoogleCloudVideointelligenceV1p2beta1LogoRecognitionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1LogoRecognitionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingBox: Normalized
@@ -4147,9 +4150,9 @@ type GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingBox struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingBox
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingBox) UnmarshalJSON(data []byte) error {
@@ -4196,9 +4199,9 @@ type GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1NormalizedVertex: A vertex represents a
@@ -4222,9 +4225,9 @@ type GoogleCloudVideointelligenceV1p2beta1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -4279,9 +4282,9 @@ type GoogleCloudVideointelligenceV1p2beta1ObjectTrackingAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1ObjectTrackingAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1ObjectTrackingAnnotation) UnmarshalJSON(data []byte) error {
@@ -4320,9 +4323,9 @@ type GoogleCloudVideointelligenceV1p2beta1ObjectTrackingFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1ObjectTrackingFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1PersonDetectionAnnotation: Person
@@ -4345,9 +4348,9 @@ type GoogleCloudVideointelligenceV1p2beta1PersonDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1PersonDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1SpeechRecognitionAlternative:
@@ -4379,9 +4382,9 @@ type GoogleCloudVideointelligenceV1p2beta1SpeechRecognitionAlternative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1SpeechRecognitionAlternative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1SpeechRecognitionAlternative) UnmarshalJSON(data []byte) error {
@@ -4424,9 +4427,9 @@ type GoogleCloudVideointelligenceV1p2beta1SpeechTranscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1SpeechTranscription) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1SpeechTranscription) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1SpeechTranscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1TextAnnotation: Annotations related to
@@ -4452,9 +4455,9 @@ type GoogleCloudVideointelligenceV1p2beta1TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1TextFrame: Video frame level annotation
@@ -4479,9 +4482,9 @@ type GoogleCloudVideointelligenceV1p2beta1TextFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1TextFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1TextFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1TextFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1TextSegment: Video segment level
@@ -4507,9 +4510,9 @@ type GoogleCloudVideointelligenceV1p2beta1TextSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1TextSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1TextSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1TextSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1TextSegment) UnmarshalJSON(data []byte) error {
@@ -4553,9 +4556,9 @@ type GoogleCloudVideointelligenceV1p2beta1TimestampedObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1TimestampedObject) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1TimestampedObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1TimestampedObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1Track: A track of an object instance.
@@ -4582,9 +4585,9 @@ type GoogleCloudVideointelligenceV1p2beta1Track struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1Track) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1Track) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1Track
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1Track) UnmarshalJSON(data []byte) error {
@@ -4646,9 +4649,9 @@ type GoogleCloudVideointelligenceV1p2beta1VideoAnnotationProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1VideoAnnotationProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1VideoAnnotationResults: Annotation
@@ -4723,9 +4726,9 @@ type GoogleCloudVideointelligenceV1p2beta1VideoAnnotationResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1VideoAnnotationResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1VideoAnnotationResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1VideoAnnotationResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1VideoSegment: Video segment.
@@ -4749,9 +4752,9 @@ type GoogleCloudVideointelligenceV1p2beta1VideoSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1VideoSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1VideoSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1VideoSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p2beta1WordInfo: Word-specific information for
@@ -4796,9 +4799,9 @@ type GoogleCloudVideointelligenceV1p2beta1WordInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p2beta1WordInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p2beta1WordInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p2beta1WordInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p2beta1WordInfo) UnmarshalJSON(data []byte) error {
@@ -4835,9 +4838,9 @@ type GoogleCloudVideointelligenceV1p3beta1AnnotateVideoProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1AnnotateVideoProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1AnnotateVideoProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1AnnotateVideoRequest: Video annotation
@@ -4899,9 +4902,9 @@ type GoogleCloudVideointelligenceV1p3beta1AnnotateVideoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1AnnotateVideoRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1AnnotateVideoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1AnnotateVideoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1AnnotateVideoResponse: Video annotation
@@ -4924,9 +4927,9 @@ type GoogleCloudVideointelligenceV1p3beta1AnnotateVideoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1AnnotateVideoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1AnnotateVideoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1Celebrity: Celebrity definition.
@@ -4954,9 +4957,9 @@ type GoogleCloudVideointelligenceV1p3beta1Celebrity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1Celebrity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1Celebrity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1Celebrity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1CelebrityRecognitionAnnotation:
@@ -4980,9 +4983,9 @@ type GoogleCloudVideointelligenceV1p3beta1CelebrityRecognitionAnnotation struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1CelebrityRecognitionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1CelebrityRecognitionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1CelebrityRecognitionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1CelebrityTrack: The annotation result
@@ -5006,9 +5009,9 @@ type GoogleCloudVideointelligenceV1p3beta1CelebrityTrack struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1CelebrityTrack) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1CelebrityTrack) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1CelebrityTrack
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1DetectedAttribute: A generic detected
@@ -5036,9 +5039,9 @@ type GoogleCloudVideointelligenceV1p3beta1DetectedAttribute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1DetectedAttribute) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1DetectedAttribute) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1DetectedAttribute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1DetectedAttribute) UnmarshalJSON(data []byte) error {
@@ -5078,9 +5081,9 @@ type GoogleCloudVideointelligenceV1p3beta1DetectedLandmark struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1DetectedLandmark) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1DetectedLandmark) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1DetectedLandmark
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1DetectedLandmark) UnmarshalJSON(data []byte) error {
@@ -5120,9 +5123,9 @@ type GoogleCloudVideointelligenceV1p3beta1Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1Entity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1ExplicitContentAnnotation: Explicit
@@ -5147,9 +5150,9 @@ type GoogleCloudVideointelligenceV1p3beta1ExplicitContentAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1ExplicitContentAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1ExplicitContentAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1ExplicitContentDetectionConfig: Config
@@ -5171,9 +5174,9 @@ type GoogleCloudVideointelligenceV1p3beta1ExplicitContentDetectionConfig struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1ExplicitContentDetectionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1ExplicitContentDetectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1ExplicitContentDetectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1ExplicitContentFrame: Video frame level
@@ -5205,9 +5208,9 @@ type GoogleCloudVideointelligenceV1p3beta1ExplicitContentFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1ExplicitContentFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1ExplicitContentFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1ExplicitContentFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1FaceAnnotation: Deprecated. No effect.
@@ -5231,9 +5234,9 @@ type GoogleCloudVideointelligenceV1p3beta1FaceAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1FaceAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1FaceAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1FaceDetectionAnnotation: Face detection
@@ -5258,9 +5261,9 @@ type GoogleCloudVideointelligenceV1p3beta1FaceDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1FaceDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1FaceDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1FaceDetectionConfig: Config for
@@ -5289,9 +5292,9 @@ type GoogleCloudVideointelligenceV1p3beta1FaceDetectionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1FaceDetectionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1FaceDetectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1FaceDetectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1FaceFrame: Deprecated. No effect.
@@ -5316,9 +5319,9 @@ type GoogleCloudVideointelligenceV1p3beta1FaceFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1FaceFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1FaceFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1FaceFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1FaceSegment: Video segment level
@@ -5339,9 +5342,9 @@ type GoogleCloudVideointelligenceV1p3beta1FaceSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1FaceSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1FaceSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1FaceSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1LabelAnnotation: Label annotation.
@@ -5372,9 +5375,9 @@ type GoogleCloudVideointelligenceV1p3beta1LabelAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1LabelAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1LabelAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1LabelAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1LabelDetectionConfig: Config for
@@ -5424,9 +5427,9 @@ type GoogleCloudVideointelligenceV1p3beta1LabelDetectionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1LabelDetectionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1LabelDetectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1LabelDetectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1LabelDetectionConfig) UnmarshalJSON(data []byte) error {
@@ -5466,9 +5469,9 @@ type GoogleCloudVideointelligenceV1p3beta1LabelFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1LabelFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1LabelFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1LabelFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1LabelFrame) UnmarshalJSON(data []byte) error {
@@ -5505,9 +5508,9 @@ type GoogleCloudVideointelligenceV1p3beta1LabelSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1LabelSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1LabelSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1LabelSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1LabelSegment) UnmarshalJSON(data []byte) error {
@@ -5549,9 +5552,9 @@ type GoogleCloudVideointelligenceV1p3beta1LogoRecognitionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1LogoRecognitionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1LogoRecognitionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingBox: Normalized
@@ -5579,9 +5582,9 @@ type GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingBox struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingBox) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingBox
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingBox) UnmarshalJSON(data []byte) error {
@@ -5628,9 +5631,9 @@ type GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingPoly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingPoly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingPoly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1NormalizedVertex: A vertex represents a
@@ -5654,9 +5657,9 @@ type GoogleCloudVideointelligenceV1p3beta1NormalizedVertex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1NormalizedVertex) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1NormalizedVertex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1NormalizedVertex) UnmarshalJSON(data []byte) error {
@@ -5711,9 +5714,9 @@ type GoogleCloudVideointelligenceV1p3beta1ObjectTrackingAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1ObjectTrackingAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1ObjectTrackingAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1ObjectTrackingAnnotation) UnmarshalJSON(data []byte) error {
@@ -5749,9 +5752,9 @@ type GoogleCloudVideointelligenceV1p3beta1ObjectTrackingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1ObjectTrackingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1ObjectTrackingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1ObjectTrackingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1ObjectTrackingFrame: Video frame level
@@ -5776,9 +5779,9 @@ type GoogleCloudVideointelligenceV1p3beta1ObjectTrackingFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1ObjectTrackingFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1ObjectTrackingFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1PersonDetectionAnnotation: Person
@@ -5801,9 +5804,9 @@ type GoogleCloudVideointelligenceV1p3beta1PersonDetectionAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1PersonDetectionAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1PersonDetectionAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1PersonDetectionConfig: Config for
@@ -5833,9 +5836,9 @@ type GoogleCloudVideointelligenceV1p3beta1PersonDetectionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1PersonDetectionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1PersonDetectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1PersonDetectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1RecognizedCelebrity: The recognized
@@ -5858,9 +5861,9 @@ type GoogleCloudVideointelligenceV1p3beta1RecognizedCelebrity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1RecognizedCelebrity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1RecognizedCelebrity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1RecognizedCelebrity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1RecognizedCelebrity) UnmarshalJSON(data []byte) error {
@@ -5897,9 +5900,9 @@ type GoogleCloudVideointelligenceV1p3beta1ShotChangeDetectionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1ShotChangeDetectionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1ShotChangeDetectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1ShotChangeDetectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1SpeechContext: Provides "hints" to the
@@ -5925,9 +5928,9 @@ type GoogleCloudVideointelligenceV1p3beta1SpeechContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1SpeechContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1SpeechContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1SpeechContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1SpeechRecognitionAlternative:
@@ -5959,9 +5962,9 @@ type GoogleCloudVideointelligenceV1p3beta1SpeechRecognitionAlternative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1SpeechRecognitionAlternative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1SpeechRecognitionAlternative) UnmarshalJSON(data []byte) error {
@@ -6004,9 +6007,9 @@ type GoogleCloudVideointelligenceV1p3beta1SpeechTranscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1SpeechTranscription) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1SpeechTranscription) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1SpeechTranscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1SpeechTranscriptionConfig: Config for
@@ -6071,9 +6074,9 @@ type GoogleCloudVideointelligenceV1p3beta1SpeechTranscriptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1SpeechTranscriptionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1SpeechTranscriptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1SpeechTranscriptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1StreamingAnnotateVideoResponse:
@@ -6104,9 +6107,9 @@ type GoogleCloudVideointelligenceV1p3beta1StreamingAnnotateVideoResponse struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1StreamingAnnotateVideoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1StreamingAnnotateVideoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1StreamingAnnotateVideoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1StreamingVideoAnnotationResults:
@@ -6138,9 +6141,9 @@ type GoogleCloudVideointelligenceV1p3beta1StreamingVideoAnnotationResults struct
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1StreamingVideoAnnotationResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1StreamingVideoAnnotationResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1StreamingVideoAnnotationResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1TextAnnotation: Annotations related to
@@ -6166,9 +6169,9 @@ type GoogleCloudVideointelligenceV1p3beta1TextAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1TextAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1TextAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1TextAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1TextDetectionConfig: Config for
@@ -6195,9 +6198,9 @@ type GoogleCloudVideointelligenceV1p3beta1TextDetectionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1TextDetectionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1TextDetectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1TextDetectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1TextFrame: Video frame level annotation
@@ -6222,9 +6225,9 @@ type GoogleCloudVideointelligenceV1p3beta1TextFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1TextFrame) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1TextFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1TextFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1TextSegment: Video segment level
@@ -6250,9 +6253,9 @@ type GoogleCloudVideointelligenceV1p3beta1TextSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1TextSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1TextSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1TextSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1TextSegment) UnmarshalJSON(data []byte) error {
@@ -6296,9 +6299,9 @@ type GoogleCloudVideointelligenceV1p3beta1TimestampedObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1TimestampedObject) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1TimestampedObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1TimestampedObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1Track: A track of an object instance.
@@ -6325,9 +6328,9 @@ type GoogleCloudVideointelligenceV1p3beta1Track struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1Track) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1Track) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1Track
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1Track) UnmarshalJSON(data []byte) error {
@@ -6390,9 +6393,9 @@ type GoogleCloudVideointelligenceV1p3beta1VideoAnnotationProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1VideoAnnotationProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1VideoAnnotationProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1VideoAnnotationResults: Annotation
@@ -6470,9 +6473,9 @@ type GoogleCloudVideointelligenceV1p3beta1VideoAnnotationResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1VideoAnnotationResults) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1VideoAnnotationResults) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1VideoAnnotationResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1VideoContext: Video context and/or
@@ -6512,9 +6515,9 @@ type GoogleCloudVideointelligenceV1p3beta1VideoContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1VideoContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1VideoContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1VideoContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1VideoSegment: Video segment.
@@ -6538,9 +6541,9 @@ type GoogleCloudVideointelligenceV1p3beta1VideoSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1VideoSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1VideoSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1VideoSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudVideointelligenceV1p3beta1WordInfo: Word-specific information for
@@ -6585,9 +6588,9 @@ type GoogleCloudVideointelligenceV1p3beta1WordInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudVideointelligenceV1p3beta1WordInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudVideointelligenceV1p3beta1WordInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudVideointelligenceV1p3beta1WordInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudVideointelligenceV1p3beta1WordInfo) UnmarshalJSON(data []byte) error {
@@ -6646,9 +6649,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleRpcStatus: The `Status` type defines a logical error model that is
@@ -6680,9 +6683,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type VideosAnnotateCall struct {
@@ -6728,8 +6731,7 @@ func (c *VideosAnnotateCall) Header() http.Header {
 
 func (c *VideosAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudvideointelligencev1p3beta1Annotatevideorequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudvideointelligencev1p3beta1Annotatevideorequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6742,6 +6744,7 @@ func (c *VideosAnnotateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "videointelligence.videos.annotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6777,8 +6780,10 @@ func (c *VideosAnnotateCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "videointelligence.videos.annotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

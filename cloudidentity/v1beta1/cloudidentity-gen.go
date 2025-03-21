@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "cloudidentity:v1beta1"
 const apiName = "cloudidentity"
@@ -118,6 +121,26 @@ const (
 	// and their emails
 	CloudIdentityGroupsReadonlyScope = "https://www.googleapis.com/auth/cloud-identity.groups.readonly"
 
+	// See and edit all of the Inbound SSO profiles and their assignments to any
+	// Org Units or Google Groups in your Cloud Identity Organization.
+	CloudIdentityInboundssoScope = "https://www.googleapis.com/auth/cloud-identity.inboundsso"
+
+	// See all of the Inbound SSO profiles and their assignments to any Org Units
+	// or Google Groups in your Cloud Identity Organization.
+	CloudIdentityInboundssoReadonlyScope = "https://www.googleapis.com/auth/cloud-identity.inboundsso.readonly"
+
+	// List, Move orgmembers of an OrgUnit in your Cloud Identity Organization.
+	CloudIdentityOrgunitsScope = "https://www.googleapis.com/auth/cloud-identity.orgunits"
+
+	// List org members of an OrgUnit in your Cloud Identity Organization.
+	CloudIdentityOrgunitsReadonlyScope = "https://www.googleapis.com/auth/cloud-identity.orgunits.readonly"
+
+	// See and edit policies in your Cloud Identity Organization.
+	CloudIdentityPoliciesScope = "https://www.googleapis.com/auth/cloud-identity.policies"
+
+	// See policies in your Cloud Identity Organization.
+	CloudIdentityPoliciesReadonlyScope = "https://www.googleapis.com/auth/cloud-identity.policies.readonly"
+
 	// See, edit, configure, and delete your Google Cloud data and see the email
 	// address for your Google Account.
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
@@ -131,6 +154,12 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 		"https://www.googleapis.com/auth/cloud-identity.devices.readonly",
 		"https://www.googleapis.com/auth/cloud-identity.groups",
 		"https://www.googleapis.com/auth/cloud-identity.groups.readonly",
+		"https://www.googleapis.com/auth/cloud-identity.inboundsso",
+		"https://www.googleapis.com/auth/cloud-identity.inboundsso.readonly",
+		"https://www.googleapis.com/auth/cloud-identity.orgunits",
+		"https://www.googleapis.com/auth/cloud-identity.orgunits.readonly",
+		"https://www.googleapis.com/auth/cloud-identity.policies",
+		"https://www.googleapis.com/auth/cloud-identity.policies.readonly",
 		"https://www.googleapis.com/auth/cloud-platform",
 	)
 	// NOTE: prepend, so we don't override user-specified scopes.
@@ -143,7 +172,14 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Customers = NewCustomersService(s)
+	s.Devices = NewDevicesService(s)
+	s.Groups = NewGroupsService(s)
+	s.InboundSamlSsoProfiles = NewInboundSamlSsoProfilesService(s)
+	s.InboundSsoAssignments = NewInboundSsoAssignmentsService(s)
+	s.OrgUnits = NewOrgUnitsService(s)
+	s.Policies = NewPoliciesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -162,18 +198,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Customers = NewCustomersService(s)
-	s.Devices = NewDevicesService(s)
-	s.Groups = NewGroupsService(s)
-	s.InboundSamlSsoProfiles = NewInboundSamlSsoProfilesService(s)
-	s.InboundSsoAssignments = NewInboundSsoAssignmentsService(s)
-	s.OrgUnits = NewOrgUnitsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -188,6 +218,8 @@ type Service struct {
 	InboundSsoAssignments *InboundSsoAssignmentsService
 
 	OrgUnits *OrgUnitsService
+
+	Policies *PoliciesService
 }
 
 func (s *Service) userAgent() string {
@@ -323,6 +355,15 @@ type OrgUnitsMembershipsService struct {
 	s *Service
 }
 
+func NewPoliciesService(s *Service) *PoliciesService {
+	rs := &PoliciesService{s: s}
+	return rs
+}
+
+type PoliciesService struct {
+	s *Service
+}
+
 // AddIdpCredentialOperationMetadata: LRO response metadata for
 // InboundSamlSsoProfilesService.AddIdpCredential.
 type AddIdpCredentialOperationMetadata struct {
@@ -344,9 +385,9 @@ type AddIdpCredentialOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddIdpCredentialOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s AddIdpCredentialOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod AddIdpCredentialOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddIdpCredentialRequest: The request for creating an IdpCredential with its
@@ -368,9 +409,9 @@ type AddIdpCredentialRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddIdpCredentialRequest) MarshalJSON() ([]byte, error) {
+func (s AddIdpCredentialRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddIdpCredentialRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidAttributes: Resource representing the Android specific attributes of
@@ -419,9 +460,9 @@ type AndroidAttributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidAttributes) MarshalJSON() ([]byte, error) {
+func (s AndroidAttributes) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidAttributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApproveDeviceUserRequest: Request message for approving the device to access
@@ -447,9 +488,9 @@ type ApproveDeviceUserRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApproveDeviceUserRequest) MarshalJSON() ([]byte, error) {
+func (s ApproveDeviceUserRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ApproveDeviceUserRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApproveDeviceUserResponse: Response message for approving the device to
@@ -470,9 +511,9 @@ type ApproveDeviceUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApproveDeviceUserResponse) MarshalJSON() ([]byte, error) {
+func (s ApproveDeviceUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ApproveDeviceUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BlockDeviceUserRequest: Request message for blocking account on device.
@@ -497,9 +538,9 @@ type BlockDeviceUserRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BlockDeviceUserRequest) MarshalJSON() ([]byte, error) {
+func (s BlockDeviceUserRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BlockDeviceUserRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BlockDeviceUserResponse: Response message for blocking the device from
@@ -520,23 +561,25 @@ type BlockDeviceUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BlockDeviceUserResponse) MarshalJSON() ([]byte, error) {
+func (s BlockDeviceUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BlockDeviceUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BrowserAttributes: Contains information about browser profiles reported by
-// the Endpoint Verification extension.
+// the Endpoint Verification extension
+// (https://chromewebstore.google.com/detail/endpoint-verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
 type BrowserAttributes struct {
 	// ChromeBrowserInfo: Represents the current state of the Chrome browser
 	// attributes
 	// (https://cloud.google.com/access-context-manager/docs/browser-attributes)
-	// sent by the Endpoint Verification extension.
+	// sent by the Endpoint Verification extension
+	// (https://chromewebstore.google.com/detail/endpoint-verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
 	ChromeBrowserInfo *BrowserInfo `json:"chromeBrowserInfo,omitempty"`
 	// ChromeProfileId: Chrome profile ID that is exposed by the Chrome API. It is
 	// unique for each device.
 	ChromeProfileId string `json:"chromeProfileId,omitempty"`
-	// LastProfileSyncTime: Timestamp in milliseconds since Epoch when the
+	// LastProfileSyncTime: Timestamp in milliseconds since the Unix epoch when the
 	// profile/gcm id was last synced.
 	LastProfileSyncTime string `json:"lastProfileSyncTime,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ChromeBrowserInfo") to
@@ -552,13 +595,14 @@ type BrowserAttributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BrowserAttributes) MarshalJSON() ([]byte, error) {
+func (s BrowserAttributes) MarshalJSON() ([]byte, error) {
 	type NoMethod BrowserAttributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BrowserInfo: Browser-specific fields reported by the Endpoint Verification
-// extension. LINT.IfChange
+// extension
+// (https://chromewebstore.google.com/detail/endpoint-verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
 type BrowserInfo struct {
 	// BrowserManagementState: Output only. Browser's management state.
 	//
@@ -570,7 +614,8 @@ type BrowserInfo struct {
 	//   "PROFILE_MANAGED" - Profile is managed by customer.
 	//   "BROWSER_MANAGED" - Browser is managed by customer.
 	BrowserManagementState string `json:"browserManagementState,omitempty"`
-	// BrowserVersion: Version of the request initiating browser.
+	// BrowserVersion: Version of the request initiating browser. E.g.
+	// `91.0.4442.4`.
 	BrowserVersion string `json:"browserVersion,omitempty"`
 	// IsBuiltInDnsClientEnabled: Current state of built-in DNS client
 	// (https://chromeenterprise.google/policies/#BuiltInDnsClientEnabled).
@@ -646,9 +691,9 @@ type BrowserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BrowserInfo) MarshalJSON() ([]byte, error) {
+func (s BrowserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod BrowserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelUserInvitationRequest: Request to cancel sent invitation for target
@@ -679,9 +724,9 @@ type CancelWipeDeviceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CancelWipeDeviceRequest) MarshalJSON() ([]byte, error) {
+func (s CancelWipeDeviceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CancelWipeDeviceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelWipeDeviceResponse: Response message for cancelling an unfinished
@@ -703,9 +748,9 @@ type CancelWipeDeviceResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CancelWipeDeviceResponse) MarshalJSON() ([]byte, error) {
+func (s CancelWipeDeviceResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CancelWipeDeviceResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelWipeDeviceUserRequest: Request message for cancelling an unfinished
@@ -731,9 +776,9 @@ type CancelWipeDeviceUserRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CancelWipeDeviceUserRequest) MarshalJSON() ([]byte, error) {
+func (s CancelWipeDeviceUserRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CancelWipeDeviceUserRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelWipeDeviceUserResponse: Response message for cancelling an unfinished
@@ -754,9 +799,9 @@ type CancelWipeDeviceUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CancelWipeDeviceUserResponse) MarshalJSON() ([]byte, error) {
+func (s CancelWipeDeviceUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CancelWipeDeviceUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateAttributes: Stores information about a certificate.
@@ -797,9 +842,9 @@ type CertificateAttributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateAttributes) MarshalJSON() ([]byte, error) {
+func (s CertificateAttributes) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateAttributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateTemplate: CertificateTemplate (v3 Extension in X.509).
@@ -825,9 +870,9 @@ type CertificateTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateTemplate) MarshalJSON() ([]byte, error) {
+func (s CertificateTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckTransitiveMembershipResponse: The response message for
@@ -854,9 +899,9 @@ type CheckTransitiveMembershipResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckTransitiveMembershipResponse) MarshalJSON() ([]byte, error) {
+func (s CheckTransitiveMembershipResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckTransitiveMembershipResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClientState: Represents the state associated with an API client calling the
@@ -940,9 +985,9 @@ type ClientState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClientState) MarshalJSON() ([]byte, error) {
+func (s ClientState) MarshalJSON() ([]byte, error) {
 	type NoMethod ClientState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateDeviceRequest: Request message for creating a Company Owned device.
@@ -974,9 +1019,9 @@ type CreateDeviceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateDeviceRequest) MarshalJSON() ([]byte, error) {
+func (s CreateDeviceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateDeviceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateInboundSamlSsoProfileOperationMetadata: LRO response metadata for
@@ -1000,9 +1045,9 @@ type CreateInboundSamlSsoProfileOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateInboundSamlSsoProfileOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s CreateInboundSamlSsoProfileOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateInboundSamlSsoProfileOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateInboundSsoAssignmentOperationMetadata: LRO response metadata for
@@ -1032,9 +1077,9 @@ type CustomAttributeValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomAttributeValue) MarshalJSON() ([]byte, error) {
+func (s CustomAttributeValue) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomAttributeValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *CustomAttributeValue) UnmarshalJSON(data []byte) error {
@@ -1068,7 +1113,10 @@ type DeleteInboundSsoAssignmentOperationMetadata struct {
 
 // Device: A Device within the Cloud Identity Devices API. Represents a Device
 // known to Google Cloud, independent of the device ownership, type, and
-// whether it is assigned or in use by a user.
+// whether it is assigned or in use by a user. Important: Device API scopes
+// require that you use domain-wide delegation to access the API. For more
+// information, see Set up the Devices API
+// (https://cloud.google.com/identity/docs/how-to/setup-devices).
 type Device struct {
 	// AndroidSpecificAttributes: Output only. Attributes specific to Android
 	// devices.
@@ -1214,9 +1262,9 @@ type Device struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Device) MarshalJSON() ([]byte, error) {
+func (s Device) MarshalJSON() ([]byte, error) {
 	type NoMethod Device
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceUser: Represents a user's use of a Device in the Cloud Identity
@@ -1285,9 +1333,9 @@ type DeviceUser struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceUser) MarshalJSON() ([]byte, error) {
+func (s DeviceUser) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceUser
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DsaPublicKeyInfo: Information of a DSA public key.
@@ -1307,9 +1355,9 @@ type DsaPublicKeyInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DsaPublicKeyInfo) MarshalJSON() ([]byte, error) {
+func (s DsaPublicKeyInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DsaPublicKeyInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DynamicGroupMetadata: Dynamic group metadata like queries and status.
@@ -1333,9 +1381,9 @@ type DynamicGroupMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DynamicGroupMetadata) MarshalJSON() ([]byte, error) {
+func (s DynamicGroupMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod DynamicGroupMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DynamicGroupQuery: Defines a query on a resource.
@@ -1366,9 +1414,9 @@ type DynamicGroupQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DynamicGroupQuery) MarshalJSON() ([]byte, error) {
+func (s DynamicGroupQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod DynamicGroupQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DynamicGroupStatus: The current status of a dynamic group along with
@@ -1402,9 +1450,9 @@ type DynamicGroupStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DynamicGroupStatus) MarshalJSON() ([]byte, error) {
+func (s DynamicGroupStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod DynamicGroupStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EndpointVerificationSpecificAttributes: Resource representing the Endpoint
@@ -1412,11 +1460,15 @@ func (s *DynamicGroupStatus) MarshalJSON() ([]byte, error) {
 // (https://cloud.google.com/endpoint-verification/docs/device-information) of
 // a device.
 type EndpointVerificationSpecificAttributes struct {
-	// AdditionalSignals: Additional signals reported by Endpoint Verification. It
-	// includes the following attributes: 1. Non-configurable attributes: hotfixes,
-	// av_installed, av_enabled, windows_domain_name,
-	// is_os_native_firewall_enabled, and is_secure_boot_enabled. 2. Configurable
-	// attributes: file_config, registry_config, and plist_config.
+	// AdditionalSignals: Additional signals
+	// (https://cloud.google.com/endpoint-verification/docs/device-information)
+	// reported by Endpoint Verification. It includes the following attributes: *
+	// Non-configurable attributes: hotfixes, av_installed, av_enabled,
+	// windows_domain_name, is_os_native_firewall_enabled, and
+	// is_secure_boot_enabled. * Configurable attributes
+	// (https://cloud.google.com/endpoint-verification/docs/collect-config-attributes):
+	// file, folder, and binary attributes; registry entries; and properties in a
+	// plist.
 	AdditionalSignals googleapi.RawMessage `json:"additionalSignals,omitempty"`
 	// BrowserAttributes: Details of browser profiles reported by Endpoint
 	// Verification.
@@ -1436,9 +1488,9 @@ type EndpointVerificationSpecificAttributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EndpointVerificationSpecificAttributes) MarshalJSON() ([]byte, error) {
+func (s EndpointVerificationSpecificAttributes) MarshalJSON() ([]byte, error) {
 	type NoMethod EndpointVerificationSpecificAttributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityKey: A unique identifier for an entity in the Cloud Identity Groups
@@ -1471,9 +1523,9 @@ type EntityKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityKey) MarshalJSON() ([]byte, error) {
+func (s EntityKey) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExpiryDetail: The `MembershipRole` expiry details.
@@ -1493,9 +1545,9 @@ type ExpiryDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExpiryDetail) MarshalJSON() ([]byte, error) {
+func (s ExpiryDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod ExpiryDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetMembershipGraphResponse: The response message for
@@ -1521,9 +1573,9 @@ type GetMembershipGraphResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetMembershipGraphResponse) MarshalJSON() ([]byte, error) {
+func (s GetMembershipGraphResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetMembershipGraphResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1AndroidAttributes: Resource representing the
@@ -1572,9 +1624,9 @@ type GoogleAppsCloudidentityDevicesV1AndroidAttributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1AndroidAttributes) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1AndroidAttributes) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1AndroidAttributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1ApproveDeviceUserMetadata: Metadata for
@@ -1600,9 +1652,9 @@ type GoogleAppsCloudidentityDevicesV1ApproveDeviceUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1ApproveDeviceUserResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1ApproveDeviceUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1ApproveDeviceUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1BlockDeviceUserMetadata: Metadata for
@@ -1628,9 +1680,9 @@ type GoogleAppsCloudidentityDevicesV1BlockDeviceUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1BlockDeviceUserResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1BlockDeviceUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1BlockDeviceUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1BrowserAttributes: Contains information
@@ -1646,7 +1698,7 @@ type GoogleAppsCloudidentityDevicesV1BrowserAttributes struct {
 	// ChromeProfileId: Chrome profile ID that is exposed by the Chrome API. It is
 	// unique for each device.
 	ChromeProfileId string `json:"chromeProfileId,omitempty"`
-	// LastProfileSyncTime: Timestamp in milliseconds since Epoch when the
+	// LastProfileSyncTime: Timestamp in milliseconds since the Unix epoch when the
 	// profile/gcm id was last synced.
 	LastProfileSyncTime string `json:"lastProfileSyncTime,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ChromeBrowserInfo") to
@@ -1662,15 +1714,14 @@ type GoogleAppsCloudidentityDevicesV1BrowserAttributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1BrowserAttributes) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1BrowserAttributes) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1BrowserAttributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1BrowserInfo: Browser-specific fields
 // reported by the Endpoint Verification extension
 // (https://chromewebstore.google.com/detail/endpoint-verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
-// LINT.IfChange
 type GoogleAppsCloudidentityDevicesV1BrowserInfo struct {
 	// BrowserManagementState: Output only. Browser's management state.
 	//
@@ -1682,7 +1733,8 @@ type GoogleAppsCloudidentityDevicesV1BrowserInfo struct {
 	//   "PROFILE_MANAGED" - Profile is managed by customer.
 	//   "BROWSER_MANAGED" - Browser is managed by customer.
 	BrowserManagementState string `json:"browserManagementState,omitempty"`
-	// BrowserVersion: Version of the request initiating browser.
+	// BrowserVersion: Version of the request initiating browser. E.g.
+	// `91.0.4442.4`.
 	BrowserVersion string `json:"browserVersion,omitempty"`
 	// IsBuiltInDnsClientEnabled: Current state of built-in DNS client
 	// (https://chromeenterprise.google/policies/#BuiltInDnsClientEnabled).
@@ -1758,9 +1810,9 @@ type GoogleAppsCloudidentityDevicesV1BrowserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1BrowserInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1BrowserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1BrowserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1CancelWipeDeviceMetadata: Metadata for
@@ -1787,9 +1839,9 @@ type GoogleAppsCloudidentityDevicesV1CancelWipeDeviceResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1CancelWipeDeviceResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1CancelWipeDeviceResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1CancelWipeDeviceResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1CancelWipeDeviceUserMetadata: Metadata for
@@ -1815,9 +1867,9 @@ type GoogleAppsCloudidentityDevicesV1CancelWipeDeviceUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1CancelWipeDeviceUserResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1CancelWipeDeviceUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1CancelWipeDeviceUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1CertificateAttributes: Stores information
@@ -1859,9 +1911,9 @@ type GoogleAppsCloudidentityDevicesV1CertificateAttributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1CertificateAttributes) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1CertificateAttributes) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1CertificateAttributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1CertificateTemplate: CertificateTemplate (v3
@@ -1888,9 +1940,9 @@ type GoogleAppsCloudidentityDevicesV1CertificateTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1CertificateTemplate) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1CertificateTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1CertificateTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1ClientState: Represents the state associated
@@ -1984,9 +2036,9 @@ type GoogleAppsCloudidentityDevicesV1ClientState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1ClientState) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1ClientState) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1ClientState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1CreateDeviceMetadata: Metadata for
@@ -2016,9 +2068,9 @@ type GoogleAppsCloudidentityDevicesV1CustomAttributeValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1CustomAttributeValue) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1CustomAttributeValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1CustomAttributeValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleAppsCloudidentityDevicesV1CustomAttributeValue) UnmarshalJSON(data []byte) error {
@@ -2135,7 +2187,9 @@ type GoogleAppsCloudidentityDevicesV1Device struct {
 	// Name: Output only. Resource name
 	// (https://cloud.google.com/apis/design/resource_names) of the Device in
 	// format: `devices/{device}`, where device is the unique id assigned to the
-	// Device.
+	// Device. Important: Device API scopes require that you use domain-wide
+	// delegation to access the API. For more information, see Set up the Devices
+	// API (https://cloud.google.com/identity/docs/how-to/setup-devices).
 	Name string `json:"name,omitempty"`
 	// NetworkOperator: Output only. Mobile or network operator of device, if
 	// available.
@@ -2179,9 +2233,9 @@ type GoogleAppsCloudidentityDevicesV1Device struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1Device) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1Device) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1Device
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1DeviceUser: Represents a user's use of a
@@ -2247,9 +2301,9 @@ type GoogleAppsCloudidentityDevicesV1DeviceUser struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1DeviceUser) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1DeviceUser) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1DeviceUser
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes:
@@ -2257,11 +2311,12 @@ func (s *GoogleAppsCloudidentityDevicesV1DeviceUser) MarshalJSON() ([]byte, erro
 // (https://cloud.google.com/endpoint-verification/docs/device-information) of
 // a device.
 type GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes struct {
-	// AdditionalSignals: Additional signals reported by Endpoint Verification. It
-	// includes the following attributes: 1. Non-configurable attributes: hotfixes,
-	// av_installed, av_enabled, windows_domain_name,
-	// is_os_native_firewall_enabled, and is_secure_boot_enabled. 2. Configurable
-	// attributes
+	// AdditionalSignals: Additional signals
+	// (https://cloud.google.com/endpoint-verification/docs/device-information)
+	// reported by Endpoint Verification. It includes the following attributes: *
+	// Non-configurable attributes: hotfixes, av_installed, av_enabled,
+	// windows_domain_name, is_os_native_firewall_enabled, and
+	// is_secure_boot_enabled. * Configurable attributes
 	// (https://cloud.google.com/endpoint-verification/docs/collect-config-attributes):
 	// file, folder, and binary attributes; registry entries; and properties in a
 	// plist.
@@ -2284,9 +2339,9 @@ type GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes stru
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1ListEndpointAppsMetadata: Metadata for
@@ -2333,9 +2388,9 @@ type GoogleAppsCloudidentityDevicesV1WipeDeviceResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1WipeDeviceResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1WipeDeviceResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1WipeDeviceResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsCloudidentityDevicesV1WipeDeviceUserMetadata: Metadata for
@@ -2361,9 +2416,9 @@ type GoogleAppsCloudidentityDevicesV1WipeDeviceUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsCloudidentityDevicesV1WipeDeviceUserResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsCloudidentityDevicesV1WipeDeviceUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsCloudidentityDevicesV1WipeDeviceUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Group: A group within the Cloud Identity Groups API. A `Group` is a
@@ -2385,9 +2440,9 @@ type Group struct {
 	DynamicGroupMetadata *DynamicGroupMetadata `json:"dynamicGroupMetadata,omitempty"`
 	// GroupKey: Required. The `EntityKey` of the `Group`.
 	GroupKey *EntityKey `json:"groupKey,omitempty"`
-	// Labels: Required. One or more label entries that apply to the Group.
-	// Currently supported labels contain a key with an empty value. Google Groups
-	// are the default type of group and have a label with a key of
+	// Labels: Required. One or more label entries that apply to the Group. Labels
+	// contain a key with an empty value. Google Groups are the default type of
+	// group and have a label with a key of
 	// `cloudidentity.googleapis.com/groups.discussion_forum` and an empty value.
 	// Existing Google Groups can have an additional label with a key of
 	// `cloudidentity.googleapis.com/groups.security` and an empty value added to
@@ -2395,7 +2450,10 @@ type Group struct {
 	// once added.** Dynamic groups have a label with a key of
 	// `cloudidentity.googleapis.com/groups.dynamic`. Identity-mapped groups for
 	// Cloud Search have a label with a key of `system/groups/external` and an
-	// empty value.
+	// empty value. (Beta) Google Groups can be locked
+	// (https://support.google.com/a?p=locked-groups). To lock a group, add a label
+	// with a key of `cloudidentity.googleapis.com/groups.locked` and an empty
+	// value. Doing so locks the group. To unlock the group, remove this label.
 	Labels map[string]string `json:"labels,omitempty"`
 	// Name: Output only. The resource name
 	// (https://cloud.google.com/apis/design/resource_names) of the `Group`. Shall
@@ -2429,9 +2487,9 @@ type Group struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Group) MarshalJSON() ([]byte, error) {
+func (s Group) MarshalJSON() ([]byte, error) {
 	type NoMethod Group
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GroupRelation: Message representing a transitive group of a user or a group.
@@ -2471,9 +2529,9 @@ type GroupRelation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GroupRelation) MarshalJSON() ([]byte, error) {
+func (s GroupRelation) MarshalJSON() ([]byte, error) {
 	type NoMethod GroupRelation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdpCredential: Credential for verifying signatures produced by the Identity
@@ -2504,9 +2562,9 @@ type IdpCredential struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdpCredential) MarshalJSON() ([]byte, error) {
+func (s IdpCredential) MarshalJSON() ([]byte, error) {
 	type NoMethod IdpCredential
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InboundSamlSsoProfile: A SAML 2.0
@@ -2543,9 +2601,9 @@ type InboundSamlSsoProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InboundSamlSsoProfile) MarshalJSON() ([]byte, error) {
+func (s InboundSamlSsoProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod InboundSamlSsoProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InboundSsoAssignment: Targets with "set" SSO assignments and their
@@ -2602,9 +2660,9 @@ type InboundSsoAssignment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InboundSsoAssignment) MarshalJSON() ([]byte, error) {
+func (s InboundSsoAssignment) MarshalJSON() ([]byte, error) {
 	type NoMethod InboundSsoAssignment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IsInvitableUserResponse: Response for IsInvitableUser RPC.
@@ -2627,9 +2685,9 @@ type IsInvitableUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IsInvitableUserResponse) MarshalJSON() ([]byte, error) {
+func (s IsInvitableUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod IsInvitableUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListClientStatesResponse: Response message that is returned in LRO result of
@@ -2653,9 +2711,9 @@ type ListClientStatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListClientStatesResponse) MarshalJSON() ([]byte, error) {
+func (s ListClientStatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListClientStatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDeviceUsersResponse: Response message that is returned from the
@@ -2682,9 +2740,9 @@ type ListDeviceUsersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDeviceUsersResponse) MarshalJSON() ([]byte, error) {
+func (s ListDeviceUsersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDeviceUsersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDevicesResponse: Response message that is returned from the ListDevices
@@ -2711,9 +2769,9 @@ type ListDevicesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDevicesResponse) MarshalJSON() ([]byte, error) {
+func (s ListDevicesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDevicesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGroupsResponse: The response message for GroupsService.ListGroups.
@@ -2739,9 +2797,9 @@ type ListGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListIdpCredentialsResponse: Response of the
@@ -2768,9 +2826,9 @@ type ListIdpCredentialsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListIdpCredentialsResponse) MarshalJSON() ([]byte, error) {
+func (s ListIdpCredentialsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListIdpCredentialsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInboundSamlSsoProfilesResponse: Response of the
@@ -2797,9 +2855,9 @@ type ListInboundSamlSsoProfilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInboundSamlSsoProfilesResponse) MarshalJSON() ([]byte, error) {
+func (s ListInboundSamlSsoProfilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInboundSamlSsoProfilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInboundSsoAssignmentsResponse: Response of the
@@ -2826,9 +2884,9 @@ type ListInboundSsoAssignmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInboundSsoAssignmentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListInboundSsoAssignmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInboundSsoAssignmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMembershipsResponse: The response message for
@@ -2855,9 +2913,9 @@ type ListMembershipsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMembershipsResponse) MarshalJSON() ([]byte, error) {
+func (s ListMembershipsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMembershipsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOrgMembershipsResponse: The response message for
@@ -2884,9 +2942,37 @@ type ListOrgMembershipsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOrgMembershipsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOrgMembershipsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOrgMembershipsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListPoliciesResponse: The response message for PoliciesService.ListPolicies.
+type ListPoliciesResponse struct {
+	// NextPageToken: The pagination token to retrieve the next page of results. If
+	// this field is empty, there are no subsequent pages.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// Policies: The results
+	Policies []*Policy `json:"policies,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListPoliciesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListPoliciesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUserInvitationsResponse: Response message for UserInvitation listing
@@ -2915,9 +3001,9 @@ type ListUserInvitationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUserInvitationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUserInvitationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUserInvitationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupGroupNameResponse: The response message for
@@ -2943,9 +3029,9 @@ type LookupGroupNameResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupGroupNameResponse) MarshalJSON() ([]byte, error) {
+func (s LookupGroupNameResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupGroupNameResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupMembershipNameResponse: The response message for
@@ -2972,9 +3058,9 @@ type LookupMembershipNameResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupMembershipNameResponse) MarshalJSON() ([]byte, error) {
+func (s LookupMembershipNameResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupMembershipNameResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupSelfDeviceUsersResponse: Response containing resource names of the
@@ -3007,9 +3093,9 @@ type LookupSelfDeviceUsersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupSelfDeviceUsersResponse) MarshalJSON() ([]byte, error) {
+func (s LookupSelfDeviceUsersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupSelfDeviceUsersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MemberRelation: Message representing a transitive membership of a group.
@@ -3045,9 +3131,9 @@ type MemberRelation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MemberRelation) MarshalJSON() ([]byte, error) {
+func (s MemberRelation) MarshalJSON() ([]byte, error) {
 	type NoMethod MemberRelation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MemberRestriction: The definition of MemberRestriction
@@ -3078,9 +3164,9 @@ type MemberRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MemberRestriction) MarshalJSON() ([]byte, error) {
+func (s MemberRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod MemberRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Membership: A membership within the Cloud Identity Groups API. A
@@ -3126,6 +3212,7 @@ type Membership struct {
 	//   "SERVICE_ACCOUNT" - Represents service account type.
 	//   "GROUP" - Represents group type.
 	//   "SHARED_DRIVE" - Represents Shared drive.
+	//   "CBCM_BROWSER" - Represents a CBCM-managed Chrome Browser type.
 	//   "OTHER" - Represents other type.
 	Type string `json:"type,omitempty"`
 	// UpdateTime: Output only. The time when the `Membership` was last updated.
@@ -3146,9 +3233,9 @@ type Membership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Membership) MarshalJSON() ([]byte, error) {
+func (s Membership) MarshalJSON() ([]byte, error) {
 	type NoMethod Membership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MembershipAdjacencyList: Membership graph's path information as an adjacency
@@ -3156,7 +3243,7 @@ func (s *Membership) MarshalJSON() ([]byte, error) {
 type MembershipAdjacencyList struct {
 	// Edges: Each edge contains information about the member that belongs to this
 	// group. Note: Fields returned here will help identify the specific Membership
-	// resource (e.g name, preferred_member_key and role), but may not be a
+	// resource (e.g `name`, `preferred_member_key` and `role`), but may not be a
 	// comprehensive list of all fields.
 	Edges []*Membership `json:"edges,omitempty"`
 	// Group: Resource name of the group that the members belong to.
@@ -3174,9 +3261,9 @@ type MembershipAdjacencyList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MembershipAdjacencyList) MarshalJSON() ([]byte, error) {
+func (s MembershipAdjacencyList) MarshalJSON() ([]byte, error) {
 	type NoMethod MembershipAdjacencyList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MembershipRelation: Message containing membership relation.
@@ -3214,9 +3301,9 @@ type MembershipRelation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MembershipRelation) MarshalJSON() ([]byte, error) {
+func (s MembershipRelation) MarshalJSON() ([]byte, error) {
 	type NoMethod MembershipRelation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MembershipRole: A membership role within the Cloud Identity Groups API. A
@@ -3245,9 +3332,9 @@ type MembershipRole struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MembershipRole) MarshalJSON() ([]byte, error) {
+func (s MembershipRole) MarshalJSON() ([]byte, error) {
 	type NoMethod MembershipRole
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MembershipRoleRestrictionEvaluation: The evaluated state of this
@@ -3278,9 +3365,9 @@ type MembershipRoleRestrictionEvaluation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MembershipRoleRestrictionEvaluation) MarshalJSON() ([]byte, error) {
+func (s MembershipRoleRestrictionEvaluation) MarshalJSON() ([]byte, error) {
 	type NoMethod MembershipRoleRestrictionEvaluation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyMembershipRolesRequest: The request message for
@@ -3313,9 +3400,9 @@ type ModifyMembershipRolesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyMembershipRolesRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyMembershipRolesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyMembershipRolesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyMembershipRolesResponse: The response message for
@@ -3339,9 +3426,9 @@ type ModifyMembershipRolesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyMembershipRolesResponse) MarshalJSON() ([]byte, error) {
+func (s ModifyMembershipRolesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyMembershipRolesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MoveOrgMembershipRequest: The request message for
@@ -3372,9 +3459,9 @@ type MoveOrgMembershipRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MoveOrgMembershipRequest) MarshalJSON() ([]byte, error) {
+func (s MoveOrgMembershipRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MoveOrgMembershipRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -3419,9 +3506,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OrgMembership: A membership in an OrgUnit. An `OrgMembership` defines a
@@ -3469,13 +3556,119 @@ type OrgMembership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OrgMembership) MarshalJSON() ([]byte, error) {
+func (s OrgMembership) MarshalJSON() ([]byte, error) {
 	type NoMethod OrgMembership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Policy: A Policy resource binds an instance of a single Setting with the
+// scope of a PolicyQuery. The Setting instance will be applied to all entities
+// that satisfy the query.
+type Policy struct {
+	// Customer: Immutable. Customer that the Policy belongs to. The value is in
+	// the format 'customers/{customerId}'. The `customerId` must begin with "C" To
+	// find your customer ID in Admin Console see
+	// https://support.google.com/a/answer/10070793.
+	Customer string `json:"customer,omitempty"`
+	// Name: Output only. Identifier. The resource name
+	// (https://cloud.google.com/apis/design/resource_names) of the Policy. Format:
+	// policies/{policy}.
+	Name string `json:"name,omitempty"`
+	// PolicyQuery: Required. The PolicyQuery the Setting applies to.
+	PolicyQuery *PolicyQuery `json:"policyQuery,omitempty"`
+	// Setting: Required. The Setting configured by this Policy.
+	Setting *Setting `json:"setting,omitempty"`
+	// Type: Output only. The type of the policy.
+	//
+	// Possible values:
+	//   "POLICY_TYPE_UNSPECIFIED" - Unspecified policy type.
+	//   "SYSTEM" - Policy type denoting the system-configured policies.
+	//   "ADMIN" - Policy type denoting the admin-configurable policies.
+	Type string `json:"type,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Customer") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Customer") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Policy) MarshalJSON() ([]byte, error) {
+	type NoMethod Policy
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PolicyQuery: PolicyQuery
+type PolicyQuery struct {
+	// Group: Immutable. The group that the query applies to. This field is only
+	// set if there is a single value for group that satisfies all clauses of the
+	// query. If no group applies, this will be the empty string.
+	Group string `json:"group,omitempty"`
+	// OrgUnit: Required. Immutable. Non-empty default. The OrgUnit the query
+	// applies to. This field is only set if there is a single value for org_unit
+	// that satisfies all clauses of the query.
+	OrgUnit string `json:"orgUnit,omitempty"`
+	// Query: Immutable. The CEL query that defines which entities the Policy
+	// applies to (ex. a User entity). For details about CEL see
+	// https://opensource.google.com/projects/cel. The OrgUnits the Policy applies
+	// to are represented by a clause like so: entity.org_units.exists(org_unit,
+	// org_unit.org_unit_id == orgUnitId('{orgUnitId}')) The Group the Policy
+	// applies to are represented by a clause like so: entity.groups.exists(group,
+	// group.group_id == groupId('{groupId}')) The Licenses the Policy applies to
+	// are represented by a clause like so: entity.licenses.exists(license, license
+	// in ['/product/{productId}/sku/{skuId}']) The above clauses can be present in
+	// any combination, and used in conjunction with the &&, || and ! operators.
+	// The org_unit and group fields below are helper fields that contain the
+	// corresponding value(s) as the query to make the query easier to use.
+	Query string `json:"query,omitempty"`
+	// SortOrder: Output only. The decimal sort order of this PolicyQuery. The
+	// value is relative to all other policies with the same setting type for the
+	// customer. (There are no duplicates within this set).
+	SortOrder float64 `json:"sortOrder,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Group") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Group") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PolicyQuery) MarshalJSON() ([]byte, error) {
+	type NoMethod PolicyQuery
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *PolicyQuery) UnmarshalJSON(data []byte) error {
+	type NoMethod PolicyQuery
+	var s1 struct {
+		SortOrder gensupport.JSONFloat64 `json:"sortOrder"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.SortOrder = float64(s1.SortOrder)
+	return nil
 }
 
 // PosixGroup: POSIX Group definition to represent a group in a POSIX compliant
-// system.
+// system. Caution: POSIX groups are deprecated. As of September 26, 2024, you
+// can no longer create new POSIX groups. For more information, see
+// https://cloud.google.com/identity/docs/deprecations/posix-groups
 type PosixGroup struct {
 	// Gid: GID of the POSIX group.
 	Gid uint64 `json:"gid,omitempty,string"`
@@ -3497,9 +3690,9 @@ type PosixGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PosixGroup) MarshalJSON() ([]byte, error) {
+func (s PosixGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod PosixGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RestrictionEvaluation: The evaluated state of this restriction.
@@ -3529,9 +3722,9 @@ type RestrictionEvaluation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestrictionEvaluation) MarshalJSON() ([]byte, error) {
+func (s RestrictionEvaluation) MarshalJSON() ([]byte, error) {
 	type NoMethod RestrictionEvaluation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RestrictionEvaluations: Evaluations of restrictions applied to parent group
@@ -3554,9 +3747,9 @@ type RestrictionEvaluations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestrictionEvaluations) MarshalJSON() ([]byte, error) {
+func (s RestrictionEvaluations) MarshalJSON() ([]byte, error) {
 	type NoMethod RestrictionEvaluations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RsaPublicKeyInfo: Information of a RSA public key.
@@ -3576,9 +3769,9 @@ type RsaPublicKeyInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RsaPublicKeyInfo) MarshalJSON() ([]byte, error) {
+func (s RsaPublicKeyInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RsaPublicKeyInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SamlIdpConfig: SAML IDP (identity provider) configuration.
@@ -3614,9 +3807,9 @@ type SamlIdpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SamlIdpConfig) MarshalJSON() ([]byte, error) {
+func (s SamlIdpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SamlIdpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SamlSpConfig: SAML SP (service provider) configuration.
@@ -3640,9 +3833,9 @@ type SamlSpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SamlSpConfig) MarshalJSON() ([]byte, error) {
+func (s SamlSpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SamlSpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SamlSsoInfo: Details that are applicable when `sso_mode` == `SAML_SSO`.
@@ -3663,9 +3856,9 @@ type SamlSsoInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SamlSsoInfo) MarshalJSON() ([]byte, error) {
+func (s SamlSsoInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SamlSsoInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchDirectGroupsResponse: The response message for
@@ -3692,9 +3885,9 @@ type SearchDirectGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchDirectGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchDirectGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchDirectGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchGroupsResponse: The response message for GroupsService.SearchGroups.
@@ -3720,9 +3913,9 @@ type SearchGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchTransitiveGroupsResponse: The response message for
@@ -3749,9 +3942,9 @@ type SearchTransitiveGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchTransitiveGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchTransitiveGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchTransitiveGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchTransitiveMembershipsResponse: The response message for
@@ -3778,9 +3971,9 @@ type SearchTransitiveMembershipsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchTransitiveMembershipsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchTransitiveMembershipsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchTransitiveMembershipsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SecuritySettings: The definiion of security settings.
@@ -3806,14 +3999,38 @@ type SecuritySettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SecuritySettings) MarshalJSON() ([]byte, error) {
+func (s SecuritySettings) MarshalJSON() ([]byte, error) {
 	type NoMethod SecuritySettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SendUserInvitationRequest: A request to send email for inviting target user
 // corresponding to the UserInvitation.
 type SendUserInvitationRequest struct {
+}
+
+// Setting: Setting
+type Setting struct {
+	// Type: Required. Immutable. The type of the Setting. .
+	Type string `json:"type,omitempty"`
+	// Value: Required. The value of the Setting.
+	Value googleapi.RawMessage `json:"value,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Type") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Type") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Setting) MarshalJSON() ([]byte, error) {
+	type NoMethod Setting
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SignInBehavior: Controls sign-in behavior.
@@ -3841,9 +4058,9 @@ type SignInBehavior struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SignInBehavior) MarshalJSON() ([]byte, error) {
+func (s SignInBehavior) MarshalJSON() ([]byte, error) {
 	type NoMethod SignInBehavior
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -3875,9 +4092,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransitiveMembershipRole: Message representing the role of a
@@ -3899,9 +4116,9 @@ type TransitiveMembershipRole struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransitiveMembershipRole) MarshalJSON() ([]byte, error) {
+func (s TransitiveMembershipRole) MarshalJSON() ([]byte, error) {
 	type NoMethod TransitiveMembershipRole
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateInboundSamlSsoProfileOperationMetadata: LRO response metadata for
@@ -3925,9 +4142,9 @@ type UpdateInboundSamlSsoProfileOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateInboundSamlSsoProfileOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s UpdateInboundSamlSsoProfileOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateInboundSamlSsoProfileOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateInboundSsoAssignmentOperationMetadata: LRO response metadata for
@@ -3957,9 +4174,9 @@ type UpdateMembershipRolesParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateMembershipRolesParams) MarshalJSON() ([]byte, error) {
+func (s UpdateMembershipRolesParams) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateMembershipRolesParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserInvitation: The `UserInvitation` resource represents an email that can
@@ -4004,9 +4221,9 @@ type UserInvitation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserInvitation) MarshalJSON() ([]byte, error) {
+func (s UserInvitation) MarshalJSON() ([]byte, error) {
 	type NoMethod UserInvitation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WipeDeviceRequest: Request message for wiping all data on the device.
@@ -4037,9 +4254,9 @@ type WipeDeviceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WipeDeviceRequest) MarshalJSON() ([]byte, error) {
+func (s WipeDeviceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod WipeDeviceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WipeDeviceResponse: Response message for wiping all data on the device.
@@ -4060,9 +4277,9 @@ type WipeDeviceResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WipeDeviceResponse) MarshalJSON() ([]byte, error) {
+func (s WipeDeviceResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod WipeDeviceResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WipeDeviceUserRequest: Request message for starting an account wipe on
@@ -4088,9 +4305,9 @@ type WipeDeviceUserRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WipeDeviceUserRequest) MarshalJSON() ([]byte, error) {
+func (s WipeDeviceUserRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod WipeDeviceUserRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WipeDeviceUserResponse: Response message for wiping the user's account from
@@ -4111,9 +4328,9 @@ type WipeDeviceUserResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WipeDeviceUserResponse) MarshalJSON() ([]byte, error) {
+func (s WipeDeviceUserResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod WipeDeviceUserResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CustomersUserinvitationsCancelCall struct {
@@ -4161,8 +4378,7 @@ func (c *CustomersUserinvitationsCancelCall) Header() http.Header {
 
 func (c *CustomersUserinvitationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceluserinvitationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceluserinvitationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4178,6 +4394,7 @@ func (c *CustomersUserinvitationsCancelCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4212,9 +4429,11 @@ func (c *CustomersUserinvitationsCancelCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4276,12 +4495,11 @@ func (c *CustomersUserinvitationsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4289,6 +4507,7 @@ func (c *CustomersUserinvitationsGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4323,9 +4542,11 @@ func (c *CustomersUserinvitationsGetCall) Do(opts ...googleapi.CallOption) (*Use
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4390,12 +4611,11 @@ func (c *CustomersUserinvitationsIsInvitableUserCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}:isInvitableUser")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4403,6 +4623,7 @@ func (c *CustomersUserinvitationsIsInvitableUserCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.isInvitableUser", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4438,9 +4659,11 @@ func (c *CustomersUserinvitationsIsInvitableUserCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.isInvitableUser", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4539,12 +4762,11 @@ func (c *CustomersUserinvitationsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/userinvitations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4552,6 +4774,7 @@ func (c *CustomersUserinvitationsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4587,9 +4810,11 @@ func (c *CustomersUserinvitationsListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4664,8 +4889,7 @@ func (c *CustomersUserinvitationsSendCall) Header() http.Header {
 
 func (c *CustomersUserinvitationsSendCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.senduserinvitationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.senduserinvitationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4681,6 +4905,7 @@ func (c *CustomersUserinvitationsSendCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.send", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4715,9 +4940,11 @@ func (c *CustomersUserinvitationsSendCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.customers.userinvitations.send", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4769,8 +4996,7 @@ func (c *DevicesCancelWipeCall) Header() http.Header {
 
 func (c *DevicesCancelWipeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelwipedevicerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelwipedevicerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4786,6 +5012,7 @@ func (c *DevicesCancelWipeCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.cancelWipe", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4820,9 +5047,11 @@ func (c *DevicesCancelWipeCall) Do(opts ...googleapi.CallOption) (*Operation, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.cancelWipe", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4869,8 +5098,7 @@ func (c *DevicesCreateCall) Header() http.Header {
 
 func (c *DevicesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createdevicerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createdevicerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4883,6 +5111,7 @@ func (c *DevicesCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4917,9 +5146,11 @@ func (c *DevicesCreateCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4978,12 +5209,11 @@ func (c *DevicesDeleteCall) Header() http.Header {
 
 func (c *DevicesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4991,6 +5221,7 @@ func (c *DevicesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5025,9 +5256,11 @@ func (c *DevicesDeleteCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5096,12 +5329,11 @@ func (c *DevicesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5109,6 +5341,7 @@ func (c *DevicesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5143,9 +5376,11 @@ func (c *DevicesGetCall) Do(opts ...googleapi.CallOption) (*Device, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5264,16 +5499,16 @@ func (c *DevicesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/devices")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5309,9 +5544,11 @@ func (c *DevicesListCall) Do(opts ...googleapi.CallOption) (*ListDevicesResponse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5384,8 +5621,7 @@ func (c *DevicesWipeCall) Header() http.Header {
 
 func (c *DevicesWipeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.wipedevicerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.wipedevicerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5401,6 +5637,7 @@ func (c *DevicesWipeCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.wipe", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5435,9 +5672,11 @@ func (c *DevicesWipeCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.wipe", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5489,8 +5728,7 @@ func (c *DevicesDeviceUsersApproveCall) Header() http.Header {
 
 func (c *DevicesDeviceUsersApproveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.approvedeviceuserrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.approvedeviceuserrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5506,6 +5744,7 @@ func (c *DevicesDeviceUsersApproveCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.approve", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5540,9 +5779,11 @@ func (c *DevicesDeviceUsersApproveCall) Do(opts ...googleapi.CallOption) (*Opera
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.approve", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5594,8 +5835,7 @@ func (c *DevicesDeviceUsersBlockCall) Header() http.Header {
 
 func (c *DevicesDeviceUsersBlockCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.blockdeviceuserrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.blockdeviceuserrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5611,6 +5851,7 @@ func (c *DevicesDeviceUsersBlockCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.block", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5645,9 +5886,11 @@ func (c *DevicesDeviceUsersBlockCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.block", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5701,8 +5944,7 @@ func (c *DevicesDeviceUsersCancelWipeCall) Header() http.Header {
 
 func (c *DevicesDeviceUsersCancelWipeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelwipedeviceuserrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelwipedeviceuserrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5718,6 +5960,7 @@ func (c *DevicesDeviceUsersCancelWipeCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.cancelWipe", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5752,9 +5995,11 @@ func (c *DevicesDeviceUsersCancelWipeCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.cancelWipe", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5816,12 +6061,11 @@ func (c *DevicesDeviceUsersDeleteCall) Header() http.Header {
 
 func (c *DevicesDeviceUsersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5829,6 +6073,7 @@ func (c *DevicesDeviceUsersDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5863,9 +6108,11 @@ func (c *DevicesDeviceUsersDeleteCall) Do(opts ...googleapi.CallOption) (*Operat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5938,12 +6185,11 @@ func (c *DevicesDeviceUsersGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5951,6 +6197,7 @@ func (c *DevicesDeviceUsersGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5985,9 +6232,11 @@ func (c *DevicesDeviceUsersGetCall) Do(opts ...googleapi.CallOption) (*DeviceUse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6092,12 +6341,11 @@ func (c *DevicesDeviceUsersListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/deviceUsers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6105,6 +6353,7 @@ func (c *DevicesDeviceUsersListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6140,9 +6389,11 @@ func (c *DevicesDeviceUsersListCall) Do(opts ...googleapi.CallOption) (*ListDevi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6277,12 +6528,11 @@ func (c *DevicesDeviceUsersLookupCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}:lookup")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6290,6 +6540,7 @@ func (c *DevicesDeviceUsersLookupCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.lookup", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6325,9 +6576,11 @@ func (c *DevicesDeviceUsersLookupCall) Do(opts ...googleapi.CallOption) (*Lookup
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6400,8 +6653,7 @@ func (c *DevicesDeviceUsersWipeCall) Header() http.Header {
 
 func (c *DevicesDeviceUsersWipeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.wipedeviceuserrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.wipedeviceuserrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6417,6 +6669,7 @@ func (c *DevicesDeviceUsersWipeCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.wipe", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6451,9 +6704,11 @@ func (c *DevicesDeviceUsersWipeCall) Do(opts ...googleapi.CallOption) (*Operatio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.wipe", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6536,12 +6791,11 @@ func (c *DevicesDeviceUsersClientStatesGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6549,6 +6803,7 @@ func (c *DevicesDeviceUsersClientStatesGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.clientStates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6583,9 +6838,11 @@ func (c *DevicesDeviceUsersClientStatesGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.clientStates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6659,8 +6916,7 @@ func (c *DevicesDeviceUsersClientStatesPatchCall) Header() http.Header {
 
 func (c *DevicesDeviceUsersClientStatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.clientstate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.clientstate)
 	if err != nil {
 		return nil, err
 	}
@@ -6676,6 +6932,7 @@ func (c *DevicesDeviceUsersClientStatesPatchCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.clientStates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6710,9 +6967,11 @@ func (c *DevicesDeviceUsersClientStatesPatchCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.devices.deviceUsers.clientStates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6774,8 +7033,7 @@ func (c *GroupsCreateCall) Header() http.Header {
 
 func (c *GroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.group)
 	if err != nil {
 		return nil, err
 	}
@@ -6788,6 +7046,7 @@ func (c *GroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6822,9 +7081,11 @@ func (c *GroupsCreateCall) Do(opts ...googleapi.CallOption) (*Operation, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6872,12 +7133,11 @@ func (c *GroupsDeleteCall) Header() http.Header {
 
 func (c *GroupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6885,6 +7145,7 @@ func (c *GroupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6919,9 +7180,11 @@ func (c *GroupsDeleteCall) Do(opts ...googleapi.CallOption) (*Operation, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6981,12 +7244,11 @@ func (c *GroupsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6994,6 +7256,7 @@ func (c *GroupsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7028,9 +7291,11 @@ func (c *GroupsGetCall) Do(opts ...googleapi.CallOption) (*Group, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7098,12 +7363,11 @@ func (c *GroupsGetSecuritySettingsCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7111,6 +7375,7 @@ func (c *GroupsGetSecuritySettingsCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.getSecuritySettings", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7146,9 +7411,11 @@ func (c *GroupsGetSecuritySettingsCall) Do(opts ...googleapi.CallOption) (*Secur
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.getSecuritySettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7245,16 +7512,16 @@ func (c *GroupsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/groups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7290,9 +7557,11 @@ func (c *GroupsListCall) Do(opts ...googleapi.CallOption) (*ListGroupsResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7390,16 +7659,16 @@ func (c *GroupsLookupCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/groups:lookup")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.lookup", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7435,9 +7704,11 @@ func (c *GroupsLookupCall) Do(opts ...googleapi.CallOption) (*LookupGroupNameRes
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7496,8 +7767,7 @@ func (c *GroupsPatchCall) Header() http.Header {
 
 func (c *GroupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.group)
 	if err != nil {
 		return nil, err
 	}
@@ -7513,6 +7783,7 @@ func (c *GroupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7547,9 +7818,11 @@ func (c *GroupsPatchCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7665,16 +7938,16 @@ func (c *GroupsSearchCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/groups:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7710,9 +7983,11 @@ func (c *GroupsSearchCall) Do(opts ...googleapi.CallOption) (*SearchGroupsRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7790,8 +8065,7 @@ func (c *GroupsUpdateSecuritySettingsCall) Header() http.Header {
 
 func (c *GroupsUpdateSecuritySettingsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.securitysettings)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.securitysettings)
 	if err != nil {
 		return nil, err
 	}
@@ -7807,6 +8081,7 @@ func (c *GroupsUpdateSecuritySettingsCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.updateSecuritySettings", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7841,9 +8116,11 @@ func (c *GroupsUpdateSecuritySettingsCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.updateSecuritySettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7922,12 +8199,11 @@ func (c *GroupsMembershipsCheckTransitiveMembershipCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/memberships:checkTransitiveMembership")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7935,6 +8211,7 @@ func (c *GroupsMembershipsCheckTransitiveMembershipCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.checkTransitiveMembership", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7970,9 +8247,11 @@ func (c *GroupsMembershipsCheckTransitiveMembershipCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.checkTransitiveMembership", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8021,8 +8300,7 @@ func (c *GroupsMembershipsCreateCall) Header() http.Header {
 
 func (c *GroupsMembershipsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.membership)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.membership)
 	if err != nil {
 		return nil, err
 	}
@@ -8038,6 +8316,7 @@ func (c *GroupsMembershipsCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8072,9 +8351,11 @@ func (c *GroupsMembershipsCreateCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8123,12 +8404,11 @@ func (c *GroupsMembershipsDeleteCall) Header() http.Header {
 
 func (c *GroupsMembershipsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8136,6 +8416,7 @@ func (c *GroupsMembershipsDeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8170,9 +8451,11 @@ func (c *GroupsMembershipsDeleteCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8233,12 +8516,11 @@ func (c *GroupsMembershipsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8246,6 +8528,7 @@ func (c *GroupsMembershipsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8280,9 +8563,11 @@ func (c *GroupsMembershipsGetCall) Do(opts ...googleapi.CallOption) (*Membership
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8306,7 +8591,7 @@ type GroupsMembershipsGetMembershipGraphCall struct {
 //     (https://cloud.google.com/apis/design/resource_names) of the group to
 //     search transitive memberships in. Format: `groups/{group_id}`, where
 //     `group_id` is the unique ID assigned to the Group to which the Membership
-//     belongs to. group_id can be a wildcard collection id "-". When a group_id
+//     belongs to. group_id can be a wildcard collection id "-". When `group_id`
 //     is specified, the membership graph will be constrained to paths between
 //     the member (defined in the query) and the parent. If a wildcard collection
 //     is provided, all membership paths connected to the member will be
@@ -8363,12 +8648,11 @@ func (c *GroupsMembershipsGetMembershipGraphCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/memberships:getMembershipGraph")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8376,6 +8660,7 @@ func (c *GroupsMembershipsGetMembershipGraphCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.getMembershipGraph", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8410,9 +8695,11 @@ func (c *GroupsMembershipsGetMembershipGraphCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.getMembershipGraph", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8502,12 +8789,11 @@ func (c *GroupsMembershipsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/memberships")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8515,6 +8801,7 @@ func (c *GroupsMembershipsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8550,9 +8837,11 @@ func (c *GroupsMembershipsListCall) Do(opts ...googleapi.CallOption) (*ListMembe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8655,12 +8944,11 @@ func (c *GroupsMembershipsLookupCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/memberships:lookup")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8668,6 +8956,7 @@ func (c *GroupsMembershipsLookupCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.lookup", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8703,9 +8992,11 @@ func (c *GroupsMembershipsLookupCall) Do(opts ...googleapi.CallOption) (*LookupM
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8756,8 +9047,7 @@ func (c *GroupsMembershipsModifyMembershipRolesCall) Header() http.Header {
 
 func (c *GroupsMembershipsModifyMembershipRolesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifymembershiprolesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifymembershiprolesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8773,6 +9063,7 @@ func (c *GroupsMembershipsModifyMembershipRolesCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.modifyMembershipRoles", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8808,9 +9099,11 @@ func (c *GroupsMembershipsModifyMembershipRolesCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.modifyMembershipRoles", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8858,7 +9151,7 @@ func (c *GroupsMembershipsSearchDirectGroupsCall) PageSize(pageSize int64) *Grou
 }
 
 // PageToken sets the optional parameter "pageToken": The next_page_token value
-// returned from a previous list request, if any
+// returned from a previous list request, if any.
 func (c *GroupsMembershipsSearchDirectGroupsCall) PageToken(pageToken string) *GroupsMembershipsSearchDirectGroupsCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -8912,12 +9205,11 @@ func (c *GroupsMembershipsSearchDirectGroupsCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/memberships:searchDirectGroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8925,6 +9217,7 @@ func (c *GroupsMembershipsSearchDirectGroupsCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.searchDirectGroups", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8960,9 +9253,11 @@ func (c *GroupsMembershipsSearchDirectGroupsCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.searchDirectGroups", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9021,8 +9316,8 @@ func (c *GroupsMembershipsSearchTransitiveGroupsCall) PageSize(pageSize int64) *
 	return c
 }
 
-// PageToken sets the optional parameter "pageToken": The next_page_token value
-// returned from a previous list request, if any.
+// PageToken sets the optional parameter "pageToken": The `next_page_token`
+// value returned from a previous list request, if any.
 func (c *GroupsMembershipsSearchTransitiveGroupsCall) PageToken(pageToken string) *GroupsMembershipsSearchTransitiveGroupsCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -9038,7 +9333,7 @@ func (c *GroupsMembershipsSearchTransitiveGroupsCall) PageToken(pageToken string
 // operators on the parent of the group restricting the search within a
 // particular customer, e.g. `parent == 'customers/{customer_id}'`. The
 // `customer_id` must begin with "C" (for example, 'C046psxkn'). This filtering
-// is only supported for Admins with groups read permissons on the input
+// is only supported for Admins with groups read permissions on the input
 // customer. Example query: `member_key_id == 'member_key_id_value' && in
 // labels && parent == 'customers/C046psxkn'`
 func (c *GroupsMembershipsSearchTransitiveGroupsCall) Query(query string) *GroupsMembershipsSearchTransitiveGroupsCall {
@@ -9082,12 +9377,11 @@ func (c *GroupsMembershipsSearchTransitiveGroupsCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/memberships:searchTransitiveGroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9095,6 +9389,7 @@ func (c *GroupsMembershipsSearchTransitiveGroupsCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.searchTransitiveGroups", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9130,9 +9425,11 @@ func (c *GroupsMembershipsSearchTransitiveGroupsCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.searchTransitiveGroups", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9233,12 +9530,11 @@ func (c *GroupsMembershipsSearchTransitiveMembershipsCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/memberships:searchTransitiveMemberships")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9246,6 +9542,7 @@ func (c *GroupsMembershipsSearchTransitiveMembershipsCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.searchTransitiveMemberships", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9281,9 +9578,11 @@ func (c *GroupsMembershipsSearchTransitiveMembershipsCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.groups.memberships.searchTransitiveMemberships", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9352,8 +9651,7 @@ func (c *InboundSamlSsoProfilesCreateCall) Header() http.Header {
 
 func (c *InboundSamlSsoProfilesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inboundsamlssoprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inboundsamlssoprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -9366,6 +9664,7 @@ func (c *InboundSamlSsoProfilesCreateCall) doRequest(alt string) (*http.Response
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9400,9 +9699,11 @@ func (c *InboundSamlSsoProfilesCreateCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9451,12 +9752,11 @@ func (c *InboundSamlSsoProfilesDeleteCall) Header() http.Header {
 
 func (c *InboundSamlSsoProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9464,6 +9764,7 @@ func (c *InboundSamlSsoProfilesDeleteCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9498,9 +9799,11 @@ func (c *InboundSamlSsoProfilesDeleteCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9561,12 +9864,11 @@ func (c *InboundSamlSsoProfilesGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9574,6 +9876,7 @@ func (c *InboundSamlSsoProfilesGetCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9609,9 +9912,11 @@ func (c *InboundSamlSsoProfilesGetCall) Do(opts ...googleapi.CallOption) (*Inbou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9697,16 +10002,16 @@ func (c *InboundSamlSsoProfilesListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/inboundSamlSsoProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9742,9 +10047,11 @@ func (c *InboundSamlSsoProfilesListCall) Do(opts ...googleapi.CallOption) (*List
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9826,8 +10133,7 @@ func (c *InboundSamlSsoProfilesPatchCall) Header() http.Header {
 
 func (c *InboundSamlSsoProfilesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inboundsamlssoprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inboundsamlssoprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -9843,6 +10149,7 @@ func (c *InboundSamlSsoProfilesPatchCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9877,9 +10184,11 @@ func (c *InboundSamlSsoProfilesPatchCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9932,8 +10241,7 @@ func (c *InboundSamlSsoProfilesIdpCredentialsAddCall) Header() http.Header {
 
 func (c *InboundSamlSsoProfilesIdpCredentialsAddCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addidpcredentialrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addidpcredentialrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9949,6 +10257,7 @@ func (c *InboundSamlSsoProfilesIdpCredentialsAddCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.idpCredentials.add", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9983,9 +10292,11 @@ func (c *InboundSamlSsoProfilesIdpCredentialsAddCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.idpCredentials.add", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10035,12 +10346,11 @@ func (c *InboundSamlSsoProfilesIdpCredentialsDeleteCall) Header() http.Header {
 
 func (c *InboundSamlSsoProfilesIdpCredentialsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10048,6 +10358,7 @@ func (c *InboundSamlSsoProfilesIdpCredentialsDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.idpCredentials.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10082,9 +10393,11 @@ func (c *InboundSamlSsoProfilesIdpCredentialsDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.idpCredentials.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10146,12 +10459,11 @@ func (c *InboundSamlSsoProfilesIdpCredentialsGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10159,6 +10471,7 @@ func (c *InboundSamlSsoProfilesIdpCredentialsGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.idpCredentials.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10193,9 +10506,11 @@ func (c *InboundSamlSsoProfilesIdpCredentialsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.idpCredentials.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10270,12 +10585,11 @@ func (c *InboundSamlSsoProfilesIdpCredentialsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/idpCredentials")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10283,6 +10597,7 @@ func (c *InboundSamlSsoProfilesIdpCredentialsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.idpCredentials.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10318,9 +10633,11 @@ func (c *InboundSamlSsoProfilesIdpCredentialsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSamlSsoProfiles.idpCredentials.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10386,8 +10703,7 @@ func (c *InboundSsoAssignmentsCreateCall) Header() http.Header {
 
 func (c *InboundSsoAssignmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inboundssoassignment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inboundssoassignment)
 	if err != nil {
 		return nil, err
 	}
@@ -10400,6 +10716,7 @@ func (c *InboundSsoAssignmentsCreateCall) doRequest(alt string) (*http.Response,
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10434,9 +10751,11 @@ func (c *InboundSsoAssignmentsCreateCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10486,12 +10805,11 @@ func (c *InboundSsoAssignmentsDeleteCall) Header() http.Header {
 
 func (c *InboundSsoAssignmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10499,6 +10817,7 @@ func (c *InboundSsoAssignmentsDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10533,9 +10852,11 @@ func (c *InboundSsoAssignmentsDeleteCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10596,12 +10917,11 @@ func (c *InboundSsoAssignmentsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10609,6 +10929,7 @@ func (c *InboundSsoAssignmentsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10644,9 +10965,11 @@ func (c *InboundSsoAssignmentsGetCall) Do(opts ...googleapi.CallOption) (*Inboun
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10731,16 +11054,16 @@ func (c *InboundSsoAssignmentsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/inboundSsoAssignments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10776,9 +11099,11 @@ func (c *InboundSsoAssignmentsListCall) Do(opts ...googleapi.CallOption) (*ListI
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10862,8 +11187,7 @@ func (c *InboundSsoAssignmentsPatchCall) Header() http.Header {
 
 func (c *InboundSsoAssignmentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inboundssoassignment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inboundssoassignment)
 	if err != nil {
 		return nil, err
 	}
@@ -10879,6 +11203,7 @@ func (c *InboundSsoAssignmentsPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10913,9 +11238,11 @@ func (c *InboundSsoAssignmentsPatchCall) Do(opts ...googleapi.CallOption) (*Oper
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.inboundSsoAssignments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11019,12 +11346,11 @@ func (c *OrgUnitsMembershipsListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/memberships")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11032,6 +11358,7 @@ func (c *OrgUnitsMembershipsListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.orgUnits.memberships.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11067,9 +11394,11 @@ func (c *OrgUnitsMembershipsListCall) Do(opts ...googleapi.CallOption) (*ListOrg
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.orgUnits.memberships.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11153,8 +11482,7 @@ func (c *OrgUnitsMembershipsMoveCall) Header() http.Header {
 
 func (c *OrgUnitsMembershipsMoveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.moveorgmembershiprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.moveorgmembershiprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11170,6 +11498,7 @@ func (c *OrgUnitsMembershipsMoveCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.orgUnits.memberships.move", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11204,8 +11533,279 @@ func (c *OrgUnitsMembershipsMoveCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.orgUnits.memberships.move", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
+}
+
+type PoliciesGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Get a Policy
+//
+// - name: The name of the policy to retrieve. Format: "policies/{policy}".
+func (r *PoliciesService) Get(name string) *PoliciesGetCall {
+	c := &PoliciesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *PoliciesGetCall) Fields(s ...googleapi.Field) *PoliciesGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *PoliciesGetCall) IfNoneMatch(entityTag string) *PoliciesGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *PoliciesGetCall) Context(ctx context.Context) *PoliciesGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *PoliciesGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *PoliciesGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.policies.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudidentity.policies.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *PoliciesGetCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.policies.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type PoliciesListCall struct {
+	s            *Service
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: List Policies
+func (r *PoliciesService) List() *PoliciesListCall {
+	c := &PoliciesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	return c
+}
+
+// Filter sets the optional parameter "filter": A CEL expression for filtering
+// the results. Policies can be filtered by application with this expression:
+// setting.type.matches('^settings/gmail\\..*$') Policies can be filtered by
+// setting type with this expression:
+// setting.type.matches('^.*\\.service_status$') A maximum of one of the above
+// setting.type clauses can be used. Policies can be filtered by customer with
+// this expression: customer == "customers/{customer}" Where `customer` is the
+// `id` from the Admin SDK `Customer` resource
+// (https://developers.google.com/admin-sdk/directory/reference/rest/v1/customers).
+// You may use `customers/my_customer` to specify your own organization. When
+// no customer is mentioned it will be default to customers/my_customer. A
+// maximum of one customer clause can be used. The above clauses can only be
+// combined together in a single filter expression with the `&&` operator.
+func (c *PoliciesListCall) Filter(filter string) *PoliciesListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// results to return. The service can return fewer than this number. If omitted
+// or set to 0, the default is 50 results per page. The maximum allowed value
+// is 100. `page_size` values greater than 100 default to 100.
+func (c *PoliciesListCall) PageSize(pageSize int64) *PoliciesListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The pagination token
+// received from a prior call to PoliciesService.ListPolicies to retrieve the
+// next page of results. When paginating, all other parameters provided to
+// `ListPoliciesRequest` must match the call that provided the page token.
+func (c *PoliciesListCall) PageToken(pageToken string) *PoliciesListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *PoliciesListCall) Fields(s ...googleapi.Field) *PoliciesListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *PoliciesListCall) IfNoneMatch(entityTag string) *PoliciesListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *PoliciesListCall) Context(ctx context.Context) *PoliciesListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *PoliciesListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *PoliciesListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/policies")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudidentity.policies.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudidentity.policies.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListPoliciesResponse.ServerResponse.Header or (if a response was returned
+// at all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *PoliciesListCall) Do(opts ...googleapi.CallOption) (*ListPoliciesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListPoliciesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudidentity.policies.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *PoliciesListCall) Pages(ctx context.Context, f func(*ListPoliciesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
 }

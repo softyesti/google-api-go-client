@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "osconfig:v1alpha"
 const apiName = "osconfig"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -396,9 +399,9 @@ type CVSSv3 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CVSSv3) MarshalJSON() ([]byte, error) {
+func (s CVSSv3) MarshalJSON() ([]byte, error) {
 	type NoMethod CVSSv3
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *CVSSv3) UnmarshalJSON(data []byte) error {
@@ -456,9 +459,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -491,9 +494,9 @@ type FixedOrPercent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FixedOrPercent) MarshalJSON() ([]byte, error) {
+func (s FixedOrPercent) MarshalJSON() ([]byte, error) {
 	type NoMethod FixedOrPercent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata: OS policy
@@ -539,9 +542,48 @@ type GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudOsconfigV2beta__OperationMetadata: Represents the metadata of the
+// long-running operation.
+type GoogleCloudOsconfigV2beta__OperationMetadata struct {
+	// ApiVersion: Output only. API version used to start the operation.
+	ApiVersion string `json:"apiVersion,omitempty"`
+	// CreateTime: Output only. The time the operation was created.
+	CreateTime string `json:"createTime,omitempty"`
+	// EndTime: Output only. The time the operation finished running.
+	EndTime string `json:"endTime,omitempty"`
+	// RequestedCancellation: Output only. Identifies whether the user has
+	// requested cancellation of the operation. Operations that have been cancelled
+	// successfully have Operation.error value with a google.rpc.Status.code of 1,
+	// corresponding to `Code.CANCELLED`.
+	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
+	// StatusMessage: Output only. Human-readable status of the operation, if any.
+	StatusMessage string `json:"statusMessage,omitempty"`
+	// Target: Output only. Server-defined resource path for the target of the
+	// operation.
+	Target string `json:"target,omitempty"`
+	// Verb: Output only. Name of the verb executed by the operation.
+	Verb string `json:"verb,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ApiVersion") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ApiVersion") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudOsconfigV2beta__OperationMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudOsconfigV2beta__OperationMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceOSPoliciesCompliance: This API resource represents the OS policies
@@ -612,9 +654,9 @@ type InstanceOSPoliciesCompliance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceOSPoliciesCompliance) MarshalJSON() ([]byte, error) {
+func (s InstanceOSPoliciesCompliance) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceOSPoliciesCompliance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceOSPoliciesComplianceOSPolicyCompliance: Compliance data for an OS
@@ -654,9 +696,9 @@ type InstanceOSPoliciesComplianceOSPolicyCompliance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceOSPoliciesComplianceOSPolicyCompliance) MarshalJSON() ([]byte, error) {
+func (s InstanceOSPoliciesComplianceOSPolicyCompliance) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceOSPoliciesComplianceOSPolicyCompliance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Inventory: This API resource represents the available inventory data for a
@@ -695,9 +737,9 @@ type Inventory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Inventory) MarshalJSON() ([]byte, error) {
+func (s Inventory) MarshalJSON() ([]byte, error) {
 	type NoMethod Inventory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventoryItem: A single piece of inventory on a VM.
@@ -721,7 +763,7 @@ type InventoryItem struct {
 	// Type: The specific type of inventory, correlating to its specific details.
 	//
 	// Possible values:
-	//   "TYPE_UNSPECIFIED" - Invalid. An type must be specified.
+	//   "TYPE_UNSPECIFIED" - Invalid. A type must be specified.
 	//   "INSTALLED_PACKAGE" - This represents a package that is installed on the
 	// VM.
 	//   "AVAILABLE_PACKAGE" - This represents an update that is available for a
@@ -742,9 +784,9 @@ type InventoryItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventoryItem) MarshalJSON() ([]byte, error) {
+func (s InventoryItem) MarshalJSON() ([]byte, error) {
 	type NoMethod InventoryItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventoryOsInfo: Operating system information for the VM.
@@ -781,9 +823,9 @@ type InventoryOsInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventoryOsInfo) MarshalJSON() ([]byte, error) {
+func (s InventoryOsInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod InventoryOsInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySoftwarePackage: Software package information of the operating
@@ -829,9 +871,9 @@ type InventorySoftwarePackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySoftwarePackage) MarshalJSON() ([]byte, error) {
+func (s InventorySoftwarePackage) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySoftwarePackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventoryVersionedPackage: Information related to the a standard versioned
@@ -857,9 +899,9 @@ type InventoryVersionedPackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventoryVersionedPackage) MarshalJSON() ([]byte, error) {
+func (s InventoryVersionedPackage) MarshalJSON() ([]byte, error) {
 	type NoMethod InventoryVersionedPackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventoryWindowsApplication: Contains information about a Windows
@@ -892,9 +934,9 @@ type InventoryWindowsApplication struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventoryWindowsApplication) MarshalJSON() ([]byte, error) {
+func (s InventoryWindowsApplication) MarshalJSON() ([]byte, error) {
 	type NoMethod InventoryWindowsApplication
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventoryWindowsQuickFixEngineeringPackage: Information related to a Quick
@@ -924,9 +966,9 @@ type InventoryWindowsQuickFixEngineeringPackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventoryWindowsQuickFixEngineeringPackage) MarshalJSON() ([]byte, error) {
+func (s InventoryWindowsQuickFixEngineeringPackage) MarshalJSON() ([]byte, error) {
 	type NoMethod InventoryWindowsQuickFixEngineeringPackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventoryWindowsUpdatePackage: Details related to a Windows Update package.
@@ -971,9 +1013,9 @@ type InventoryWindowsUpdatePackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventoryWindowsUpdatePackage) MarshalJSON() ([]byte, error) {
+func (s InventoryWindowsUpdatePackage) MarshalJSON() ([]byte, error) {
 	type NoMethod InventoryWindowsUpdatePackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventoryWindowsUpdatePackageWindowsUpdateCategory: Categories specified by
@@ -996,9 +1038,9 @@ type InventoryWindowsUpdatePackageWindowsUpdateCategory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventoryWindowsUpdatePackageWindowsUpdateCategory) MarshalJSON() ([]byte, error) {
+func (s InventoryWindowsUpdatePackageWindowsUpdateCategory) MarshalJSON() ([]byte, error) {
 	type NoMethod InventoryWindowsUpdatePackageWindowsUpdateCategory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventoryZypperPatch: Details related to a Zypper Patch.
@@ -1024,9 +1066,9 @@ type InventoryZypperPatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventoryZypperPatch) MarshalJSON() ([]byte, error) {
+func (s InventoryZypperPatch) MarshalJSON() ([]byte, error) {
 	type NoMethod InventoryZypperPatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInstanceOSPoliciesCompliancesResponse: A response message for listing OS
@@ -1054,9 +1096,9 @@ type ListInstanceOSPoliciesCompliancesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInstanceOSPoliciesCompliancesResponse) MarshalJSON() ([]byte, error) {
+func (s ListInstanceOSPoliciesCompliancesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInstanceOSPoliciesCompliancesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInventoriesResponse: A response message for listing inventory data for
@@ -1083,9 +1125,9 @@ type ListInventoriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInventoriesResponse) MarshalJSON() ([]byte, error) {
+func (s ListInventoriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInventoriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOSPolicyAssignmentReportsResponse: A response message for listing OS
@@ -1112,9 +1154,9 @@ type ListOSPolicyAssignmentReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOSPolicyAssignmentReportsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOSPolicyAssignmentReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOSPolicyAssignmentReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOSPolicyAssignmentRevisionsResponse: A response message for listing all
@@ -1141,9 +1183,9 @@ type ListOSPolicyAssignmentRevisionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOSPolicyAssignmentRevisionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOSPolicyAssignmentRevisionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOSPolicyAssignmentRevisionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOSPolicyAssignmentsResponse: A response message for listing all
@@ -1170,9 +1212,9 @@ type ListOSPolicyAssignmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOSPolicyAssignmentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOSPolicyAssignmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOSPolicyAssignmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVulnerabilityReportsResponse: A response message for listing
@@ -1199,9 +1241,9 @@ type ListVulnerabilityReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVulnerabilityReportsResponse) MarshalJSON() ([]byte, error) {
+func (s ListVulnerabilityReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVulnerabilityReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicy: An OS policy defines the desired state configuration for a VM.
@@ -1249,9 +1291,9 @@ type OSPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicy) MarshalJSON() ([]byte, error) {
+func (s OSPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignment: OS policy assignment is an API resource that is used to
@@ -1330,9 +1372,9 @@ type OSPolicyAssignment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignment) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignment) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentInstanceFilter: Filters to select target VMs for an
@@ -1369,9 +1411,9 @@ type OSPolicyAssignmentInstanceFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentInstanceFilter) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentInstanceFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentInstanceFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentInstanceFilterInventory: VM inventory details.
@@ -1396,9 +1438,9 @@ type OSPolicyAssignmentInstanceFilterInventory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentInstanceFilterInventory) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentInstanceFilterInventory) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentInstanceFilterInventory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentLabelSet: Message representing label set. * A label is a
@@ -1424,9 +1466,9 @@ type OSPolicyAssignmentLabelSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentLabelSet) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentLabelSet) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentLabelSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentOperationMetadata: OS policy assignment operation metadata
@@ -1472,9 +1514,9 @@ type OSPolicyAssignmentOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentReport: A report of the OS policy assignment status for a
@@ -1519,9 +1561,9 @@ type OSPolicyAssignmentReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentReport) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentReport) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentReportOSPolicyCompliance: Compliance data for an OS policy
@@ -1575,9 +1617,9 @@ type OSPolicyAssignmentReportOSPolicyCompliance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentReportOSPolicyCompliance) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentReportOSPolicyCompliance) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentReportOSPolicyCompliance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceCompliance:
@@ -1624,9 +1666,9 @@ type OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceCompliance struct
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceCompliance) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceCompliance) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceCompliance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceExecResou
@@ -1648,9 +1690,9 @@ type OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceExecRes
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceExecResourceOutput) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceExecResourceOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceExecResourceOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceOSPolicyR
@@ -1689,9 +1731,9 @@ type OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceOSPolic
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceOSPolicyResourceConfigStep) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceOSPolicyResourceConfigStep) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceComplianceOSPolicyResourceConfigStep
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentRollout: Message to configure the rollout at the zonal
@@ -1719,9 +1761,9 @@ type OSPolicyAssignmentRollout struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentRollout) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentRollout) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentRollout
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyInventoryFilter: Filtering criteria to select VMs based on inventory
@@ -1747,9 +1789,9 @@ type OSPolicyInventoryFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyInventoryFilter) MarshalJSON() ([]byte, error) {
+func (s OSPolicyInventoryFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyInventoryFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyOSFilter: Filtering criteria to select VMs based on OS details.
@@ -1775,9 +1817,9 @@ type OSPolicyOSFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyOSFilter) MarshalJSON() ([]byte, error) {
+func (s OSPolicyOSFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyOSFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResource: An OS policy resource is used to define the desired state
@@ -1812,9 +1854,9 @@ type OSPolicyResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResource) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResource) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceCompliance: Compliance data for an OS policy resource.
@@ -1850,9 +1892,9 @@ type OSPolicyResourceCompliance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceCompliance) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceCompliance) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceCompliance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceComplianceExecResourceOutput: ExecResource specific output.
@@ -1873,9 +1915,9 @@ type OSPolicyResourceComplianceExecResourceOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceComplianceExecResourceOutput) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceComplianceExecResourceOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceComplianceExecResourceOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceConfigStep: Step performed by the OS Config agent for
@@ -1921,9 +1963,9 @@ type OSPolicyResourceConfigStep struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceConfigStep) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceConfigStep) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceConfigStep
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceExecResource: A resource that allows executing scripts on
@@ -1968,9 +2010,9 @@ type OSPolicyResourceExecResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceExecResource) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceExecResource) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceExecResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceExecResourceExec: A file or script to execute.
@@ -2012,9 +2054,9 @@ type OSPolicyResourceExecResourceExec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceExecResourceExec) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceExecResourceExec) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceExecResourceExec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceFile: A remote or local file.
@@ -2042,9 +2084,9 @@ type OSPolicyResourceFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceFile) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceFile) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceFileGcs: Specifies a file available as a Cloud Storage
@@ -2069,9 +2111,9 @@ type OSPolicyResourceFileGcs struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceFileGcs) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceFileGcs) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceFileGcs
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceFileRemote: Specifies a file available via some URI.
@@ -2094,9 +2136,9 @@ type OSPolicyResourceFileRemote struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceFileRemote) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceFileRemote) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceFileRemote
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceFileResource: A resource that manages the state of a file.
@@ -2139,9 +2181,9 @@ type OSPolicyResourceFileResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceFileResource) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceFileResource) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceFileResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceGroup: Resource groups provide a mechanism to group OS
@@ -2179,9 +2221,9 @@ type OSPolicyResourceGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceGroup) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourcePackageResource: A resource that manages a system package.
@@ -2222,9 +2264,9 @@ type OSPolicyResourcePackageResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourcePackageResource) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourcePackageResource) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourcePackageResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourcePackageResourceAPT: A package managed by APT. - install:
@@ -2246,9 +2288,9 @@ type OSPolicyResourcePackageResourceAPT struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourcePackageResourceAPT) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourcePackageResourceAPT) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourcePackageResourceAPT
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourcePackageResourceDeb: A deb package file. dpkg packages only
@@ -2273,9 +2315,9 @@ type OSPolicyResourcePackageResourceDeb struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourcePackageResourceDeb) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourcePackageResourceDeb) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourcePackageResourceDeb
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourcePackageResourceGooGet: A package managed by GooGet. -
@@ -2297,9 +2339,9 @@ type OSPolicyResourcePackageResourceGooGet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourcePackageResourceGooGet) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourcePackageResourceGooGet) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourcePackageResourceGooGet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourcePackageResourceMSI: An MSI package. MSI packages only
@@ -2324,9 +2366,9 @@ type OSPolicyResourcePackageResourceMSI struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourcePackageResourceMSI) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourcePackageResourceMSI) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourcePackageResourceMSI
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourcePackageResourceRPM: An RPM package file. RPM packages only
@@ -2351,9 +2393,9 @@ type OSPolicyResourcePackageResourceRPM struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourcePackageResourceRPM) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourcePackageResourceRPM) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourcePackageResourceRPM
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourcePackageResourceYUM: A package managed by YUM. - install:
@@ -2374,9 +2416,9 @@ type OSPolicyResourcePackageResourceYUM struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourcePackageResourceYUM) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourcePackageResourceYUM) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourcePackageResourceYUM
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourcePackageResourceZypper: A package managed by Zypper. -
@@ -2397,9 +2439,9 @@ type OSPolicyResourcePackageResourceZypper struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourcePackageResourceZypper) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourcePackageResourceZypper) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourcePackageResourceZypper
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceRepositoryResource: A resource that manages a package
@@ -2426,9 +2468,9 @@ type OSPolicyResourceRepositoryResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceRepositoryResource) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceRepositoryResource) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceRepositoryResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceRepositoryResourceAptRepository: Represents a single apt
@@ -2465,9 +2507,9 @@ type OSPolicyResourceRepositoryResourceAptRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceRepositoryResourceAptRepository) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceRepositoryResourceAptRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceRepositoryResourceAptRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceRepositoryResourceGooRepository: Represents a Goo package
@@ -2491,9 +2533,9 @@ type OSPolicyResourceRepositoryResourceGooRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceRepositoryResourceGooRepository) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceRepositoryResourceGooRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceRepositoryResourceGooRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceRepositoryResourceYumRepository: Represents a single yum
@@ -2524,9 +2566,9 @@ type OSPolicyResourceRepositoryResourceYumRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceRepositoryResourceYumRepository) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceRepositoryResourceYumRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceRepositoryResourceYumRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyResourceRepositoryResourceZypperRepository: Represents a single
@@ -2557,9 +2599,9 @@ type OSPolicyResourceRepositoryResourceZypperRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyResourceRepositoryResourceZypperRepository) MarshalJSON() ([]byte, error) {
+func (s OSPolicyResourceRepositoryResourceZypperRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyResourceRepositoryResourceZypperRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -2604,9 +2646,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2638,9 +2680,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VulnerabilityReport: This API resource represents the vulnerability report
@@ -2673,9 +2715,9 @@ type VulnerabilityReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VulnerabilityReport) MarshalJSON() ([]byte, error) {
+func (s VulnerabilityReport) MarshalJSON() ([]byte, error) {
 	type NoMethod VulnerabilityReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VulnerabilityReportVulnerability: A vulnerability affecting the VM instance.
@@ -2715,9 +2757,9 @@ type VulnerabilityReportVulnerability struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VulnerabilityReportVulnerability) MarshalJSON() ([]byte, error) {
+func (s VulnerabilityReportVulnerability) MarshalJSON() ([]byte, error) {
 	type NoMethod VulnerabilityReportVulnerability
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VulnerabilityReportVulnerabilityDetails: Contains metadata information for
@@ -2754,9 +2796,9 @@ type VulnerabilityReportVulnerabilityDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VulnerabilityReportVulnerabilityDetails) MarshalJSON() ([]byte, error) {
+func (s VulnerabilityReportVulnerabilityDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod VulnerabilityReportVulnerabilityDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VulnerabilityReportVulnerabilityDetails) UnmarshalJSON(data []byte) error {
@@ -2793,9 +2835,9 @@ type VulnerabilityReportVulnerabilityDetailsReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VulnerabilityReportVulnerabilityDetailsReference) MarshalJSON() ([]byte, error) {
+func (s VulnerabilityReportVulnerabilityDetailsReference) MarshalJSON() ([]byte, error) {
 	type NoMethod VulnerabilityReportVulnerabilityDetailsReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VulnerabilityReportVulnerabilityItem: OS inventory item that is affected by
@@ -2833,9 +2875,9 @@ type VulnerabilityReportVulnerabilityItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VulnerabilityReportVulnerabilityItem) MarshalJSON() ([]byte, error) {
+func (s VulnerabilityReportVulnerabilityItem) MarshalJSON() ([]byte, error) {
 	type NoMethod VulnerabilityReportVulnerabilityItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsInstanceOSPoliciesCompliancesGetCall struct {
@@ -2898,12 +2940,11 @@ func (c *ProjectsLocationsInstanceOSPoliciesCompliancesGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2911,6 +2952,7 @@ func (c *ProjectsLocationsInstanceOSPoliciesCompliancesGetCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instanceOSPoliciesCompliances.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2946,9 +2988,11 @@ func (c *ProjectsLocationsInstanceOSPoliciesCompliancesGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instanceOSPoliciesCompliances.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3032,12 +3076,11 @@ func (c *ProjectsLocationsInstanceOSPoliciesCompliancesListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/instanceOSPoliciesCompliances")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3045,6 +3088,7 @@ func (c *ProjectsLocationsInstanceOSPoliciesCompliancesListCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instanceOSPoliciesCompliances.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3080,9 +3124,11 @@ func (c *ProjectsLocationsInstanceOSPoliciesCompliancesListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instanceOSPoliciesCompliances.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3183,12 +3229,11 @@ func (c *ProjectsLocationsInstancesInventoriesGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3196,6 +3241,7 @@ func (c *ProjectsLocationsInstancesInventoriesGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.inventories.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3230,9 +3276,11 @@ func (c *ProjectsLocationsInstancesInventoriesGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.inventories.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3332,12 +3380,11 @@ func (c *ProjectsLocationsInstancesInventoriesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/inventories")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3345,6 +3392,7 @@ func (c *ProjectsLocationsInstancesInventoriesListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.inventories.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3380,9 +3428,11 @@ func (c *ProjectsLocationsInstancesInventoriesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.inventories.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3467,12 +3517,11 @@ func (c *ProjectsLocationsInstancesOsPolicyAssignmentsReportsGetCall) doRequest(
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3480,6 +3529,7 @@ func (c *ProjectsLocationsInstancesOsPolicyAssignmentsReportsGetCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.osPolicyAssignments.reports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3515,9 +3565,11 @@ func (c *ProjectsLocationsInstancesOsPolicyAssignmentsReportsGetCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.osPolicyAssignments.reports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3616,12 +3668,11 @@ func (c *ProjectsLocationsInstancesOsPolicyAssignmentsReportsListCall) doRequest
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/reports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3629,6 +3680,7 @@ func (c *ProjectsLocationsInstancesOsPolicyAssignmentsReportsListCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.osPolicyAssignments.reports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3664,9 +3716,11 @@ func (c *ProjectsLocationsInstancesOsPolicyAssignmentsReportsListCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.osPolicyAssignments.reports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3750,12 +3804,11 @@ func (c *ProjectsLocationsInstancesVulnerabilityReportsGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3763,6 +3816,7 @@ func (c *ProjectsLocationsInstancesVulnerabilityReportsGetCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.vulnerabilityReports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3798,9 +3852,11 @@ func (c *ProjectsLocationsInstancesVulnerabilityReportsGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.vulnerabilityReports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3893,12 +3949,11 @@ func (c *ProjectsLocationsInstancesVulnerabilityReportsListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/vulnerabilityReports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3906,6 +3961,7 @@ func (c *ProjectsLocationsInstancesVulnerabilityReportsListCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.vulnerabilityReports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3941,9 +3997,11 @@ func (c *ProjectsLocationsInstancesVulnerabilityReportsListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.instances.vulnerabilityReports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4036,8 +4094,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsOsPolicyAssignmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.ospolicyassignment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.ospolicyassignment)
 	if err != nil {
 		return nil, err
 	}
@@ -4053,6 +4110,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4087,9 +4145,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4149,12 +4209,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOsPolicyAssignmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4162,6 +4221,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4196,9 +4256,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4260,12 +4322,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4273,6 +4334,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4308,9 +4370,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4384,12 +4448,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/osPolicyAssignments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4397,6 +4460,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4432,9 +4496,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4529,12 +4595,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsListRevisionsCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}:listRevisions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4542,6 +4607,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsListRevisionsCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.listRevisions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4577,9 +4643,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsListRevisionsCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.listRevisions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4679,8 +4747,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsOsPolicyAssignmentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.ospolicyassignment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.ospolicyassignment)
 	if err != nil {
 		return nil, err
 	}
@@ -4696,6 +4763,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4730,9 +4798,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4752,7 +4822,7 @@ type ProjectsLocationsOsPolicyAssignmentsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -4788,8 +4858,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsOperationsCancelCall) Header() http
 
 func (c *ProjectsLocationsOsPolicyAssignmentsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4805,6 +4874,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsOperationsCancelCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4839,9 +4909,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsOperationsCancelCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4901,12 +4973,11 @@ func (c *ProjectsLocationsOsPolicyAssignmentsOperationsGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4914,6 +4985,7 @@ func (c *ProjectsLocationsOsPolicyAssignmentsOperationsGetCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4948,8 +5020,10 @@ func (c *ProjectsLocationsOsPolicyAssignmentsOperationsGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.locations.osPolicyAssignments.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

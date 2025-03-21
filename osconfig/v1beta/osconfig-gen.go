@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "osconfig:v1beta"
 const apiName = "osconfig"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -271,9 +274,9 @@ type AptRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AptRepository) MarshalJSON() ([]byte, error) {
+func (s AptRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod AptRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AptSettings: Apt patching is completed by executing `apt-get update &&
@@ -309,9 +312,9 @@ type AptSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AptSettings) MarshalJSON() ([]byte, error) {
+func (s AptSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod AptSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Assignment: An assignment represents the group or groups of VM instances
@@ -357,9 +360,9 @@ type Assignment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Assignment) MarshalJSON() ([]byte, error) {
+func (s Assignment) MarshalJSON() ([]byte, error) {
 	type NoMethod Assignment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssignmentGroupLabel: Represents a group of VM intances that can be
@@ -381,9 +384,9 @@ type AssignmentGroupLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssignmentGroupLabel) MarshalJSON() ([]byte, error) {
+func (s AssignmentGroupLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod AssignmentGroupLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssignmentOsType: Defines the criteria for selecting VM Instances by OS
@@ -411,9 +414,9 @@ type AssignmentOsType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssignmentOsType) MarshalJSON() ([]byte, error) {
+func (s AssignmentOsType) MarshalJSON() ([]byte, error) {
 	type NoMethod AssignmentOsType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelPatchJobRequest: Message for canceling a patch job.
@@ -446,9 +449,9 @@ type EffectiveGuestPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EffectiveGuestPolicy) MarshalJSON() ([]byte, error) {
+func (s EffectiveGuestPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod EffectiveGuestPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EffectiveGuestPolicySourcedPackage: A guest policy package including its
@@ -471,9 +474,9 @@ type EffectiveGuestPolicySourcedPackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EffectiveGuestPolicySourcedPackage) MarshalJSON() ([]byte, error) {
+func (s EffectiveGuestPolicySourcedPackage) MarshalJSON() ([]byte, error) {
 	type NoMethod EffectiveGuestPolicySourcedPackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EffectiveGuestPolicySourcedPackageRepository: A guest policy package
@@ -497,9 +500,9 @@ type EffectiveGuestPolicySourcedPackageRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EffectiveGuestPolicySourcedPackageRepository) MarshalJSON() ([]byte, error) {
+func (s EffectiveGuestPolicySourcedPackageRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod EffectiveGuestPolicySourcedPackageRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EffectiveGuestPolicySourcedSoftwareRecipe: A guest policy recipe including
@@ -522,9 +525,9 @@ type EffectiveGuestPolicySourcedSoftwareRecipe struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EffectiveGuestPolicySourcedSoftwareRecipe) MarshalJSON() ([]byte, error) {
+func (s EffectiveGuestPolicySourcedSoftwareRecipe) MarshalJSON() ([]byte, error) {
 	type NoMethod EffectiveGuestPolicySourcedSoftwareRecipe
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -557,9 +560,9 @@ type ExecStep struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecStep) MarshalJSON() ([]byte, error) {
+func (s ExecStep) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecStep
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecStepConfig: Common configurations for an ExecStep.
@@ -601,9 +604,9 @@ type ExecStepConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecStepConfig) MarshalJSON() ([]byte, error) {
+func (s ExecStepConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecStepConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutePatchJobRequest: A request message to initiate patching across
@@ -642,9 +645,9 @@ type ExecutePatchJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutePatchJobRequest) MarshalJSON() ([]byte, error) {
+func (s ExecutePatchJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutePatchJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FixedOrPercent: Message encapsulating a value that can be either absolute
@@ -668,9 +671,9 @@ type FixedOrPercent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FixedOrPercent) MarshalJSON() ([]byte, error) {
+func (s FixedOrPercent) MarshalJSON() ([]byte, error) {
 	type NoMethod FixedOrPercent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsObject: Google Cloud Storage object representation.
@@ -696,9 +699,9 @@ type GcsObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsObject) MarshalJSON() ([]byte, error) {
+func (s GcsObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooRepository: Represents a Goo package repository. These is added to a repo
@@ -721,9 +724,9 @@ type GooRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GooRepository) MarshalJSON() ([]byte, error) {
+func (s GooRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GooRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GooSettings: Googet patching is performed by running `googet update`.
@@ -773,9 +776,48 @@ type GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudOsconfigV1__OSPolicyAssignmentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudOsconfigV2beta__OperationMetadata: Represents the metadata of the
+// long-running operation.
+type GoogleCloudOsconfigV2beta__OperationMetadata struct {
+	// ApiVersion: Output only. API version used to start the operation.
+	ApiVersion string `json:"apiVersion,omitempty"`
+	// CreateTime: Output only. The time the operation was created.
+	CreateTime string `json:"createTime,omitempty"`
+	// EndTime: Output only. The time the operation finished running.
+	EndTime string `json:"endTime,omitempty"`
+	// RequestedCancellation: Output only. Identifies whether the user has
+	// requested cancellation of the operation. Operations that have been cancelled
+	// successfully have Operation.error value with a google.rpc.Status.code of 1,
+	// corresponding to `Code.CANCELLED`.
+	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
+	// StatusMessage: Output only. Human-readable status of the operation, if any.
+	StatusMessage string `json:"statusMessage,omitempty"`
+	// Target: Output only. Server-defined resource path for the target of the
+	// operation.
+	Target string `json:"target,omitempty"`
+	// Verb: Output only. Name of the verb executed by the operation.
+	Verb string `json:"verb,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ApiVersion") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ApiVersion") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudOsconfigV2beta__OperationMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudOsconfigV2beta__OperationMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuestPolicy: An OS Config resource representing a guest configuration
@@ -831,9 +873,9 @@ type GuestPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuestPolicy) MarshalJSON() ([]byte, error) {
+func (s GuestPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GuestPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGuestPoliciesResponse: A response message for listing guest policies.
@@ -859,9 +901,9 @@ type ListGuestPoliciesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGuestPoliciesResponse) MarshalJSON() ([]byte, error) {
+func (s ListGuestPoliciesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGuestPoliciesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPatchDeploymentsResponse: A response message for listing patch
@@ -888,9 +930,9 @@ type ListPatchDeploymentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPatchDeploymentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPatchDeploymentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPatchDeploymentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPatchJobInstanceDetailsResponse: A response message for listing the
@@ -917,9 +959,9 @@ type ListPatchJobInstanceDetailsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPatchJobInstanceDetailsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPatchJobInstanceDetailsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPatchJobInstanceDetailsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPatchJobsResponse: A response message for listing patch jobs.
@@ -945,9 +987,9 @@ type ListPatchJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPatchJobsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPatchJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPatchJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupEffectiveGuestPolicyRequest: A request message for getting the
@@ -978,9 +1020,9 @@ type LookupEffectiveGuestPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupEffectiveGuestPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s LookupEffectiveGuestPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupEffectiveGuestPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MonthlySchedule: Represents a monthly schedule. An example of a valid
@@ -1007,9 +1049,9 @@ type MonthlySchedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MonthlySchedule) MarshalJSON() ([]byte, error) {
+func (s MonthlySchedule) MarshalJSON() ([]byte, error) {
 	type NoMethod MonthlySchedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSPolicyAssignmentOperationMetadata: OS policy assignment operation metadata
@@ -1055,9 +1097,9 @@ type OSPolicyAssignmentOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSPolicyAssignmentOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OSPolicyAssignmentOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OSPolicyAssignmentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OneTimeSchedule: Sets the time for a one time patch deployment. Timestamp is
@@ -1078,9 +1120,9 @@ type OneTimeSchedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OneTimeSchedule) MarshalJSON() ([]byte, error) {
+func (s OneTimeSchedule) MarshalJSON() ([]byte, error) {
 	type NoMethod OneTimeSchedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Package: Package is a reference to the software package to be installed or
@@ -1141,9 +1183,9 @@ type Package struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Package) MarshalJSON() ([]byte, error) {
+func (s Package) MarshalJSON() ([]byte, error) {
 	type NoMethod Package
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PackageRepository: A package repository.
@@ -1169,9 +1211,9 @@ type PackageRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PackageRepository) MarshalJSON() ([]byte, error) {
+func (s PackageRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod PackageRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PatchConfig: Patch configuration specifications. Contains details on how to
@@ -1223,9 +1265,9 @@ type PatchConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatchConfig) MarshalJSON() ([]byte, error) {
+func (s PatchConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PatchConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PatchDeployment: Patch deployments are configurations that individual patch
@@ -1290,9 +1332,9 @@ type PatchDeployment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatchDeployment) MarshalJSON() ([]byte, error) {
+func (s PatchDeployment) MarshalJSON() ([]byte, error) {
 	type NoMethod PatchDeployment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PatchInstanceFilter: A filter to target VM instances for patching. The
@@ -1333,9 +1375,9 @@ type PatchInstanceFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatchInstanceFilter) MarshalJSON() ([]byte, error) {
+func (s PatchInstanceFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod PatchInstanceFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PatchInstanceFilterGroupLabel: Represents a group of VMs that can be
@@ -1357,9 +1399,9 @@ type PatchInstanceFilterGroupLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatchInstanceFilterGroupLabel) MarshalJSON() ([]byte, error) {
+func (s PatchInstanceFilterGroupLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod PatchInstanceFilterGroupLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PatchJob: A high level representation of a patch job that is either in
@@ -1433,9 +1475,9 @@ type PatchJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatchJob) MarshalJSON() ([]byte, error) {
+func (s PatchJob) MarshalJSON() ([]byte, error) {
 	type NoMethod PatchJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *PatchJob) UnmarshalJSON(data []byte) error {
@@ -1503,9 +1545,9 @@ type PatchJobInstanceDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatchJobInstanceDetails) MarshalJSON() ([]byte, error) {
+func (s PatchJobInstanceDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod PatchJobInstanceDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PatchJobInstanceDetailsSummary: A summary of the current patch state across
@@ -1565,9 +1607,9 @@ type PatchJobInstanceDetailsSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatchJobInstanceDetailsSummary) MarshalJSON() ([]byte, error) {
+func (s PatchJobInstanceDetailsSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod PatchJobInstanceDetailsSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PatchRollout: Patch rollout configuration specifications. Contains details
@@ -1618,9 +1660,9 @@ type PatchRollout struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatchRollout) MarshalJSON() ([]byte, error) {
+func (s PatchRollout) MarshalJSON() ([]byte, error) {
 	type NoMethod PatchRollout
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PausePatchDeploymentRequest: A request message for pausing a patch
@@ -1674,9 +1716,9 @@ type RecurringSchedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecurringSchedule) MarshalJSON() ([]byte, error) {
+func (s RecurringSchedule) MarshalJSON() ([]byte, error) {
 	type NoMethod RecurringSchedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResumePatchDeploymentRequest: A request message for resuming a patch
@@ -1748,9 +1790,9 @@ type SoftwareRecipe struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipe) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipe) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipe
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeArtifact: Specifies a resource to be used in the recipe.
@@ -1780,9 +1822,9 @@ type SoftwareRecipeArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeArtifact) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeArtifactGcs: Specifies an artifact available as a Google Cloud
@@ -1815,9 +1857,9 @@ type SoftwareRecipeArtifactGcs struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeArtifactGcs) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeArtifactGcs) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeArtifactGcs
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeArtifactRemote: Specifies an artifact available via some URI.
@@ -1843,9 +1885,9 @@ type SoftwareRecipeArtifactRemote struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeArtifactRemote) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeArtifactRemote) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeArtifactRemote
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeStep: An action that can be taken as part of installing or
@@ -1878,9 +1920,9 @@ type SoftwareRecipeStep struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeStep) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeStep) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeStep
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeStepCopyFile: Copies the artifact to the specified path on the
@@ -1916,9 +1958,9 @@ type SoftwareRecipeStepCopyFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeStepCopyFile) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeStepCopyFile) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeStepCopyFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeStepExecFile: Executes an artifact or local file.
@@ -1945,9 +1987,9 @@ type SoftwareRecipeStepExecFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeStepExecFile) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeStepExecFile) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeStepExecFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeStepExtractArchive: Extracts an archive of the type specified
@@ -1986,9 +2028,9 @@ type SoftwareRecipeStepExtractArchive struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeStepExtractArchive) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeStepExtractArchive) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeStepExtractArchive
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeStepInstallDpkg: Installs a deb via dpkg.
@@ -2008,9 +2050,9 @@ type SoftwareRecipeStepInstallDpkg struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeStepInstallDpkg) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeStepInstallDpkg) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeStepInstallDpkg
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeStepInstallMsi: Installs an MSI file.
@@ -2036,9 +2078,9 @@ type SoftwareRecipeStepInstallMsi struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeStepInstallMsi) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeStepInstallMsi) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeStepInstallMsi
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeStepInstallRpm: Installs an rpm file via the rpm utility.
@@ -2058,9 +2100,9 @@ type SoftwareRecipeStepInstallRpm struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeStepInstallRpm) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeStepInstallRpm) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeStepInstallRpm
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareRecipeStepRunScript: Runs a script through an interpreter.
@@ -2094,25 +2136,28 @@ type SoftwareRecipeStepRunScript struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareRecipeStepRunScript) MarshalJSON() ([]byte, error) {
+func (s SoftwareRecipeStepRunScript) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareRecipeStepRunScript
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeOfDay: Represents a time of day. The date and time zone are either not
 // significant or are specified elsewhere. An API may choose to allow leap
 // seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 type TimeOfDay struct {
-	// Hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-	// choose to allow the value "24:00:00" for scenarios like business closing
-	// time.
+	// Hours: Hours of a day in 24 hour format. Must be greater than or equal to 0
+	// and typically must be less than or equal to 23. An API may choose to allow
+	// the value "24:00:00" for scenarios like business closing time.
 	Hours int64 `json:"hours,omitempty"`
-	// Minutes: Minutes of hour of day. Must be from 0 to 59.
+	// Minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+	// than or equal to 59.
 	Minutes int64 `json:"minutes,omitempty"`
-	// Nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+	// Nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+	// to 0 and less than or equal to 999,999,999.
 	Nanos int64 `json:"nanos,omitempty"`
-	// Seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-	// API may allow the value 60 if it allows leap-seconds.
+	// Seconds: Seconds of a minute. Must be greater than or equal to 0 and
+	// typically must be less than or equal to 59. An API may allow the value 60 if
+	// it allows leap-seconds.
 	Seconds int64 `json:"seconds,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -2127,17 +2172,18 @@ type TimeOfDay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeOfDay) MarshalJSON() ([]byte, error) {
+func (s TimeOfDay) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeOfDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeZone: Represents a time zone from the IANA Time Zone Database
 // (https://www.iana.org/time-zones).
 type TimeZone struct {
-	// Id: IANA Time Zone Database time zone, e.g. "America/New_York".
+	// Id: IANA Time Zone Database time zone. For example "America/New_York".
 	Id string `json:"id,omitempty"`
-	// Version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+	// Version: Optional. IANA Time Zone Database version number. For example
+	// "2019a".
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -2152,9 +2198,9 @@ type TimeZone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeZone) MarshalJSON() ([]byte, error) {
+func (s TimeZone) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeZone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WeekDayOfMonth: Represents one week day in a month. An example is "the 4th
@@ -2196,9 +2242,9 @@ type WeekDayOfMonth struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WeekDayOfMonth) MarshalJSON() ([]byte, error) {
+func (s WeekDayOfMonth) MarshalJSON() ([]byte, error) {
 	type NoMethod WeekDayOfMonth
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WeeklySchedule: Represents a weekly schedule.
@@ -2228,9 +2274,9 @@ type WeeklySchedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WeeklySchedule) MarshalJSON() ([]byte, error) {
+func (s WeeklySchedule) MarshalJSON() ([]byte, error) {
 	type NoMethod WeeklySchedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WindowsUpdateSettings: Windows patching is performed using the Windows
@@ -2289,9 +2335,9 @@ type WindowsUpdateSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WindowsUpdateSettings) MarshalJSON() ([]byte, error) {
+func (s WindowsUpdateSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod WindowsUpdateSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YumRepository: Represents a single Yum package repository. This repository
@@ -2322,9 +2368,9 @@ type YumRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YumRepository) MarshalJSON() ([]byte, error) {
+func (s YumRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod YumRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YumSettings: Yum patching is performed by executing `yum update`. Additional
@@ -2357,9 +2403,9 @@ type YumSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YumSettings) MarshalJSON() ([]byte, error) {
+func (s YumSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod YumSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ZypperRepository: Represents a single Zypper package repository. This
@@ -2390,9 +2436,9 @@ type ZypperRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ZypperRepository) MarshalJSON() ([]byte, error) {
+func (s ZypperRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod ZypperRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ZypperSettings: Zypper patching is performed by running `zypper patch`. See
@@ -2427,9 +2473,9 @@ type ZypperSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ZypperSettings) MarshalJSON() ([]byte, error) {
+func (s ZypperSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ZypperSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsGuestPoliciesCreateCall struct {
@@ -2487,8 +2533,7 @@ func (c *ProjectsGuestPoliciesCreateCall) Header() http.Header {
 
 func (c *ProjectsGuestPoliciesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.guestpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.guestpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -2504,6 +2549,7 @@ func (c *ProjectsGuestPoliciesCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2538,9 +2584,11 @@ func (c *ProjectsGuestPoliciesCreateCall) Do(opts ...googleapi.CallOption) (*Gue
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2587,12 +2635,11 @@ func (c *ProjectsGuestPoliciesDeleteCall) Header() http.Header {
 
 func (c *ProjectsGuestPoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2600,6 +2647,7 @@ func (c *ProjectsGuestPoliciesDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2634,9 +2682,11 @@ func (c *ProjectsGuestPoliciesDeleteCall) Do(opts ...googleapi.CallOption) (*Emp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2695,12 +2745,11 @@ func (c *ProjectsGuestPoliciesGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2708,6 +2757,7 @@ func (c *ProjectsGuestPoliciesGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2742,9 +2792,11 @@ func (c *ProjectsGuestPoliciesGetCall) Do(opts ...googleapi.CallOption) (*GuestP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2818,12 +2870,11 @@ func (c *ProjectsGuestPoliciesListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/guestPolicies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2831,6 +2882,7 @@ func (c *ProjectsGuestPoliciesListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2866,9 +2918,11 @@ func (c *ProjectsGuestPoliciesListCall) Do(opts ...googleapi.CallOption) (*ListG
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2946,8 +3000,7 @@ func (c *ProjectsGuestPoliciesPatchCall) Header() http.Header {
 
 func (c *ProjectsGuestPoliciesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.guestpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.guestpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -2963,6 +3016,7 @@ func (c *ProjectsGuestPoliciesPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2997,9 +3051,11 @@ func (c *ProjectsGuestPoliciesPatchCall) Do(opts ...googleapi.CallOption) (*Gues
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.guestPolicies.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3058,8 +3114,7 @@ func (c *ProjectsPatchDeploymentsCreateCall) Header() http.Header {
 
 func (c *ProjectsPatchDeploymentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.patchdeployment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.patchdeployment)
 	if err != nil {
 		return nil, err
 	}
@@ -3075,6 +3130,7 @@ func (c *ProjectsPatchDeploymentsCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3110,9 +3166,11 @@ func (c *ProjectsPatchDeploymentsCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3159,12 +3217,11 @@ func (c *ProjectsPatchDeploymentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsPatchDeploymentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3172,6 +3229,7 @@ func (c *ProjectsPatchDeploymentsDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3206,9 +3264,11 @@ func (c *ProjectsPatchDeploymentsDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3267,12 +3327,11 @@ func (c *ProjectsPatchDeploymentsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3280,6 +3339,7 @@ func (c *ProjectsPatchDeploymentsGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3315,9 +3375,11 @@ func (c *ProjectsPatchDeploymentsGetCall) Do(opts ...googleapi.CallOption) (*Pat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3390,12 +3452,11 @@ func (c *ProjectsPatchDeploymentsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/patchDeployments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3403,6 +3464,7 @@ func (c *ProjectsPatchDeploymentsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3438,9 +3500,11 @@ func (c *ProjectsPatchDeploymentsListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3519,8 +3583,7 @@ func (c *ProjectsPatchDeploymentsPatchCall) Header() http.Header {
 
 func (c *ProjectsPatchDeploymentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.patchdeployment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.patchdeployment)
 	if err != nil {
 		return nil, err
 	}
@@ -3536,6 +3599,7 @@ func (c *ProjectsPatchDeploymentsPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3571,9 +3635,11 @@ func (c *ProjectsPatchDeploymentsPatchCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3623,8 +3689,7 @@ func (c *ProjectsPatchDeploymentsPauseCall) Header() http.Header {
 
 func (c *ProjectsPatchDeploymentsPauseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pausepatchdeploymentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pausepatchdeploymentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3640,6 +3705,7 @@ func (c *ProjectsPatchDeploymentsPauseCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.pause", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3675,9 +3741,11 @@ func (c *ProjectsPatchDeploymentsPauseCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.pause", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3727,8 +3795,7 @@ func (c *ProjectsPatchDeploymentsResumeCall) Header() http.Header {
 
 func (c *ProjectsPatchDeploymentsResumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resumepatchdeploymentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resumepatchdeploymentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3744,6 +3811,7 @@ func (c *ProjectsPatchDeploymentsResumeCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.resume", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3779,9 +3847,11 @@ func (c *ProjectsPatchDeploymentsResumeCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchDeployments.resume", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3830,8 +3900,7 @@ func (c *ProjectsPatchJobsCancelCall) Header() http.Header {
 
 func (c *ProjectsPatchJobsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelpatchjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelpatchjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3847,6 +3916,7 @@ func (c *ProjectsPatchJobsCancelCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3881,9 +3951,11 @@ func (c *ProjectsPatchJobsCancelCall) Do(opts ...googleapi.CallOption) (*PatchJo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3931,8 +4003,7 @@ func (c *ProjectsPatchJobsExecuteCall) Header() http.Header {
 
 func (c *ProjectsPatchJobsExecuteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.executepatchjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.executepatchjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3948,6 +4019,7 @@ func (c *ProjectsPatchJobsExecuteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.execute", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3982,9 +4054,11 @@ func (c *ProjectsPatchJobsExecuteCall) Do(opts ...googleapi.CallOption) (*PatchJ
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.execute", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4043,12 +4117,11 @@ func (c *ProjectsPatchJobsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4056,6 +4129,7 @@ func (c *ProjectsPatchJobsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4090,9 +4164,11 @@ func (c *ProjectsPatchJobsGetCall) Do(opts ...googleapi.CallOption) (*PatchJob, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4174,12 +4250,11 @@ func (c *ProjectsPatchJobsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/patchJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4187,6 +4262,7 @@ func (c *ProjectsPatchJobsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4222,9 +4298,11 @@ func (c *ProjectsPatchJobsListCall) Do(opts ...googleapi.CallOption) (*ListPatch
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4327,12 +4405,11 @@ func (c *ProjectsPatchJobsInstanceDetailsListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/instanceDetails")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4340,6 +4417,7 @@ func (c *ProjectsPatchJobsInstanceDetailsListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.instanceDetails.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4375,9 +4453,11 @@ func (c *ProjectsPatchJobsInstanceDetailsListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.patchJobs.instanceDetails.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4448,8 +4528,7 @@ func (c *ProjectsZonesInstancesLookupEffectiveGuestPolicyCall) Header() http.Hea
 
 func (c *ProjectsZonesInstancesLookupEffectiveGuestPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.lookupeffectiveguestpolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.lookupeffectiveguestpolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4465,6 +4544,7 @@ func (c *ProjectsZonesInstancesLookupEffectiveGuestPolicyCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"instance": c.instance,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "osconfig.projects.zones.instances.lookupEffectiveGuestPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4500,8 +4580,10 @@ func (c *ProjectsZonesInstancesLookupEffectiveGuestPolicyCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "osconfig.projects.zones.instances.lookupEffectiveGuestPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

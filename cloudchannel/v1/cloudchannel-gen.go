@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "cloudchannel:v1"
 const apiName = "cloudchannel"
@@ -123,7 +126,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
+	s.Integrators = NewIntegratorsService(s)
+	s.Operations = NewOperationsService(s)
+	s.Products = NewProductsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -142,19 +149,18 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	s.Operations = NewOperationsService(s)
-	s.Products = NewProductsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
 	Accounts *AccountsService
+
+	Integrators *IntegratorsService
 
 	Operations *OperationsService
 
@@ -309,6 +315,15 @@ type AccountsSkuGroupsBillableSkusService struct {
 	s *Service
 }
 
+func NewIntegratorsService(s *Service) *IntegratorsService {
+	rs := &IntegratorsService{s: s}
+	return rs
+}
+
+type IntegratorsService struct {
+	s *Service
+}
+
 func NewOperationsService(s *Service) *OperationsService {
 	rs := &OperationsService{s: s}
 	return rs
@@ -364,9 +379,9 @@ type GoogleCloudChannelV1ActivateEntitlementRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ActivateEntitlementRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ActivateEntitlementRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ActivateEntitlementRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1AdminUser: Information needed to create an Admin User
@@ -391,9 +406,9 @@ type GoogleCloudChannelV1AdminUser struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1AdminUser) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1AdminUser) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1AdminUser
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1AssociationInfo: Association links that an entitlement
@@ -415,9 +430,9 @@ type GoogleCloudChannelV1AssociationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1AssociationInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1AssociationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1AssociationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1BillableSku: Represents the Billable SKU information.
@@ -445,9 +460,9 @@ type GoogleCloudChannelV1BillableSku struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1BillableSku) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1BillableSku) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1BillableSku
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1BillingAccount: Represents a billing account.
@@ -476,9 +491,9 @@ type GoogleCloudChannelV1BillingAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1BillingAccount) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1BillingAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1BillingAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1BillingAccountPurchaseInfo: Represents a billing account
@@ -499,9 +514,9 @@ type GoogleCloudChannelV1BillingAccountPurchaseInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1BillingAccountPurchaseInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1BillingAccountPurchaseInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1BillingAccountPurchaseInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CancelEntitlementRequest: Request message for
@@ -529,9 +544,9 @@ type GoogleCloudChannelV1CancelEntitlementRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CancelEntitlementRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CancelEntitlementRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CancelEntitlementRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ChangeOfferRequest: Request message for
@@ -548,6 +563,12 @@ type GoogleCloudChannelV1ChangeOfferRequest struct {
 	// available Parameters refer to the Offer.parameter_definitions from the
 	// desired offer.
 	Parameters []*GoogleCloudChannelV1Parameter `json:"parameters,omitempty"`
+	// PriceReferenceId: Optional. Price reference ID for the offer. Optional field
+	// only for offers that require additional price information. Used to guarantee
+	// that the pricing is consistent between quoting the offer and placing the
+	// order. Not yet implemented: if populated in a request, this field isn't
+	// evaluated in the API.
+	PriceReferenceId string `json:"priceReferenceId,omitempty"`
 	// PurchaseOrderId: Optional. Purchase order id provided by the reseller.
 	PurchaseOrderId string `json:"purchaseOrderId,omitempty"`
 	// RequestId: Optional. You can specify an optional unique request ID, and if
@@ -572,13 +593,13 @@ type GoogleCloudChannelV1ChangeOfferRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ChangeOfferRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ChangeOfferRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ChangeOfferRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ChangeParametersRequest: Request message for
-// CloudChannelService.ChangeParametersRequest.
+// CloudChannelService.ChangeParameters.
 type GoogleCloudChannelV1ChangeParametersRequest struct {
 	// Parameters: Required. Entitlement parameters to update. You can only change
 	// editable parameters. To view the available Parameters for a request, refer
@@ -608,9 +629,9 @@ type GoogleCloudChannelV1ChangeParametersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ChangeParametersRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ChangeParametersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ChangeParametersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ChangeRenewalSettingsRequest: Request message for
@@ -640,9 +661,9 @@ type GoogleCloudChannelV1ChangeRenewalSettingsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ChangeRenewalSettingsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ChangeRenewalSettingsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ChangeRenewalSettingsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ChannelPartnerLink: Entity representing a link between
@@ -696,9 +717,9 @@ type GoogleCloudChannelV1ChannelPartnerLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ChannelPartnerLink) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ChannelPartnerLink) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ChannelPartnerLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ChannelPartnerRepricingConfig: Configuration for how a
@@ -733,17 +754,21 @@ type GoogleCloudChannelV1ChannelPartnerRepricingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ChannelPartnerRepricingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ChannelPartnerRepricingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ChannelPartnerRepricingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CheckCloudIdentityAccountsExistRequest: Request message
 // for CloudChannelService.CheckCloudIdentityAccountsExist.
 type GoogleCloudChannelV1CheckCloudIdentityAccountsExistRequest struct {
 	// Domain: Required. Domain to fetch for Cloud Identity account customers,
-	// including domained and domainless.
+	// including domain and team customers. For team customers, please use the
+	// domain for their emails.
 	Domain string `json:"domain,omitempty"`
+	// PrimaryAdminEmail: Optional. Primary admin email to fetch for Cloud Identity
+	// account team customer.
+	PrimaryAdminEmail string `json:"primaryAdminEmail,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Domain") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
@@ -757,9 +782,9 @@ type GoogleCloudChannelV1CheckCloudIdentityAccountsExistRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CheckCloudIdentityAccountsExistRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CheckCloudIdentityAccountsExistRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CheckCloudIdentityAccountsExistRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CheckCloudIdentityAccountsExistResponse: Response
@@ -784,15 +809,18 @@ type GoogleCloudChannelV1CheckCloudIdentityAccountsExistResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CheckCloudIdentityAccountsExistResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CheckCloudIdentityAccountsExistResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CheckCloudIdentityAccountsExistResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CloudIdentityCustomerAccount: Entity representing a
 // Cloud Identity account that may be associated with a Channel Services API
 // partner.
 type GoogleCloudChannelV1CloudIdentityCustomerAccount struct {
+	// ChannelPartnerCloudIdentityId: If existing = true, and is 2-tier customer,
+	// the channel partner of the customer.
+	ChannelPartnerCloudIdentityId string `json:"channelPartnerCloudIdentityId,omitempty"`
 	// CustomerCloudIdentityId: If existing = true, the Cloud Identity ID of the
 	// customer.
 	CustomerCloudIdentityId string `json:"customerCloudIdentityId,omitempty"`
@@ -800,28 +828,37 @@ type GoogleCloudChannelV1CloudIdentityCustomerAccount struct {
 	// Identity account. Customer_name uses the format:
 	// accounts/{account_id}/customers/{customer_id}
 	CustomerName string `json:"customerName,omitempty"`
+	// CustomerType: If existing = true, the type of the customer.
+	//
+	// Possible values:
+	//   "CUSTOMER_TYPE_UNSPECIFIED" - Not used.
+	//   "DOMAIN" - Domain-owning customer which needs domain verification to use
+	// services.
+	//   "TEAM" - Team customer which needs email verification to use services.
+	CustomerType string `json:"customerType,omitempty"`
 	// Existing: Returns true if a Cloud Identity account exists for a specific
 	// domain.
 	Existing bool `json:"existing,omitempty"`
 	// Owned: Returns true if the Cloud Identity account is associated with a
-	// customer of the Channel Services partner.
+	// customer of the Channel Services partner (with active subscriptions or
+	// purchase consents).
 	Owned bool `json:"owned,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "CustomerCloudIdentityId") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
+	// ForceSendFields is a list of field names (e.g.
+	// "ChannelPartnerCloudIdentityId") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
+	// for more details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CustomerCloudIdentityId") to
-	// include in API requests with the JSON null value. By default, fields with
+	// NullFields is a list of field names (e.g. "ChannelPartnerCloudIdentityId")
+	// to include in API requests with the JSON null value. By default, fields with
 	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CloudIdentityCustomerAccount) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CloudIdentityCustomerAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CloudIdentityCustomerAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CloudIdentityInfo: Cloud Identity information for the
@@ -867,9 +904,9 @@ type GoogleCloudChannelV1CloudIdentityInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CloudIdentityInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CloudIdentityInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CloudIdentityInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Column: The definition of a report column. Specifies the
@@ -906,9 +943,9 @@ type GoogleCloudChannelV1Column struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Column) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Column) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Column
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CommitmentSettings: Commitment settings for
@@ -934,9 +971,9 @@ type GoogleCloudChannelV1CommitmentSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CommitmentSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CommitmentSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CommitmentSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ConditionalOverride: Specifies the override to
@@ -971,9 +1008,9 @@ type GoogleCloudChannelV1ConditionalOverride struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ConditionalOverride) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ConditionalOverride) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ConditionalOverride
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Constraints: Represents the constraints for buying the
@@ -995,9 +1032,9 @@ type GoogleCloudChannelV1Constraints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Constraints) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Constraints) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Constraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ContactInfo: Contact information for a customer account.
@@ -1032,9 +1069,9 @@ type GoogleCloudChannelV1ContactInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ContactInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ContactInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ContactInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CreateEntitlementRequest: Request message for
@@ -1064,9 +1101,9 @@ type GoogleCloudChannelV1CreateEntitlementRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CreateEntitlementRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CreateEntitlementRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CreateEntitlementRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Customer: Entity representing a customer of a reseller
@@ -1130,9 +1167,9 @@ type GoogleCloudChannelV1Customer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Customer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Customer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Customer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CustomerConstraints: Represents constraints required to
@@ -1172,9 +1209,9 @@ type GoogleCloudChannelV1CustomerConstraints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CustomerConstraints) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CustomerConstraints) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CustomerConstraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CustomerEvent: Represents Pub/Sub message content
@@ -1183,7 +1220,7 @@ type GoogleCloudChannelV1CustomerEvent struct {
 	// Customer: Resource name of the customer. Format:
 	// accounts/{account_id}/customers/{customer_id}
 	Customer string `json:"customer,omitempty"`
-	// EventType: Type of event which happened on the customer.
+	// EventType: Type of event which happened for the customer.
 	//
 	// Possible values:
 	//   "TYPE_UNSPECIFIED" - Not used.
@@ -1204,9 +1241,9 @@ type GoogleCloudChannelV1CustomerEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CustomerEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CustomerEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CustomerEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1CustomerRepricingConfig: Configuration for how a
@@ -1238,9 +1275,9 @@ type GoogleCloudChannelV1CustomerRepricingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1CustomerRepricingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1CustomerRepricingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1CustomerRepricingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1DateRange: A representation of usage or invoice date
@@ -1279,9 +1316,9 @@ type GoogleCloudChannelV1DateRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1DateRange) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1DateRange) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1DateRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1EduData: Required Edu Attributes
@@ -1320,9 +1357,9 @@ type GoogleCloudChannelV1EduData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1EduData) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1EduData) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1EduData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Entitlement: An entitlement is a representation of a
@@ -1354,6 +1391,12 @@ type GoogleCloudChannelV1Entitlement struct {
 	// Google Cloud billing subaccounts, the following Parameter may be accepted as
 	// input: - display_name: The display name of the billing subaccount.
 	Parameters []*GoogleCloudChannelV1Parameter `json:"parameters,omitempty"`
+	// PriceReferenceId: Optional. Price reference ID for the offer. Optional field
+	// only for offers that require additional price information. Used to guarantee
+	// that the pricing is consistent between quoting the offer and placing the
+	// order. Not yet implemented: if this field is populated in a request, it
+	// isn't evaluated in the API.
+	PriceReferenceId string `json:"priceReferenceId,omitempty"`
 	// ProvisionedService: Output only. Service provisioning details for the
 	// entitlement.
 	ProvisionedService *GoogleCloudChannelV1ProvisionedService `json:"provisionedService,omitempty"`
@@ -1403,9 +1446,9 @@ type GoogleCloudChannelV1Entitlement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Entitlement) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Entitlement) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Entitlement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1EntitlementChange: Change event entry for Entitlement
@@ -1514,9 +1557,9 @@ type GoogleCloudChannelV1EntitlementChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1EntitlementChange) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1EntitlementChange) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1EntitlementChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1EntitlementEvent: Represents Pub/Sub message content
@@ -1525,7 +1568,7 @@ type GoogleCloudChannelV1EntitlementEvent struct {
 	// Entitlement: Resource name of an entitlement of the form:
 	// accounts/{account_id}/customers/{customer_id}/entitlements/{entitlement_id}
 	Entitlement string `json:"entitlement,omitempty"`
-	// EventType: Type of event which happened on the entitlement.
+	// EventType: Type of event which happened for the entitlement.
 	//
 	// Possible values:
 	//   "TYPE_UNSPECIFIED" - Not used.
@@ -1560,9 +1603,9 @@ type GoogleCloudChannelV1EntitlementEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1EntitlementEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1EntitlementEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1EntitlementEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1FetchReportResultsRequest: Request message for
@@ -1593,9 +1636,9 @@ type GoogleCloudChannelV1FetchReportResultsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1FetchReportResultsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1FetchReportResultsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1FetchReportResultsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1FetchReportResultsResponse: Response message for
@@ -1627,9 +1670,9 @@ type GoogleCloudChannelV1FetchReportResultsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1FetchReportResultsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1FetchReportResultsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1FetchReportResultsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ImportCustomerRequest: Request message for
@@ -1656,6 +1699,8 @@ type GoogleCloudChannelV1ImportCustomerRequest struct {
 	// found. This must be set to true if there is an existing customer with a
 	// conflicting region code or domain.
 	OverwriteIfExists bool `json:"overwriteIfExists,omitempty"`
+	// PrimaryAdminEmail: Required. Customer's primary admin email.
+	PrimaryAdminEmail string `json:"primaryAdminEmail,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AuthToken") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1669,9 +1714,9 @@ type GoogleCloudChannelV1ImportCustomerRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ImportCustomerRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ImportCustomerRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ImportCustomerRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListChannelPartnerLinksResponse: Response message for
@@ -1698,9 +1743,9 @@ type GoogleCloudChannelV1ListChannelPartnerLinksResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListChannelPartnerLinksResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListChannelPartnerLinksResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListChannelPartnerLinksResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListChannelPartnerRepricingConfigsResponse: Response
@@ -1729,9 +1774,9 @@ type GoogleCloudChannelV1ListChannelPartnerRepricingConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListChannelPartnerRepricingConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListChannelPartnerRepricingConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListChannelPartnerRepricingConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListCustomerRepricingConfigsResponse: Response message
@@ -1758,9 +1803,9 @@ type GoogleCloudChannelV1ListCustomerRepricingConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListCustomerRepricingConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListCustomerRepricingConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListCustomerRepricingConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListCustomersResponse: Response message for
@@ -1787,9 +1832,9 @@ type GoogleCloudChannelV1ListCustomersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListCustomersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListCustomersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListCustomersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListEntitlementChangesResponse: Response message for
@@ -1815,9 +1860,9 @@ type GoogleCloudChannelV1ListEntitlementChangesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListEntitlementChangesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListEntitlementChangesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListEntitlementChangesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListEntitlementsResponse: Response message for
@@ -1844,9 +1889,9 @@ type GoogleCloudChannelV1ListEntitlementsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListEntitlementsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListEntitlementsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListEntitlementsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListOffersResponse: Response message for ListOffers.
@@ -1871,9 +1916,9 @@ type GoogleCloudChannelV1ListOffersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListOffersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListOffersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListOffersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListProductsResponse: Response message for ListProducts.
@@ -1898,9 +1943,9 @@ type GoogleCloudChannelV1ListProductsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListProductsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListProductsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListProductsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListPurchasableOffersResponse: Response message for
@@ -1926,9 +1971,9 @@ type GoogleCloudChannelV1ListPurchasableOffersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListPurchasableOffersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListPurchasableOffersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListPurchasableOffersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListPurchasableSkusResponse: Response message for
@@ -1954,9 +1999,9 @@ type GoogleCloudChannelV1ListPurchasableSkusResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListPurchasableSkusResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListPurchasableSkusResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListPurchasableSkusResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListReportsResponse: Response message for
@@ -1983,9 +2028,9 @@ type GoogleCloudChannelV1ListReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListReportsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListSkuGroupBillableSkusResponse: Response message for
@@ -1994,7 +2039,7 @@ type GoogleCloudChannelV1ListSkuGroupBillableSkusResponse struct {
 	// BillableSkus: The list of billable SKUs in the requested SKU group.
 	BillableSkus []*GoogleCloudChannelV1BillableSku `json:"billableSkus,omitempty"`
 	// NextPageToken: A token to retrieve the next page of results. Pass to
-	// ListSkuGroupBillableSkus.page_token to obtain that page.
+	// ListSkuGroupBillableSkusRequest.page_token to obtain that page.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -2012,16 +2057,16 @@ type GoogleCloudChannelV1ListSkuGroupBillableSkusResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListSkuGroupBillableSkusResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListSkuGroupBillableSkusResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListSkuGroupBillableSkusResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListSkuGroupsResponse: Response message for
 // ListSkuGroups.
 type GoogleCloudChannelV1ListSkuGroupsResponse struct {
 	// NextPageToken: A token to retrieve the next page of results. Pass to
-	// ListSkuGroups.page_token to obtain that page.
+	// ListSkuGroupsRequest.page_token to obtain that page.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 	// SkuGroups: The list of SKU groups requested.
 	SkuGroups []*GoogleCloudChannelV1SkuGroup `json:"skuGroups,omitempty"`
@@ -2041,9 +2086,9 @@ type GoogleCloudChannelV1ListSkuGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListSkuGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListSkuGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListSkuGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListSkusResponse: Response message for ListSkus.
@@ -2068,9 +2113,9 @@ type GoogleCloudChannelV1ListSkusResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListSkusResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListSkusResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListSkusResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListSubscribersResponse: Response Message for
@@ -2100,9 +2145,9 @@ type GoogleCloudChannelV1ListSubscribersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListSubscribersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListSubscribersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListSubscribersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListTransferableOffersRequest: Request message for
@@ -2145,9 +2190,9 @@ type GoogleCloudChannelV1ListTransferableOffersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListTransferableOffersRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListTransferableOffersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListTransferableOffersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListTransferableOffersResponse: Response message for
@@ -2175,9 +2220,9 @@ type GoogleCloudChannelV1ListTransferableOffersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListTransferableOffersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListTransferableOffersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListTransferableOffersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListTransferableSkusRequest: Request message for
@@ -2219,9 +2264,9 @@ type GoogleCloudChannelV1ListTransferableSkusRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListTransferableSkusRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListTransferableSkusRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListTransferableSkusRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ListTransferableSkusResponse: Response message for
@@ -2249,9 +2294,9 @@ type GoogleCloudChannelV1ListTransferableSkusResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ListTransferableSkusResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ListTransferableSkusResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ListTransferableSkusResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1MarketingInfo: Represents the marketing information for
@@ -2276,9 +2321,9 @@ type GoogleCloudChannelV1MarketingInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1MarketingInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1MarketingInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1MarketingInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Media: Represents media information.
@@ -2306,9 +2351,9 @@ type GoogleCloudChannelV1Media struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Media) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Media) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Media
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Offer: Represents an offer made to resellers for
@@ -2352,9 +2397,9 @@ type GoogleCloudChannelV1Offer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Offer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Offer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Offer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1OperationMetadata: Provides contextual information about
@@ -2399,9 +2444,9 @@ type GoogleCloudChannelV1OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Parameter: Definition for extended entitlement
@@ -2428,9 +2473,9 @@ type GoogleCloudChannelV1Parameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Parameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Parameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Parameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ParameterDefinition: Parameter's definition. Specifies
@@ -2474,9 +2519,9 @@ type GoogleCloudChannelV1ParameterDefinition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ParameterDefinition) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ParameterDefinition) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ParameterDefinition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1PercentageAdjustment: An adjustment that applies a flat
@@ -2498,9 +2543,9 @@ type GoogleCloudChannelV1PercentageAdjustment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1PercentageAdjustment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1PercentageAdjustment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1PercentageAdjustment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Period: Represents period in days/months/years.
@@ -2528,9 +2573,9 @@ type GoogleCloudChannelV1Period struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Period) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Period) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Period
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Plan: The payment plan for the Offer. Describes how to
@@ -2578,9 +2623,9 @@ type GoogleCloudChannelV1Plan struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Plan) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Plan) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Plan
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Price: Represents the price of the Offer.
@@ -2608,9 +2653,9 @@ type GoogleCloudChannelV1Price struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Price) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Price) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Price
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudChannelV1Price) UnmarshalJSON(data []byte) error {
@@ -2662,9 +2707,9 @@ type GoogleCloudChannelV1PriceByResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1PriceByResource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1PriceByResource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1PriceByResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1PricePhase: Specifies the price by the duration of
@@ -2700,9 +2745,9 @@ type GoogleCloudChannelV1PricePhase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1PricePhase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1PricePhase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1PricePhase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1PriceTier: Defines price at resource tier level. For
@@ -2730,9 +2775,9 @@ type GoogleCloudChannelV1PriceTier struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1PriceTier) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1PriceTier) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1PriceTier
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Product: A Product is the entity a customer uses when
@@ -2755,9 +2800,9 @@ type GoogleCloudChannelV1Product struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Product) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Product) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Product
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ProvisionCloudIdentityRequest: Request message for
@@ -2783,9 +2828,9 @@ type GoogleCloudChannelV1ProvisionCloudIdentityRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ProvisionCloudIdentityRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ProvisionCloudIdentityRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ProvisionCloudIdentityRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ProvisionedService: Service provisioned for an
@@ -2814,9 +2859,9 @@ type GoogleCloudChannelV1ProvisionedService struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ProvisionedService) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ProvisionedService) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ProvisionedService
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1PurchasableOffer: Offer that you can purchase for a
@@ -2824,6 +2869,11 @@ func (s *GoogleCloudChannelV1ProvisionedService) MarshalJSON() ([]byte, error) {
 type GoogleCloudChannelV1PurchasableOffer struct {
 	// Offer: Offer.
 	Offer *GoogleCloudChannelV1Offer `json:"offer,omitempty"`
+	// PriceReferenceId: Optional. Price reference ID for the offer. Optional field
+	// only for offers that require additional price information. Used to guarantee
+	// that the pricing is consistent between quoting the offer and placing the
+	// order.
+	PriceReferenceId string `json:"priceReferenceId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Offer") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
@@ -2837,9 +2887,9 @@ type GoogleCloudChannelV1PurchasableOffer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1PurchasableOffer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1PurchasableOffer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1PurchasableOffer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1PurchasableSku: SKU that you can purchase. This is used
@@ -2860,9 +2910,9 @@ type GoogleCloudChannelV1PurchasableSku struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1PurchasableSku) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1PurchasableSku) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1PurchasableSku
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1QueryEligibleBillingAccountsResponse: Response message
@@ -2889,33 +2939,39 @@ type GoogleCloudChannelV1QueryEligibleBillingAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1QueryEligibleBillingAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1QueryEligibleBillingAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1QueryEligibleBillingAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RegisterSubscriberRequest: Request Message for
 // RegisterSubscriber.
 type GoogleCloudChannelV1RegisterSubscriberRequest struct {
+	// Account: Optional. Resource name of the account. Required if integrator is
+	// not provided. Otherwise, leave this field empty/unset.
+	Account string `json:"account,omitempty"`
+	// Integrator: Optional. Resource name of the integrator. Required if account
+	// is not provided. Otherwise, leave this field empty/unset.
+	Integrator string `json:"integrator,omitempty"`
 	// ServiceAccount: Required. Service account that provides subscriber access to
 	// the registered topic.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "ServiceAccount") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "Account") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ServiceAccount") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "Account") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RegisterSubscriberRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RegisterSubscriberRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RegisterSubscriberRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RegisterSubscriberResponse: Response Message for
@@ -2939,9 +2995,9 @@ type GoogleCloudChannelV1RegisterSubscriberResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RegisterSubscriberResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RegisterSubscriberResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RegisterSubscriberResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RenewalSettings: Renewal settings for renewable Offers.
@@ -2978,9 +3034,9 @@ type GoogleCloudChannelV1RenewalSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RenewalSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RenewalSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RenewalSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Report: The ID and description of a report that was used
@@ -3013,9 +3069,9 @@ type GoogleCloudChannelV1Report struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Report) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Report) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Report
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ReportJob: The result of a RunReportJob operation.
@@ -3040,9 +3096,9 @@ type GoogleCloudChannelV1ReportJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ReportJob) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ReportJob) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ReportJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ReportResultsMetadata: The features describing the data.
@@ -3073,9 +3129,9 @@ type GoogleCloudChannelV1ReportResultsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ReportResultsMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ReportResultsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ReportResultsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ReportStatus: Status of a report generation process.
@@ -3106,9 +3162,9 @@ type GoogleCloudChannelV1ReportStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ReportStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ReportStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ReportStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1ReportValue: A single report value.
@@ -3141,9 +3197,9 @@ type GoogleCloudChannelV1ReportValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1ReportValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1ReportValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1ReportValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RepricingAdjustment: A type that represents the various
@@ -3164,9 +3220,9 @@ type GoogleCloudChannelV1RepricingAdjustment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RepricingAdjustment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RepricingAdjustment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RepricingAdjustment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RepricingCondition: Represents the various repricing
@@ -3187,9 +3243,9 @@ type GoogleCloudChannelV1RepricingCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RepricingCondition) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RepricingCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RepricingCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RepricingConfig: Configuration for repricing a Google
@@ -3242,9 +3298,9 @@ type GoogleCloudChannelV1RepricingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RepricingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RepricingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RepricingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RepricingConfigChannelPartnerGranularity: Applies the
@@ -3274,9 +3330,9 @@ type GoogleCloudChannelV1RepricingConfigEntitlementGranularity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RepricingConfigEntitlementGranularity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RepricingConfigEntitlementGranularity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RepricingConfigEntitlementGranularity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Row: A row of report values.
@@ -3299,9 +3355,9 @@ type GoogleCloudChannelV1Row struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Row) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Row) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Row
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RunReportJobRequest: Request message for
@@ -3335,9 +3391,9 @@ type GoogleCloudChannelV1RunReportJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RunReportJobRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RunReportJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RunReportJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1RunReportJobResponse: Response message for
@@ -3363,9 +3419,9 @@ type GoogleCloudChannelV1RunReportJobResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1RunReportJobResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1RunReportJobResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1RunReportJobResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Sku: Represents a product's purchasable Stock Keeping
@@ -3392,9 +3448,9 @@ type GoogleCloudChannelV1Sku struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Sku) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Sku) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Sku
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1SkuGroup: Represents the SKU group information.
@@ -3418,9 +3474,9 @@ type GoogleCloudChannelV1SkuGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1SkuGroup) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1SkuGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1SkuGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1SkuGroupCondition: A condition that applies the override
@@ -3444,9 +3500,9 @@ type GoogleCloudChannelV1SkuGroupCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1SkuGroupCondition) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1SkuGroupCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1SkuGroupCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1SkuPurchaseGroup: Represents a set of SKUs that must be
@@ -3471,9 +3527,9 @@ type GoogleCloudChannelV1SkuPurchaseGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1SkuPurchaseGroup) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1SkuPurchaseGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1SkuPurchaseGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1StartPaidServiceRequest: Request message for
@@ -3501,9 +3557,9 @@ type GoogleCloudChannelV1StartPaidServiceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1StartPaidServiceRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1StartPaidServiceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1StartPaidServiceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1SubscriberEvent: Represents information which resellers
@@ -3527,9 +3583,9 @@ type GoogleCloudChannelV1SubscriberEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1SubscriberEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1SubscriberEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1SubscriberEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1SuspendEntitlementRequest: Request message for
@@ -3557,9 +3613,9 @@ type GoogleCloudChannelV1SuspendEntitlementRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1SuspendEntitlementRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1SuspendEntitlementRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1SuspendEntitlementRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1TransferEligibility: Specifies transfer eligibility of a
@@ -3595,9 +3651,9 @@ type GoogleCloudChannelV1TransferEligibility struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1TransferEligibility) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1TransferEligibility) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1TransferEligibility
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1TransferEntitlementsRequest: Request message for
@@ -3632,9 +3688,9 @@ type GoogleCloudChannelV1TransferEntitlementsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1TransferEntitlementsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1TransferEntitlementsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1TransferEntitlementsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1TransferEntitlementsResponse: Response message for
@@ -3656,9 +3712,9 @@ type GoogleCloudChannelV1TransferEntitlementsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1TransferEntitlementsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1TransferEntitlementsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1TransferEntitlementsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1TransferEntitlementsToGoogleRequest: Request message for
@@ -3688,9 +3744,9 @@ type GoogleCloudChannelV1TransferEntitlementsToGoogleRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1TransferEntitlementsToGoogleRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1TransferEntitlementsToGoogleRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1TransferEntitlementsToGoogleRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1TransferableOffer: TransferableOffer represents an Offer
@@ -3698,6 +3754,11 @@ func (s *GoogleCloudChannelV1TransferEntitlementsToGoogleRequest) MarshalJSON() 
 type GoogleCloudChannelV1TransferableOffer struct {
 	// Offer: Offer with parameter constraints updated to allow the Transfer.
 	Offer *GoogleCloudChannelV1Offer `json:"offer,omitempty"`
+	// PriceReferenceId: Optional. Price reference ID for the offer. Optional field
+	// only for offers that require additional price information. Used to guarantee
+	// that the pricing is consistent between quoting the offer and placing the
+	// order.
+	PriceReferenceId string `json:"priceReferenceId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Offer") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
@@ -3711,9 +3772,9 @@ type GoogleCloudChannelV1TransferableOffer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1TransferableOffer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1TransferableOffer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1TransferableOffer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1TransferableSku: TransferableSku represents information
@@ -3741,9 +3802,9 @@ type GoogleCloudChannelV1TransferableSku struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1TransferableSku) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1TransferableSku) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1TransferableSku
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1TrialSettings: Settings for trial offers.
@@ -3768,33 +3829,39 @@ type GoogleCloudChannelV1TrialSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1TrialSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1TrialSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1TrialSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1UnregisterSubscriberRequest: Request Message for
 // UnregisterSubscriber.
 type GoogleCloudChannelV1UnregisterSubscriberRequest struct {
+	// Account: Optional. Resource name of the account. Required if integrator is
+	// not provided. Otherwise, leave this field empty/unset.
+	Account string `json:"account,omitempty"`
+	// Integrator: Optional. Resource name of the integrator. Required if account
+	// is not provided. Otherwise, leave this field empty/unset.
+	Integrator string `json:"integrator,omitempty"`
 	// ServiceAccount: Required. Service account to unregister from subscriber
 	// access to the topic.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "ServiceAccount") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "Account") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ServiceAccount") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "Account") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1UnregisterSubscriberRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1UnregisterSubscriberRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1UnregisterSubscriberRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1UnregisterSubscriberResponse: Response Message for
@@ -3819,9 +3886,9 @@ type GoogleCloudChannelV1UnregisterSubscriberResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1UnregisterSubscriberResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1UnregisterSubscriberResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1UnregisterSubscriberResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1UpdateChannelPartnerLinkRequest: Request message for
@@ -3846,9 +3913,9 @@ type GoogleCloudChannelV1UpdateChannelPartnerLinkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1UpdateChannelPartnerLinkRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1UpdateChannelPartnerLinkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1UpdateChannelPartnerLinkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1Value: Data type and value of a parameter.
@@ -3876,9 +3943,9 @@ type GoogleCloudChannelV1Value struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1Value) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1Value) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1Value
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudChannelV1Value) UnmarshalJSON(data []byte) error {
@@ -3914,9 +3981,9 @@ type GoogleCloudChannelV1alpha1AssociationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1AssociationInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1AssociationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1AssociationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1ChannelPartnerEvent: Represents Pub/Sub messages
@@ -3927,7 +3994,7 @@ type GoogleCloudChannelV1alpha1ChannelPartnerEvent struct {
 	// uses the format:
 	// accounts/{account_id}/channelPartnerLinks/{channel_partner_id}
 	ChannelPartner string `json:"channelPartner,omitempty"`
-	// EventType: Type of event performed on the Channel Partner.
+	// EventType: Type of event which happened for the channel partner.
 	//
 	// Possible values:
 	//   "TYPE_UNSPECIFIED" - Default value. Does not display if there are no
@@ -3950,9 +4017,9 @@ type GoogleCloudChannelV1alpha1ChannelPartnerEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1ChannelPartnerEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1ChannelPartnerEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1ChannelPartnerEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1Column: The definition of a report column.
@@ -3990,9 +4057,9 @@ type GoogleCloudChannelV1alpha1Column struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1Column) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1Column) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1Column
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1CommitmentSettings: Commitment settings for
@@ -4018,9 +4085,9 @@ type GoogleCloudChannelV1alpha1CommitmentSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1CommitmentSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1CommitmentSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1CommitmentSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1CustomerEvent: Represents Pub/Sub message content
@@ -4029,7 +4096,7 @@ type GoogleCloudChannelV1alpha1CustomerEvent struct {
 	// Customer: Resource name of the customer. Format:
 	// accounts/{account_id}/customers/{customer_id}
 	Customer string `json:"customer,omitempty"`
-	// EventType: Type of event which happened on the customer.
+	// EventType: Type of event which happened for the customer.
 	//
 	// Possible values:
 	//   "TYPE_UNSPECIFIED" - Not used.
@@ -4050,9 +4117,9 @@ type GoogleCloudChannelV1alpha1CustomerEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1CustomerEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1CustomerEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1CustomerEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1DateRange: A representation of usage or invoice
@@ -4091,9 +4158,9 @@ type GoogleCloudChannelV1alpha1DateRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1DateRange) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1DateRange) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1DateRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1Entitlement: An entitlement is a representation of
@@ -4145,6 +4212,12 @@ type GoogleCloudChannelV1alpha1Entitlement struct {
 	// Google Cloud billing subaccounts, the following Parameter may be accepted as
 	// input: - display_name: The display name of the billing subaccount.
 	Parameters []*GoogleCloudChannelV1alpha1Parameter `json:"parameters,omitempty"`
+	// PriceReferenceId: Optional. Price reference ID for the offer. Optional field
+	// only for offers that require additional price information. Used to guarantee
+	// that the pricing is consistent between quoting the offer and placing the
+	// order. Not yet implemented: if this field is populated in a request, it
+	// isn't evaluated in the API.
+	PriceReferenceId string `json:"priceReferenceId,omitempty"`
 	// ProvisionedService: Output only. Service provisioning details for the
 	// entitlement.
 	ProvisionedService *GoogleCloudChannelV1alpha1ProvisionedService `json:"provisionedService,omitempty"`
@@ -4200,9 +4273,9 @@ type GoogleCloudChannelV1alpha1Entitlement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1Entitlement) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1Entitlement) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1Entitlement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1EntitlementEvent: Represents Pub/Sub message
@@ -4211,7 +4284,7 @@ type GoogleCloudChannelV1alpha1EntitlementEvent struct {
 	// Entitlement: Resource name of an entitlement of the form:
 	// accounts/{account_id}/customers/{customer_id}/entitlements/{entitlement_id}
 	Entitlement string `json:"entitlement,omitempty"`
-	// EventType: Type of event which happened on the entitlement.
+	// EventType: Type of event which happened for the entitlement.
 	//
 	// Possible values:
 	//   "TYPE_UNSPECIFIED" - Not used.
@@ -4246,9 +4319,9 @@ type GoogleCloudChannelV1alpha1EntitlementEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1EntitlementEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1EntitlementEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1EntitlementEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1OperationMetadata: Provides contextual information
@@ -4297,9 +4370,40 @@ type GoogleCloudChannelV1alpha1OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudChannelV1alpha1OpportunityEvent: Represents Pub/Sub message
+// content describing opportunity updates.
+type GoogleCloudChannelV1alpha1OpportunityEvent struct {
+	// EventType: Type of event which happened for the opportunity.
+	//
+	// Possible values:
+	//   "TYPE_UNSPECIFIED" - Not used.
+	//   "CREATED" - New opportunity created.
+	//   "UPDATED" - Existing opportunity updated.
+	EventType string `json:"eventType,omitempty"`
+	// Opportunity: Resource name of the opportunity. Format:
+	// opportunities/{opportunity}
+	Opportunity string `json:"opportunity,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EventType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EventType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudChannelV1alpha1OpportunityEvent) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudChannelV1alpha1OpportunityEvent
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1Parameter: Definition for extended entitlement
@@ -4326,9 +4430,9 @@ type GoogleCloudChannelV1alpha1Parameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1Parameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1Parameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1Parameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1Period: Represents period in days/months/years.
@@ -4356,9 +4460,9 @@ type GoogleCloudChannelV1alpha1Period struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1Period) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1Period) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1Period
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1ProvisionedService: Service provisioned for an
@@ -4387,9 +4491,9 @@ type GoogleCloudChannelV1alpha1ProvisionedService struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1ProvisionedService) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1ProvisionedService) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1ProvisionedService
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1RenewalSettings: Renewal settings for renewable
@@ -4443,9 +4547,9 @@ type GoogleCloudChannelV1alpha1RenewalSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1RenewalSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1RenewalSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1RenewalSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1Report: The ID and description of a report that
@@ -4478,9 +4582,9 @@ type GoogleCloudChannelV1alpha1Report struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1Report) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1Report) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1Report
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1ReportJob: The result of a RunReportJob operation.
@@ -4505,9 +4609,9 @@ type GoogleCloudChannelV1alpha1ReportJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1ReportJob) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1ReportJob) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1ReportJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1ReportResultsMetadata: The features describing the
@@ -4538,9 +4642,9 @@ type GoogleCloudChannelV1alpha1ReportResultsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1ReportResultsMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1ReportResultsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1ReportResultsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1ReportStatus: Status of a report generation
@@ -4572,9 +4676,9 @@ type GoogleCloudChannelV1alpha1ReportStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1ReportStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1ReportStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1ReportStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1RunReportJobResponse: Response message for
@@ -4600,9 +4704,9 @@ type GoogleCloudChannelV1alpha1RunReportJobResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1RunReportJobResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1RunReportJobResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1RunReportJobResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1SubscriberEvent: Represents information which
@@ -4616,6 +4720,9 @@ type GoogleCloudChannelV1alpha1SubscriberEvent struct {
 	// EntitlementEvent: Entitlement event sent as part of Pub/Sub event to
 	// partners.
 	EntitlementEvent *GoogleCloudChannelV1alpha1EntitlementEvent `json:"entitlementEvent,omitempty"`
+	// OpportunityEvent: Opportunity event sent as part of Pub/Sub event to
+	// partners/integrators.
+	OpportunityEvent *GoogleCloudChannelV1alpha1OpportunityEvent `json:"opportunityEvent,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ChannelPartnerEvent") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -4629,9 +4736,9 @@ type GoogleCloudChannelV1alpha1SubscriberEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1SubscriberEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1SubscriberEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1SubscriberEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1TransferEntitlementsResponse: Response message for
@@ -4653,9 +4760,9 @@ type GoogleCloudChannelV1alpha1TransferEntitlementsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1TransferEntitlementsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1TransferEntitlementsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1TransferEntitlementsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1TrialSettings: Settings for trial offers.
@@ -4680,9 +4787,9 @@ type GoogleCloudChannelV1alpha1TrialSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1TrialSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1TrialSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1TrialSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudChannelV1alpha1Value: Data type and value of a parameter.
@@ -4710,9 +4817,9 @@ type GoogleCloudChannelV1alpha1Value struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudChannelV1alpha1Value) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudChannelV1alpha1Value) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudChannelV1alpha1Value
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudChannelV1alpha1Value) UnmarshalJSON(data []byte) error {
@@ -4758,9 +4865,9 @@ type GoogleLongrunningListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -4805,9 +4912,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -4849,9 +4956,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDate: Represents a whole or partial calendar date, such as a
@@ -4887,9 +4994,9 @@ type GoogleTypeDate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDateTime: Represents civil time (or occasionally physical time).
@@ -4950,16 +5057,17 @@ type GoogleTypeDateTime struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDateTime) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDateTime) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDateTime
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDecimal: A representation of a decimal value, such as 2.5. Clients
 // may convert values into language-native decimal formats, such as Java's
-// BigDecimal or Python's decimal.Decimal. [BigDecimal]:
-// https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigDecimal.html
-// [decimal.Decimal]: https://docs.python.org/3/library/decimal.html
+// BigDecimal
+// (https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigDecimal.html)
+// or Python's decimal.Decimal
+// (https://docs.python.org/3/library/decimal.html).
 type GoogleTypeDecimal struct {
 	// Value: The decimal value, as a string. The string representation consists of
 	// an optional sign, `+` (`U+002B`) or `-` (`U+002D`), followed by a sequence
@@ -5011,9 +5119,9 @@ type GoogleTypeDecimal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDecimal) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDecimal) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDecimal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeMoney: Represents an amount of money with its currency type.
@@ -5042,47 +5150,48 @@ type GoogleTypeMoney struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeMoney) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeMoney) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeMoney
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GoogleTypePostalAddress: Represents a postal address, e.g. for postal
+// GoogleTypePostalAddress: Represents a postal address. For example for postal
 // delivery or payments addresses. Given a postal address, a postal service can
 // deliver items to a premise, P.O. Box or similar. It is not intended to model
 // geographical locations (roads, towns, mountains). In typical usage an
-// address would be created via user input or from importing existing data,
+// address would be created by user input or from importing existing data,
 // depending on the type of process. Advice on address input / editing: - Use
 // an internationalization-ready address widget such as
 // https://github.com/google/libaddressinput) - Users should not be presented
 // with UI elements for input or editing of fields outside countries where that
-// field is used. For more guidance on how to use this schema, please see:
+// field is used. For more guidance on how to use this schema, see:
 // https://support.google.com/business/answer/6397478
 type GoogleTypePostalAddress struct {
 	// AddressLines: Unstructured address lines describing the lower levels of an
 	// address. Because values in address_lines do not have type information and
-	// may sometimes contain multiple values in a single field (e.g. "Austin, TX"),
-	// it is important that the line order is clear. The order of address lines
-	// should be "envelope order" for the country/region of the address. In places
-	// where this can vary (e.g. Japan), address_language is used to make it
-	// explicit (e.g. "ja" for large-to-small ordering and "ja-Latn" or "en" for
-	// small-to-large). This way, the most specific line of an address can be
-	// selected based on the language. The minimum permitted structural
-	// representation of an address consists of a region_code with all remaining
-	// information placed in the address_lines. It would be possible to format such
-	// an address very approximately without geocoding, but no semantic reasoning
-	// could be made about any of the address components until it was at least
-	// partially resolved. Creating an address only containing a region_code and
-	// address_lines, and then geocoding is the recommended way to handle
+	// may sometimes contain multiple values in a single field (For example
+	// "Austin, TX"), it is important that the line order is clear. The order of
+	// address lines should be "envelope order" for the country/region of the
+	// address. In places where this can vary (For example Japan), address_language
+	// is used to make it explicit (For example "ja" for large-to-small ordering
+	// and "ja-Latn" or "en" for small-to-large). This way, the most specific line
+	// of an address can be selected based on the language. The minimum permitted
+	// structural representation of an address consists of a region_code with all
+	// remaining information placed in the address_lines. It would be possible to
+	// format such an address very approximately without geocoding, but no semantic
+	// reasoning could be made about any of the address components until it was at
+	// least partially resolved. Creating an address only containing a region_code
+	// and address_lines, and then geocoding is the recommended way to handle
 	// completely unstructured addresses (as opposed to guessing which parts of the
 	// address should be localities or administrative areas).
 	AddressLines []string `json:"addressLines,omitempty"`
 	// AdministrativeArea: Optional. Highest administrative subdivision which is
 	// used for postal addresses of a country or region. For example, this can be a
 	// state, a province, an oblast, or a prefecture. Specifically, for Spain this
-	// is the province and not the autonomous community (e.g. "Barcelona" and not
-	// "Catalonia"). Many countries don't use an administrative area in postal
-	// addresses. E.g. in Switzerland this should be left unpopulated.
+	// is the province and not the autonomous community (For example "Barcelona"
+	// and not "Catalonia"). Many countries don't use an administrative area in
+	// postal addresses. For example in Switzerland this should be left
+	// unpopulated.
 	AdministrativeArea string `json:"administrativeArea,omitempty"`
 	// LanguageCode: Optional. BCP-47 language code of the contents of this address
 	// (if known). This is often the UI language of the input form or is expected
@@ -5102,7 +5211,7 @@ type GoogleTypePostalAddress struct {
 	Organization string `json:"organization,omitempty"`
 	// PostalCode: Optional. Postal code of the address. Not all countries use or
 	// require postal codes to be present, but where they are used, they may
-	// trigger additional validation with other parts of the address (e.g.
+	// trigger additional validation with other parts of the address (For example
 	// state/zip validation in the U.S.A.).
 	PostalCode string `json:"postalCode,omitempty"`
 	// Recipients: Optional. The recipient at the address. This field may, under
@@ -5121,9 +5230,10 @@ type GoogleTypePostalAddress struct {
 	Revision int64 `json:"revision,omitempty"`
 	// SortingCode: Optional. Additional, country-specific, sorting code. This is
 	// not used in most regions. Where it is used, the value is either a string
-	// like "CEDEX", optionally followed by a number (e.g. "CEDEX 7"), or just a
-	// number alone, representing the "sector code" (Jamaica), "delivery area
-	// indicator" (Malawi) or "post office indicator" (e.g. Côte d'Ivoire).
+	// like "CEDEX", optionally followed by a number (For example "CEDEX 7"), or
+	// just a number alone, representing the "sector code" (Jamaica), "delivery
+	// area indicator" (Malawi) or "post office indicator" (For example Côte
+	// d'Ivoire).
 	SortingCode string `json:"sortingCode,omitempty"`
 	// Sublocality: Optional. Sublocality of the address. For example, this can be
 	// neighborhoods, boroughs, districts.
@@ -5141,17 +5251,18 @@ type GoogleTypePostalAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypePostalAddress) MarshalJSON() ([]byte, error) {
+func (s GoogleTypePostalAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypePostalAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeTimeZone: Represents a time zone from the IANA Time Zone Database
 // (https://www.iana.org/time-zones).
 type GoogleTypeTimeZone struct {
-	// Id: IANA Time Zone Database time zone, e.g. "America/New_York".
+	// Id: IANA Time Zone Database time zone. For example "America/New_York".
 	Id string `json:"id,omitempty"`
-	// Version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+	// Version: Optional. IANA Time Zone Database version number. For example
+	// "2019a".
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -5166,9 +5277,9 @@ type GoogleTypeTimeZone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeTimeZone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountsCheckCloudIdentityAccountsExistCall struct {
@@ -5224,8 +5335,7 @@ func (c *AccountsCheckCloudIdentityAccountsExistCall) Header() http.Header {
 
 func (c *AccountsCheckCloudIdentityAccountsExistCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1checkcloudidentityaccountsexistrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1checkcloudidentityaccountsexistrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5241,6 +5351,7 @@ func (c *AccountsCheckCloudIdentityAccountsExistCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.checkCloudIdentityAccountsExist", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5276,9 +5387,11 @@ func (c *AccountsCheckCloudIdentityAccountsExistCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.checkCloudIdentityAccountsExist", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5292,20 +5405,29 @@ type AccountsListSubscribersCall struct {
 }
 
 // ListSubscribers: Lists service accounts with subscriber privileges on the
-// Cloud Pub/Sub topic created for this Channel Services account. Possible
-// error codes: * PERMISSION_DENIED: The reseller account making the request
-// and the provided reseller account are different, or the impersonated user is
-// not a super admin. * INVALID_ARGUMENT: Required request parameters are
-// missing or invalid. * NOT_FOUND: The topic resource doesn't exist. *
+// Pub/Sub topic created for this Channel Services account or integrator.
+// Possible error codes: * PERMISSION_DENIED: The reseller account making the
+// request and the provided reseller account are different, or the impersonated
+// user is not a super admin. * INVALID_ARGUMENT: Required request parameters
+// are missing or invalid. * NOT_FOUND: The topic resource doesn't exist. *
 // INTERNAL: Any non-user error related to a technical issue in the backend.
 // Contact Cloud Channel support. * UNKNOWN: Any non-user error related to a
 // technical issue in the backend. Contact Cloud Channel support. Return value:
 // A list of service email addresses.
 //
-// - account: Resource name of the account.
+//   - account: Optional. Resource name of the account. Required if integrator is
+//     not provided. Otherwise, leave this field empty/unset.
 func (r *AccountsService) ListSubscribers(account string) *AccountsListSubscribersCall {
 	c := &AccountsListSubscribersCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.account = account
+	return c
+}
+
+// Integrator sets the optional parameter "integrator": Resource name of the
+// integrator. Required if account is not provided. Otherwise, leave this field
+// empty/unset.
+func (c *AccountsListSubscribersCall) Integrator(integrator string) *AccountsListSubscribersCall {
+	c.urlParams_.Set("integrator", integrator)
 	return c
 }
 
@@ -5363,12 +5485,11 @@ func (c *AccountsListSubscribersCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+account}:listSubscribers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5376,6 +5497,7 @@ func (c *AccountsListSubscribersCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"account": c.account,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.listSubscribers", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5411,9 +5533,11 @@ func (c *AccountsListSubscribersCall) Do(opts ...googleapi.CallOption) (*GoogleC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.listSubscribers", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5493,8 +5617,7 @@ func (c *AccountsListTransferableOffersCall) Header() http.Header {
 
 func (c *AccountsListTransferableOffersCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1listtransferableoffersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1listtransferableoffersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5510,6 +5633,7 @@ func (c *AccountsListTransferableOffersCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.listTransferableOffers", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5545,9 +5669,11 @@ func (c *AccountsListTransferableOffersCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.listTransferableOffers", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5625,8 +5751,7 @@ func (c *AccountsListTransferableSkusCall) Header() http.Header {
 
 func (c *AccountsListTransferableSkusCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1listtransferableskusrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1listtransferableskusrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5642,6 +5767,7 @@ func (c *AccountsListTransferableSkusCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.listTransferableSkus", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5677,9 +5803,11 @@ func (c *AccountsListTransferableSkusCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.listTransferableSkus", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5714,17 +5842,19 @@ type AccountsRegisterCall struct {
 }
 
 // Register: Registers a service account with subscriber privileges on the
-// Cloud Pub/Sub topic for this Channel Services account. After you create a
-// subscriber, you get the events through SubscriberEvent Possible error codes:
-// * PERMISSION_DENIED: The reseller account making the request and the
-// provided reseller account are different, or the impersonated user is not a
-// super admin. * INVALID_ARGUMENT: Required request parameters are missing or
-// invalid. * INTERNAL: Any non-user error related to a technical issue in the
-// backend. Contact Cloud Channel support. * UNKNOWN: Any non-user error
-// related to a technical issue in the backend. Contact Cloud Channel support.
-// Return value: The topic name with the registered service email address.
+// Pub/Sub topic for this Channel Services account or integrator. After you
+// create a subscriber, you get the events through SubscriberEvent Possible
+// error codes: * PERMISSION_DENIED: The reseller account making the request
+// and the provided reseller account are different, or the impersonated user is
+// not a super admin. * INVALID_ARGUMENT: Required request parameters are
+// missing or invalid. * INTERNAL: Any non-user error related to a technical
+// issue in the backend. Contact Cloud Channel support. * UNKNOWN: Any non-user
+// error related to a technical issue in the backend. Contact Cloud Channel
+// support. Return value: The topic name with the registered service email
+// address.
 //
-// - account: Resource name of the account.
+//   - account: Optional. Resource name of the account. Required if integrator is
+//     not provided. Otherwise, leave this field empty/unset.
 func (r *AccountsService) Register(account string, googlecloudchannelv1registersubscriberrequest *GoogleCloudChannelV1RegisterSubscriberRequest) *AccountsRegisterCall {
 	c := &AccountsRegisterCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.account = account
@@ -5757,8 +5887,7 @@ func (c *AccountsRegisterCall) Header() http.Header {
 
 func (c *AccountsRegisterCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1registersubscriberrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1registersubscriberrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5774,6 +5903,7 @@ func (c *AccountsRegisterCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"account": c.account,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.register", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5809,9 +5939,11 @@ func (c *AccountsRegisterCall) Do(opts ...googleapi.CallOption) (*GoogleCloudCha
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.register", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5825,20 +5957,22 @@ type AccountsUnregisterCall struct {
 }
 
 // Unregister: Unregisters a service account with subscriber privileges on the
-// Cloud Pub/Sub topic created for this Channel Services account. If there are
-// no service accounts left with subscriber privileges, this deletes the topic.
-// You can call ListSubscribers to check for these accounts. Possible error
-// codes: * PERMISSION_DENIED: The reseller account making the request and the
-// provided reseller account are different, or the impersonated user is not a
-// super admin. * INVALID_ARGUMENT: Required request parameters are missing or
-// invalid. * NOT_FOUND: The topic resource doesn't exist. * INTERNAL: Any
-// non-user error related to a technical issue in the backend. Contact Cloud
-// Channel support. * UNKNOWN: Any non-user error related to a technical issue
-// in the backend. Contact Cloud Channel support. Return value: The topic name
-// that unregistered the service email address. Returns a success response if
-// the service email address wasn't registered with the topic.
+// Pub/Sub topic created for this Channel Services account or integrator. If
+// there are no service accounts left with subscriber privileges, this deletes
+// the topic. You can call ListSubscribers to check for these accounts.
+// Possible error codes: * PERMISSION_DENIED: The reseller account making the
+// request and the provided reseller account are different, or the impersonated
+// user is not a super admin. * INVALID_ARGUMENT: Required request parameters
+// are missing or invalid. * NOT_FOUND: The topic resource doesn't exist. *
+// INTERNAL: Any non-user error related to a technical issue in the backend.
+// Contact Cloud Channel support. * UNKNOWN: Any non-user error related to a
+// technical issue in the backend. Contact Cloud Channel support. Return value:
+// The topic name that unregistered the service email address. Returns a
+// success response if the service email address wasn't registered with the
+// topic.
 //
-// - account: Resource name of the account.
+//   - account: Optional. Resource name of the account. Required if integrator is
+//     not provided. Otherwise, leave this field empty/unset.
 func (r *AccountsService) Unregister(account string, googlecloudchannelv1unregistersubscriberrequest *GoogleCloudChannelV1UnregisterSubscriberRequest) *AccountsUnregisterCall {
 	c := &AccountsUnregisterCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.account = account
@@ -5871,8 +6005,7 @@ func (c *AccountsUnregisterCall) Header() http.Header {
 
 func (c *AccountsUnregisterCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1unregistersubscriberrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1unregistersubscriberrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5888,6 +6021,7 @@ func (c *AccountsUnregisterCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"account": c.account,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.unregister", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5923,9 +6057,11 @@ func (c *AccountsUnregisterCall) Do(opts ...googleapi.CallOption) (*GoogleCloudC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.unregister", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5987,8 +6123,7 @@ func (c *AccountsChannelPartnerLinksCreateCall) Header() http.Header {
 
 func (c *AccountsChannelPartnerLinksCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1channelpartnerlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1channelpartnerlink)
 	if err != nil {
 		return nil, err
 	}
@@ -6004,6 +6139,7 @@ func (c *AccountsChannelPartnerLinksCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6039,9 +6175,11 @@ func (c *AccountsChannelPartnerLinksCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6126,12 +6264,11 @@ func (c *AccountsChannelPartnerLinksGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6139,6 +6276,7 @@ func (c *AccountsChannelPartnerLinksGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6174,9 +6312,11 @@ func (c *AccountsChannelPartnerLinksGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6277,12 +6417,11 @@ func (c *AccountsChannelPartnerLinksListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/channelPartnerLinks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6290,6 +6429,7 @@ func (c *AccountsChannelPartnerLinksListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6325,9 +6465,11 @@ func (c *AccountsChannelPartnerLinksListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6409,8 +6551,7 @@ func (c *AccountsChannelPartnerLinksPatchCall) Header() http.Header {
 
 func (c *AccountsChannelPartnerLinksPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1updatechannelpartnerlinkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1updatechannelpartnerlinkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6426,6 +6567,7 @@ func (c *AccountsChannelPartnerLinksPatchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6461,9 +6603,11 @@ func (c *AccountsChannelPartnerLinksPatchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6537,8 +6681,7 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsCreateCall) He
 
 func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1channelpartnerrepricingconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1channelpartnerrepricingconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -6554,6 +6697,7 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsCreateCall) do
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6589,9 +6733,11 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsCreateCall) Do
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6645,12 +6791,11 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsDeleteCall) He
 
 func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6658,6 +6803,7 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsDeleteCall) do
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6693,9 +6839,11 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsDeleteCall) Do
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6761,12 +6909,11 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsGetCall) doReq
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6774,6 +6921,7 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsGetCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6809,9 +6957,11 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsGetCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6913,12 +7063,11 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsListCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/channelPartnerRepricingConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6926,6 +7075,7 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsListCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6961,9 +7111,11 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsListCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7050,8 +7202,7 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsPatchCall) Hea
 
 func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1channelpartnerrepricingconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1channelpartnerrepricingconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -7067,6 +7218,7 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsPatchCall) doR
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7102,9 +7254,11 @@ func (c *AccountsChannelPartnerLinksChannelPartnerRepricingConfigsPatchCall) Do(
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.channelPartnerRepricingConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7160,8 +7314,7 @@ func (c *AccountsChannelPartnerLinksCustomersCreateCall) Header() http.Header {
 
 func (c *AccountsChannelPartnerLinksCustomersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1customer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1customer)
 	if err != nil {
 		return nil, err
 	}
@@ -7177,6 +7330,7 @@ func (c *AccountsChannelPartnerLinksCustomersCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7212,9 +7366,11 @@ func (c *AccountsChannelPartnerLinksCustomersCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7264,12 +7420,11 @@ func (c *AccountsChannelPartnerLinksCustomersDeleteCall) Header() http.Header {
 
 func (c *AccountsChannelPartnerLinksCustomersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7277,6 +7432,7 @@ func (c *AccountsChannelPartnerLinksCustomersDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7312,9 +7468,11 @@ func (c *AccountsChannelPartnerLinksCustomersDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7378,12 +7536,11 @@ func (c *AccountsChannelPartnerLinksCustomersGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7391,6 +7548,7 @@ func (c *AccountsChannelPartnerLinksCustomersGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7426,9 +7584,11 @@ func (c *AccountsChannelPartnerLinksCustomersGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7488,8 +7648,7 @@ func (c *AccountsChannelPartnerLinksCustomersImportCall) Header() http.Header {
 
 func (c *AccountsChannelPartnerLinksCustomersImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1importcustomerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1importcustomerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7505,6 +7664,7 @@ func (c *AccountsChannelPartnerLinksCustomersImportCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7540,9 +7700,11 @@ func (c *AccountsChannelPartnerLinksCustomersImportCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7631,12 +7793,11 @@ func (c *AccountsChannelPartnerLinksCustomersListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/customers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7644,6 +7805,7 @@ func (c *AccountsChannelPartnerLinksCustomersListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7679,9 +7841,11 @@ func (c *AccountsChannelPartnerLinksCustomersListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7763,8 +7927,7 @@ func (c *AccountsChannelPartnerLinksCustomersPatchCall) Header() http.Header {
 
 func (c *AccountsChannelPartnerLinksCustomersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1customer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1customer)
 	if err != nil {
 		return nil, err
 	}
@@ -7780,6 +7943,7 @@ func (c *AccountsChannelPartnerLinksCustomersPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7815,9 +7979,11 @@ func (c *AccountsChannelPartnerLinksCustomersPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.channelPartnerLinks.customers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7873,8 +8039,7 @@ func (c *AccountsCustomersCreateCall) Header() http.Header {
 
 func (c *AccountsCustomersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1customer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1customer)
 	if err != nil {
 		return nil, err
 	}
@@ -7890,6 +8055,7 @@ func (c *AccountsCustomersCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7925,9 +8091,11 @@ func (c *AccountsCustomersCreateCall) Do(opts ...googleapi.CallOption) (*GoogleC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7977,12 +8145,11 @@ func (c *AccountsCustomersDeleteCall) Header() http.Header {
 
 func (c *AccountsCustomersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7990,6 +8157,7 @@ func (c *AccountsCustomersDeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8025,9 +8193,11 @@ func (c *AccountsCustomersDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8091,12 +8261,11 @@ func (c *AccountsCustomersGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8104,6 +8273,7 @@ func (c *AccountsCustomersGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8139,9 +8309,11 @@ func (c *AccountsCustomersGetCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8201,8 +8373,7 @@ func (c *AccountsCustomersImportCall) Header() http.Header {
 
 func (c *AccountsCustomersImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1importcustomerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1importcustomerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8218,6 +8389,7 @@ func (c *AccountsCustomersImportCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8253,9 +8425,11 @@ func (c *AccountsCustomersImportCall) Do(opts ...googleapi.CallOption) (*GoogleC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8344,12 +8518,11 @@ func (c *AccountsCustomersListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/customers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8357,6 +8530,7 @@ func (c *AccountsCustomersListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8392,9 +8566,11 @@ func (c *AccountsCustomersListCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8550,12 +8726,11 @@ func (c *AccountsCustomersListPurchasableOffersCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+customer}:listPurchasableOffers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8563,6 +8738,7 @@ func (c *AccountsCustomersListPurchasableOffersCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.listPurchasableOffers", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8598,9 +8774,11 @@ func (c *AccountsCustomersListPurchasableOffersCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.listPurchasableOffers", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8739,12 +8917,11 @@ func (c *AccountsCustomersListPurchasableSkusCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+customer}:listPurchasableSkus")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8752,6 +8929,7 @@ func (c *AccountsCustomersListPurchasableSkusCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.listPurchasableSkus", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8787,9 +8965,11 @@ func (c *AccountsCustomersListPurchasableSkusCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.listPurchasableSkus", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8871,8 +9051,7 @@ func (c *AccountsCustomersPatchCall) Header() http.Header {
 
 func (c *AccountsCustomersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1customer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1customer)
 	if err != nil {
 		return nil, err
 	}
@@ -8888,6 +9067,7 @@ func (c *AccountsCustomersPatchCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8923,9 +9103,11 @@ func (c *AccountsCustomersPatchCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8987,8 +9169,7 @@ func (c *AccountsCustomersProvisionCloudIdentityCall) Header() http.Header {
 
 func (c *AccountsCustomersProvisionCloudIdentityCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1provisioncloudidentityrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1provisioncloudidentityrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9004,6 +9185,7 @@ func (c *AccountsCustomersProvisionCloudIdentityCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.provisionCloudIdentity", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9039,9 +9221,11 @@ func (c *AccountsCustomersProvisionCloudIdentityCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.provisionCloudIdentity", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9114,12 +9298,11 @@ func (c *AccountsCustomersQueryEligibleBillingAccountsCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+customer}:queryEligibleBillingAccounts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9127,6 +9310,7 @@ func (c *AccountsCustomersQueryEligibleBillingAccountsCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"customer": c.customer,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.queryEligibleBillingAccounts", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9162,9 +9346,11 @@ func (c *AccountsCustomersQueryEligibleBillingAccountsCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.queryEligibleBillingAccounts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9232,8 +9418,7 @@ func (c *AccountsCustomersTransferEntitlementsCall) Header() http.Header {
 
 func (c *AccountsCustomersTransferEntitlementsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1transferentitlementsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1transferentitlementsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9249,6 +9434,7 @@ func (c *AccountsCustomersTransferEntitlementsCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.transferEntitlements", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9284,9 +9470,11 @@ func (c *AccountsCustomersTransferEntitlementsCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.transferEntitlements", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9353,8 +9541,7 @@ func (c *AccountsCustomersTransferEntitlementsToGoogleCall) Header() http.Header
 
 func (c *AccountsCustomersTransferEntitlementsToGoogleCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1transferentitlementstogooglerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1transferentitlementstogooglerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9370,6 +9557,7 @@ func (c *AccountsCustomersTransferEntitlementsToGoogleCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.transferEntitlementsToGoogle", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9405,9 +9593,11 @@ func (c *AccountsCustomersTransferEntitlementsToGoogleCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.transferEntitlementsToGoogle", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9480,8 +9670,7 @@ func (c *AccountsCustomersCustomerRepricingConfigsCreateCall) Header() http.Head
 
 func (c *AccountsCustomersCustomerRepricingConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1customerrepricingconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1customerrepricingconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -9497,6 +9686,7 @@ func (c *AccountsCustomersCustomerRepricingConfigsCreateCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9532,9 +9722,11 @@ func (c *AccountsCustomersCustomerRepricingConfigsCreateCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9589,12 +9781,11 @@ func (c *AccountsCustomersCustomerRepricingConfigsDeleteCall) Header() http.Head
 
 func (c *AccountsCustomersCustomerRepricingConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9602,6 +9793,7 @@ func (c *AccountsCustomersCustomerRepricingConfigsDeleteCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9637,9 +9829,11 @@ func (c *AccountsCustomersCustomerRepricingConfigsDeleteCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9705,12 +9899,11 @@ func (c *AccountsCustomersCustomerRepricingConfigsGetCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9718,6 +9911,7 @@ func (c *AccountsCustomersCustomerRepricingConfigsGetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9753,9 +9947,11 @@ func (c *AccountsCustomersCustomerRepricingConfigsGetCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9854,12 +10050,11 @@ func (c *AccountsCustomersCustomerRepricingConfigsListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/customerRepricingConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9867,6 +10062,7 @@ func (c *AccountsCustomersCustomerRepricingConfigsListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9902,9 +10098,11 @@ func (c *AccountsCustomersCustomerRepricingConfigsListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9990,8 +10188,7 @@ func (c *AccountsCustomersCustomerRepricingConfigsPatchCall) Header() http.Heade
 
 func (c *AccountsCustomersCustomerRepricingConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1customerrepricingconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1customerrepricingconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -10007,6 +10204,7 @@ func (c *AccountsCustomersCustomerRepricingConfigsPatchCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10042,9 +10240,11 @@ func (c *AccountsCustomersCustomerRepricingConfigsPatchCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.customerRepricingConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10109,8 +10309,7 @@ func (c *AccountsCustomersEntitlementsActivateCall) Header() http.Header {
 
 func (c *AccountsCustomersEntitlementsActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1activateentitlementrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1activateentitlementrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10126,6 +10325,7 @@ func (c *AccountsCustomersEntitlementsActivateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10161,9 +10361,11 @@ func (c *AccountsCustomersEntitlementsActivateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10228,8 +10430,7 @@ func (c *AccountsCustomersEntitlementsCancelCall) Header() http.Header {
 
 func (c *AccountsCustomersEntitlementsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1cancelentitlementrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1cancelentitlementrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10245,6 +10446,7 @@ func (c *AccountsCustomersEntitlementsCancelCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10280,9 +10482,11 @@ func (c *AccountsCustomersEntitlementsCancelCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10343,8 +10547,7 @@ func (c *AccountsCustomersEntitlementsChangeOfferCall) Header() http.Header {
 
 func (c *AccountsCustomersEntitlementsChangeOfferCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1changeofferrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1changeofferrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10360,6 +10563,7 @@ func (c *AccountsCustomersEntitlementsChangeOfferCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.changeOffer", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10395,9 +10599,11 @@ func (c *AccountsCustomersEntitlementsChangeOfferCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.changeOffer", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10458,8 +10664,7 @@ func (c *AccountsCustomersEntitlementsChangeParametersCall) Header() http.Header
 
 func (c *AccountsCustomersEntitlementsChangeParametersCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1changeparametersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1changeparametersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10475,6 +10680,7 @@ func (c *AccountsCustomersEntitlementsChangeParametersCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.changeParameters", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10510,9 +10716,11 @@ func (c *AccountsCustomersEntitlementsChangeParametersCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.changeParameters", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10574,8 +10782,7 @@ func (c *AccountsCustomersEntitlementsChangeRenewalSettingsCall) Header() http.H
 
 func (c *AccountsCustomersEntitlementsChangeRenewalSettingsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1changerenewalsettingsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1changerenewalsettingsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10591,6 +10798,7 @@ func (c *AccountsCustomersEntitlementsChangeRenewalSettingsCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.changeRenewalSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10626,9 +10834,11 @@ func (c *AccountsCustomersEntitlementsChangeRenewalSettingsCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.changeRenewalSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10700,8 +10910,7 @@ func (c *AccountsCustomersEntitlementsCreateCall) Header() http.Header {
 
 func (c *AccountsCustomersEntitlementsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1createentitlementrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1createentitlementrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10717,6 +10926,7 @@ func (c *AccountsCustomersEntitlementsCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10752,9 +10962,11 @@ func (c *AccountsCustomersEntitlementsCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10818,12 +11030,11 @@ func (c *AccountsCustomersEntitlementsGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10831,6 +11042,7 @@ func (c *AccountsCustomersEntitlementsGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10866,9 +11078,11 @@ func (c *AccountsCustomersEntitlementsGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10949,12 +11163,11 @@ func (c *AccountsCustomersEntitlementsListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/entitlements")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10962,6 +11175,7 @@ func (c *AccountsCustomersEntitlementsListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10997,9 +11211,11 @@ func (c *AccountsCustomersEntitlementsListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11116,12 +11332,11 @@ func (c *AccountsCustomersEntitlementsListEntitlementChangesCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}:listEntitlementChanges")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11129,6 +11344,7 @@ func (c *AccountsCustomersEntitlementsListEntitlementChangesCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.listEntitlementChanges", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11164,9 +11380,11 @@ func (c *AccountsCustomersEntitlementsListEntitlementChangesCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.listEntitlementChanges", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11251,12 +11469,11 @@ func (c *AccountsCustomersEntitlementsLookupOfferCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+entitlement}:lookupOffer")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11264,6 +11481,7 @@ func (c *AccountsCustomersEntitlementsLookupOfferCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"entitlement": c.entitlement,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.lookupOffer", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11299,9 +11517,11 @@ func (c *AccountsCustomersEntitlementsLookupOfferCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.lookupOffer", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11363,8 +11583,7 @@ func (c *AccountsCustomersEntitlementsStartPaidServiceCall) Header() http.Header
 
 func (c *AccountsCustomersEntitlementsStartPaidServiceCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1startpaidservicerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1startpaidservicerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11380,6 +11599,7 @@ func (c *AccountsCustomersEntitlementsStartPaidServiceCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.startPaidService", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11415,9 +11635,11 @@ func (c *AccountsCustomersEntitlementsStartPaidServiceCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.startPaidService", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11477,8 +11699,7 @@ func (c *AccountsCustomersEntitlementsSuspendCall) Header() http.Header {
 
 func (c *AccountsCustomersEntitlementsSuspendCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1suspendentitlementrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1suspendentitlementrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11494,6 +11715,7 @@ func (c *AccountsCustomersEntitlementsSuspendCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.suspend", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11529,9 +11751,11 @@ func (c *AccountsCustomersEntitlementsSuspendCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.customers.entitlements.suspend", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11634,12 +11858,11 @@ func (c *AccountsOffersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/offers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11647,6 +11870,7 @@ func (c *AccountsOffersListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.offers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11682,9 +11906,11 @@ func (c *AccountsOffersListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.offers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11759,8 +11985,7 @@ func (c *AccountsReportJobsFetchReportResultsCall) Header() http.Header {
 
 func (c *AccountsReportJobsFetchReportResultsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1fetchreportresultsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1fetchreportresultsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11776,6 +12001,7 @@ func (c *AccountsReportJobsFetchReportResultsCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"reportJob": c.reportJob,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.reportJobs.fetchReportResults", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11811,9 +12037,11 @@ func (c *AccountsReportJobsFetchReportResultsCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.reportJobs.fetchReportResults", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11923,12 +12151,11 @@ func (c *AccountsReportsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/reports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11936,6 +12163,7 @@ func (c *AccountsReportsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.reports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11971,9 +12199,11 @@ func (c *AccountsReportsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.reports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12060,8 +12290,7 @@ func (c *AccountsReportsRunCall) Header() http.Header {
 
 func (c *AccountsReportsRunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudchannelv1runreportjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1runreportjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12077,6 +12306,7 @@ func (c *AccountsReportsRunCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.reports.run", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12112,9 +12342,11 @@ func (c *AccountsReportsRunCall) Do(opts ...googleapi.CallOption) (*GoogleLongru
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.reports.run", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12157,7 +12389,7 @@ func (c *AccountsSkuGroupsListCall) PageSize(pageSize int64) *AccountsSkuGroupsL
 
 // PageToken sets the optional parameter "pageToken": A token identifying a
 // page of results beyond the first page. Obtained through
-// ListSkuGroups.next_page_token of the previous
+// ListSkuGroupsResponse.next_page_token of the previous
 // CloudChannelService.ListSkuGroups call.
 func (c *AccountsSkuGroupsListCall) PageToken(pageToken string) *AccountsSkuGroupsListCall {
 	c.urlParams_.Set("pageToken", pageToken)
@@ -12200,12 +12432,11 @@ func (c *AccountsSkuGroupsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/skuGroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12213,6 +12444,7 @@ func (c *AccountsSkuGroupsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.skuGroups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12248,9 +12480,11 @@ func (c *AccountsSkuGroupsListCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.skuGroups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12313,7 +12547,7 @@ func (c *AccountsSkuGroupsBillableSkusListCall) PageSize(pageSize int64) *Accoun
 
 // PageToken sets the optional parameter "pageToken": A token identifying a
 // page of results beyond the first page. Obtained through
-// ListSkuGroupBillableSkus.next_page_token of the previous
+// ListSkuGroupBillableSkusResponse.next_page_token of the previous
 // CloudChannelService.ListSkuGroupBillableSkus call.
 func (c *AccountsSkuGroupsBillableSkusListCall) PageToken(pageToken string) *AccountsSkuGroupsBillableSkusListCall {
 	c.urlParams_.Set("pageToken", pageToken)
@@ -12356,12 +12590,11 @@ func (c *AccountsSkuGroupsBillableSkusListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/billableSkus")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12369,6 +12602,7 @@ func (c *AccountsSkuGroupsBillableSkusListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.accounts.skuGroups.billableSkus.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12404,9 +12638,11 @@ func (c *AccountsSkuGroupsBillableSkusListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.accounts.skuGroups.billableSkus.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12431,6 +12667,406 @@ func (c *AccountsSkuGroupsBillableSkusListCall) Pages(ctx context.Context, f fun
 	}
 }
 
+type IntegratorsListSubscribersCall struct {
+	s            *Service
+	integrator   string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// ListSubscribers: Lists service accounts with subscriber privileges on the
+// Pub/Sub topic created for this Channel Services account or integrator.
+// Possible error codes: * PERMISSION_DENIED: The reseller account making the
+// request and the provided reseller account are different, or the impersonated
+// user is not a super admin. * INVALID_ARGUMENT: Required request parameters
+// are missing or invalid. * NOT_FOUND: The topic resource doesn't exist. *
+// INTERNAL: Any non-user error related to a technical issue in the backend.
+// Contact Cloud Channel support. * UNKNOWN: Any non-user error related to a
+// technical issue in the backend. Contact Cloud Channel support. Return value:
+// A list of service email addresses.
+//
+//   - integrator: Optional. Resource name of the integrator. Required if account
+//     is not provided. Otherwise, leave this field empty/unset.
+func (r *IntegratorsService) ListSubscribers(integrator string) *IntegratorsListSubscribersCall {
+	c := &IntegratorsListSubscribersCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.integrator = integrator
+	return c
+}
+
+// Account sets the optional parameter "account": Resource name of the account.
+// Required if integrator is not provided. Otherwise, leave this field
+// empty/unset.
+func (c *IntegratorsListSubscribersCall) Account(account string) *IntegratorsListSubscribersCall {
+	c.urlParams_.Set("account", account)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// service accounts to return. The service may return fewer than this value. If
+// unspecified, returns at most 100 service accounts. The maximum value is
+// 1000; the server will coerce values above 1000.
+func (c *IntegratorsListSubscribersCall) PageSize(pageSize int64) *IntegratorsListSubscribersCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token, received
+// from a previous `ListSubscribers` call. Provide this to retrieve the
+// subsequent page. When paginating, all other parameters provided to
+// `ListSubscribers` must match the call that provided the page token.
+func (c *IntegratorsListSubscribersCall) PageToken(pageToken string) *IntegratorsListSubscribersCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *IntegratorsListSubscribersCall) Fields(s ...googleapi.Field) *IntegratorsListSubscribersCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *IntegratorsListSubscribersCall) IfNoneMatch(entityTag string) *IntegratorsListSubscribersCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *IntegratorsListSubscribersCall) Context(ctx context.Context) *IntegratorsListSubscribersCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *IntegratorsListSubscribersCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *IntegratorsListSubscribersCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+integrator}:listSubscribers")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"integrator": c.integrator,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.integrators.listSubscribers", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudchannel.integrators.listSubscribers" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudChannelV1ListSubscribersResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *IntegratorsListSubscribersCall) Do(opts ...googleapi.CallOption) (*GoogleCloudChannelV1ListSubscribersResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudChannelV1ListSubscribersResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.integrators.listSubscribers", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *IntegratorsListSubscribersCall) Pages(ctx context.Context, f func(*GoogleCloudChannelV1ListSubscribersResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type IntegratorsRegisterSubscriberCall struct {
+	s                                             *Service
+	integrator                                    string
+	googlecloudchannelv1registersubscriberrequest *GoogleCloudChannelV1RegisterSubscriberRequest
+	urlParams_                                    gensupport.URLParams
+	ctx_                                          context.Context
+	header_                                       http.Header
+}
+
+// RegisterSubscriber: Registers a service account with subscriber privileges
+// on the Pub/Sub topic for this Channel Services account or integrator. After
+// you create a subscriber, you get the events through SubscriberEvent Possible
+// error codes: * PERMISSION_DENIED: The reseller account making the request
+// and the provided reseller account are different, or the impersonated user is
+// not a super admin. * INVALID_ARGUMENT: Required request parameters are
+// missing or invalid. * INTERNAL: Any non-user error related to a technical
+// issue in the backend. Contact Cloud Channel support. * UNKNOWN: Any non-user
+// error related to a technical issue in the backend. Contact Cloud Channel
+// support. Return value: The topic name with the registered service email
+// address.
+//
+//   - integrator: Optional. Resource name of the integrator. Required if account
+//     is not provided. Otherwise, leave this field empty/unset.
+func (r *IntegratorsService) RegisterSubscriber(integrator string, googlecloudchannelv1registersubscriberrequest *GoogleCloudChannelV1RegisterSubscriberRequest) *IntegratorsRegisterSubscriberCall {
+	c := &IntegratorsRegisterSubscriberCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.integrator = integrator
+	c.googlecloudchannelv1registersubscriberrequest = googlecloudchannelv1registersubscriberrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *IntegratorsRegisterSubscriberCall) Fields(s ...googleapi.Field) *IntegratorsRegisterSubscriberCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *IntegratorsRegisterSubscriberCall) Context(ctx context.Context) *IntegratorsRegisterSubscriberCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *IntegratorsRegisterSubscriberCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *IntegratorsRegisterSubscriberCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1registersubscriberrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+integrator}:registerSubscriber")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"integrator": c.integrator,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.integrators.registerSubscriber", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudchannel.integrators.registerSubscriber" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudChannelV1RegisterSubscriberResponse.ServerResponse.Header or (if
+// a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *IntegratorsRegisterSubscriberCall) Do(opts ...googleapi.CallOption) (*GoogleCloudChannelV1RegisterSubscriberResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudChannelV1RegisterSubscriberResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.integrators.registerSubscriber", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type IntegratorsUnregisterSubscriberCall struct {
+	s                                               *Service
+	integrator                                      string
+	googlecloudchannelv1unregistersubscriberrequest *GoogleCloudChannelV1UnregisterSubscriberRequest
+	urlParams_                                      gensupport.URLParams
+	ctx_                                            context.Context
+	header_                                         http.Header
+}
+
+// UnregisterSubscriber: Unregisters a service account with subscriber
+// privileges on the Pub/Sub topic created for this Channel Services account or
+// integrator. If there are no service accounts left with subscriber
+// privileges, this deletes the topic. You can call ListSubscribers to check
+// for these accounts. Possible error codes: * PERMISSION_DENIED: The reseller
+// account making the request and the provided reseller account are different,
+// or the impersonated user is not a super admin. * INVALID_ARGUMENT: Required
+// request parameters are missing or invalid. * NOT_FOUND: The topic resource
+// doesn't exist. * INTERNAL: Any non-user error related to a technical issue
+// in the backend. Contact Cloud Channel support. * UNKNOWN: Any non-user error
+// related to a technical issue in the backend. Contact Cloud Channel support.
+// Return value: The topic name that unregistered the service email address.
+// Returns a success response if the service email address wasn't registered
+// with the topic.
+//
+//   - integrator: Optional. Resource name of the integrator. Required if account
+//     is not provided. Otherwise, leave this field empty/unset.
+func (r *IntegratorsService) UnregisterSubscriber(integrator string, googlecloudchannelv1unregistersubscriberrequest *GoogleCloudChannelV1UnregisterSubscriberRequest) *IntegratorsUnregisterSubscriberCall {
+	c := &IntegratorsUnregisterSubscriberCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.integrator = integrator
+	c.googlecloudchannelv1unregistersubscriberrequest = googlecloudchannelv1unregistersubscriberrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *IntegratorsUnregisterSubscriberCall) Fields(s ...googleapi.Field) *IntegratorsUnregisterSubscriberCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *IntegratorsUnregisterSubscriberCall) Context(ctx context.Context) *IntegratorsUnregisterSubscriberCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *IntegratorsUnregisterSubscriberCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *IntegratorsUnregisterSubscriberCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudchannelv1unregistersubscriberrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+integrator}:unregisterSubscriber")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"integrator": c.integrator,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.integrators.unregisterSubscriber", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudchannel.integrators.unregisterSubscriber" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudChannelV1UnregisterSubscriberResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *IntegratorsUnregisterSubscriberCall) Do(opts ...googleapi.CallOption) (*GoogleCloudChannelV1UnregisterSubscriberResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudChannelV1UnregisterSubscriberResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.integrators.unregisterSubscriber", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
 type OperationsCancelCall struct {
 	s                                       *Service
 	name                                    string
@@ -12447,7 +13083,7 @@ type OperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -12483,8 +13119,7 @@ func (c *OperationsCancelCall) Header() http.Header {
 
 func (c *OperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlelongrunningcanceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlelongrunningcanceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12500,6 +13135,7 @@ func (c *OperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12535,9 +13171,11 @@ func (c *OperationsCancelCall) Do(opts ...googleapi.CallOption) (*GoogleProtobuf
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12586,12 +13224,11 @@ func (c *OperationsDeleteCall) Header() http.Header {
 
 func (c *OperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12599,6 +13236,7 @@ func (c *OperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12634,9 +13272,11 @@ func (c *OperationsDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProtobuf
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12696,12 +13336,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12709,6 +13348,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12744,9 +13384,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunning
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12825,12 +13467,11 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12838,6 +13479,7 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12873,9 +13515,11 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12983,16 +13627,16 @@ func (c *ProductsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/products")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.products.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13028,9 +13672,11 @@ func (c *ProductsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudChannel
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.products.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13144,12 +13790,11 @@ func (c *ProductsSkusListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/skus")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13157,6 +13802,7 @@ func (c *ProductsSkusListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudchannel.products.skus.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13192,9 +13838,11 @@ func (c *ProductsSkusListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudCha
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudchannel.products.skus.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

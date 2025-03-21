@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "tagmanager:v1"
 const apiName = "tagmanager"
@@ -144,7 +147,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -163,13 +167,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -331,12 +334,10 @@ type Account struct {
 	// Fingerprint: The fingerprint of the GTM Account as computed at storage time.
 	// This value is recomputed whenever the account is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Account display name. @mutable tagmanager.accounts.create @mutable
-	// tagmanager.accounts.update
+	// Name: Account display name.
 	Name string `json:"name,omitempty"`
 	// ShareData: Whether the account shares data anonymously with Google and
-	// others. @mutable tagmanager.accounts.create @mutable
-	// tagmanager.accounts.update
+	// others.
 	ShareData bool `json:"shareData,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -354,16 +355,15 @@ type Account struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Account) MarshalJSON() ([]byte, error) {
+func (s Account) MarshalJSON() ([]byte, error) {
 	type NoMethod Account
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountAccess: Defines the Google Tag Manager Account access permissions.
 type AccountAccess struct {
 	// Permission: List of Account permissions. Valid account permissions are read
-	// and manage. @mutable tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// and manage.
 	//
 	// Possible values:
 	//   "read"
@@ -386,9 +386,9 @@ type AccountAccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountAccess) MarshalJSON() ([]byte, error) {
+func (s AccountAccess) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountAccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Condition: Represents a predicate.
@@ -401,12 +401,8 @@ type Condition struct {
 	// ignore_case that is set to true. If not specified or set to any other value,
 	// the matching will be case sensitive. - To negate an operator, include a
 	// boolean parameter named negate boolean parameter that is set to true.
-	// @mutable tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
 	Parameter []*Parameter `json:"parameter,omitempty"`
-	// Type: The type of operator for this condition. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// Type: The type of operator for this condition.
 	//
 	// Possible values:
 	//   "equals"
@@ -434,9 +430,9 @@ type Condition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Condition) MarshalJSON() ([]byte, error) {
+func (s Condition) MarshalJSON() ([]byte, error) {
 	type NoMethod Condition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Container: Represents a Google Tag Manager Container.
@@ -446,8 +442,6 @@ type Container struct {
 	// ContainerId: The Container ID uniquely identifies the GTM Container.
 	ContainerId string `json:"containerId,omitempty"`
 	// DomainName: Optional list of domain names associated with the Container.
-	// @mutable tagmanager.accounts.containers.create @mutable
-	// tagmanager.accounts.containers.update
 	DomainName []string `json:"domainName,omitempty"`
 	// EnabledBuiltInVariable: List of enabled built-in variables. Valid values
 	// include: pageUrl, pageHostname, pagePath, referrer, event, clickElement,
@@ -455,8 +449,7 @@ type Container struct {
 	// formClasses, formId, formTarget, formUrl, formText, errorMessage, errorUrl,
 	// errorLine, newHistoryFragment, oldHistoryFragment, newHistoryState,
 	// oldHistoryState, historySource, containerVersion, debugMode, randomNumber,
-	// containerId. @mutable tagmanager.accounts.containers.create @mutable
-	// tagmanager.accounts.containers.update
+	// containerId.
 	//
 	// Possible values:
 	//   "pageUrl"
@@ -568,25 +561,18 @@ type Container struct {
 	// Fingerprint: The fingerprint of the GTM Container as computed at storage
 	// time. This value is recomputed whenever the account is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Container display name. @mutable tagmanager.accounts.containers.create
-	// @mutable tagmanager.accounts.containers.update
+	// Name: Container display name.
 	Name string `json:"name,omitempty"`
-	// Notes: Container Notes. @mutable tagmanager.accounts.containers.create
-	// @mutable tagmanager.accounts.containers.update
+	// Notes: Container Notes.
 	Notes string `json:"notes,omitempty"`
 	// PublicId: Container Public ID.
 	PublicId string `json:"publicId,omitempty"`
-	// TimeZoneCountryId: Container Country ID. @mutable
-	// tagmanager.accounts.containers.create @mutable
-	// tagmanager.accounts.containers.update
+	// TimeZoneCountryId: Container Country ID.
 	TimeZoneCountryId string `json:"timeZoneCountryId,omitempty"`
-	// TimeZoneId: Container Time Zone ID. @mutable
-	// tagmanager.accounts.containers.create @mutable
-	// tagmanager.accounts.containers.update
+	// TimeZoneId: Container Time Zone ID.
 	TimeZoneId string `json:"timeZoneId,omitempty"`
 	// UsageContext: List of Usage Contexts for the Container. Valid values
-	// include: web, android, ios. @mutable tagmanager.accounts.containers.create
-	// @mutable tagmanager.accounts.containers.update
+	// include: web, android, ios.
 	//
 	// Possible values:
 	//   "web"
@@ -612,21 +598,18 @@ type Container struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Container) MarshalJSON() ([]byte, error) {
+func (s Container) MarshalJSON() ([]byte, error) {
 	type NoMethod Container
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContainerAccess: Defines the Google Tag Manager Container access
 // permissions.
 type ContainerAccess struct {
-	// ContainerId: GTM Container ID. @mutable
-	// tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// ContainerId: GTM Container ID.
 	ContainerId string `json:"containerId,omitempty"`
 	// Permission: List of Container permissions. Valid container permissions are:
-	// read, edit, delete, publish. @mutable tagmanager.accounts.permissions.create
-	// @mutable tagmanager.accounts.permissions.update
+	// read, edit, delete, publish.
 	//
 	// Possible values:
 	//   "read"
@@ -649,9 +632,9 @@ type ContainerAccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContainerAccess) MarshalJSON() ([]byte, error) {
+func (s ContainerAccess) MarshalJSON() ([]byte, error) {
 	type NoMethod ContainerAccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContainerVersion: Represents a Google Tag Manager Container Version.
@@ -675,11 +658,9 @@ type ContainerVersion struct {
 	Folder []*Folder `json:"folder,omitempty"`
 	// Macro: The macros in the container that this version was taken from.
 	Macro []*Macro `json:"macro,omitempty"`
-	// Name: Container version display name. @mutable
-	// tagmanager.accounts.containers.versions.update
+	// Name: Container version display name.
 	Name string `json:"name,omitempty"`
 	// Notes: User notes on how to apply this container version in the container.
-	// @mutable tagmanager.accounts.containers.versions.update
 	Notes string `json:"notes,omitempty"`
 	// Rule: The rules in the container that this version was taken from.
 	Rule []*Rule `json:"rule,omitempty"`
@@ -705,9 +686,9 @@ type ContainerVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContainerVersion) MarshalJSON() ([]byte, error) {
+func (s ContainerVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod ContainerVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContainerVersionHeader: Represents a Google Tag Manager Container Version
@@ -747,9 +728,9 @@ type ContainerVersionHeader struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContainerVersionHeader) MarshalJSON() ([]byte, error) {
+func (s ContainerVersionHeader) MarshalJSON() ([]byte, error) {
 	type NoMethod ContainerVersionHeader
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateContainerVersionRequestVersionOptions: Options for new container
@@ -775,9 +756,9 @@ type CreateContainerVersionRequestVersionOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateContainerVersionRequestVersionOptions) MarshalJSON() ([]byte, error) {
+func (s CreateContainerVersionRequestVersionOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateContainerVersionRequestVersionOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateContainerVersionResponse: Create container versions response.
@@ -802,9 +783,9 @@ type CreateContainerVersionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateContainerVersionResponse) MarshalJSON() ([]byte, error) {
+func (s CreateContainerVersionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateContainerVersionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Environment: Represents a Google Tag Manager Environment. Note that a user
@@ -822,13 +803,10 @@ type Environment struct {
 	ContainerId        string `json:"containerId,omitempty"`
 	ContainerVersionId string `json:"containerVersionId,omitempty"`
 	// Description: The environment description. Can be set or changed only on USER
-	// type environments. @mutable
-	// tagmanager.accounts.containers.environments.create @mutable
-	// tagmanager.accounts.containers.environments.update
+	// type environments.
 	Description string `json:"description,omitempty"`
 	// EnableDebug: Whether or not to enable debug by default on for the
-	// environment. @mutable tagmanager.accounts.containers.environments.create
-	// @mutable tagmanager.accounts.containers.environments.update
+	// environment.
 	EnableDebug bool `json:"enableDebug,omitempty"`
 	// EnvironmentId: GTM Environment ID uniquely identifies the GTM Environment.
 	EnvironmentId string `json:"environmentId,omitempty"`
@@ -836,8 +814,7 @@ type Environment struct {
 	// time. This value is recomputed whenever the environment is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// Name: The environment display name. Can be set or changed only on USER type
-	// environments. @mutable tagmanager.accounts.containers.environments.create
-	// @mutable tagmanager.accounts.containers.environments.update
+	// environments.
 	Name string `json:"name,omitempty"`
 	// Type: The type of this environment.
 	//
@@ -850,9 +827,7 @@ type Environment struct {
 	//   "draft" - Used for Draft environment, which points to the single draft in
 	// the container.
 	Type string `json:"type,omitempty"`
-	// Url: Default preview page url for the environment. @mutable
-	// tagmanager.accounts.containers.environments.create @mutable
-	// tagmanager.accounts.containers.environments.update
+	// Url: Default preview page url for the environment.
 	Url string `json:"url,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -870,9 +845,9 @@ type Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Environment) MarshalJSON() ([]byte, error) {
+func (s Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Folder: Represents a Google Tag Manager Folder.
@@ -886,9 +861,7 @@ type Folder struct {
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// FolderId: The Folder ID uniquely identifies the GTM Folder.
 	FolderId string `json:"folderId,omitempty"`
-	// Name: Folder display name. @mutable
-	// tagmanager.accounts.containers.folders.create @mutable
-	// tagmanager.accounts.containers.folders.update
+	// Name: Folder display name.
 	Name string `json:"name,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -906,9 +879,9 @@ type Folder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Folder) MarshalJSON() ([]byte, error) {
+func (s Folder) MarshalJSON() ([]byte, error) {
 	type NoMethod Folder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FolderEntities: Represents a Google Tag Manager Folder's contents.
@@ -935,9 +908,9 @@ type FolderEntities struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FolderEntities) MarshalJSON() ([]byte, error) {
+func (s FolderEntities) MarshalJSON() ([]byte, error) {
 	type NoMethod FolderEntities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccountUsersResponse: List AccountUsers Response.
@@ -960,9 +933,9 @@ type ListAccountUsersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccountUsersResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccountUsersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccountUsersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccountsResponse: List Accounts Response.
@@ -985,9 +958,9 @@ type ListAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListContainerVersionsResponse: List container versions response.
@@ -1012,9 +985,9 @@ type ListContainerVersionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListContainerVersionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListContainerVersionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListContainerVersionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListContainersResponse: List Containers Response.
@@ -1037,9 +1010,9 @@ type ListContainersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListContainersResponse) MarshalJSON() ([]byte, error) {
+func (s ListContainersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListContainersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListEnvironmentsResponse: List Environments Response.
@@ -1062,9 +1035,9 @@ type ListEnvironmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListEnvironmentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListEnvironmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListEnvironmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFoldersResponse: List Folders Response.
@@ -1087,9 +1060,9 @@ type ListFoldersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFoldersResponse) MarshalJSON() ([]byte, error) {
+func (s ListFoldersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFoldersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTagsResponse: List Tags Response.
@@ -1112,9 +1085,9 @@ type ListTagsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTagsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTagsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTagsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTriggersResponse: List triggers response.
@@ -1137,9 +1110,9 @@ type ListTriggersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTriggersResponse) MarshalJSON() ([]byte, error) {
+func (s ListTriggersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTriggersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVariablesResponse: List Variables Response.
@@ -1162,9 +1135,9 @@ type ListVariablesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVariablesResponse) MarshalJSON() ([]byte, error) {
+func (s ListVariablesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVariablesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Macro: Represents a Google Tag Manager Macro.
@@ -1176,44 +1149,30 @@ type Macro struct {
 	// DisablingRuleId: For mobile containers only: A list of rule IDs for
 	// disabling conditional macros; the macro is enabled if one of the enabling
 	// rules is true while all the disabling rules are false. Treated as an
-	// unordered set. @mutable tagmanager.accounts.containers.macros.create
-	// @mutable tagmanager.accounts.containers.macros.update
+	// unordered set.
 	DisablingRuleId []string `json:"disablingRuleId,omitempty"`
 	// EnablingRuleId: For mobile containers only: A list of rule IDs for enabling
 	// conditional macros; the macro is enabled if one of the enabling rules is
 	// true while all the disabling rules are false. Treated as an unordered set.
-	// @mutable tagmanager.accounts.containers.macros.create @mutable
-	// tagmanager.accounts.containers.macros.update
 	EnablingRuleId []string `json:"enablingRuleId,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Macro as computed at storage time.
 	// This value is recomputed whenever the macro is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// MacroId: The Macro ID uniquely identifies the GTM Macro.
 	MacroId string `json:"macroId,omitempty"`
-	// Name: Macro display name. @mutable
-	// tagmanager.accounts.containers.macros.create @mutable
-	// tagmanager.accounts.containers.macros.update
+	// Name: Macro display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this macro in the container. @mutable
-	// tagmanager.accounts.containers.macros.create @mutable
-	// tagmanager.accounts.containers.macros.update
+	// Notes: User notes on how to apply this macro in the container.
 	Notes string `json:"notes,omitempty"`
-	// Parameter: The macro's parameters. @mutable
-	// tagmanager.accounts.containers.macros.create @mutable
-	// tagmanager.accounts.containers.macros.update
+	// Parameter: The macro's parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
 	// ScheduleEndMs: The end timestamp in milliseconds to schedule a macro.
-	// @mutable tagmanager.accounts.containers.macros.create @mutable
-	// tagmanager.accounts.containers.macros.update
 	ScheduleEndMs int64 `json:"scheduleEndMs,omitempty,string"`
 	// ScheduleStartMs: The start timestamp in milliseconds to schedule a macro.
-	// @mutable tagmanager.accounts.containers.macros.create @mutable
-	// tagmanager.accounts.containers.macros.update
 	ScheduleStartMs int64 `json:"scheduleStartMs,omitempty,string"`
-	// Type: GTM Macro Type. @mutable tagmanager.accounts.containers.macros.create
-	// @mutable tagmanager.accounts.containers.macros.update
+	// Type: GTM Macro Type.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AccountId") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1228,37 +1187,19 @@ type Macro struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Macro) MarshalJSON() ([]byte, error) {
+func (s Macro) MarshalJSON() ([]byte, error) {
 	type NoMethod Macro
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Parameter: Represents a Google Tag Manager Parameter.
 type Parameter struct {
 	// Key: The named key that uniquely identifies a parameter. Required for
 	// top-level parameters, as well as map values. Ignored for list values.
-	// @mutable tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
 	Key string `json:"key,omitempty"`
-	// List: This list parameter's parameters (keys will be ignored). @mutable
-	// tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// List: This list parameter's parameters (keys will be ignored).
 	List []*Parameter `json:"list,omitempty"`
 	// Map: This map parameter's parameters (must have keys; keys must be unique).
-	// @mutable tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
 	Map []*Parameter `json:"map,omitempty"`
 	// Type: The parameter type. Valid values are: - boolean: The value represents
 	// a boolean, represented as 'true' or 'false' - integer: The value represents
@@ -1268,15 +1209,10 @@ type Parameter struct {
 	// references (even variable references that might return non-string types) -
 	// trigger_reference: The value represents a trigger, represented as the
 	// trigger id - tag_reference: The value represents a tag, represented as the
-	// tag name @mutable tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// tag name
 	//
 	// Possible values:
-	//   "template" - May include variable references (such as "{{myVariable}}").
+	//   "template" - May include variable references.
 	//   "integer"
 	//   "boolean"
 	//   "list"
@@ -1284,14 +1220,8 @@ type Parameter struct {
 	//   "triggerReference"
 	//   "tagReference"
 	Type string `json:"type,omitempty"`
-	// Value: A parameter's value (may contain variable references such as
-	// "{{myVariable}}") as appropriate to the specified type. @mutable
-	// tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// Value: A parameter's value (may contain variable references). as appropriate
+	// to the specified type.
 	Value string `json:"value,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Key") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1306,9 +1236,9 @@ type Parameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Parameter) MarshalJSON() ([]byte, error) {
+func (s Parameter) MarshalJSON() ([]byte, error) {
 	type NoMethod Parameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PublishContainerVersionResponse: Publish container version response.
@@ -1333,9 +1263,9 @@ type PublishContainerVersionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublishContainerVersionResponse) MarshalJSON() ([]byte, error) {
+func (s PublishContainerVersionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PublishContainerVersionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Rule: Represents a Google Tag Manager Rule.
@@ -1343,21 +1273,16 @@ type Rule struct {
 	// AccountId: GTM Account ID.
 	AccountId string `json:"accountId,omitempty"`
 	// Condition: The list of conditions that make up this rule (implicit AND
-	// between them). @mutable tagmanager.accounts.containers.rules.create @mutable
-	// tagmanager.accounts.containers.rules.update
+	// between them).
 	Condition []*Condition `json:"condition,omitempty"`
 	// ContainerId: GTM Container ID.
 	ContainerId string `json:"containerId,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Rule as computed at storage time.
 	// This value is recomputed whenever the rule is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Rule display name. @mutable
-	// tagmanager.accounts.containers.rules.create @mutable
-	// tagmanager.accounts.containers.rules.update
+	// Name: Rule display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this rule in the container. @mutable
-	// tagmanager.accounts.containers.rules.create @mutable
-	// tagmanager.accounts.containers.rules.update
+	// Notes: User notes on how to apply this rule in the container.
 	Notes string `json:"notes,omitempty"`
 	// RuleId: The Rule ID uniquely identifies the GTM Rule.
 	RuleId string `json:"ruleId,omitempty"`
@@ -1374,9 +1299,9 @@ type Rule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Rule) MarshalJSON() ([]byte, error) {
+func (s Rule) MarshalJSON() ([]byte, error) {
 	type NoMethod Rule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SetupTag struct {
@@ -1399,9 +1324,9 @@ type SetupTag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetupTag) MarshalJSON() ([]byte, error) {
+func (s SetupTag) MarshalJSON() ([]byte, error) {
 	type NoMethod SetupTag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Tag: Represents a Google Tag Manager Tag.
@@ -1409,14 +1334,10 @@ type Tag struct {
 	// AccountId: GTM Account ID.
 	AccountId string `json:"accountId,omitempty"`
 	// BlockingRuleId: Blocking rule IDs. If any of the listed rules evaluate to
-	// true, the tag will not fire. @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// true, the tag will not fire.
 	BlockingRuleId []string `json:"blockingRuleId,omitempty"`
 	// BlockingTriggerId: Blocking trigger IDs. If any of the listed triggers
-	// evaluate to true, the tag will not fire. @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// evaluate to true, the tag will not fire.
 	BlockingTriggerId []string `json:"blockingTriggerId,omitempty"`
 	// ContainerId: GTM Container ID.
 	ContainerId string `json:"containerId,omitempty"`
@@ -1425,49 +1346,32 @@ type Tag struct {
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// FiringRuleId: Firing rule IDs. A tag will fire when any of the listed rules
 	// are true and all of its blockingRuleIds (if any specified) are false.
-	// @mutable tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
 	FiringRuleId []string `json:"firingRuleId,omitempty"`
 	// FiringTriggerId: Firing trigger IDs. A tag will fire when any of the listed
 	// triggers are true and all of its blockingTriggerIds (if any specified) are
-	// false. @mutable tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// false.
 	FiringTriggerId []string `json:"firingTriggerId,omitempty"`
 	// LiveOnly: If set to true, this tag will only fire in the live environment
-	// (e.g. not in preview or debug mode). @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// (e.g. not in preview or debug mode).
 	LiveOnly bool `json:"liveOnly,omitempty"`
-	// Name: Tag display name. @mutable tagmanager.accounts.containers.tags.create
-	// @mutable tagmanager.accounts.containers.tags.update
+	// Name: Tag display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this tag in the container. @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// Notes: User notes on how to apply this tag in the container.
 	Notes string `json:"notes,omitempty"`
-	// Parameter: The tag's parameters. @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// Parameter: The tag's parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
-	// Paused: True if the tag is paused. @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// Paused: True if the tag is paused.
 	Paused bool `json:"paused,omitempty"`
 	// Priority: User defined numeric priority of the tag. Tags are fired
 	// asynchronously in order of priority. Tags with higher numeric value fire
 	// first. A tag's priority can be a positive or negative value. The default
-	// value is 0. @mutable tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// value is 0.
 	Priority *Parameter `json:"priority,omitempty"`
-	// ScheduleEndMs: The end timestamp in milliseconds to schedule a tag. @mutable
-	// tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
+	// ScheduleEndMs: The end timestamp in milliseconds to schedule a tag.
 	ScheduleEndMs int64 `json:"scheduleEndMs,omitempty,string"`
 	// ScheduleStartMs: The start timestamp in milliseconds to schedule a tag.
-	// @mutable tagmanager.accounts.containers.tags.create @mutable
-	// tagmanager.accounts.containers.tags.update
 	ScheduleStartMs int64 `json:"scheduleStartMs,omitempty,string"`
 	// SetupTag: The list of setup tags. Currently we only allow one.
 	SetupTag []*SetupTag `json:"setupTag,omitempty"`
@@ -1484,8 +1388,7 @@ type Tag struct {
 	TagId string `json:"tagId,omitempty"`
 	// TeardownTag: The list of teardown tags. Currently we only allow one.
 	TeardownTag []*TeardownTag `json:"teardownTag,omitempty"`
-	// Type: GTM Tag Type. @mutable tagmanager.accounts.containers.tags.create
-	// @mutable tagmanager.accounts.containers.tags.update
+	// Type: GTM Tag Type.
 	Type string `json:"type,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -1503,9 +1406,9 @@ type Tag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Tag) MarshalJSON() ([]byte, error) {
+func (s Tag) MarshalJSON() ([]byte, error) {
 	type NoMethod Tag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TeardownTag struct {
@@ -1528,99 +1431,70 @@ type TeardownTag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TeardownTag) MarshalJSON() ([]byte, error) {
+func (s TeardownTag) MarshalJSON() ([]byte, error) {
 	type NoMethod TeardownTag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Trigger: Represents a Google Tag Manager Trigger
 type Trigger struct {
 	// AccountId: GTM Account ID.
 	AccountId string `json:"accountId,omitempty"`
-	// AutoEventFilter: Used in the case of auto event tracking. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// AutoEventFilter: Used in the case of auto event tracking.
 	AutoEventFilter []*Condition `json:"autoEventFilter,omitempty"`
 	// CheckValidation: Whether or not we should only fire tags if the form submit
 	// or link click event is not cancelled by some other event handler (e.g.
 	// because of validation). Only valid for Form Submission and Link Click
-	// triggers. @mutable tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// triggers.
 	CheckValidation *Parameter `json:"checkValidation,omitempty"`
 	// ContainerId: GTM Container ID.
 	ContainerId string `json:"containerId,omitempty"`
 	// ContinuousTimeMinMilliseconds: A visibility trigger minimum continuous
 	// visible time (in milliseconds). Only valid for AMP Visibility trigger.
-	// @mutable tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
 	ContinuousTimeMinMilliseconds *Parameter `json:"continuousTimeMinMilliseconds,omitempty"`
 	// CustomEventFilter: Used in the case of custom event, which is fired iff all
-	// Conditions are true. @mutable tagmanager.accounts.containers.triggers.create
-	// @mutable tagmanager.accounts.containers.triggers.update
+	// Conditions are true.
 	CustomEventFilter []*Condition `json:"customEventFilter,omitempty"`
 	// EventName: Name of the GTM event that is fired. Only valid for Timer
-	// triggers. @mutable tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// triggers.
 	EventName *Parameter `json:"eventName,omitempty"`
-	// Filter: The trigger will only fire iff all Conditions are true. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// Filter: The trigger will only fire iff all Conditions are true.
 	Filter []*Condition `json:"filter,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Trigger as computed at storage time.
 	// This value is recomputed whenever the trigger is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// HorizontalScrollPercentageList: List of integer percentage values for scroll
 	// triggers. The trigger will fire when each percentage is reached when the
-	// view is scrolled horizontally. Only valid for AMP scroll triggers. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// view is scrolled horizontally. Only valid for AMP scroll triggers.
 	HorizontalScrollPercentageList *Parameter `json:"horizontalScrollPercentageList,omitempty"`
 	// Interval: Time between triggering recurring Timer Events (in milliseconds).
-	// Only valid for Timer triggers. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// Only valid for Timer triggers.
 	Interval *Parameter `json:"interval,omitempty"`
 	// IntervalSeconds: Time between Timer Events to fire (in seconds). Only valid
-	// for AMP Timer trigger. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// for AMP Timer trigger.
 	IntervalSeconds *Parameter `json:"intervalSeconds,omitempty"`
 	// Limit: Limit of the number of GTM events this Timer Trigger will fire. If no
 	// limit is set, we will continue to fire GTM events until the user leaves the
-	// page. Only valid for Timer triggers. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// page. Only valid for Timer triggers.
 	Limit *Parameter `json:"limit,omitempty"`
 	// MaxTimerLengthSeconds: Max time to fire Timer Events (in seconds). Only
-	// valid for AMP Timer trigger. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// valid for AMP Timer trigger.
 	MaxTimerLengthSeconds *Parameter `json:"maxTimerLengthSeconds,omitempty"`
-	// Name: Trigger display name. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// Name: Trigger display name.
 	Name string `json:"name,omitempty"`
-	// Parameter: Additional parameters. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Parameter: Additional parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
 	// Selector: A click trigger CSS selector (i.e. "a", "button" etc.). Only valid
-	// for AMP Click trigger. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// for AMP Click trigger.
 	Selector *Parameter `json:"selector,omitempty"`
 	// TotalTimeMinMilliseconds: A visibility trigger minimum total visible time
-	// (in milliseconds). Only valid for AMP Visibility trigger. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// (in milliseconds). Only valid for AMP Visibility trigger.
 	TotalTimeMinMilliseconds *Parameter `json:"totalTimeMinMilliseconds,omitempty"`
 	// TriggerId: The Trigger ID uniquely identifies the GTM Trigger.
 	TriggerId string `json:"triggerId,omitempty"`
-	// Type: Defines the data layer event that causes this trigger. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// Type: Defines the data layer event that causes this trigger.
 	//
 	// Possible values:
 	//   "pageview"
@@ -1648,41 +1522,29 @@ type Trigger struct {
 	// incompatible auto-events work together with trigger filtering based on
 	// trigger ids. This value is populated during output generation since the tags
 	// implied by triggers don't exist until then. Only valid for Form Submit, Link
-	// Click and Timer triggers. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// Click and Timer triggers.
 	UniqueTriggerId *Parameter `json:"uniqueTriggerId,omitempty"`
 	// VerticalScrollPercentageList: List of integer percentage values for scroll
 	// triggers. The trigger will fire when each percentage is reached when the
-	// view is scrolled vertically. Only valid for AMP scroll triggers. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// view is scrolled vertically. Only valid for AMP scroll triggers.
 	VerticalScrollPercentageList *Parameter `json:"verticalScrollPercentageList,omitempty"`
 	// VisibilitySelector: A visibility trigger CSS selector (i.e. "#id"). Only
-	// valid for AMP Visibility trigger. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// valid for AMP Visibility trigger.
 	VisibilitySelector *Parameter `json:"visibilitySelector,omitempty"`
 	// VisiblePercentageMax: A visibility trigger maximum percent visibility. Only
-	// valid for AMP Visibility trigger. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// valid for AMP Visibility trigger.
 	VisiblePercentageMax *Parameter `json:"visiblePercentageMax,omitempty"`
 	// VisiblePercentageMin: A visibility trigger minimum percent visibility. Only
-	// valid for AMP Visibility trigger. @mutable
-	// tagmanager.accounts.containers.triggers.create @mutable
-	// tagmanager.accounts.containers.triggers.update
+	// valid for AMP Visibility trigger.
 	VisiblePercentageMin *Parameter `json:"visiblePercentageMin,omitempty"`
 	// WaitForTags: Whether or not we should delay the form submissions or link
 	// opening until all of the tags have fired (by preventing the default action
 	// and later simulating the default action). Only valid for Form Submission and
-	// Link Click triggers. @mutable tagmanager.accounts.containers.triggers.create
-	// @mutable tagmanager.accounts.containers.triggers.update
+	// Link Click triggers.
 	WaitForTags *Parameter `json:"waitForTags,omitempty"`
 	// WaitForTagsTimeout: How long to wait (in milliseconds) for tags to fire when
 	// 'waits_for_tags' above evaluates to true. Only valid for Form Submission and
-	// Link Click triggers. @mutable tagmanager.accounts.containers.triggers.create
-	// @mutable tagmanager.accounts.containers.triggers.update
+	// Link Click triggers.
 	WaitForTagsTimeout *Parameter `json:"waitForTagsTimeout,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -1700,25 +1562,20 @@ type Trigger struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Trigger) MarshalJSON() ([]byte, error) {
+func (s Trigger) MarshalJSON() ([]byte, error) {
 	type NoMethod Trigger
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserAccess: Represents a user's permissions to an account and its container.
 type UserAccess struct {
-	// AccountAccess: GTM Account access permissions. @mutable
-	// tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// AccountAccess: GTM Account access permissions.
 	AccountAccess *AccountAccess `json:"accountAccess,omitempty"`
 	// AccountId: GTM Account ID.
 	AccountId string `json:"accountId,omitempty"`
-	// ContainerAccess: GTM Container access permissions. @mutable
-	// tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// ContainerAccess: GTM Container access permissions.
 	ContainerAccess []*ContainerAccess `json:"containerAccess,omitempty"`
-	// EmailAddress: User's email address. @mutable
-	// tagmanager.accounts.permissions.create
+	// EmailAddress: User's email address.
 	EmailAddress string `json:"emailAddress,omitempty"`
 	// PermissionId: Account Permission ID.
 	PermissionId string `json:"permissionId,omitempty"`
@@ -1738,9 +1595,9 @@ type UserAccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserAccess) MarshalJSON() ([]byte, error) {
+func (s UserAccess) MarshalJSON() ([]byte, error) {
 	type NoMethod UserAccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Variable: Represents a Google Tag Manager Variable.
@@ -1752,45 +1609,29 @@ type Variable struct {
 	// DisablingTriggerId: For mobile containers only: A list of trigger IDs for
 	// disabling conditional variables; the variable is enabled if one of the
 	// enabling trigger is true while all the disabling trigger are false. Treated
-	// as an unordered set. @mutable
-	// tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update
+	// as an unordered set.
 	DisablingTriggerId []string `json:"disablingTriggerId,omitempty"`
 	// EnablingTriggerId: For mobile containers only: A list of trigger IDs for
 	// enabling conditional variables; the variable is enabled if one of the
 	// enabling triggers is true while all the disabling triggers are false.
-	// Treated as an unordered set. @mutable
-	// tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update
+	// Treated as an unordered set.
 	EnablingTriggerId []string `json:"enablingTriggerId,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Variable as computed at storage
 	// time. This value is recomputed whenever the variable is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Variable display name. @mutable
-	// tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update
+	// Name: Variable display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this variable in the container. @mutable
-	// tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update
+	// Notes: User notes on how to apply this variable in the container.
 	Notes string `json:"notes,omitempty"`
-	// Parameter: The variable's parameters. @mutable
-	// tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update
+	// Parameter: The variable's parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
 	// ScheduleEndMs: The end timestamp in milliseconds to schedule a variable.
-	// @mutable tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update
 	ScheduleEndMs int64 `json:"scheduleEndMs,omitempty,string"`
 	// ScheduleStartMs: The start timestamp in milliseconds to schedule a variable.
-	// @mutable tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update
 	ScheduleStartMs int64 `json:"scheduleStartMs,omitempty,string"`
-	// Type: GTM Variable Type. @mutable
-	// tagmanager.accounts.containers.variables.create @mutable
-	// tagmanager.accounts.containers.variables.update
+	// Type: GTM Variable Type.
 	Type string `json:"type,omitempty"`
 	// VariableId: The Variable ID uniquely identifies the GTM Variable.
 	VariableId string `json:"variableId,omitempty"`
@@ -1810,9 +1651,9 @@ type Variable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Variable) MarshalJSON() ([]byte, error) {
+func (s Variable) MarshalJSON() ([]byte, error) {
 	type NoMethod Variable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountsGetCall struct {
@@ -1869,12 +1710,11 @@ func (c *AccountsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1882,6 +1722,7 @@ func (c *AccountsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1916,9 +1757,11 @@ func (c *AccountsGetCall) Do(opts ...googleapi.CallOption) (*Account, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1972,16 +1815,16 @@ func (c *AccountsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2017,9 +1860,11 @@ func (c *AccountsListCall) Do(opts ...googleapi.CallOption) (*ListAccountsRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2074,8 +1919,7 @@ func (c *AccountsUpdateCall) Header() http.Header {
 
 func (c *AccountsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.account)
 	if err != nil {
 		return nil, err
 	}
@@ -2091,6 +1935,7 @@ func (c *AccountsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2125,9 +1970,11 @@ func (c *AccountsUpdateCall) Do(opts ...googleapi.CallOption) (*Account, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2175,8 +2022,7 @@ func (c *AccountsContainersCreateCall) Header() http.Header {
 
 func (c *AccountsContainersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.container)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.container)
 	if err != nil {
 		return nil, err
 	}
@@ -2192,6 +2038,7 @@ func (c *AccountsContainersCreateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2226,9 +2073,11 @@ func (c *AccountsContainersCreateCall) Do(opts ...googleapi.CallOption) (*Contai
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2277,12 +2126,11 @@ func (c *AccountsContainersDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2291,6 +2139,7 @@ func (c *AccountsContainersDeleteCall) doRequest(alt string) (*http.Response, er
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2305,6 +2154,7 @@ func (c *AccountsContainersDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -2365,12 +2215,11 @@ func (c *AccountsContainersGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2379,6 +2228,7 @@ func (c *AccountsContainersGetCall) doRequest(alt string) (*http.Response, error
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2413,9 +2263,11 @@ func (c *AccountsContainersGetCall) Do(opts ...googleapi.CallOption) (*Container
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2473,12 +2325,11 @@ func (c *AccountsContainersListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2486,6 +2337,7 @@ func (c *AccountsContainersListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2521,9 +2373,11 @@ func (c *AccountsContainersListCall) Do(opts ...googleapi.CallOption) (*ListCont
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2581,8 +2435,7 @@ func (c *AccountsContainersUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.container)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.container)
 	if err != nil {
 		return nil, err
 	}
@@ -2599,6 +2452,7 @@ func (c *AccountsContainersUpdateCall) doRequest(alt string) (*http.Response, er
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2633,9 +2487,11 @@ func (c *AccountsContainersUpdateCall) Do(opts ...googleapi.CallOption) (*Contai
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2686,8 +2542,7 @@ func (c *AccountsContainersEnvironmentsCreateCall) Header() http.Header {
 
 func (c *AccountsContainersEnvironmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.environment)
 	if err != nil {
 		return nil, err
 	}
@@ -2704,6 +2559,7 @@ func (c *AccountsContainersEnvironmentsCreateCall) doRequest(alt string) (*http.
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2738,9 +2594,11 @@ func (c *AccountsContainersEnvironmentsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2792,12 +2650,11 @@ func (c *AccountsContainersEnvironmentsDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersEnvironmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/environments/{environmentId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2807,6 +2664,7 @@ func (c *AccountsContainersEnvironmentsDeleteCall) doRequest(alt string) (*http.
 		"containerId":   c.containerId,
 		"environmentId": c.environmentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2821,6 +2679,7 @@ func (c *AccountsContainersEnvironmentsDeleteCall) Do(opts ...googleapi.CallOpti
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -2884,12 +2743,11 @@ func (c *AccountsContainersEnvironmentsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/environments/{environmentId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2899,6 +2757,7 @@ func (c *AccountsContainersEnvironmentsGetCall) doRequest(alt string) (*http.Res
 		"containerId":   c.containerId,
 		"environmentId": c.environmentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2933,9 +2792,11 @@ func (c *AccountsContainersEnvironmentsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2996,12 +2857,11 @@ func (c *AccountsContainersEnvironmentsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/environments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3010,6 +2870,7 @@ func (c *AccountsContainersEnvironmentsListCall) doRequest(alt string) (*http.Re
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3045,9 +2906,11 @@ func (c *AccountsContainersEnvironmentsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3108,8 +2971,7 @@ func (c *AccountsContainersEnvironmentsUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersEnvironmentsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.environment)
 	if err != nil {
 		return nil, err
 	}
@@ -3127,6 +2989,7 @@ func (c *AccountsContainersEnvironmentsUpdateCall) doRequest(alt string) (*http.
 		"containerId":   c.containerId,
 		"environmentId": c.environmentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3161,9 +3024,11 @@ func (c *AccountsContainersEnvironmentsUpdateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3214,8 +3079,7 @@ func (c *AccountsContainersFoldersCreateCall) Header() http.Header {
 
 func (c *AccountsContainersFoldersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.folder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.folder)
 	if err != nil {
 		return nil, err
 	}
@@ -3232,6 +3096,7 @@ func (c *AccountsContainersFoldersCreateCall) doRequest(alt string) (*http.Respo
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3266,9 +3131,11 @@ func (c *AccountsContainersFoldersCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3320,12 +3187,11 @@ func (c *AccountsContainersFoldersDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersFoldersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/folders/{folderId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3335,6 +3201,7 @@ func (c *AccountsContainersFoldersDeleteCall) doRequest(alt string) (*http.Respo
 		"containerId": c.containerId,
 		"folderId":    c.folderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3349,6 +3216,7 @@ func (c *AccountsContainersFoldersDeleteCall) Do(opts ...googleapi.CallOption) e
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -3412,12 +3280,11 @@ func (c *AccountsContainersFoldersGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/folders/{folderId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3427,6 +3294,7 @@ func (c *AccountsContainersFoldersGetCall) doRequest(alt string) (*http.Response
 		"containerId": c.containerId,
 		"folderId":    c.folderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3461,9 +3329,11 @@ func (c *AccountsContainersFoldersGetCall) Do(opts ...googleapi.CallOption) (*Fo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3524,12 +3394,11 @@ func (c *AccountsContainersFoldersListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/folders")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3538,6 +3407,7 @@ func (c *AccountsContainersFoldersListCall) doRequest(alt string) (*http.Respons
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3573,9 +3443,11 @@ func (c *AccountsContainersFoldersListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3636,8 +3508,7 @@ func (c *AccountsContainersFoldersUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersFoldersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.folder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.folder)
 	if err != nil {
 		return nil, err
 	}
@@ -3655,6 +3526,7 @@ func (c *AccountsContainersFoldersUpdateCall) doRequest(alt string) (*http.Respo
 		"containerId": c.containerId,
 		"folderId":    c.folderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3689,9 +3561,11 @@ func (c *AccountsContainersFoldersUpdateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3755,12 +3629,11 @@ func (c *AccountsContainersFoldersEntitiesListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/folders/{folderId}/entities")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3770,6 +3643,7 @@ func (c *AccountsContainersFoldersEntitiesListCall) doRequest(alt string) (*http
 		"containerId": c.containerId,
 		"folderId":    c.folderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.entities.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3804,9 +3678,11 @@ func (c *AccountsContainersFoldersEntitiesListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.folders.entities.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3881,8 +3757,7 @@ func (c *AccountsContainersMoveFoldersUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersMoveFoldersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.folder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.folder)
 	if err != nil {
 		return nil, err
 	}
@@ -3900,6 +3775,7 @@ func (c *AccountsContainersMoveFoldersUpdateCall) doRequest(alt string) (*http.R
 		"containerId": c.containerId,
 		"folderId":    c.folderId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.move_folders.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3914,6 +3790,7 @@ func (c *AccountsContainersMoveFoldersUpdateCall) Do(opts ...googleapi.CallOptio
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.move_folders.update", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -3967,8 +3844,7 @@ func (c *AccountsContainersReauthorizeEnvironmentsUpdateCall) Header() http.Head
 
 func (c *AccountsContainersReauthorizeEnvironmentsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.environment)
 	if err != nil {
 		return nil, err
 	}
@@ -3986,6 +3862,7 @@ func (c *AccountsContainersReauthorizeEnvironmentsUpdateCall) doRequest(alt stri
 		"containerId":   c.containerId,
 		"environmentId": c.environmentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.reauthorize_environments.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4020,9 +3897,11 @@ func (c *AccountsContainersReauthorizeEnvironmentsUpdateCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.reauthorize_environments.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4073,8 +3952,7 @@ func (c *AccountsContainersTagsCreateCall) Header() http.Header {
 
 func (c *AccountsContainersTagsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.tag)
 	if err != nil {
 		return nil, err
 	}
@@ -4091,6 +3969,7 @@ func (c *AccountsContainersTagsCreateCall) doRequest(alt string) (*http.Response
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4125,9 +4004,11 @@ func (c *AccountsContainersTagsCreateCall) Do(opts ...googleapi.CallOption) (*Ta
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4179,12 +4060,11 @@ func (c *AccountsContainersTagsDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersTagsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/tags/{tagId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4194,6 +4074,7 @@ func (c *AccountsContainersTagsDeleteCall) doRequest(alt string) (*http.Response
 		"containerId": c.containerId,
 		"tagId":       c.tagId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4208,6 +4089,7 @@ func (c *AccountsContainersTagsDeleteCall) Do(opts ...googleapi.CallOption) erro
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -4271,12 +4153,11 @@ func (c *AccountsContainersTagsGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/tags/{tagId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4286,6 +4167,7 @@ func (c *AccountsContainersTagsGetCall) doRequest(alt string) (*http.Response, e
 		"containerId": c.containerId,
 		"tagId":       c.tagId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4320,9 +4202,11 @@ func (c *AccountsContainersTagsGetCall) Do(opts ...googleapi.CallOption) (*Tag, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4383,12 +4267,11 @@ func (c *AccountsContainersTagsListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/tags")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4397,6 +4280,7 @@ func (c *AccountsContainersTagsListCall) doRequest(alt string) (*http.Response, 
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4432,9 +4316,11 @@ func (c *AccountsContainersTagsListCall) Do(opts ...googleapi.CallOption) (*List
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4495,8 +4381,7 @@ func (c *AccountsContainersTagsUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersTagsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.tag)
 	if err != nil {
 		return nil, err
 	}
@@ -4514,6 +4399,7 @@ func (c *AccountsContainersTagsUpdateCall) doRequest(alt string) (*http.Response
 		"containerId": c.containerId,
 		"tagId":       c.tagId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4548,9 +4434,11 @@ func (c *AccountsContainersTagsUpdateCall) Do(opts ...googleapi.CallOption) (*Ta
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.tags.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4601,8 +4489,7 @@ func (c *AccountsContainersTriggersCreateCall) Header() http.Header {
 
 func (c *AccountsContainersTriggersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.trigger)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.trigger)
 	if err != nil {
 		return nil, err
 	}
@@ -4619,6 +4506,7 @@ func (c *AccountsContainersTriggersCreateCall) doRequest(alt string) (*http.Resp
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4653,9 +4541,11 @@ func (c *AccountsContainersTriggersCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4707,12 +4597,11 @@ func (c *AccountsContainersTriggersDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersTriggersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/triggers/{triggerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4722,6 +4611,7 @@ func (c *AccountsContainersTriggersDeleteCall) doRequest(alt string) (*http.Resp
 		"containerId": c.containerId,
 		"triggerId":   c.triggerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4736,6 +4626,7 @@ func (c *AccountsContainersTriggersDeleteCall) Do(opts ...googleapi.CallOption) 
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -4799,12 +4690,11 @@ func (c *AccountsContainersTriggersGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/triggers/{triggerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4814,6 +4704,7 @@ func (c *AccountsContainersTriggersGetCall) doRequest(alt string) (*http.Respons
 		"containerId": c.containerId,
 		"triggerId":   c.triggerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4848,9 +4739,11 @@ func (c *AccountsContainersTriggersGetCall) Do(opts ...googleapi.CallOption) (*T
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4911,12 +4804,11 @@ func (c *AccountsContainersTriggersListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/triggers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4925,6 +4817,7 @@ func (c *AccountsContainersTriggersListCall) doRequest(alt string) (*http.Respon
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4960,9 +4853,11 @@ func (c *AccountsContainersTriggersListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5023,8 +4918,7 @@ func (c *AccountsContainersTriggersUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersTriggersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.trigger)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.trigger)
 	if err != nil {
 		return nil, err
 	}
@@ -5042,6 +4936,7 @@ func (c *AccountsContainersTriggersUpdateCall) doRequest(alt string) (*http.Resp
 		"containerId": c.containerId,
 		"triggerId":   c.triggerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5076,9 +4971,11 @@ func (c *AccountsContainersTriggersUpdateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.triggers.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5129,8 +5026,7 @@ func (c *AccountsContainersVariablesCreateCall) Header() http.Header {
 
 func (c *AccountsContainersVariablesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variable)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.variable)
 	if err != nil {
 		return nil, err
 	}
@@ -5147,6 +5043,7 @@ func (c *AccountsContainersVariablesCreateCall) doRequest(alt string) (*http.Res
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5181,9 +5078,11 @@ func (c *AccountsContainersVariablesCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5235,12 +5134,11 @@ func (c *AccountsContainersVariablesDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersVariablesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/variables/{variableId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5250,6 +5148,7 @@ func (c *AccountsContainersVariablesDeleteCall) doRequest(alt string) (*http.Res
 		"containerId": c.containerId,
 		"variableId":  c.variableId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5264,6 +5163,7 @@ func (c *AccountsContainersVariablesDeleteCall) Do(opts ...googleapi.CallOption)
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -5327,12 +5227,11 @@ func (c *AccountsContainersVariablesGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/variables/{variableId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5342,6 +5241,7 @@ func (c *AccountsContainersVariablesGetCall) doRequest(alt string) (*http.Respon
 		"containerId": c.containerId,
 		"variableId":  c.variableId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5376,9 +5276,11 @@ func (c *AccountsContainersVariablesGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5439,12 +5341,11 @@ func (c *AccountsContainersVariablesListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/variables")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5453,6 +5354,7 @@ func (c *AccountsContainersVariablesListCall) doRequest(alt string) (*http.Respo
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5488,9 +5390,11 @@ func (c *AccountsContainersVariablesListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5551,8 +5455,7 @@ func (c *AccountsContainersVariablesUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersVariablesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variable)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.variable)
 	if err != nil {
 		return nil, err
 	}
@@ -5570,6 +5473,7 @@ func (c *AccountsContainersVariablesUpdateCall) doRequest(alt string) (*http.Res
 		"containerId": c.containerId,
 		"variableId":  c.variableId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5604,9 +5508,11 @@ func (c *AccountsContainersVariablesUpdateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.variables.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5657,8 +5563,7 @@ func (c *AccountsContainersVersionsCreateCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createcontainerversionrequestversionoptions)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createcontainerversionrequestversionoptions)
 	if err != nil {
 		return nil, err
 	}
@@ -5675,6 +5580,7 @@ func (c *AccountsContainersVersionsCreateCall) doRequest(alt string) (*http.Resp
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5710,9 +5616,11 @@ func (c *AccountsContainersVersionsCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5764,12 +5672,11 @@ func (c *AccountsContainersVersionsDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5779,6 +5686,7 @@ func (c *AccountsContainersVersionsDeleteCall) doRequest(alt string) (*http.Resp
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5793,6 +5701,7 @@ func (c *AccountsContainersVersionsDeleteCall) Do(opts ...googleapi.CallOption) 
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -5857,12 +5766,11 @@ func (c *AccountsContainersVersionsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5872,6 +5780,7 @@ func (c *AccountsContainersVersionsGetCall) doRequest(alt string) (*http.Respons
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5907,9 +5816,11 @@ func (c *AccountsContainersVersionsGetCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5984,12 +5895,11 @@ func (c *AccountsContainersVersionsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/versions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5998,6 +5908,7 @@ func (c *AccountsContainersVersionsListCall) doRequest(alt string) (*http.Respon
 		"accountId":   c.accountId,
 		"containerId": c.containerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6033,9 +5944,11 @@ func (c *AccountsContainersVersionsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6094,12 +6007,11 @@ func (c *AccountsContainersVersionsPublishCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsPublishCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/publish")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6109,6 +6021,7 @@ func (c *AccountsContainersVersionsPublishCall) doRequest(alt string) (*http.Res
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.publish", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6144,9 +6057,11 @@ func (c *AccountsContainersVersionsPublishCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.publish", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6201,12 +6116,11 @@ func (c *AccountsContainersVersionsRestoreCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsRestoreCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/restore")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6216,6 +6130,7 @@ func (c *AccountsContainersVersionsRestoreCall) doRequest(alt string) (*http.Res
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.restore", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6251,9 +6166,11 @@ func (c *AccountsContainersVersionsRestoreCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.restore", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6305,12 +6222,11 @@ func (c *AccountsContainersVersionsUndeleteCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/containers/{containerId}/versions/{containerVersionId}/undelete")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6320,6 +6236,7 @@ func (c *AccountsContainersVersionsUndeleteCall) doRequest(alt string) (*http.Re
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.undelete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6355,9 +6272,11 @@ func (c *AccountsContainersVersionsUndeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6418,8 +6337,7 @@ func (c *AccountsContainersVersionsUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.containerversion)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.containerversion)
 	if err != nil {
 		return nil, err
 	}
@@ -6437,6 +6355,7 @@ func (c *AccountsContainersVersionsUpdateCall) doRequest(alt string) (*http.Resp
 		"containerId":        c.containerId,
 		"containerVersionId": c.containerVersionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6472,9 +6391,11 @@ func (c *AccountsContainersVersionsUpdateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6522,8 +6443,7 @@ func (c *AccountsPermissionsCreateCall) Header() http.Header {
 
 func (c *AccountsPermissionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.useraccess)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.useraccess)
 	if err != nil {
 		return nil, err
 	}
@@ -6539,6 +6459,7 @@ func (c *AccountsPermissionsCreateCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6573,9 +6494,11 @@ func (c *AccountsPermissionsCreateCall) Do(opts ...googleapi.CallOption) (*UserA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6625,12 +6548,11 @@ func (c *AccountsPermissionsDeleteCall) Header() http.Header {
 
 func (c *AccountsPermissionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/permissions/{permissionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6639,6 +6561,7 @@ func (c *AccountsPermissionsDeleteCall) doRequest(alt string) (*http.Response, e
 		"accountId":    c.accountId,
 		"permissionId": c.permissionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6653,6 +6576,7 @@ func (c *AccountsPermissionsDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -6713,12 +6637,11 @@ func (c *AccountsPermissionsGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/permissions/{permissionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6727,6 +6650,7 @@ func (c *AccountsPermissionsGetCall) doRequest(alt string) (*http.Response, erro
 		"accountId":    c.accountId,
 		"permissionId": c.permissionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6761,9 +6685,11 @@ func (c *AccountsPermissionsGetCall) Do(opts ...googleapi.CallOption) (*UserAcce
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6822,12 +6748,11 @@ func (c *AccountsPermissionsListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v1/accounts/{accountId}/permissions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6835,6 +6760,7 @@ func (c *AccountsPermissionsListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6870,9 +6796,11 @@ func (c *AccountsPermissionsListCall) Do(opts ...googleapi.CallOption) (*ListAcc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6923,8 +6851,7 @@ func (c *AccountsPermissionsUpdateCall) Header() http.Header {
 
 func (c *AccountsPermissionsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.useraccess)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.useraccess)
 	if err != nil {
 		return nil, err
 	}
@@ -6941,6 +6868,7 @@ func (c *AccountsPermissionsUpdateCall) doRequest(alt string) (*http.Response, e
 		"accountId":    c.accountId,
 		"permissionId": c.permissionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6975,8 +6903,10 @@ func (c *AccountsPermissionsUpdateCall) Do(opts ...googleapi.CallOption) (*UserA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.permissions.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

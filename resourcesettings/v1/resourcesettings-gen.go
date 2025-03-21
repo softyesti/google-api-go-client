@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "resourcesettings:v1"
 const apiName = "resourcesettings"
@@ -115,7 +118,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Folders = NewFoldersService(s)
+	s.Organizations = NewOrganizationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,15 +140,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Folders = NewFoldersService(s)
-	s.Organizations = NewOrganizationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -247,9 +250,9 @@ type GoogleCloudResourcesettingsV1ListSettingsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudResourcesettingsV1ListSettingsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudResourcesettingsV1ListSettingsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudResourcesettingsV1ListSettingsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudResourcesettingsV1Setting: The schema for settings.
@@ -297,9 +300,9 @@ type GoogleCloudResourcesettingsV1Setting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudResourcesettingsV1Setting) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudResourcesettingsV1Setting) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudResourcesettingsV1Setting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudResourcesettingsV1SettingMetadata: Metadata about a setting which
@@ -339,9 +342,9 @@ type GoogleCloudResourcesettingsV1SettingMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudResourcesettingsV1SettingMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudResourcesettingsV1SettingMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudResourcesettingsV1SettingMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudResourcesettingsV1Value: The data in a setting value.
@@ -371,9 +374,9 @@ type GoogleCloudResourcesettingsV1Value struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudResourcesettingsV1Value) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudResourcesettingsV1Value) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudResourcesettingsV1Value
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudResourcesettingsV1ValueEnumValue: A enum value that can hold any
@@ -395,9 +398,9 @@ type GoogleCloudResourcesettingsV1ValueEnumValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudResourcesettingsV1ValueEnumValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudResourcesettingsV1ValueEnumValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudResourcesettingsV1ValueEnumValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudResourcesettingsV1ValueStringMap: A string->string map value that
@@ -420,9 +423,9 @@ type GoogleCloudResourcesettingsV1ValueStringMap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudResourcesettingsV1ValueStringMap) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudResourcesettingsV1ValueStringMap) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudResourcesettingsV1ValueStringMap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudResourcesettingsV1ValueStringSet: A string set value that can
@@ -444,9 +447,9 @@ type GoogleCloudResourcesettingsV1ValueStringSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudResourcesettingsV1ValueStringSet) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudResourcesettingsV1ValueStringSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudResourcesettingsV1ValueStringSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FoldersSettingsGetCall struct {
@@ -528,12 +531,11 @@ func (c *FoldersSettingsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -541,6 +543,7 @@ func (c *FoldersSettingsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.folders.settings.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -576,9 +579,11 @@ func (c *FoldersSettingsGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloudR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.folders.settings.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -678,12 +683,11 @@ func (c *FoldersSettingsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/settings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -691,6 +695,7 @@ func (c *FoldersSettingsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.folders.settings.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -726,9 +731,11 @@ func (c *FoldersSettingsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.folders.settings.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -809,8 +816,7 @@ func (c *FoldersSettingsPatchCall) Header() http.Header {
 
 func (c *FoldersSettingsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudresourcesettingsv1setting)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudresourcesettingsv1setting)
 	if err != nil {
 		return nil, err
 	}
@@ -826,6 +832,7 @@ func (c *FoldersSettingsPatchCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.folders.settings.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -861,9 +868,11 @@ func (c *FoldersSettingsPatchCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.folders.settings.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -946,12 +955,11 @@ func (c *OrganizationsSettingsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -959,6 +967,7 @@ func (c *OrganizationsSettingsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.organizations.settings.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -994,9 +1003,11 @@ func (c *OrganizationsSettingsGetCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.organizations.settings.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1096,12 +1107,11 @@ func (c *OrganizationsSettingsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/settings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1109,6 +1119,7 @@ func (c *OrganizationsSettingsListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.organizations.settings.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1144,9 +1155,11 @@ func (c *OrganizationsSettingsListCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.organizations.settings.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1227,8 +1240,7 @@ func (c *OrganizationsSettingsPatchCall) Header() http.Header {
 
 func (c *OrganizationsSettingsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudresourcesettingsv1setting)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudresourcesettingsv1setting)
 	if err != nil {
 		return nil, err
 	}
@@ -1244,6 +1256,7 @@ func (c *OrganizationsSettingsPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.organizations.settings.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1279,9 +1292,11 @@ func (c *OrganizationsSettingsPatchCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.organizations.settings.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1364,12 +1379,11 @@ func (c *ProjectsSettingsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1377,6 +1391,7 @@ func (c *ProjectsSettingsGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.projects.settings.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1412,9 +1427,11 @@ func (c *ProjectsSettingsGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.projects.settings.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1514,12 +1531,11 @@ func (c *ProjectsSettingsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/settings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1527,6 +1543,7 @@ func (c *ProjectsSettingsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.projects.settings.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1562,9 +1579,11 @@ func (c *ProjectsSettingsListCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.projects.settings.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1645,8 +1664,7 @@ func (c *ProjectsSettingsPatchCall) Header() http.Header {
 
 func (c *ProjectsSettingsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudresourcesettingsv1setting)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudresourcesettingsv1setting)
 	if err != nil {
 		return nil, err
 	}
@@ -1662,6 +1680,7 @@ func (c *ProjectsSettingsPatchCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "resourcesettings.projects.settings.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1697,8 +1716,10 @@ func (c *ProjectsSettingsPatchCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "resourcesettings.projects.settings.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "identitytoolkit:v1"
 const apiName = "identitytoolkit"
@@ -124,7 +127,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
+	s.Projects = NewProjectsService(s)
+	s.V1 = NewV1Service(s)
 	if err != nil {
 		return nil, err
 	}
@@ -143,15 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	s.Projects = NewProjectsService(s)
-	s.V1 = NewV1Service(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -279,9 +282,9 @@ type GoogleCloudIdentitytoolkitV1Argon2Parameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1Argon2Parameters) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1Argon2Parameters) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1Argon2Parameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1AutoRetrievalInfo: The information required to
@@ -303,9 +306,9 @@ type GoogleCloudIdentitytoolkitV1AutoRetrievalInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1AutoRetrievalInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1AutoRetrievalInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1AutoRetrievalInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1BatchDeleteAccountsRequest: Request message for
@@ -334,9 +337,9 @@ type GoogleCloudIdentitytoolkitV1BatchDeleteAccountsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1BatchDeleteAccountsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1BatchDeleteAccountsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1BatchDeleteAccountsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1BatchDeleteAccountsResponse: Response message to
@@ -360,9 +363,9 @@ type GoogleCloudIdentitytoolkitV1BatchDeleteAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1BatchDeleteAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1BatchDeleteAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1BatchDeleteAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1BatchDeleteErrorInfo: Error info for account
@@ -387,9 +390,9 @@ type GoogleCloudIdentitytoolkitV1BatchDeleteErrorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1BatchDeleteErrorInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1BatchDeleteErrorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1BatchDeleteErrorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1CreateAuthUriRequest: Request message for
@@ -459,9 +462,9 @@ type GoogleCloudIdentitytoolkitV1CreateAuthUriRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1CreateAuthUriRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1CreateAuthUriRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1CreateAuthUriRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1CreateAuthUriResponse: Response message for
@@ -511,9 +514,9 @@ type GoogleCloudIdentitytoolkitV1CreateAuthUriResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1CreateAuthUriResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1CreateAuthUriResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1CreateAuthUriResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1CreateSessionCookieRequest: Request message for
@@ -541,9 +544,9 @@ type GoogleCloudIdentitytoolkitV1CreateSessionCookieRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1CreateSessionCookieRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1CreateSessionCookieRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1CreateSessionCookieRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1CreateSessionCookieResponse: Response message
@@ -569,9 +572,9 @@ type GoogleCloudIdentitytoolkitV1CreateSessionCookieResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1CreateSessionCookieResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1CreateSessionCookieResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1CreateSessionCookieResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1DeleteAccountRequest: Request message for
@@ -611,9 +614,9 @@ type GoogleCloudIdentitytoolkitV1DeleteAccountRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1DeleteAccountRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1DeleteAccountRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1DeleteAccountRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1DeleteAccountResponse: Response message for
@@ -636,9 +639,9 @@ type GoogleCloudIdentitytoolkitV1DeleteAccountResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1DeleteAccountResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1DeleteAccountResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1DeleteAccountResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1DownloadAccountResponse: Response message for
@@ -668,9 +671,9 @@ type GoogleCloudIdentitytoolkitV1DownloadAccountResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1DownloadAccountResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1DownloadAccountResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1DownloadAccountResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1EmailInfo: Information about email MFA.
@@ -690,9 +693,9 @@ type GoogleCloudIdentitytoolkitV1EmailInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1EmailInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1EmailInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1EmailInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1EmailTemplate: Email template
@@ -737,9 +740,9 @@ type GoogleCloudIdentitytoolkitV1EmailTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1EmailTemplate) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1EmailTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1EmailTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1ErrorInfo: Error information explaining why an
@@ -762,9 +765,9 @@ type GoogleCloudIdentitytoolkitV1ErrorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1ErrorInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1ErrorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1ErrorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1FederatedUserIdentifier: Federated user
@@ -793,9 +796,9 @@ type GoogleCloudIdentitytoolkitV1FederatedUserIdentifier struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1FederatedUserIdentifier) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1FederatedUserIdentifier) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1FederatedUserIdentifier
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1GetAccountInfoRequest: Request message for
@@ -807,11 +810,7 @@ type GoogleCloudIdentitytoolkitV1GetAccountInfoRequest struct {
 	// `name@domain.tld`. The email should also match the RFC 822
 	// (https://tools.ietf.org/html/rfc822) addr-spec production. Should only be
 	// specified by authenticated requests from a developer.
-	Email []string `json:"email,omitempty"`
-	// FederatedUserId: The federated user identifier of one or more accounts to
-	// fetch. Should only be specified by authenticated requests bearing a Google
-	// OAuth 2.0 credential with proper permissions
-	// (https://cloud.google.com/identity-platform/docs/access-control).
+	Email           []string                                               `json:"email,omitempty"`
 	FederatedUserId []*GoogleCloudIdentitytoolkitV1FederatedUserIdentifier `json:"federatedUserId,omitempty"`
 	// IdToken: The Identity Platform ID token of the account to fetch. Require to
 	// be specified for requests from end users.
@@ -853,9 +852,9 @@ type GoogleCloudIdentitytoolkitV1GetAccountInfoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1GetAccountInfoRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1GetAccountInfoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1GetAccountInfoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1GetAccountInfoResponse: Response message for
@@ -881,9 +880,9 @@ type GoogleCloudIdentitytoolkitV1GetAccountInfoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1GetAccountInfoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1GetAccountInfoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1GetAccountInfoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1GetOobCodeRequest: Request message for
@@ -951,6 +950,11 @@ type GoogleCloudIdentitytoolkitV1GetOobCodeRequest struct {
 	// VERIFY_AND_CHANGE_EMAIL and VERIFY_EMAIL requests unless return_oob_link is
 	// set to true.
 	IdToken string `json:"idToken,omitempty"`
+	// LinkDomain: Optional. In order to ensure that the url used can be easily
+	// opened in iOS or Android, we create a Hosting link '/__/auth/links'. This
+	// optional field contains the domain to use when constructing a Hosting link.
+	// If not set, '.firebaseapp.com' domain will be used.
+	LinkDomain string `json:"linkDomain,omitempty"`
 	// NewEmail: The email address the account is being updated to. Required only
 	// for VERIFY_AND_CHANGE_EMAIL requests.
 	NewEmail string `json:"newEmail,omitempty"`
@@ -1011,9 +1015,9 @@ type GoogleCloudIdentitytoolkitV1GetOobCodeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1GetOobCodeRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1GetOobCodeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1GetOobCodeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1GetOobCodeResponse: Response message for
@@ -1045,9 +1049,9 @@ type GoogleCloudIdentitytoolkitV1GetOobCodeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1GetOobCodeResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1GetOobCodeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1GetOobCodeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1GetProjectConfigResponse: Response message for
@@ -1108,9 +1112,9 @@ type GoogleCloudIdentitytoolkitV1GetProjectConfigResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1GetProjectConfigResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1GetProjectConfigResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1GetProjectConfigResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1GetRecaptchaParamResponse: Response message for
@@ -1140,9 +1144,9 @@ type GoogleCloudIdentitytoolkitV1GetRecaptchaParamResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1GetRecaptchaParamResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1GetRecaptchaParamResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1GetRecaptchaParamResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1GetSessionCookiePublicKeysResponse: Response
@@ -1167,9 +1171,9 @@ type GoogleCloudIdentitytoolkitV1GetSessionCookiePublicKeysResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1GetSessionCookiePublicKeysResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1GetSessionCookiePublicKeysResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1GetSessionCookiePublicKeysResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1IdpConfig: Config of an identity provider.
@@ -1181,8 +1185,6 @@ type GoogleCloudIdentitytoolkitV1IdpConfig struct {
 	// ExperimentPercent: Percent of users who will be prompted/redirected
 	// federated login for this IdP
 	ExperimentPercent int64 `json:"experimentPercent,omitempty"`
-	// Provider: Name of the identity provider.
-	//
 	// Possible values:
 	//   "PROVIDER_UNSPECIFIED"
 	//   "MSLIVE" - Microsoft Live as identity provider.
@@ -1214,9 +1216,9 @@ type GoogleCloudIdentitytoolkitV1IdpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1IdpConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1IdpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1IdpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1IssueSamlResponseRequest: Request message for
@@ -1247,9 +1249,9 @@ type GoogleCloudIdentitytoolkitV1IssueSamlResponseRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1IssueSamlResponseRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1IssueSamlResponseRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1IssueSamlResponseRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1IssueSamlResponseResponse: Response for
@@ -1285,9 +1287,9 @@ type GoogleCloudIdentitytoolkitV1IssueSamlResponseResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1IssueSamlResponseResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1IssueSamlResponseResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1IssueSamlResponseResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1MfaEnrollment: Information on which multi-factor
@@ -1322,9 +1324,9 @@ type GoogleCloudIdentitytoolkitV1MfaEnrollment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1MfaEnrollment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1MfaEnrollment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1MfaEnrollment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudIdentitytoolkitV1MfaFactor struct {
@@ -1345,9 +1347,9 @@ type GoogleCloudIdentitytoolkitV1MfaFactor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1MfaFactor) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1MfaFactor) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1MfaFactor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1MfaInfo: Multi-factor authentication related
@@ -1368,9 +1370,9 @@ type GoogleCloudIdentitytoolkitV1MfaInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1MfaInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1MfaInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1MfaInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1OpenIdConnectKey: Represents a public key of the
@@ -1404,9 +1406,9 @@ type GoogleCloudIdentitytoolkitV1OpenIdConnectKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1OpenIdConnectKey) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1OpenIdConnectKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1OpenIdConnectKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1ProviderUserInfo: Information about the user as
@@ -1441,16 +1443,14 @@ type GoogleCloudIdentitytoolkitV1ProviderUserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1ProviderUserInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1ProviderUserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1ProviderUserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1QueryUserInfoRequest: Request message for
 // QueryUserInfo.
 type GoogleCloudIdentitytoolkitV1QueryUserInfoRequest struct {
-	// Expression: Query conditions used to filter results. If more than one is
-	// passed, only the first SqlExpression is evaluated.
 	Expression []*GoogleCloudIdentitytoolkitV1SqlExpression `json:"expression,omitempty"`
 	// Limit: The maximum number of accounts to return with an upper limit of
 	// __500__. Defaults to _500_. Only valid when `return_user_info` is set to
@@ -1459,9 +1459,6 @@ type GoogleCloudIdentitytoolkitV1QueryUserInfoRequest struct {
 	// Offset: The number of accounts to skip from the beginning of matching
 	// records. Only valid when `return_user_info` is set to `true`.
 	Offset int64 `json:"offset,omitempty,string"`
-	// Order: The order for sorting query result. Defaults to __ascending__ order.
-	// Only valid when `return_user_info` is set to `true`.
-	//
 	// Possible values:
 	//   "ORDER_UNSPECIFIED" - Order is not specified.
 	//   "ASC" - Sort on ascending order.
@@ -1471,10 +1468,6 @@ type GoogleCloudIdentitytoolkitV1QueryUserInfoRequest struct {
 	// the query. If `false`, only the __count__ of accounts matching the query
 	// will be returned. Defaults to `true`.
 	ReturnUserInfo bool `json:"returnUserInfo,omitempty"`
-	// SortBy: The field to use for sorting user accounts. Defaults to `USER_ID`.
-	// Note: when `phone_number` is specified in `expression`, the result ignores
-	// the sorting. Only valid when `return_user_info` is set to `true`.
-	//
 	// Possible values:
 	//   "SORT_BY_FIELD_UNSPECIFIED" - Sort field is not specified.
 	//   "USER_ID" - Sort result by userId.
@@ -1498,9 +1491,9 @@ type GoogleCloudIdentitytoolkitV1QueryUserInfoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1QueryUserInfoRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1QueryUserInfoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1QueryUserInfoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1QueryUserInfoResponse: Response message for
@@ -1529,16 +1522,16 @@ type GoogleCloudIdentitytoolkitV1QueryUserInfoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1QueryUserInfoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1QueryUserInfoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1QueryUserInfoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1ResetPasswordRequest: Request message for
 // ResetPassword.
 type GoogleCloudIdentitytoolkitV1ResetPasswordRequest struct {
-	// Email: The email of the account to be modified. Specify this and the old
-	// password in order to change an account's password without using an
+	// Email: Optional. The email of the account to be modified. Specify this and
+	// the old password in order to change an account's password without using an
 	// out-of-band code.
 	Email string `json:"email,omitempty"`
 	// NewPassword: The new password to be set for this account. Specifying this
@@ -1555,8 +1548,8 @@ type GoogleCloudIdentitytoolkitV1ResetPasswordRequest struct {
 	// state. Only a PASSWORD_RESET out-of-band code can be consumed via this
 	// method.
 	OobCode string `json:"oobCode,omitempty"`
-	// TenantId: The tenant ID of the Identity Platform tenant the account belongs
-	// to.
+	// TenantId: Optional. The tenant ID of the Identity Platform tenant the
+	// account belongs to.
 	TenantId string `json:"tenantId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Email") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1571,9 +1564,9 @@ type GoogleCloudIdentitytoolkitV1ResetPasswordRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1ResetPasswordRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1ResetPasswordRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1ResetPasswordRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1ResetPasswordResponse: Response message for
@@ -1614,23 +1607,39 @@ type GoogleCloudIdentitytoolkitV1ResetPasswordResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1ResetPasswordResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1ResetPasswordResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1ResetPasswordResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SendVerificationCodeRequest: Request message for
-// SendVerificationCode. At least one of (`ios_receipt` and `ios_secret`),
-// `recaptcha_token`, or `safety_net_token` must be specified to verify the
-// verification code is being sent on behalf of a real app and not an emulator.
+// SendVerificationCode. 'captcha_response' is required when reCAPTCHA
+// enterprise is enabled, or otherwise at least one of (`ios_receipt` and
+// `ios_secret`), `recaptcha_token`, or `safety_net_token` must be specified to
+// verify the verification code is being sent on behalf of a real app and not
+// an emulator.
 type GoogleCloudIdentitytoolkitV1SendVerificationCodeRequest struct {
 	// AutoRetrievalInfo: Android only. Used by Google Play Services to identify
 	// the app for auto-retrieval.
 	AutoRetrievalInfo *GoogleCloudIdentitytoolkitV1AutoRetrievalInfo `json:"autoRetrievalInfo,omitempty"`
+	// CaptchaResponse: Optional. The reCAPTCHA Enterprise token provided by the
+	// reCAPTCHA client-side integration. Required when reCAPTCHA enterprise is
+	// enabled.
+	CaptchaResponse string `json:"captchaResponse,omitempty"`
+	// ClientType: Optional. The client type, web, android or ios. Required when
+	// reCAPTCHA Enterprise is enabled.
+	//
+	// Possible values:
+	//   "CLIENT_TYPE_UNSPECIFIED" - Client type is not specified.
+	//   "CLIENT_TYPE_WEB" - Client type is web.
+	//   "CLIENT_TYPE_ANDROID" - Client type is android.
+	//   "CLIENT_TYPE_IOS" - Client type is ios.
+	ClientType string `json:"clientType,omitempty"`
 	// IosReceipt: Receipt of successful iOS app token validation. At least one of
 	// (`ios_receipt` and `ios_secret`), `recaptcha_token`, or `safety_net_token`
 	// must be specified to verify the verification code is being sent on behalf of
-	// a real app and not an emulator. This should come from the response of
+	// a real app and not an emulator, if 'captcha_response' is not used (reCAPTCHA
+	// enterprise is not enabled). This should come from the response of
 	// verifyIosClient. If present, the caller should also provide the
 	// `ios_secret`, as well as a bundle ID in the `x-ios-bundle-identifier`
 	// header, which must match the bundle ID from the verifyIosClient request.
@@ -1646,23 +1655,33 @@ type GoogleCloudIdentitytoolkitV1SendVerificationCodeRequest struct {
 	// place of a recaptcha token (and safety_net_token). At least one of
 	// (`ios_receipt` and `ios_secret`), `recaptcha_token`, , or
 	// `play_integrity_token` must be specified to verify the verification code is
-	// being sent on behalf of a real app and not an emulator. A Play Integrity
-	// Token can be generated via the PlayIntegrity API
+	// being sent on behalf of a real app and not an emulator, if
+	// 'captcha_response' is not used (reCAPTCHA enterprise is not enabled). A Play
+	// Integrity Token can be generated via the PlayIntegrity API
 	// (https://developer.android.com/google/play/integrity) with applying SHA256
 	// to the `phone_number` field as the nonce.
 	PlayIntegrityToken string `json:"playIntegrityToken,omitempty"`
 	// RecaptchaToken: Recaptcha token for app verification. At least one of
 	// (`ios_receipt` and `ios_secret`), `recaptcha_token`, or `safety_net_token`
 	// must be specified to verify the verification code is being sent on behalf of
-	// a real app and not an emulator. The recaptcha should be generated by calling
+	// a real app and not an emulator, if 'captcha_response' is not used (reCAPTCHA
+	// enterprise is not enabled). The recaptcha should be generated by calling
 	// getRecaptchaParams and the recaptcha token will be generated on user
 	// completion of the recaptcha challenge.
 	RecaptchaToken string `json:"recaptchaToken,omitempty"`
+	// RecaptchaVersion: Optional. The reCAPTCHA version of the reCAPTCHA token in
+	// the captcha_response. Required when reCAPTCHA Enterprise is enabled.
+	//
+	// Possible values:
+	//   "RECAPTCHA_VERSION_UNSPECIFIED" - The reCAPTCHA version is not specified.
+	//   "RECAPTCHA_ENTERPRISE" - The reCAPTCHA enterprise.
+	RecaptchaVersion string `json:"recaptchaVersion,omitempty"`
 	// SafetyNetToken: Android only. Used to assert application identity in place
 	// of a recaptcha token. At least one of (`ios_receipt` and `ios_secret`),
 	// `recaptcha_token`, or `safety_net_token` must be specified to verify the
-	// verification code is being sent on behalf of a real app and not an emulator.
-	// A SafetyNet Token can be generated via the SafetyNet Android Attestation API
+	// verification code is being sent on behalf of a real app and not an emulator,
+	// if 'captcha_response' is not used (reCAPTCHA enterprise is not enabled). A
+	// SafetyNet Token can be generated via the SafetyNet Android Attestation API
 	// (https://developer.android.com/training/safetynet/attestation.html), with
 	// the Base64 encoding of the `phone_number` field as the nonce.
 	SafetyNetToken string `json:"safetyNetToken,omitempty"`
@@ -1682,9 +1701,9 @@ type GoogleCloudIdentitytoolkitV1SendVerificationCodeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SendVerificationCodeRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SendVerificationCodeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SendVerificationCodeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SendVerificationCodeResponse: Response message
@@ -1709,9 +1728,9 @@ type GoogleCloudIdentitytoolkitV1SendVerificationCodeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SendVerificationCodeResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SendVerificationCodeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SendVerificationCodeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SetAccountInfoRequest: Request message for
@@ -1729,8 +1748,6 @@ type GoogleCloudIdentitytoolkitV1SetAccountInfoRequest struct {
 	// (https://cloud.google.com/identity-platform/docs/access-control).
 	CustomAttributes       string `json:"customAttributes,omitempty"`
 	DelegatedProjectNumber int64  `json:"delegatedProjectNumber,omitempty,string"`
-	// DeleteAttribute: The account's attributes to be deleted.
-	//
 	// Possible values:
 	//   "USER_ATTRIBUTE_NAME_UNSPECIFIED" - User attribute name is not specified.
 	//   "EMAIL" - User attribute key name is email.
@@ -1831,9 +1848,9 @@ type GoogleCloudIdentitytoolkitV1SetAccountInfoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SetAccountInfoRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SetAccountInfoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SetAccountInfoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SetAccountInfoResponse: Response message for
@@ -1881,9 +1898,9 @@ type GoogleCloudIdentitytoolkitV1SetAccountInfoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SetAccountInfoResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SetAccountInfoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SetAccountInfoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithCustomTokenRequest: Request message
@@ -1915,9 +1932,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithCustomTokenRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithCustomTokenRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithCustomTokenRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithCustomTokenRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithCustomTokenResponse: Response message
@@ -1948,9 +1965,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithCustomTokenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithCustomTokenResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithCustomTokenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithCustomTokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithEmailLinkRequest: Request message for
@@ -1983,9 +2000,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithEmailLinkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithEmailLinkRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithEmailLinkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithEmailLinkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithEmailLinkResponse: Response message
@@ -2027,9 +2044,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithEmailLinkResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithEmailLinkResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithEmailLinkResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithEmailLinkResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithGameCenterRequest: Request message for
@@ -2078,9 +2095,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithGameCenterRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithGameCenterRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithGameCenterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithGameCenterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithGameCenterResponse: Response message
@@ -2126,9 +2143,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithGameCenterResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithGameCenterResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithGameCenterResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithGameCenterResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithIdpRequest: Request message for
@@ -2207,9 +2224,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithIdpRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithIdpRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithIdpRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithIdpRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithIdpResponse: Response message for
@@ -2339,9 +2356,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithIdpResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithIdpResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithIdpResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithIdpResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithPasswordRequest: Request message for
@@ -2399,9 +2416,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithPasswordRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithPasswordRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithPasswordRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithPasswordRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithPasswordResponse: Response message for
@@ -2456,9 +2473,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithPasswordResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithPasswordResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithPasswordResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithPasswordResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberRequest: Request message
@@ -2511,9 +2528,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberResponse: Response message
@@ -2564,9 +2581,9 @@ type GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignInWithPhoneNumberResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignUpRequest: Request message for SignUp.
@@ -2654,9 +2671,9 @@ type GoogleCloudIdentitytoolkitV1SignUpRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignUpRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignUpRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignUpRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SignUpResponse: Response message for SignUp.
@@ -2692,9 +2709,9 @@ type GoogleCloudIdentitytoolkitV1SignUpResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SignUpResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SignUpResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SignUpResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1SqlExpression: Query conditions used to filter
@@ -2728,9 +2745,9 @@ type GoogleCloudIdentitytoolkitV1SqlExpression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1SqlExpression) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1SqlExpression) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1SqlExpression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1TotpInfo: Information about TOTP MFA.
@@ -2773,8 +2790,6 @@ type GoogleCloudIdentitytoolkitV1UploadAccountRequest struct {
 	// cpu_mem_cost help tune the resources needed to hash a password, and should
 	// be tuned as processor speeds and memory technologies advance.
 	Parallelization int64 `json:"parallelization,omitempty"`
-	// PasswordHashOrder: Password and salt order when verify password.
-	//
 	// Possible values:
 	//   "UNSPECIFIED_ORDER" - The order is not specified.
 	//   "SALT_AND_PASSWORD" - The order is salt first, and then password.
@@ -2818,9 +2833,9 @@ type GoogleCloudIdentitytoolkitV1UploadAccountRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1UploadAccountRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1UploadAccountRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1UploadAccountRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1UploadAccountResponse: Response message for
@@ -2845,9 +2860,9 @@ type GoogleCloudIdentitytoolkitV1UploadAccountResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1UploadAccountResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1UploadAccountResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1UploadAccountResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1UserInfo: An Identity Platform account's
@@ -2956,9 +2971,9 @@ type GoogleCloudIdentitytoolkitV1UserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1UserInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1UserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1UserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudIdentitytoolkitV1UserInfo) UnmarshalJSON(data []byte) error {
@@ -3005,9 +3020,9 @@ type GoogleCloudIdentitytoolkitV1UserNotification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1UserNotification) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1UserNotification) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1UserNotification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1VerifyIosClientRequest: Request message for
@@ -3032,9 +3047,9 @@ type GoogleCloudIdentitytoolkitV1VerifyIosClientRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1VerifyIosClientRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1VerifyIosClientRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1VerifyIosClientRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV1VerifyIosClientResponse: Response message for
@@ -3061,9 +3076,9 @@ type GoogleCloudIdentitytoolkitV1VerifyIosClientResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV1VerifyIosClientResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV1VerifyIosClientResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV1VerifyIosClientResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountsCreateAuthUriCall struct {
@@ -3113,8 +3128,7 @@ func (c *AccountsCreateAuthUriCall) Header() http.Header {
 
 func (c *AccountsCreateAuthUriCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1createauthurirequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1createauthurirequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3127,6 +3141,7 @@ func (c *AccountsCreateAuthUriCall) doRequest(alt string) (*http.Response, error
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.createAuthUri", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3162,9 +3177,11 @@ func (c *AccountsCreateAuthUriCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.createAuthUri", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3208,8 +3225,7 @@ func (c *AccountsDeleteCall) Header() http.Header {
 
 func (c *AccountsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1deleteaccountrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1deleteaccountrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3222,6 +3238,7 @@ func (c *AccountsDeleteCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.delete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3257,9 +3274,11 @@ func (c *AccountsDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleCloudIdent
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3303,8 +3322,7 @@ func (c *AccountsIssueSamlResponseCall) Header() http.Header {
 
 func (c *AccountsIssueSamlResponseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1issuesamlresponserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1issuesamlresponserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3317,6 +3335,7 @@ func (c *AccountsIssueSamlResponseCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.issueSamlResponse", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3352,9 +3371,11 @@ func (c *AccountsIssueSamlResponseCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.issueSamlResponse", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3401,8 +3422,7 @@ func (c *AccountsLookupCall) Header() http.Header {
 
 func (c *AccountsLookupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1getaccountinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1getaccountinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3415,6 +3435,7 @@ func (c *AccountsLookupCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.lookup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3450,9 +3471,11 @@ func (c *AccountsLookupCall) Do(opts ...googleapi.CallOption) (*GoogleCloudIdent
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3499,8 +3522,7 @@ func (c *AccountsResetPasswordCall) Header() http.Header {
 
 func (c *AccountsResetPasswordCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1resetpasswordrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1resetpasswordrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3513,6 +3535,7 @@ func (c *AccountsResetPasswordCall) doRequest(alt string) (*http.Response, error
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.resetPassword", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3548,9 +3571,11 @@ func (c *AccountsResetPasswordCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.resetPassword", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3596,8 +3621,7 @@ func (c *AccountsSendOobCodeCall) Header() http.Header {
 
 func (c *AccountsSendOobCodeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1getoobcoderequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1getoobcoderequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3610,6 +3634,7 @@ func (c *AccountsSendOobCodeCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.sendOobCode", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3645,9 +3670,11 @@ func (c *AccountsSendOobCodeCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.sendOobCode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3696,8 +3723,7 @@ func (c *AccountsSendVerificationCodeCall) Header() http.Header {
 
 func (c *AccountsSendVerificationCodeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1sendverificationcoderequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1sendverificationcoderequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3710,6 +3736,7 @@ func (c *AccountsSendVerificationCodeCall) doRequest(alt string) (*http.Response
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.sendVerificationCode", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3745,9 +3772,11 @@ func (c *AccountsSendVerificationCodeCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.sendVerificationCode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3795,8 +3824,7 @@ func (c *AccountsSignInWithCustomTokenCall) Header() http.Header {
 
 func (c *AccountsSignInWithCustomTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signinwithcustomtokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signinwithcustomtokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3809,6 +3837,7 @@ func (c *AccountsSignInWithCustomTokenCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithCustomToken", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3844,9 +3873,11 @@ func (c *AccountsSignInWithCustomTokenCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithCustomToken", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3895,8 +3926,7 @@ func (c *AccountsSignInWithEmailLinkCall) Header() http.Header {
 
 func (c *AccountsSignInWithEmailLinkCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signinwithemaillinkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signinwithemaillinkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3909,6 +3939,7 @@ func (c *AccountsSignInWithEmailLinkCall) doRequest(alt string) (*http.Response,
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithEmailLink", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3944,9 +3975,11 @@ func (c *AccountsSignInWithEmailLinkCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithEmailLink", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4005,8 +4038,7 @@ func (c *AccountsSignInWithGameCenterCall) Header() http.Header {
 
 func (c *AccountsSignInWithGameCenterCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signinwithgamecenterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signinwithgamecenterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4019,6 +4051,7 @@ func (c *AccountsSignInWithGameCenterCall) doRequest(alt string) (*http.Response
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithGameCenter", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4054,9 +4087,11 @@ func (c *AccountsSignInWithGameCenterCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithGameCenter", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4111,8 +4146,7 @@ func (c *AccountsSignInWithIdpCall) Header() http.Header {
 
 func (c *AccountsSignInWithIdpCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signinwithidprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signinwithidprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4125,6 +4159,7 @@ func (c *AccountsSignInWithIdpCall) doRequest(alt string) (*http.Response, error
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithIdp", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4160,9 +4195,11 @@ func (c *AccountsSignInWithIdpCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithIdp", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4210,8 +4247,7 @@ func (c *AccountsSignInWithPasswordCall) Header() http.Header {
 
 func (c *AccountsSignInWithPasswordCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signinwithpasswordrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signinwithpasswordrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4224,6 +4260,7 @@ func (c *AccountsSignInWithPasswordCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithPassword", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4261,9 +4298,11 @@ func (c *AccountsSignInWithPasswordCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithPassword", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4314,8 +4353,7 @@ func (c *AccountsSignInWithPhoneNumberCall) Header() http.Header {
 
 func (c *AccountsSignInWithPhoneNumberCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signinwithphonenumberrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signinwithphonenumberrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4328,6 +4366,7 @@ func (c *AccountsSignInWithPhoneNumberCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithPhoneNumber", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4363,9 +4402,11 @@ func (c *AccountsSignInWithPhoneNumberCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signInWithPhoneNumber", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4415,8 +4456,7 @@ func (c *AccountsSignUpCall) Header() http.Header {
 
 func (c *AccountsSignUpCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signuprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signuprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4429,6 +4469,7 @@ func (c *AccountsSignUpCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signUp", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4464,9 +4505,11 @@ func (c *AccountsSignUpCall) Do(opts ...googleapi.CallOption) (*GoogleCloudIdent
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.signUp", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4512,8 +4555,7 @@ func (c *AccountsUpdateCall) Header() http.Header {
 
 func (c *AccountsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1setaccountinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1setaccountinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4526,6 +4568,7 @@ func (c *AccountsUpdateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4561,9 +4604,11 @@ func (c *AccountsUpdateCall) Do(opts ...googleapi.CallOption) (*GoogleCloudIdent
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4614,8 +4659,7 @@ func (c *AccountsVerifyIosClientCall) Header() http.Header {
 
 func (c *AccountsVerifyIosClientCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1verifyiosclientrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1verifyiosclientrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4628,6 +4672,7 @@ func (c *AccountsVerifyIosClientCall) doRequest(alt string) (*http.Response, err
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.verifyIosClient", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4663,9 +4708,11 @@ func (c *AccountsVerifyIosClientCall) Do(opts ...googleapi.CallOption) (*GoogleC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.verifyIosClient", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4724,8 +4771,7 @@ func (c *ProjectsAccountsCall) Header() http.Header {
 
 func (c *ProjectsAccountsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signuprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signuprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4741,6 +4787,7 @@ func (c *ProjectsAccountsCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4776,9 +4823,11 @@ func (c *ProjectsAccountsCall) Do(opts ...googleapi.CallOption) (*GoogleCloudIde
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4828,8 +4877,7 @@ func (c *ProjectsCreateSessionCookieCall) Header() http.Header {
 
 func (c *ProjectsCreateSessionCookieCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1createsessioncookierequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1createsessioncookierequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4845,6 +4893,7 @@ func (c *ProjectsCreateSessionCookieCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.createSessionCookie", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4880,9 +4929,11 @@ func (c *ProjectsCreateSessionCookieCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.createSessionCookie", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4931,8 +4982,7 @@ func (c *ProjectsQueryAccountsCall) Header() http.Header {
 
 func (c *ProjectsQueryAccountsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1queryuserinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1queryuserinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4948,6 +4998,7 @@ func (c *ProjectsQueryAccountsCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.queryAccounts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4983,9 +5034,11 @@ func (c *ProjectsQueryAccountsCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.queryAccounts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5038,8 +5091,7 @@ func (c *ProjectsAccountsBatchCreateCall) Header() http.Header {
 
 func (c *ProjectsAccountsBatchCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1uploadaccountrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1uploadaccountrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5055,6 +5107,7 @@ func (c *ProjectsAccountsBatchCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.batchCreate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5090,9 +5143,11 @@ func (c *ProjectsAccountsBatchCreateCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.batchCreate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5146,8 +5201,7 @@ func (c *ProjectsAccountsBatchDeleteCall) Header() http.Header {
 
 func (c *ProjectsAccountsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1batchdeleteaccountsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1batchdeleteaccountsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5163,6 +5217,7 @@ func (c *ProjectsAccountsBatchDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5198,9 +5253,11 @@ func (c *ProjectsAccountsBatchDeleteCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5295,12 +5352,11 @@ func (c *ProjectsAccountsBatchGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{+targetProjectId}/accounts:batchGet")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5308,6 +5364,7 @@ func (c *ProjectsAccountsBatchGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.batchGet", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5343,9 +5400,11 @@ func (c *ProjectsAccountsBatchGetCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5416,8 +5475,7 @@ func (c *ProjectsAccountsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAccountsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1deleteaccountrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1deleteaccountrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5433,6 +5491,7 @@ func (c *ProjectsAccountsDeleteCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.delete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5468,9 +5527,11 @@ func (c *ProjectsAccountsDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5525,8 +5586,7 @@ func (c *ProjectsAccountsLookupCall) Header() http.Header {
 
 func (c *ProjectsAccountsLookupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1getaccountinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1getaccountinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5542,6 +5602,7 @@ func (c *ProjectsAccountsLookupCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.lookup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5577,9 +5638,11 @@ func (c *ProjectsAccountsLookupCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5628,8 +5691,7 @@ func (c *ProjectsAccountsQueryCall) Header() http.Header {
 
 func (c *ProjectsAccountsQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1queryuserinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1queryuserinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5645,6 +5707,7 @@ func (c *ProjectsAccountsQueryCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5680,9 +5743,11 @@ func (c *ProjectsAccountsQueryCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5735,8 +5800,7 @@ func (c *ProjectsAccountsSendOobCodeCall) Header() http.Header {
 
 func (c *ProjectsAccountsSendOobCodeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1getoobcoderequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1getoobcoderequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5752,6 +5816,7 @@ func (c *ProjectsAccountsSendOobCodeCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.sendOobCode", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5787,9 +5852,11 @@ func (c *ProjectsAccountsSendOobCodeCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.sendOobCode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5843,8 +5910,7 @@ func (c *ProjectsAccountsUpdateCall) Header() http.Header {
 
 func (c *ProjectsAccountsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1setaccountinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1setaccountinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5860,6 +5926,7 @@ func (c *ProjectsAccountsUpdateCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"targetProjectId": c.targetProjectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5895,9 +5962,11 @@ func (c *ProjectsAccountsUpdateCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.accounts.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5961,8 +6030,7 @@ func (c *ProjectsTenantsAccountsCall) Header() http.Header {
 
 func (c *ProjectsTenantsAccountsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1signuprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1signuprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5979,6 +6047,7 @@ func (c *ProjectsTenantsAccountsCall) doRequest(alt string) (*http.Response, err
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6014,9 +6083,11 @@ func (c *ProjectsTenantsAccountsCall) Do(opts ...googleapi.CallOption) (*GoogleC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6070,8 +6141,7 @@ func (c *ProjectsTenantsCreateSessionCookieCall) Header() http.Header {
 
 func (c *ProjectsTenantsCreateSessionCookieCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1createsessioncookierequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1createsessioncookierequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6088,6 +6158,7 @@ func (c *ProjectsTenantsCreateSessionCookieCall) doRequest(alt string) (*http.Re
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.createSessionCookie", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6123,9 +6194,11 @@ func (c *ProjectsTenantsCreateSessionCookieCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.createSessionCookie", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6181,8 +6254,7 @@ func (c *ProjectsTenantsAccountsBatchCreateCall) Header() http.Header {
 
 func (c *ProjectsTenantsAccountsBatchCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1uploadaccountrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1uploadaccountrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6199,6 +6271,7 @@ func (c *ProjectsTenantsAccountsBatchCreateCall) doRequest(alt string) (*http.Re
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.batchCreate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6234,9 +6307,11 @@ func (c *ProjectsTenantsAccountsBatchCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.batchCreate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6295,8 +6370,7 @@ func (c *ProjectsTenantsAccountsBatchDeleteCall) Header() http.Header {
 
 func (c *ProjectsTenantsAccountsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1batchdeleteaccountsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1batchdeleteaccountsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6313,6 +6387,7 @@ func (c *ProjectsTenantsAccountsBatchDeleteCall) doRequest(alt string) (*http.Re
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6348,9 +6423,11 @@ func (c *ProjectsTenantsAccountsBatchDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6441,12 +6518,11 @@ func (c *ProjectsTenantsAccountsBatchGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{+targetProjectId}/tenants/{+tenantId}/accounts:batchGet")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6455,6 +6531,7 @@ func (c *ProjectsTenantsAccountsBatchGetCall) doRequest(alt string) (*http.Respo
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.batchGet", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6490,9 +6567,11 @@ func (c *ProjectsTenantsAccountsBatchGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6569,8 +6648,7 @@ func (c *ProjectsTenantsAccountsDeleteCall) Header() http.Header {
 
 func (c *ProjectsTenantsAccountsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1deleteaccountrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1deleteaccountrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6587,6 +6665,7 @@ func (c *ProjectsTenantsAccountsDeleteCall) doRequest(alt string) (*http.Respons
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.delete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6622,9 +6701,11 @@ func (c *ProjectsTenantsAccountsDeleteCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6683,8 +6764,7 @@ func (c *ProjectsTenantsAccountsLookupCall) Header() http.Header {
 
 func (c *ProjectsTenantsAccountsLookupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1getaccountinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1getaccountinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6701,6 +6781,7 @@ func (c *ProjectsTenantsAccountsLookupCall) doRequest(alt string) (*http.Respons
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.lookup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6736,9 +6817,11 @@ func (c *ProjectsTenantsAccountsLookupCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6790,8 +6873,7 @@ func (c *ProjectsTenantsAccountsQueryCall) Header() http.Header {
 
 func (c *ProjectsTenantsAccountsQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1queryuserinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1queryuserinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6808,6 +6890,7 @@ func (c *ProjectsTenantsAccountsQueryCall) doRequest(alt string) (*http.Response
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6843,9 +6926,11 @@ func (c *ProjectsTenantsAccountsQueryCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6902,8 +6987,7 @@ func (c *ProjectsTenantsAccountsSendOobCodeCall) Header() http.Header {
 
 func (c *ProjectsTenantsAccountsSendOobCodeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1getoobcoderequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1getoobcoderequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6920,6 +7004,7 @@ func (c *ProjectsTenantsAccountsSendOobCodeCall) doRequest(alt string) (*http.Re
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.sendOobCode", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6955,9 +7040,11 @@ func (c *ProjectsTenantsAccountsSendOobCodeCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.sendOobCode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7016,8 +7103,7 @@ func (c *ProjectsTenantsAccountsUpdateCall) Header() http.Header {
 
 func (c *ProjectsTenantsAccountsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv1setaccountinforequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv1setaccountinforequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7034,6 +7120,7 @@ func (c *ProjectsTenantsAccountsUpdateCall) doRequest(alt string) (*http.Respons
 		"targetProjectId": c.targetProjectId,
 		"tenantId":        c.tenantId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7069,9 +7156,11 @@ func (c *ProjectsTenantsAccountsUpdateCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.accounts.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7194,16 +7283,16 @@ func (c *V1GetProjectsCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.getProjects", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7239,9 +7328,11 @@ func (c *V1GetProjectsCall) Do(opts ...googleapi.CallOption) (*GoogleCloudIdenti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.getProjects", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7297,16 +7388,16 @@ func (c *V1GetPublicKeysCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/publicKeys")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.getPublicKeys", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7321,6 +7412,7 @@ func (c *V1GetPublicKeysCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.getPublicKeys", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -7375,16 +7467,16 @@ func (c *V1GetRecaptchaParamsCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/recaptchaParams")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.getRecaptchaParams", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7420,9 +7512,11 @@ func (c *V1GetRecaptchaParamsCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.getRecaptchaParams", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7478,16 +7572,16 @@ func (c *V1GetSessionCookiePublicKeysCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/sessionCookiePublicKeys")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.getSessionCookiePublicKeys", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7523,8 +7617,10 @@ func (c *V1GetSessionCookiePublicKeysCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.getSessionCookiePublicKeys", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

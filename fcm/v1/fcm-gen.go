@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "fcm:v1"
 const apiName = "fcm"
@@ -125,7 +128,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,13 +148,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -188,6 +191,10 @@ type ProjectsMessagesService struct {
 // AndroidConfig: Android specific options for messages sent through FCM
 // connection server (https://goo.gl/4GLdUl).
 type AndroidConfig struct {
+	// BandwidthConstrainedOk: Optional. If set to true, messages will be allowed
+	// to be delivered to the app while the device is in bandwidth constrained
+	// mode.
+	BandwidthConstrainedOk bool `json:"bandwidthConstrainedOk,omitempty"`
 	// CollapseKey: An identifier of a group of messages that can be collapsed, so
 	// that only the last message gets sent when delivery can be resumed. A maximum
 	// of 4 different collapse keys is allowed at any given time.
@@ -236,22 +243,22 @@ type AndroidConfig struct {
 	// expressed in JSON format as "3.000000001s". The ttl will be rounded down to
 	// the nearest second.
 	Ttl string `json:"ttl,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "CollapseKey") to
+	// ForceSendFields is a list of field names (e.g. "BandwidthConstrainedOk") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CollapseKey") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "BandwidthConstrainedOk") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidConfig) MarshalJSON() ([]byte, error) {
+func (s AndroidConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidFcmOptions: Options for features provided by the FCM SDK for Android.
@@ -271,9 +278,9 @@ type AndroidFcmOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidFcmOptions) MarshalJSON() ([]byte, error) {
+func (s AndroidFcmOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidFcmOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidNotification: Notification to send to android devices.
@@ -465,9 +472,9 @@ type AndroidNotification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidNotification) MarshalJSON() ([]byte, error) {
+func (s AndroidNotification) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidNotification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApnsConfig: Apple Push Notification Service (https://goo.gl/MXRTPa) specific
@@ -482,6 +489,18 @@ type ApnsConfig struct {
 	// backend sets a default value for `apns-expiration` of 30 days and a default
 	// value for `apns-priority` of 10 if not explicitly set.
 	Headers map[string]string `json:"headers,omitempty"`
+	// LiveActivityToken: Optional. Apple Live Activity
+	// (https://developer.apple.com/design/human-interface-guidelines/live-activities)
+	// token to send updates to. This token can either be a push token or
+	// push-to-start
+	// (https://developer.apple.com/documentation/activitykit/activity/pushtostarttoken)
+	// token from Apple. To start, update, or end a live activity remotely using
+	// FCM, construct an `aps payload`
+	// (https://developer.apple.com/documentation/activitykit/starting-and-updating-live-activities-with-activitykit-push-notifications#Construct-the-payload-that-starts-a-Live-Activity)
+	// and put it in the `apns.payload`
+	// (https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#ApnsConfig)
+	// field.
+	LiveActivityToken string `json:"liveActivityToken,omitempty"`
 	// Payload: APNs payload as a JSON object, including both `aps` dictionary and
 	// custom payload. See Payload Key Reference
 	// (https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/generating_a_remote_notification).
@@ -501,9 +520,9 @@ type ApnsConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApnsConfig) MarshalJSON() ([]byte, error) {
+func (s ApnsConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ApnsConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApnsFcmOptions: Options for features provided by the FCM SDK for iOS.
@@ -527,9 +546,9 @@ type ApnsFcmOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApnsFcmOptions) MarshalJSON() ([]byte, error) {
+func (s ApnsFcmOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ApnsFcmOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Color: Represents a color in the RGBA color space. This representation is
@@ -610,9 +629,9 @@ type Color struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Color) MarshalJSON() ([]byte, error) {
+func (s Color) MarshalJSON() ([]byte, error) {
 	type NoMethod Color
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Color) UnmarshalJSON(data []byte) error {
@@ -653,9 +672,9 @@ type FcmOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FcmOptions) MarshalJSON() ([]byte, error) {
+func (s FcmOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod FcmOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LightSettings: Settings to control notification LED.
@@ -684,9 +703,9 @@ type LightSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LightSettings) MarshalJSON() ([]byte, error) {
+func (s LightSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod LightSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Message: Message to send by Firebase Cloud Messaging Service.
@@ -740,9 +759,9 @@ type Message struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Message) MarshalJSON() ([]byte, error) {
+func (s Message) MarshalJSON() ([]byte, error) {
 	type NoMethod Message
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Notification: Basic notification template to use across all platforms.
@@ -771,9 +790,9 @@ type Notification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Notification) MarshalJSON() ([]byte, error) {
+func (s Notification) MarshalJSON() ([]byte, error) {
 	type NoMethod Notification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SendMessageRequest: Request to send a message to specified target.
@@ -796,9 +815,9 @@ type SendMessageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SendMessageRequest) MarshalJSON() ([]byte, error) {
+func (s SendMessageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SendMessageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebpushConfig: Webpush protocol (https://tools.ietf.org/html/rfc8030)
@@ -833,9 +852,9 @@ type WebpushConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebpushConfig) MarshalJSON() ([]byte, error) {
+func (s WebpushConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod WebpushConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebpushFcmOptions: Options for features provided by the FCM SDK for Web.
@@ -858,9 +877,9 @@ type WebpushFcmOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebpushFcmOptions) MarshalJSON() ([]byte, error) {
+func (s WebpushFcmOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod WebpushFcmOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsMessagesSendCall struct {
@@ -876,9 +895,9 @@ type ProjectsMessagesSendCall struct {
 // condition).
 //
 //   - parent: It contains the Firebase project id (i.e. the unique identifier
-//     for your Firebase project), in the format of `projects/{project_id}`. For
-//     legacy support, the numeric project number with no padding is also
-//     supported in the format of `projects/{project_number}`.
+//     for your Firebase project), in the format of `projects/{project_id}`. The
+//     numeric project number with no padding is also supported in the format of
+//     `projects/{project_number}`.
 func (r *ProjectsMessagesService) Send(parentid string, sendmessagerequest *SendMessageRequest) *ProjectsMessagesSendCall {
 	c := &ProjectsMessagesSendCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parentid = parentid
@@ -911,8 +930,7 @@ func (c *ProjectsMessagesSendCall) Header() http.Header {
 
 func (c *ProjectsMessagesSendCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sendmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sendmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -928,6 +946,7 @@ func (c *ProjectsMessagesSendCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "fcm.projects.messages.send", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -962,8 +981,10 @@ func (c *ProjectsMessagesSendCall) Do(opts ...googleapi.CallOption) (*Message, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "fcm.projects.messages.send", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "analyticshub:v1beta1"
 const apiName = "analyticshub"
@@ -125,7 +128,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Organizations = NewOrganizationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,14 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Organizations = NewOrganizationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -281,9 +284,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -316,9 +319,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BigQueryDatasetSource: A reference to a shared dataset. It is an existing
@@ -344,9 +347,9 @@ type BigQueryDatasetSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BigQueryDatasetSource) MarshalJSON() ([]byte, error) {
+func (s BigQueryDatasetSource) MarshalJSON() ([]byte, error) {
 	type NoMethod BigQueryDatasetSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -443,9 +446,32 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CommercialInfo: Commercial info metadata for this subscription.
+type CommercialInfo struct {
+	// CloudMarketplace: Output only. This is set when the subscription is
+	// commercialised via Cloud Marketplace.
+	CloudMarketplace *GoogleCloudMarketplaceInfo `json:"cloudMarketplace,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CloudMarketplace") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CloudMarketplace") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CommercialInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod CommercialInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataExchange: A data exchange is a container that lets you share data. Along
@@ -495,9 +521,9 @@ type DataExchange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataExchange) MarshalJSON() ([]byte, error) {
+func (s DataExchange) MarshalJSON() ([]byte, error) {
 	type NoMethod DataExchange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataProvider: Contains details of the data provider.
@@ -520,73 +546,9 @@ type DataProvider struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataProvider) MarshalJSON() ([]byte, error) {
+func (s DataProvider) MarshalJSON() ([]byte, error) {
 	type NoMethod DataProvider
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// DestinationDataset: Defines the destination bigquery dataset.
-type DestinationDataset struct {
-	// DatasetReference: Required. A reference that identifies the destination
-	// dataset.
-	DatasetReference *DestinationDatasetReference `json:"datasetReference,omitempty"`
-	// Description: Optional. A user-friendly description of the dataset.
-	Description string `json:"description,omitempty"`
-	// FriendlyName: Optional. A descriptive name for the dataset.
-	FriendlyName string `json:"friendlyName,omitempty"`
-	// Labels: Optional. The labels associated with this dataset. You can use these
-	// to organize and group your datasets. You can set this property when
-	// inserting or updating a dataset. See
-	// https://cloud.google.com/resource-manager/docs/creating-managing-labels for
-	// more information.
-	Labels map[string]string `json:"labels,omitempty"`
-	// Location: Required. The geographic location where the dataset should reside.
-	// See https://cloud.google.com/bigquery/docs/locations for supported
-	// locations.
-	Location string `json:"location,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "DatasetReference") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "DatasetReference") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *DestinationDataset) MarshalJSON() ([]byte, error) {
-	type NoMethod DestinationDataset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// DestinationDatasetReference: Contains the reference that identifies a
-// destination bigquery dataset.
-type DestinationDatasetReference struct {
-	// DatasetId: Required. A unique ID for this dataset, without the project name.
-	// The ID must contain only letters (a-z, A-Z), numbers (0-9), or underscores
-	// (_). The maximum length is 1,024 characters.
-	DatasetId string `json:"datasetId,omitempty"`
-	// ProjectId: Required. The ID of the project containing this dataset.
-	ProjectId string `json:"projectId,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "DatasetId") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "DatasetId") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *DestinationDatasetReference) MarshalJSON() ([]byte, error) {
-	type NoMethod DestinationDatasetReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -641,9 +603,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIamPolicyRequest: Request message for `GetIamPolicy` method.
@@ -664,9 +626,9 @@ type GetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetPolicyOptions: Encapsulates settings provided to GetIamPolicy.
@@ -696,9 +658,95 @@ type GetPolicyOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetPolicyOptions) MarshalJSON() ([]byte, error) {
+func (s GetPolicyOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GetPolicyOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudBigqueryDataexchangeV1beta1DestinationDataset: Defines the
+// destination bigquery dataset.
+type GoogleCloudBigqueryDataexchangeV1beta1DestinationDataset struct {
+	// DatasetReference: Required. A reference that identifies the destination
+	// dataset.
+	DatasetReference *GoogleCloudBigqueryDataexchangeV1beta1DestinationDatasetReference `json:"datasetReference,omitempty"`
+	// Description: Optional. A user-friendly description of the dataset.
+	Description string `json:"description,omitempty"`
+	// FriendlyName: Optional. A descriptive name for the dataset.
+	FriendlyName string `json:"friendlyName,omitempty"`
+	// Labels: Optional. The labels associated with this dataset. You can use these
+	// to organize and group your datasets. You can set this property when
+	// inserting or updating a dataset. See
+	// https://cloud.google.com/resource-manager/docs/creating-managing-labels for
+	// more information.
+	Labels map[string]string `json:"labels,omitempty"`
+	// Location: Required. The geographic location where the dataset should reside.
+	// See https://cloud.google.com/bigquery/docs/locations for supported
+	// locations.
+	Location string `json:"location,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DatasetReference") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DatasetReference") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudBigqueryDataexchangeV1beta1DestinationDataset) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudBigqueryDataexchangeV1beta1DestinationDataset
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type GoogleCloudBigqueryDataexchangeV1beta1DestinationDatasetReference struct {
+	// DatasetId: Required. A unique ID for this dataset, without the project name.
+	// The ID must contain only letters (a-z, A-Z), numbers (0-9), or underscores
+	// (_). The maximum length is 1,024 characters.
+	DatasetId string `json:"datasetId,omitempty"`
+	// ProjectId: Required. The ID of the project containing this dataset.
+	ProjectId string `json:"projectId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DatasetId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DatasetId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudBigqueryDataexchangeV1beta1DestinationDatasetReference) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudBigqueryDataexchangeV1beta1DestinationDatasetReference
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudMarketplaceInfo: Cloud Marketplace commercial metadata for this
+// subscription.
+type GoogleCloudMarketplaceInfo struct {
+	// Order: Resource name of the Marketplace Order.
+	Order string `json:"order,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Order") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Order") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudMarketplaceInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudMarketplaceInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LinkedResource: Reference to a linked resource tracked by this Subscription.
@@ -706,6 +754,11 @@ type LinkedResource struct {
 	// LinkedDataset: Output only. Name of the linked dataset, e.g.
 	// projects/subscriberproject/datasets/linked_dataset
 	LinkedDataset string `json:"linkedDataset,omitempty"`
+	// LinkedPubsubSubscription: Output only. Name of the Pub/Sub subscription,
+	// e.g. projects/subscriberproject/subscriptions/subscriptions/sub_id
+	LinkedPubsubSubscription string `json:"linkedPubsubSubscription,omitempty"`
+	// Listing: Output only. Listing for which linked resource is created.
+	Listing string `json:"listing,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "LinkedDataset") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -719,9 +772,9 @@ type LinkedResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LinkedResource) MarshalJSON() ([]byte, error) {
+func (s LinkedResource) MarshalJSON() ([]byte, error) {
 	type NoMethod LinkedResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDataExchangesResponse: Message for response to the list of data
@@ -747,9 +800,9 @@ type ListDataExchangesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDataExchangesResponse) MarshalJSON() ([]byte, error) {
+func (s ListDataExchangesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDataExchangesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListListingsResponse: Message for response to the list of Listings.
@@ -774,9 +827,9 @@ type ListListingsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListListingsResponse) MarshalJSON() ([]byte, error) {
+func (s ListListingsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListListingsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOrgDataExchangesResponse: Message for response to listing data exchanges
@@ -802,9 +855,9 @@ type ListOrgDataExchangesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOrgDataExchangesResponse) MarshalJSON() ([]byte, error) {
+func (s ListOrgDataExchangesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOrgDataExchangesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Listing: A listing is what gets published into a data exchange that a
@@ -874,7 +927,8 @@ type Listing struct {
 	// bytes.
 	RequestAccess string `json:"requestAccess,omitempty"`
 	// RestrictedExportConfig: Optional. If set, restricted export configuration
-	// will be propagated and enforced on the linked dataset.
+	// will be propagated and enforced on the linked dataset. This is a required
+	// field for data clean room exchanges.
 	RestrictedExportConfig *RestrictedExportConfig `json:"restrictedExportConfig,omitempty"`
 	// State: Output only. Current state of the listing.
 	//
@@ -899,9 +953,9 @@ type Listing struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Listing) MarshalJSON() ([]byte, error) {
+func (s Listing) MarshalJSON() ([]byte, error) {
 	type NoMethod Listing
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of a long-running operation in
@@ -938,9 +992,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -1030,9 +1084,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Publisher: Contains details of the listing publisher.
@@ -1055,9 +1109,9 @@ type Publisher struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Publisher) MarshalJSON() ([]byte, error) {
+func (s Publisher) MarshalJSON() ([]byte, error) {
 	type NoMethod Publisher
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RefreshSubscriptionResponse: Message for response when you refresh a
@@ -1078,9 +1132,9 @@ type RefreshSubscriptionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RefreshSubscriptionResponse) MarshalJSON() ([]byte, error) {
+func (s RefreshSubscriptionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RefreshSubscriptionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RestrictedExportConfig: Restricted export config, used to configure
@@ -1107,9 +1161,9 @@ type RestrictedExportConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestrictedExportConfig) MarshalJSON() ([]byte, error) {
+func (s RestrictedExportConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RestrictedExportConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -1136,9 +1190,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscribeDataExchangeResponse: Message for response when you subscribe to a
@@ -1159,16 +1213,16 @@ type SubscribeDataExchangeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscribeDataExchangeResponse) MarshalJSON() ([]byte, error) {
+func (s SubscribeDataExchangeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscribeDataExchangeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscribeListingRequest: Message for subscribing to a listing.
 type SubscribeListingRequest struct {
 	// DestinationDataset: BigQuery destination dataset to create for the
 	// subscriber.
-	DestinationDataset *DestinationDataset `json:"destinationDataset,omitempty"`
+	DestinationDataset *GoogleCloudBigqueryDataexchangeV1beta1DestinationDataset `json:"destinationDataset,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DestinationDataset") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1182,9 +1236,9 @@ type SubscribeListingRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubscribeListingRequest) MarshalJSON() ([]byte, error) {
+func (s SubscribeListingRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SubscribeListingRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubscribeListingResponse: Message for response when you subscribe to a
@@ -1198,6 +1252,10 @@ type SubscribeListingResponse struct {
 // particular set of published data. It contains references to associated
 // listings, data exchanges, and linked datasets.
 type Subscription struct {
+	// CommercialInfo: Output only. This is set if this is a commercial
+	// subscription i.e. if this subscription was created from subscribing to a
+	// commercial listing.
+	CommercialInfo *CommercialInfo `json:"commercialInfo,omitempty"`
 	// CreationTime: Output only. Timestamp when the subscription was created.
 	CreationTime string `json:"creationTime,omitempty"`
 	// DataExchange: Output only. Resource name of the source Data Exchange. e.g.
@@ -1212,9 +1270,16 @@ type Subscription struct {
 	// projects/123/datasets/my_dataset For listing-level subscriptions, this is a
 	// map of size 1. Only contains values if state == STATE_ACTIVE.
 	LinkedDatasetMap map[string]LinkedResource `json:"linkedDatasetMap,omitempty"`
+	// LinkedResources: Output only. Linked resources created in the subscription.
+	// Only contains values if state = STATE_ACTIVE.
+	LinkedResources []*LinkedResource `json:"linkedResources,omitempty"`
 	// Listing: Output only. Resource name of the source Listing. e.g.
 	// projects/123/locations/US/dataExchanges/456/listings/789
 	Listing string `json:"listing,omitempty"`
+	// LogLinkedDatasetQueryUserEmail: Output only. By default, false. If true, the
+	// Subscriber agreed to the email sharing mandate that is enabled for
+	// DataExchange/Listing.
+	LogLinkedDatasetQueryUserEmail bool `json:"logLinkedDatasetQueryUserEmail,omitempty"`
 	// Name: Output only. The resource name of the subscription. e.g.
 	// `projects/myproject/locations/US/subscriptions/123`.
 	Name string `json:"name,omitempty"`
@@ -1224,6 +1289,13 @@ type Subscription struct {
 	// OrganizationId: Output only. Organization of the project this subscription
 	// belongs to.
 	OrganizationId string `json:"organizationId,omitempty"`
+	// ResourceType: Output only. Listing shared asset type.
+	//
+	// Possible values:
+	//   "SHARED_RESOURCE_TYPE_UNSPECIFIED" - Not specified.
+	//   "BIGQUERY_DATASET" - BigQuery Dataset Asset.
+	//   "PUBSUB_TOPIC" - Pub/Sub Topic Asset.
+	ResourceType string `json:"resourceType,omitempty"`
 	// State: Output only. Current state of the subscription.
 	//
 	// Possible values:
@@ -1237,22 +1309,22 @@ type Subscription struct {
 	State string `json:"state,omitempty"`
 	// SubscriberContact: Output only. Email of the subscriber.
 	SubscriberContact string `json:"subscriberContact,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "CreationTime") to
+	// ForceSendFields is a list of field names (e.g. "CommercialInfo") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CreationTime") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "CommercialInfo") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *Subscription) MarshalJSON() ([]byte, error) {
+func (s Subscription) MarshalJSON() ([]byte, error) {
 	type NoMethod Subscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -1275,9 +1347,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -1302,9 +1374,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OrganizationsLocationsDataExchangesListCall struct {
@@ -1378,12 +1450,11 @@ func (c *OrganizationsLocationsDataExchangesListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+organization}/dataExchanges")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1391,6 +1462,7 @@ func (c *OrganizationsLocationsDataExchangesListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"organization": c.organization,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.organizations.locations.dataExchanges.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1426,9 +1498,11 @@ func (c *OrganizationsLocationsDataExchangesListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.organizations.locations.dataExchanges.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1507,8 +1581,7 @@ func (c *ProjectsLocationsDataExchangesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDataExchangesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataexchange)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.dataexchange)
 	if err != nil {
 		return nil, err
 	}
@@ -1524,6 +1597,7 @@ func (c *ProjectsLocationsDataExchangesCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1558,9 +1632,11 @@ func (c *ProjectsLocationsDataExchangesCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1607,12 +1683,11 @@ func (c *ProjectsLocationsDataExchangesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDataExchangesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1620,6 +1695,7 @@ func (c *ProjectsLocationsDataExchangesDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1654,9 +1730,11 @@ func (c *ProjectsLocationsDataExchangesDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1715,12 +1793,11 @@ func (c *ProjectsLocationsDataExchangesGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1728,6 +1805,7 @@ func (c *ProjectsLocationsDataExchangesGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1762,9 +1840,11 @@ func (c *ProjectsLocationsDataExchangesGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1814,8 +1894,7 @@ func (c *ProjectsLocationsDataExchangesGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsDataExchangesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1831,6 +1910,7 @@ func (c *ProjectsLocationsDataExchangesGetIamPolicyCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1865,9 +1945,11 @@ func (c *ProjectsLocationsDataExchangesGetIamPolicyCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1941,12 +2023,11 @@ func (c *ProjectsLocationsDataExchangesListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/dataExchanges")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1954,6 +2035,7 @@ func (c *ProjectsLocationsDataExchangesListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1989,9 +2071,11 @@ func (c *ProjectsLocationsDataExchangesListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2070,8 +2154,7 @@ func (c *ProjectsLocationsDataExchangesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDataExchangesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataexchange)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.dataexchange)
 	if err != nil {
 		return nil, err
 	}
@@ -2087,6 +2170,7 @@ func (c *ProjectsLocationsDataExchangesPatchCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2121,9 +2205,11 @@ func (c *ProjectsLocationsDataExchangesPatchCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2173,8 +2259,7 @@ func (c *ProjectsLocationsDataExchangesSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsDataExchangesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2190,6 +2275,7 @@ func (c *ProjectsLocationsDataExchangesSetIamPolicyCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2224,9 +2310,11 @@ func (c *ProjectsLocationsDataExchangesSetIamPolicyCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2277,8 +2365,7 @@ func (c *ProjectsLocationsDataExchangesTestIamPermissionsCall) Header() http.Hea
 
 func (c *ProjectsLocationsDataExchangesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2294,6 +2381,7 @@ func (c *ProjectsLocationsDataExchangesTestIamPermissionsCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2329,9 +2417,11 @@ func (c *ProjectsLocationsDataExchangesTestIamPermissionsCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2389,8 +2479,7 @@ func (c *ProjectsLocationsDataExchangesListingsCreateCall) Header() http.Header 
 
 func (c *ProjectsLocationsDataExchangesListingsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.listing)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.listing)
 	if err != nil {
 		return nil, err
 	}
@@ -2406,6 +2495,7 @@ func (c *ProjectsLocationsDataExchangesListingsCreateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2440,9 +2530,11 @@ func (c *ProjectsLocationsDataExchangesListingsCreateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2489,12 +2581,11 @@ func (c *ProjectsLocationsDataExchangesListingsDeleteCall) Header() http.Header 
 
 func (c *ProjectsLocationsDataExchangesListingsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2502,6 +2593,7 @@ func (c *ProjectsLocationsDataExchangesListingsDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2536,9 +2628,11 @@ func (c *ProjectsLocationsDataExchangesListingsDeleteCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2597,12 +2691,11 @@ func (c *ProjectsLocationsDataExchangesListingsGetCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2610,6 +2703,7 @@ func (c *ProjectsLocationsDataExchangesListingsGetCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2644,9 +2738,11 @@ func (c *ProjectsLocationsDataExchangesListingsGetCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2696,8 +2792,7 @@ func (c *ProjectsLocationsDataExchangesListingsGetIamPolicyCall) Header() http.H
 
 func (c *ProjectsLocationsDataExchangesListingsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2713,6 +2808,7 @@ func (c *ProjectsLocationsDataExchangesListingsGetIamPolicyCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2747,9 +2843,11 @@ func (c *ProjectsLocationsDataExchangesListingsGetIamPolicyCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2823,12 +2921,11 @@ func (c *ProjectsLocationsDataExchangesListingsListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/listings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2836,6 +2933,7 @@ func (c *ProjectsLocationsDataExchangesListingsListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2871,9 +2969,11 @@ func (c *ProjectsLocationsDataExchangesListingsListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2951,8 +3051,7 @@ func (c *ProjectsLocationsDataExchangesListingsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDataExchangesListingsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.listing)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.listing)
 	if err != nil {
 		return nil, err
 	}
@@ -2968,6 +3067,7 @@ func (c *ProjectsLocationsDataExchangesListingsPatchCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3002,9 +3102,11 @@ func (c *ProjectsLocationsDataExchangesListingsPatchCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3054,8 +3156,7 @@ func (c *ProjectsLocationsDataExchangesListingsSetIamPolicyCall) Header() http.H
 
 func (c *ProjectsLocationsDataExchangesListingsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3071,6 +3172,7 @@ func (c *ProjectsLocationsDataExchangesListingsSetIamPolicyCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3105,9 +3207,11 @@ func (c *ProjectsLocationsDataExchangesListingsSetIamPolicyCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3159,8 +3263,7 @@ func (c *ProjectsLocationsDataExchangesListingsSubscribeCall) Header() http.Head
 
 func (c *ProjectsLocationsDataExchangesListingsSubscribeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscribelistingrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscribelistingrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3176,6 +3279,7 @@ func (c *ProjectsLocationsDataExchangesListingsSubscribeCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.subscribe", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3211,9 +3315,11 @@ func (c *ProjectsLocationsDataExchangesListingsSubscribeCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.subscribe", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3264,8 +3370,7 @@ func (c *ProjectsLocationsDataExchangesListingsTestIamPermissionsCall) Header() 
 
 func (c *ProjectsLocationsDataExchangesListingsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3281,6 +3386,7 @@ func (c *ProjectsLocationsDataExchangesListingsTestIamPermissionsCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3316,8 +3422,10 @@ func (c *ProjectsLocationsDataExchangesListingsTestIamPermissionsCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticshub.projects.locations.dataExchanges.listings.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

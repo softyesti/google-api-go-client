@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "oslogin:v1beta"
 const apiName = "oslogin"
@@ -135,7 +138,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
+	s.Users = NewUsersService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -154,15 +159,16 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Users = NewUsersService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
+
+	Projects *ProjectsService
 
 	Users *UsersService
 }
@@ -172,6 +178,27 @@ func (s *Service) userAgent() string {
 		return googleapi.UserAgent
 	}
 	return googleapi.UserAgent + " " + s.UserAgent
+}
+
+func NewProjectsService(s *Service) *ProjectsService {
+	rs := &ProjectsService{s: s}
+	rs.Locations = NewProjectsLocationsService(s)
+	return rs
+}
+
+type ProjectsService struct {
+	s *Service
+
+	Locations *ProjectsLocationsService
+}
+
+func NewProjectsLocationsService(s *Service) *ProjectsLocationsService {
+	rs := &ProjectsLocationsService{s: s}
+	return rs
+}
+
+type ProjectsLocationsService struct {
+	s *Service
 }
 
 func NewUsersService(s *Service) *UsersService {
@@ -240,6 +267,69 @@ type Empty struct {
 	googleapi.ServerResponse `json:"-"`
 }
 
+// GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyRequest: A
+// request message for signing an SSH public key.
+type GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyRequest struct {
+	// AppEngineInstance: The App Engine instance to sign the SSH public key for.
+	// Expected format: services/{service}/versions/{version}/instances/{instance}
+	AppEngineInstance string `json:"appEngineInstance,omitempty"`
+	// ComputeInstance: The compute instance to sign the SSH public key for.
+	// Expected format:
+	// projects/{project}/zones/{zone}/instances/{numeric_instance_id}
+	ComputeInstance string `json:"computeInstance,omitempty"`
+	// ServiceAccount: Optional. The service account for the Compute instance. If
+	// the instance in question does not have a service account, this field should
+	// be left empty. If the wrong service account is provided, this operation will
+	// return a signed certificate that will not be accepted by the VM. During
+	// rollout of the new regionalized SignSshPublicKey API, this field will be
+	// required for all requests, but the VM will not initially carry out the
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+	// SshPublicKey: Required. The SSH public key to sign.
+	SshPublicKey string `json:"sshPublicKey,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AppEngineInstance") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AppEngineInstance") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyResponse: The
+// response message for signing an SSH public key.
+type GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyResponse struct {
+	// SignedSshPublicKey: The signed SSH public key to use in the SSH handshake.
+	SignedSshPublicKey string `json:"signedSshPublicKey,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "SignedSshPublicKey") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SignedSshPublicKey") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // ImportSshPublicKeyResponse: A response message for importing an SSH public
 // key.
 type ImportSshPublicKeyResponse struct {
@@ -263,9 +353,9 @@ type ImportSshPublicKeyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportSshPublicKeyResponse) MarshalJSON() ([]byte, error) {
+func (s ImportSshPublicKeyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportSshPublicKeyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoginProfile: The user profile information used for logging in to a virtual
@@ -296,9 +386,9 @@ type LoginProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoginProfile) MarshalJSON() ([]byte, error) {
+func (s LoginProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod LoginProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PosixAccount: The POSIX account information associated with a Google
@@ -333,6 +423,9 @@ type PosixAccount struct {
 	Uid int64 `json:"uid,omitempty,string"`
 	// Username: The username of the POSIX account.
 	Username string `json:"username,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 	// ForceSendFields is a list of field names (e.g. "AccountId") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -346,9 +439,34 @@ type PosixAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PosixAccount) MarshalJSON() ([]byte, error) {
+func (s PosixAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod PosixAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ProvisionPosixAccountRequest: A request message for creating a POSIX account
+// entry.
+type ProvisionPosixAccountRequest struct {
+	// Regions: Optional. The regions to wait for a POSIX account to be written to
+	// before returning a response. If unspecified, defaults to all regions.
+	// Regions are listed at https://cloud.google.com/about/locations#region.
+	Regions []string `json:"regions,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Regions") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Regions") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ProvisionPosixAccountRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ProvisionPosixAccountRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SecurityKey: The credential information for a Google registered security
@@ -378,9 +496,9 @@ type SecurityKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SecurityKey) MarshalJSON() ([]byte, error) {
+func (s SecurityKey) MarshalJSON() ([]byte, error) {
 	type NoMethod SecurityKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SignSshPublicKeyRequest struct {
@@ -399,9 +517,9 @@ type SignSshPublicKeyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SignSshPublicKeyRequest) MarshalJSON() ([]byte, error) {
+func (s SignSshPublicKeyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SignSshPublicKeyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SignSshPublicKeyResponse struct {
@@ -423,9 +541,9 @@ type SignSshPublicKeyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SignSshPublicKeyResponse) MarshalJSON() ([]byte, error) {
+func (s SignSshPublicKeyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SignSshPublicKeyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SshPublicKey: The SSH public key information associated with a Google
@@ -435,7 +553,8 @@ type SshPublicKey struct {
 	ExpirationTimeUsec int64 `json:"expirationTimeUsec,omitempty,string"`
 	// Fingerprint: Output only. The SHA-256 fingerprint of the SSH public key.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Key: Public key text in SSH format, defined by RFC4253 section 6.6.
+	// Key: Required. Public key text in SSH format, defined by RFC4253
+	// (https://www.ietf.org/rfc/rfc4253.txt) section 6.6.
 	Key string `json:"key,omitempty"`
 	// Name: Output only. The canonical resource name.
 	Name string `json:"name,omitempty"`
@@ -455,9 +574,9 @@ type SshPublicKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SshPublicKey) MarshalJSON() ([]byte, error) {
+func (s SshPublicKey) MarshalJSON() ([]byte, error) {
 	type NoMethod SshPublicKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UniversalTwoFactor: Security key information specific to the U2F protocol.
@@ -477,9 +596,9 @@ type UniversalTwoFactor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UniversalTwoFactor) MarshalJSON() ([]byte, error) {
+func (s UniversalTwoFactor) MarshalJSON() ([]byte, error) {
 	type NoMethod UniversalTwoFactor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebAuthn: Security key information specific to the Web Authentication
@@ -500,9 +619,115 @@ type WebAuthn struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebAuthn) MarshalJSON() ([]byte, error) {
+func (s WebAuthn) MarshalJSON() ([]byte, error) {
 	type NoMethod WebAuthn
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ProjectsLocationsSignSshPublicKeyCall struct {
+	s                                                                   *Service
+	parent                                                              string
+	googlecloudoslogincontrolplaneregionalv1betasignsshpublickeyrequest *GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyRequest
+	urlParams_                                                          gensupport.URLParams
+	ctx_                                                                context.Context
+	header_                                                             http.Header
+}
+
+// SignSshPublicKey: Signs an SSH public key for a user to authenticate to a
+// virtual machine on Google Compute Engine.
+//
+//   - parent: The parent for the signing request. Format:
+//     projects/{project}/locations/{location}.
+func (r *ProjectsLocationsService) SignSshPublicKey(parent string, googlecloudoslogincontrolplaneregionalv1betasignsshpublickeyrequest *GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyRequest) *ProjectsLocationsSignSshPublicKeyCall {
+	c := &ProjectsLocationsSignSshPublicKeyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.googlecloudoslogincontrolplaneregionalv1betasignsshpublickeyrequest = googlecloudoslogincontrolplaneregionalv1betasignsshpublickeyrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSignSshPublicKeyCall) Fields(s ...googleapi.Field) *ProjectsLocationsSignSshPublicKeyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSignSshPublicKeyCall) Context(ctx context.Context) *ProjectsLocationsSignSshPublicKeyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSignSshPublicKeyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSignSshPublicKeyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudoslogincontrolplaneregionalv1betasignsshpublickeyrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}:signSshPublicKey")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.projects.locations.signSshPublicKey", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "oslogin.projects.locations.signSshPublicKey" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyResponse.ServerR
+// esponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsSignSshPublicKeyCall) Do(opts ...googleapi.CallOption) (*GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.projects.locations.signSshPublicKey", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type UsersGetLoginProfileCall struct {
@@ -590,12 +815,11 @@ func (c *UsersGetLoginProfileCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}/loginProfile")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -603,6 +827,7 @@ func (c *UsersGetLoginProfileCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.getLoginProfile", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -637,9 +862,11 @@ func (c *UsersGetLoginProfileCall) Do(opts ...googleapi.CallOption) (*LoginProfi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.getLoginProfile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -720,8 +947,7 @@ func (c *UsersImportSshPublicKeyCall) Header() http.Header {
 
 func (c *UsersImportSshPublicKeyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sshpublickey)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sshpublickey)
 	if err != nil {
 		return nil, err
 	}
@@ -737,6 +963,7 @@ func (c *UsersImportSshPublicKeyCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.importSshPublicKey", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -772,9 +999,11 @@ func (c *UsersImportSshPublicKeyCall) Do(opts ...googleapi.CallOption) (*ImportS
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.importSshPublicKey", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -822,12 +1051,11 @@ func (c *UsersProjectsDeleteCall) Header() http.Header {
 
 func (c *UsersProjectsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -835,6 +1063,7 @@ func (c *UsersProjectsDeleteCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.projects.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -869,9 +1098,115 @@ func (c *UsersProjectsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.projects.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type UsersProjectsProvisionPosixAccountCall struct {
+	s                            *Service
+	name                         string
+	provisionposixaccountrequest *ProvisionPosixAccountRequest
+	urlParams_                   gensupport.URLParams
+	ctx_                         context.Context
+	header_                      http.Header
+}
+
+// ProvisionPosixAccount: Create a POSIX account if it doesn't exist.
+//
+//   - name: The unique ID for the user in format
+//     `users/{user}/projects/{project}`.
+func (r *UsersProjectsService) ProvisionPosixAccount(name string, provisionposixaccountrequest *ProvisionPosixAccountRequest) *UsersProjectsProvisionPosixAccountCall {
+	c := &UsersProjectsProvisionPosixAccountCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.provisionposixaccountrequest = provisionposixaccountrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *UsersProjectsProvisionPosixAccountCall) Fields(s ...googleapi.Field) *UsersProjectsProvisionPosixAccountCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *UsersProjectsProvisionPosixAccountCall) Context(ctx context.Context) *UsersProjectsProvisionPosixAccountCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *UsersProjectsProvisionPosixAccountCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *UsersProjectsProvisionPosixAccountCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.provisionposixaccountrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.projects.provisionPosixAccount", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "oslogin.users.projects.provisionPosixAccount" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *PosixAccount.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *UsersProjectsProvisionPosixAccountCall) Do(opts ...googleapi.CallOption) (*PosixAccount, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &PosixAccount{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.projects.provisionPosixAccount", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -887,10 +1222,7 @@ type UsersProjectsLocationsSignSshPublicKeyCall struct {
 // SignSshPublicKey: Signs an SSH public key for a user to authenticate to an
 // instance.
 //
-//   - parent: The parent project and zone for the signing request. This is
-//     needed to properly ensure per-organization ISS processing and potentially
-//     to provide for the possibility of zone-specific certificates used in the
-//     signing process.
+// - parent: The parent project and region for the signing request.
 func (r *UsersProjectsLocationsService) SignSshPublicKey(parent string, signsshpublickeyrequest *SignSshPublicKeyRequest) *UsersProjectsLocationsSignSshPublicKeyCall {
 	c := &UsersProjectsLocationsSignSshPublicKeyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -923,8 +1255,7 @@ func (c *UsersProjectsLocationsSignSshPublicKeyCall) Header() http.Header {
 
 func (c *UsersProjectsLocationsSignSshPublicKeyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.signsshpublickeyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.signsshpublickeyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -940,6 +1271,7 @@ func (c *UsersProjectsLocationsSignSshPublicKeyCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.projects.locations.signSshPublicKey", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -975,9 +1307,11 @@ func (c *UsersProjectsLocationsSignSshPublicKeyCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.projects.locations.signSshPublicKey", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -993,10 +1327,7 @@ type UsersProjectsZonesSignSshPublicKeyCall struct {
 // SignSshPublicKey: Signs an SSH public key for a user to authenticate to an
 // instance.
 //
-//   - parent: The parent project and zone for the signing request. This is
-//     needed to properly ensure per-organization ISS processing and potentially
-//     to provide for the possibility of zone-specific certificates used in the
-//     signing process.
+// - parent: The parent project and region for the signing request.
 func (r *UsersProjectsZonesService) SignSshPublicKey(parent string, signsshpublickeyrequest *SignSshPublicKeyRequest) *UsersProjectsZonesSignSshPublicKeyCall {
 	c := &UsersProjectsZonesSignSshPublicKeyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -1029,8 +1360,7 @@ func (c *UsersProjectsZonesSignSshPublicKeyCall) Header() http.Header {
 
 func (c *UsersProjectsZonesSignSshPublicKeyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.signsshpublickeyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.signsshpublickeyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1046,6 +1376,7 @@ func (c *UsersProjectsZonesSignSshPublicKeyCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.projects.zones.signSshPublicKey", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1081,9 +1412,11 @@ func (c *UsersProjectsZonesSignSshPublicKeyCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.projects.zones.signSshPublicKey", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1131,8 +1464,7 @@ func (c *UsersSshPublicKeysCreateCall) Header() http.Header {
 
 func (c *UsersSshPublicKeysCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sshpublickey)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sshpublickey)
 	if err != nil {
 		return nil, err
 	}
@@ -1148,6 +1480,7 @@ func (c *UsersSshPublicKeysCreateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.sshPublicKeys.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1182,9 +1515,11 @@ func (c *UsersSshPublicKeysCreateCall) Do(opts ...googleapi.CallOption) (*SshPub
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.sshPublicKeys.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1232,12 +1567,11 @@ func (c *UsersSshPublicKeysDeleteCall) Header() http.Header {
 
 func (c *UsersSshPublicKeysDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1245,6 +1579,7 @@ func (c *UsersSshPublicKeysDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.sshPublicKeys.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1279,9 +1614,11 @@ func (c *UsersSshPublicKeysDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.sshPublicKeys.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1341,12 +1678,11 @@ func (c *UsersSshPublicKeysGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1354,6 +1690,7 @@ func (c *UsersSshPublicKeysGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.sshPublicKeys.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1388,9 +1725,11 @@ func (c *UsersSshPublicKeysGetCall) Do(opts ...googleapi.CallOption) (*SshPublic
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.sshPublicKeys.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1448,8 +1787,7 @@ func (c *UsersSshPublicKeysPatchCall) Header() http.Header {
 
 func (c *UsersSshPublicKeysPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sshpublickey)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sshpublickey)
 	if err != nil {
 		return nil, err
 	}
@@ -1465,6 +1803,7 @@ func (c *UsersSshPublicKeysPatchCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "oslogin.users.sshPublicKeys.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1499,8 +1838,10 @@ func (c *UsersSshPublicKeysPatchCall) Do(opts ...googleapi.CallOption) (*SshPubl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "oslogin.users.sshPublicKeys.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

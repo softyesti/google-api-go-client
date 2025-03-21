@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "testing:v1"
 const apiName = "testing"
@@ -125,7 +128,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*APIService, 
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &APIService{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.ApplicationDetailService = NewApplicationDetailServiceService(s)
+	s.Projects = NewProjectsService(s)
+	s.TestEnvironmentCatalog = NewTestEnvironmentCatalogService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,15 +150,12 @@ func New(client *http.Client) (*APIService, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &APIService{client: client, BasePath: basePath}
-	s.ApplicationDetailService = NewApplicationDetailServiceService(s)
-	s.Projects = NewProjectsService(s)
-	s.TestEnvironmentCatalog = NewTestEnvironmentCatalogService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type APIService struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -238,9 +241,9 @@ type Account struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Account) MarshalJSON() ([]byte, error) {
+func (s Account) MarshalJSON() ([]byte, error) {
 	type NoMethod Account
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidDevice: A single Android device.
@@ -270,9 +273,9 @@ type AndroidDevice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidDevice) MarshalJSON() ([]byte, error) {
+func (s AndroidDevice) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidDevice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidDeviceCatalog: The currently supported Android devices.
@@ -296,9 +299,9 @@ type AndroidDeviceCatalog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidDeviceCatalog) MarshalJSON() ([]byte, error) {
+func (s AndroidDeviceCatalog) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidDeviceCatalog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidDeviceList: A list of Android device configurations in which the test
@@ -319,9 +322,9 @@ type AndroidDeviceList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidDeviceList) MarshalJSON() ([]byte, error) {
+func (s AndroidDeviceList) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidDeviceList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidInstrumentationTest: A test of an Android application that can
@@ -385,9 +388,9 @@ type AndroidInstrumentationTest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidInstrumentationTest) MarshalJSON() ([]byte, error) {
+func (s AndroidInstrumentationTest) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidInstrumentationTest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidMatrix: A set of Android device configuration permutations is defined
@@ -421,9 +424,9 @@ type AndroidMatrix struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidMatrix) MarshalJSON() ([]byte, error) {
+func (s AndroidMatrix) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidMatrix
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidModel: A description of an Android device tests may be run on.
@@ -455,6 +458,8 @@ type AndroidModel struct {
 	// Id: The unique opaque id for this model. Use this for invoking the
 	// TestExecutionService.
 	Id string `json:"id,omitempty"`
+	// LabInfo: Output only. Lab info of this device.
+	LabInfo *LabInfo `json:"labInfo,omitempty"`
 	// LowFpsVideoRecording: True if and only if tests with this model are recorded
 	// by stitching together screenshots. See use_low_spec_video_recording in
 	// device config.
@@ -498,9 +503,9 @@ type AndroidModel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidModel) MarshalJSON() ([]byte, error) {
+func (s AndroidModel) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidModel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidRoboTest: A test of an android application that explores the
@@ -559,9 +564,9 @@ type AndroidRoboTest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidRoboTest) MarshalJSON() ([]byte, error) {
+func (s AndroidRoboTest) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidRoboTest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidRuntimeConfiguration: Android configuration that can be selected at
@@ -584,9 +589,9 @@ type AndroidRuntimeConfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidRuntimeConfiguration) MarshalJSON() ([]byte, error) {
+func (s AndroidRuntimeConfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidRuntimeConfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidTestLoop: A test of an Android Application with a Test Loop. The
@@ -623,9 +628,9 @@ type AndroidTestLoop struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidTestLoop) MarshalJSON() ([]byte, error) {
+func (s AndroidTestLoop) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidTestLoop
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidVersion: A version of the Android OS.
@@ -660,9 +665,9 @@ type AndroidVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidVersion) MarshalJSON() ([]byte, error) {
+func (s AndroidVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Apk: An Android package file to install.
@@ -686,9 +691,9 @@ type Apk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Apk) MarshalJSON() ([]byte, error) {
+func (s Apk) MarshalJSON() ([]byte, error) {
 	type NoMethod Apk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApkDetail: Android application details based on application manifest and
@@ -708,9 +713,9 @@ type ApkDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApkDetail) MarshalJSON() ([]byte, error) {
+func (s ApkDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod ApkDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApkManifest: An Android app manifest. See
@@ -735,9 +740,10 @@ type ApkManifest struct {
 	// designed to run.
 	TargetSdkVersion int64 `json:"targetSdkVersion,omitempty"`
 	// UsesFeature: Feature usage tags defined in the manifest.
-	UsesFeature []*UsesFeature `json:"usesFeature,omitempty"`
-	// UsesPermission: Permissions declared to be used by the application
-	UsesPermission []string `json:"usesPermission,omitempty"`
+	UsesFeature    []*UsesFeature `json:"usesFeature,omitempty"`
+	UsesPermission []string       `json:"usesPermission,omitempty"`
+	// UsesPermissionTags: Permissions declared to be used by the application
+	UsesPermissionTags []*UsesPermissionTag `json:"usesPermissionTags,omitempty"`
 	// VersionCode: Version number used internally by the app.
 	VersionCode int64 `json:"versionCode,omitempty,string"`
 	// VersionName: Version number shown to users.
@@ -755,9 +761,9 @@ type ApkManifest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApkManifest) MarshalJSON() ([]byte, error) {
+func (s ApkManifest) MarshalJSON() ([]byte, error) {
 	type NoMethod ApkManifest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppBundle: An Android App Bundle file format, containing a BundleConfig.pb
@@ -780,9 +786,9 @@ type AppBundle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppBundle) MarshalJSON() ([]byte, error) {
+func (s AppBundle) MarshalJSON() ([]byte, error) {
 	type NoMethod AppBundle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelDeviceSessionRequest: The request object for cancelling a Device
@@ -840,9 +846,9 @@ type CancelTestMatrixResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CancelTestMatrixResponse) MarshalJSON() ([]byte, error) {
+func (s CancelTestMatrixResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CancelTestMatrixResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClientInfo: Information about the client which invoked the test.
@@ -864,9 +870,9 @@ type ClientInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClientInfo) MarshalJSON() ([]byte, error) {
+func (s ClientInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ClientInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClientInfoDetail: Key-value pair of detailed information about the client
@@ -890,9 +896,9 @@ type ClientInfoDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClientInfoDetail) MarshalJSON() ([]byte, error) {
+func (s ClientInfoDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod ClientInfoDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -928,9 +934,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceFile: A single device file description.
@@ -952,9 +958,9 @@ type DeviceFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceFile) MarshalJSON() ([]byte, error) {
+func (s DeviceFile) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceIpBlock: A single device IP block
@@ -986,9 +992,9 @@ type DeviceIpBlock struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceIpBlock) MarshalJSON() ([]byte, error) {
+func (s DeviceIpBlock) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceIpBlock
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceIpBlockCatalog: List of IP blocks used by the Firebase Test Lab
@@ -1008,9 +1014,9 @@ type DeviceIpBlockCatalog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceIpBlockCatalog) MarshalJSON() ([]byte, error) {
+func (s DeviceIpBlockCatalog) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceIpBlockCatalog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceSession: Protobuf message describing the device message, used from
@@ -1081,9 +1087,9 @@ type DeviceSession struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceSession) MarshalJSON() ([]byte, error) {
+func (s DeviceSession) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceSession
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DirectAccessVersionInfo: Denotes whether Direct Access is supported, and by
@@ -1114,9 +1120,9 @@ type DirectAccessVersionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DirectAccessVersionInfo) MarshalJSON() ([]byte, error) {
+func (s DirectAccessVersionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DirectAccessVersionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Distribution: Data about the relative number of devices running a given
@@ -1140,9 +1146,9 @@ type Distribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Distribution) MarshalJSON() ([]byte, error) {
+func (s Distribution) MarshalJSON() ([]byte, error) {
 	type NoMethod Distribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Distribution) UnmarshalJSON(data []byte) error {
@@ -1187,9 +1193,9 @@ type Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Environment) MarshalJSON() ([]byte, error) {
+func (s Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EnvironmentMatrix: The matrix of environments in which the test is to be
@@ -1215,9 +1221,9 @@ type EnvironmentMatrix struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnvironmentMatrix) MarshalJSON() ([]byte, error) {
+func (s EnvironmentMatrix) MarshalJSON() ([]byte, error) {
 	type NoMethod EnvironmentMatrix
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EnvironmentVariable: A key-value pair passed as an environment variable to
@@ -1240,9 +1246,9 @@ type EnvironmentVariable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnvironmentVariable) MarshalJSON() ([]byte, error) {
+func (s EnvironmentVariable) MarshalJSON() ([]byte, error) {
 	type NoMethod EnvironmentVariable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileReference: A reference to a file, used for user inputs.
@@ -1264,9 +1270,9 @@ type FileReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileReference) MarshalJSON() ([]byte, error) {
+func (s FileReference) MarshalJSON() ([]byte, error) {
 	type NoMethod FileReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetApkDetailsResponse: Response containing the details of the specified
@@ -1290,9 +1296,9 @@ type GetApkDetailsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetApkDetailsResponse) MarshalJSON() ([]byte, error) {
+func (s GetApkDetailsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetApkDetailsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAuto: Enables automatic Google account login. If set, the service
@@ -1323,9 +1329,9 @@ type GoogleCloudStorage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudStorage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudStorage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudStorage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntentFilter: The section of an tag.
@@ -1350,9 +1356,9 @@ type IntentFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntentFilter) MarshalJSON() ([]byte, error) {
+func (s IntentFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod IntentFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosDevice: A single iOS device.
@@ -1382,9 +1388,9 @@ type IosDevice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosDevice) MarshalJSON() ([]byte, error) {
+func (s IosDevice) MarshalJSON() ([]byte, error) {
 	type NoMethod IosDevice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosDeviceCatalog: The currently supported iOS devices.
@@ -1410,9 +1416,9 @@ type IosDeviceCatalog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosDeviceCatalog) MarshalJSON() ([]byte, error) {
+func (s IosDeviceCatalog) MarshalJSON() ([]byte, error) {
 	type NoMethod IosDeviceCatalog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosDeviceFile: A file or directory to install on the device before the test
@@ -1440,9 +1446,9 @@ type IosDeviceFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosDeviceFile) MarshalJSON() ([]byte, error) {
+func (s IosDeviceFile) MarshalJSON() ([]byte, error) {
 	type NoMethod IosDeviceFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosDeviceList: A list of iOS device configurations in which the test is to
@@ -1463,9 +1469,9 @@ type IosDeviceList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosDeviceList) MarshalJSON() ([]byte, error) {
+func (s IosDeviceList) MarshalJSON() ([]byte, error) {
 	type NoMethod IosDeviceList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosModel: A description of an iOS device tests may be run on.
@@ -1513,9 +1519,9 @@ type IosModel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosModel) MarshalJSON() ([]byte, error) {
+func (s IosModel) MarshalJSON() ([]byte, error) {
 	type NoMethod IosModel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosRoboTest: A test that explores an iOS application on an iOS device.
@@ -1528,7 +1534,8 @@ type IosRoboTest struct {
 	AppIpa *FileReference `json:"appIpa,omitempty"`
 	// RoboScript: An optional Roboscript to customize the crawl. See
 	// https://firebase.google.com/docs/test-lab/android/robo-scripts-reference for
-	// more information about Roboscripts.
+	// more information about Roboscripts. The maximum allowed file size of the
+	// roboscript is 10MiB.
 	RoboScript *FileReference `json:"roboScript,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AppBundleId") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1543,9 +1550,9 @@ type IosRoboTest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosRoboTest) MarshalJSON() ([]byte, error) {
+func (s IosRoboTest) MarshalJSON() ([]byte, error) {
 	type NoMethod IosRoboTest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosRuntimeConfiguration: iOS configuration that can be selected at the time
@@ -1568,9 +1575,9 @@ type IosRuntimeConfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosRuntimeConfiguration) MarshalJSON() ([]byte, error) {
+func (s IosRuntimeConfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod IosRuntimeConfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosTestLoop: A test of an iOS application that implements one or more game
@@ -1598,9 +1605,9 @@ type IosTestLoop struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosTestLoop) MarshalJSON() ([]byte, error) {
+func (s IosTestLoop) MarshalJSON() ([]byte, error) {
 	type NoMethod IosTestLoop
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosTestSetup: A description of how to set up an iOS device prior to running
@@ -1635,9 +1642,9 @@ type IosTestSetup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosTestSetup) MarshalJSON() ([]byte, error) {
+func (s IosTestSetup) MarshalJSON() ([]byte, error) {
 	type NoMethod IosTestSetup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosVersion: An iOS version.
@@ -1668,9 +1675,9 @@ type IosVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosVersion) MarshalJSON() ([]byte, error) {
+func (s IosVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod IosVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosXcTest: A test of an iOS application that uses the XCTest framework.
@@ -1713,9 +1720,35 @@ type IosXcTest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosXcTest) MarshalJSON() ([]byte, error) {
+func (s IosXcTest) MarshalJSON() ([]byte, error) {
 	type NoMethod IosXcTest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// LabInfo: Lab specific information for a device.
+type LabInfo struct {
+	// Name: Lab name where the device is hosted. If empty, the device is hosted in
+	// a Google owned lab.
+	Name string `json:"name,omitempty"`
+	// RegionCode: The Unicode country/region code (CLDR) of the lab where the
+	// device is hosted. E.g. "US" for United States, "CH" for Switzerland.
+	RegionCode string `json:"regionCode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Name") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Name") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s LabInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod LabInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LauncherActivityIntent: Specifies an intent that starts the main launcher
@@ -1747,9 +1780,9 @@ type ListDeviceSessionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDeviceSessionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDeviceSessionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDeviceSessionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Locale: A location/region designation for language.
@@ -1776,9 +1809,9 @@ type Locale struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Locale) MarshalJSON() ([]byte, error) {
+func (s Locale) MarshalJSON() ([]byte, error) {
 	type NoMethod Locale
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManualSharding: Shards test cases into the specified groups of packages,
@@ -1805,9 +1838,9 @@ type ManualSharding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManualSharding) MarshalJSON() ([]byte, error) {
+func (s ManualSharding) MarshalJSON() ([]byte, error) {
 	type NoMethod ManualSharding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MatrixErrorDetail: Describes a single error or issue with a matrix.
@@ -1832,9 +1865,9 @@ type MatrixErrorDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MatrixErrorDetail) MarshalJSON() ([]byte, error) {
+func (s MatrixErrorDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod MatrixErrorDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Metadata: A tag within a manifest.
@@ -1857,9 +1890,9 @@ type Metadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Metadata) MarshalJSON() ([]byte, error) {
+func (s Metadata) MarshalJSON() ([]byte, error) {
 	type NoMethod Metadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type NetworkConfiguration struct {
@@ -1882,9 +1915,9 @@ type NetworkConfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkConfiguration) MarshalJSON() ([]byte, error) {
+func (s NetworkConfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkConfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type NetworkConfigurationCatalog struct {
@@ -1902,9 +1935,9 @@ type NetworkConfigurationCatalog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkConfigurationCatalog) MarshalJSON() ([]byte, error) {
+func (s NetworkConfigurationCatalog) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkConfigurationCatalog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NoActivityIntent: Skips the starting activity
@@ -1933,9 +1966,9 @@ type ObbFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObbFile) MarshalJSON() ([]byte, error) {
+func (s ObbFile) MarshalJSON() ([]byte, error) {
 	type NoMethod ObbFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Orientation: Screen orientation of the device.
@@ -1959,9 +1992,9 @@ type Orientation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Orientation) MarshalJSON() ([]byte, error) {
+func (s Orientation) MarshalJSON() ([]byte, error) {
 	type NoMethod Orientation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerAndroidVersionInfo: A version-specific information of an Android model.
@@ -2014,9 +2047,9 @@ type PerAndroidVersionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerAndroidVersionInfo) MarshalJSON() ([]byte, error) {
+func (s PerAndroidVersionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod PerAndroidVersionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerIosVersionInfo: A version-specific information of an iOS model.
@@ -2063,9 +2096,9 @@ type PerIosVersionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerIosVersionInfo) MarshalJSON() ([]byte, error) {
+func (s PerIosVersionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod PerIosVersionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProvidedSoftwareCatalog: The currently provided software environment on the
@@ -2094,9 +2127,9 @@ type ProvidedSoftwareCatalog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProvidedSoftwareCatalog) MarshalJSON() ([]byte, error) {
+func (s ProvidedSoftwareCatalog) MarshalJSON() ([]byte, error) {
 	type NoMethod ProvidedSoftwareCatalog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RegularFile: A file or directory to install on the device before the test
@@ -2129,9 +2162,9 @@ type RegularFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegularFile) MarshalJSON() ([]byte, error) {
+func (s RegularFile) MarshalJSON() ([]byte, error) {
 	type NoMethod RegularFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResultStorage: Locations where the results of running the test are stored.
@@ -2160,9 +2193,9 @@ type ResultStorage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResultStorage) MarshalJSON() ([]byte, error) {
+func (s ResultStorage) MarshalJSON() ([]byte, error) {
 	type NoMethod ResultStorage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RoboDirective: Directs Robo to interact with a specific UI element if it is
@@ -2202,9 +2235,9 @@ type RoboDirective struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RoboDirective) MarshalJSON() ([]byte, error) {
+func (s RoboDirective) MarshalJSON() ([]byte, error) {
 	type NoMethod RoboDirective
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RoboStartingIntent: Message for specifying the start activities to crawl.
@@ -2230,9 +2263,9 @@ type RoboStartingIntent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RoboStartingIntent) MarshalJSON() ([]byte, error) {
+func (s RoboStartingIntent) MarshalJSON() ([]byte, error) {
 	type NoMethod RoboStartingIntent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Service: The section of an tag.
@@ -2255,9 +2288,9 @@ type Service struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Service) MarshalJSON() ([]byte, error) {
+func (s Service) MarshalJSON() ([]byte, error) {
 	type NoMethod Service
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SessionStateEvent: A message encapsulating a series of Session states and
@@ -2303,9 +2336,9 @@ type SessionStateEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SessionStateEvent) MarshalJSON() ([]byte, error) {
+func (s SessionStateEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod SessionStateEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Shard: Output only. Details about the shard.
@@ -2333,9 +2366,9 @@ type Shard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Shard) MarshalJSON() ([]byte, error) {
+func (s Shard) MarshalJSON() ([]byte, error) {
 	type NoMethod Shard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ShardingOption: Options for enabling sharding.
@@ -2360,9 +2393,9 @@ type ShardingOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ShardingOption) MarshalJSON() ([]byte, error) {
+func (s ShardingOption) MarshalJSON() ([]byte, error) {
 	type NoMethod ShardingOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SmartSharding: Shards test based on previous test case timing records.
@@ -2407,9 +2440,9 @@ type SmartSharding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SmartSharding) MarshalJSON() ([]byte, error) {
+func (s SmartSharding) MarshalJSON() ([]byte, error) {
 	type NoMethod SmartSharding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartActivityIntent: A starting intent specified by an action, uri, and
@@ -2434,9 +2467,9 @@ type StartActivityIntent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartActivityIntent) MarshalJSON() ([]byte, error) {
+func (s StartActivityIntent) MarshalJSON() ([]byte, error) {
 	type NoMethod StartActivityIntent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SystraceSetup struct {
@@ -2456,9 +2489,9 @@ type SystraceSetup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SystraceSetup) MarshalJSON() ([]byte, error) {
+func (s SystraceSetup) MarshalJSON() ([]byte, error) {
 	type NoMethod SystraceSetup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestDetails: Additional details about the progress of the running test.
@@ -2484,9 +2517,9 @@ type TestDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestDetails) MarshalJSON() ([]byte, error) {
+func (s TestDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod TestDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestEnvironmentCatalog: A description of a test environment.
@@ -2518,9 +2551,9 @@ type TestEnvironmentCatalog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestEnvironmentCatalog) MarshalJSON() ([]byte, error) {
+func (s TestEnvironmentCatalog) MarshalJSON() ([]byte, error) {
 	type NoMethod TestEnvironmentCatalog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestExecution: A single test executed in a single environment.
@@ -2588,9 +2621,9 @@ type TestExecution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestExecution) MarshalJSON() ([]byte, error) {
+func (s TestExecution) MarshalJSON() ([]byte, error) {
 	type NoMethod TestExecution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestMatrix: TestMatrix captures all details about a test. It contains the
@@ -2775,9 +2808,9 @@ type TestMatrix struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestMatrix) MarshalJSON() ([]byte, error) {
+func (s TestMatrix) MarshalJSON() ([]byte, error) {
 	type NoMethod TestMatrix
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestSetup: A description of how to set up the Android device prior to
@@ -2831,9 +2864,9 @@ type TestSetup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestSetup) MarshalJSON() ([]byte, error) {
+func (s TestSetup) MarshalJSON() ([]byte, error) {
 	type NoMethod TestSetup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestSpecification: A description of how to run the test.
@@ -2876,9 +2909,9 @@ type TestSpecification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestSpecification) MarshalJSON() ([]byte, error) {
+func (s TestSpecification) MarshalJSON() ([]byte, error) {
 	type NoMethod TestSpecification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestTargetsForShard: Test targets for a shard.
@@ -2901,9 +2934,9 @@ type TestTargetsForShard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestTargetsForShard) MarshalJSON() ([]byte, error) {
+func (s TestTargetsForShard) MarshalJSON() ([]byte, error) {
 	type NoMethod TestTargetsForShard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ToolResultsExecution: Represents a tool results execution resource. This has
@@ -2929,9 +2962,9 @@ type ToolResultsExecution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ToolResultsExecution) MarshalJSON() ([]byte, error) {
+func (s ToolResultsExecution) MarshalJSON() ([]byte, error) {
 	type NoMethod ToolResultsExecution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ToolResultsHistory: Represents a tool results history resource.
@@ -2953,9 +2986,9 @@ type ToolResultsHistory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ToolResultsHistory) MarshalJSON() ([]byte, error) {
+func (s ToolResultsHistory) MarshalJSON() ([]byte, error) {
 	type NoMethod ToolResultsHistory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ToolResultsStep: Represents a tool results step resource. This has the
@@ -2982,9 +3015,9 @@ type ToolResultsStep struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ToolResultsStep) MarshalJSON() ([]byte, error) {
+func (s ToolResultsStep) MarshalJSON() ([]byte, error) {
 	type NoMethod ToolResultsStep
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TrafficRule: Network emulation parameters.
@@ -3012,9 +3045,9 @@ type TrafficRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TrafficRule) MarshalJSON() ([]byte, error) {
+func (s TrafficRule) MarshalJSON() ([]byte, error) {
 	type NoMethod TrafficRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *TrafficRule) UnmarshalJSON(data []byte) error {
@@ -3064,9 +3097,9 @@ type UniformSharding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UniformSharding) MarshalJSON() ([]byte, error) {
+func (s UniformSharding) MarshalJSON() ([]byte, error) {
 	type NoMethod UniformSharding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UsesFeature: A tag within a manifest.
@@ -3089,9 +3122,34 @@ type UsesFeature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsesFeature) MarshalJSON() ([]byte, error) {
+func (s UsesFeature) MarshalJSON() ([]byte, error) {
 	type NoMethod UsesFeature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UsesPermissionTag: The tag within a manifest.
+// https://developer.android.com/guide/topics/manifest/uses-permission-element.html
+type UsesPermissionTag struct {
+	// MaxSdkVersion: The android:name value
+	MaxSdkVersion int64 `json:"maxSdkVersion,omitempty"`
+	// Name: The android:name value
+	Name string `json:"name,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "MaxSdkVersion") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "MaxSdkVersion") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UsesPermissionTag) MarshalJSON() ([]byte, error) {
+	type NoMethod UsesPermissionTag
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XcodeVersion: An Xcode version that an iOS version is compatible with.
@@ -3113,9 +3171,9 @@ type XcodeVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XcodeVersion) MarshalJSON() ([]byte, error) {
+func (s XcodeVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod XcodeVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ApplicationDetailServiceGetApkDetailsCall struct {
@@ -3167,8 +3225,7 @@ func (c *ApplicationDetailServiceGetApkDetailsCall) Header() http.Header {
 
 func (c *ApplicationDetailServiceGetApkDetailsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filereference)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.filereference)
 	if err != nil {
 		return nil, err
 	}
@@ -3181,6 +3238,7 @@ func (c *ApplicationDetailServiceGetApkDetailsCall) doRequest(alt string) (*http
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.applicationDetailService.getApkDetails", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3216,9 +3274,11 @@ func (c *ApplicationDetailServiceGetApkDetailsCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.applicationDetailService.getApkDetails", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3271,8 +3331,7 @@ func (c *ProjectsDeviceSessionsCancelCall) Header() http.Header {
 
 func (c *ProjectsDeviceSessionsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceldevicesessionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceldevicesessionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3288,6 +3347,7 @@ func (c *ProjectsDeviceSessionsCancelCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3322,9 +3382,11 @@ func (c *ProjectsDeviceSessionsCancelCall) Do(opts ...googleapi.CallOption) (*Em
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3373,8 +3435,7 @@ func (c *ProjectsDeviceSessionsCreateCall) Header() http.Header {
 
 func (c *ProjectsDeviceSessionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.devicesession)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.devicesession)
 	if err != nil {
 		return nil, err
 	}
@@ -3390,6 +3451,7 @@ func (c *ProjectsDeviceSessionsCreateCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3424,9 +3486,11 @@ func (c *ProjectsDeviceSessionsCreateCall) Do(opts ...googleapi.CallOption) (*De
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3488,12 +3552,11 @@ func (c *ProjectsDeviceSessionsGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3501,6 +3564,7 @@ func (c *ProjectsDeviceSessionsGetCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3535,9 +3599,11 @@ func (c *ProjectsDeviceSessionsGetCall) Do(opts ...googleapi.CallOption) (*Devic
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3617,12 +3683,11 @@ func (c *ProjectsDeviceSessionsListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/deviceSessions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3630,6 +3695,7 @@ func (c *ProjectsDeviceSessionsListCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3665,9 +3731,11 @@ func (c *ProjectsDeviceSessionsListCall) Do(opts ...googleapi.CallOption) (*List
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3747,8 +3815,7 @@ func (c *ProjectsDeviceSessionsPatchCall) Header() http.Header {
 
 func (c *ProjectsDeviceSessionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.devicesession)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.devicesession)
 	if err != nil {
 		return nil, err
 	}
@@ -3764,6 +3831,7 @@ func (c *ProjectsDeviceSessionsPatchCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3798,9 +3866,11 @@ func (c *ProjectsDeviceSessionsPatchCall) Do(opts ...googleapi.CallOption) (*Dev
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.projects.deviceSessions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3854,12 +3924,11 @@ func (c *ProjectsTestMatricesCancelCall) Header() http.Header {
 
 func (c *ProjectsTestMatricesCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/testMatrices/{testMatrixId}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3868,6 +3937,7 @@ func (c *ProjectsTestMatricesCancelCall) doRequest(alt string) (*http.Response, 
 		"projectId":    c.projectId,
 		"testMatrixId": c.testMatrixId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.projects.testMatrices.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3903,9 +3973,11 @@ func (c *ProjectsTestMatricesCancelCall) Do(opts ...googleapi.CallOption) (*Canc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.projects.testMatrices.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3970,8 +4042,7 @@ func (c *ProjectsTestMatricesCreateCall) Header() http.Header {
 
 func (c *ProjectsTestMatricesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testmatrix)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testmatrix)
 	if err != nil {
 		return nil, err
 	}
@@ -3987,6 +4058,7 @@ func (c *ProjectsTestMatricesCreateCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.projects.testMatrices.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4021,9 +4093,11 @@ func (c *ProjectsTestMatricesCreateCall) Do(opts ...googleapi.CallOption) (*Test
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.projects.testMatrices.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4091,12 +4165,11 @@ func (c *ProjectsTestMatricesGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/testMatrices/{testMatrixId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4105,6 +4178,7 @@ func (c *ProjectsTestMatricesGetCall) doRequest(alt string) (*http.Response, err
 		"projectId":    c.projectId,
 		"testMatrixId": c.testMatrixId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.projects.testMatrices.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4139,9 +4213,11 @@ func (c *ProjectsTestMatricesGetCall) Do(opts ...googleapi.CallOption) (*TestMat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.projects.testMatrices.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4209,12 +4285,11 @@ func (c *TestEnvironmentCatalogGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/testEnvironmentCatalog/{environmentType}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4222,6 +4297,7 @@ func (c *TestEnvironmentCatalogGetCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"environmentType": c.environmentType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "testing.testEnvironmentCatalog.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4257,8 +4333,10 @@ func (c *TestEnvironmentCatalogGetCall) Do(opts ...googleapi.CallOption) (*TestE
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "testing.testEnvironmentCatalog.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

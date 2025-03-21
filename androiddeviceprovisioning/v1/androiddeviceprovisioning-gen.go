@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "androiddeviceprovisioning:v1"
 const apiName = "androiddeviceprovisioning"
@@ -103,7 +106,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Customers = NewCustomersService(s)
+	s.Operations = NewOperationsService(s)
+	s.Partners = NewPartnersService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,15 +128,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Customers = NewCustomersService(s)
-	s.Operations = NewOperationsService(s)
-	s.Partners = NewPartnersService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -301,9 +304,9 @@ type ClaimDeviceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClaimDeviceRequest) MarshalJSON() ([]byte, error) {
+func (s ClaimDeviceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ClaimDeviceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClaimDeviceResponse: Response message containing device id of the claim.
@@ -329,9 +332,9 @@ type ClaimDeviceResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClaimDeviceResponse) MarshalJSON() ([]byte, error) {
+func (s ClaimDeviceResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ClaimDeviceResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClaimDevicesRequest: Request to claim devices asynchronously in batch.
@@ -353,9 +356,9 @@ type ClaimDevicesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClaimDevicesRequest) MarshalJSON() ([]byte, error) {
+func (s ClaimDevicesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ClaimDevicesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Company: A reseller, vendor, or customer in the zero-touch reseller and
@@ -431,9 +434,9 @@ type Company struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Company) MarshalJSON() ([]byte, error) {
+func (s Company) MarshalJSON() ([]byte, error) {
 	type NoMethod Company
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Configuration: A configuration collects the provisioning options for Android
@@ -506,9 +509,9 @@ type Configuration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Configuration) MarshalJSON() ([]byte, error) {
+func (s Configuration) MarshalJSON() ([]byte, error) {
 	type NoMethod Configuration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateCustomerRequest: Request message to create a customer.
@@ -531,9 +534,9 @@ type CreateCustomerRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateCustomerRequest) MarshalJSON() ([]byte, error) {
+func (s CreateCustomerRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateCustomerRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerApplyConfigurationRequest: Request message for customer to assign a
@@ -558,9 +561,9 @@ type CustomerApplyConfigurationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerApplyConfigurationRequest) MarshalJSON() ([]byte, error) {
+func (s CustomerApplyConfigurationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerApplyConfigurationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerListConfigurationsResponse: Response message of customer's listing
@@ -584,9 +587,9 @@ type CustomerListConfigurationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerListConfigurationsResponse) MarshalJSON() ([]byte, error) {
+func (s CustomerListConfigurationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerListConfigurationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerListCustomersResponse: Response message for listing my customers.
@@ -612,9 +615,9 @@ type CustomerListCustomersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerListCustomersResponse) MarshalJSON() ([]byte, error) {
+func (s CustomerListCustomersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerListCustomersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerListDevicesResponse: Response message of customer's liting devices.
@@ -640,9 +643,9 @@ type CustomerListDevicesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerListDevicesResponse) MarshalJSON() ([]byte, error) {
+func (s CustomerListDevicesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerListDevicesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerListDpcsResponse: Response message of customer's listing DPCs.
@@ -666,9 +669,9 @@ type CustomerListDpcsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerListDpcsResponse) MarshalJSON() ([]byte, error) {
+func (s CustomerListDpcsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerListDpcsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerRemoveConfigurationRequest: Request message for customer to remove
@@ -690,9 +693,9 @@ type CustomerRemoveConfigurationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerRemoveConfigurationRequest) MarshalJSON() ([]byte, error) {
+func (s CustomerRemoveConfigurationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerRemoveConfigurationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerUnclaimDeviceRequest: Request message for customer to unclaim a
@@ -714,9 +717,9 @@ type CustomerUnclaimDeviceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerUnclaimDeviceRequest) MarshalJSON() ([]byte, error) {
+func (s CustomerUnclaimDeviceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerUnclaimDeviceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Device: An Android or Chrome OS device registered for zero-touch enrollment.
@@ -758,9 +761,9 @@ type Device struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Device) MarshalJSON() ([]byte, error) {
+func (s Device) MarshalJSON() ([]byte, error) {
 	type NoMethod Device
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceClaim: A record of a device claimed by a reseller for a customer.
@@ -810,9 +813,9 @@ type DeviceClaim struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceClaim) MarshalJSON() ([]byte, error) {
+func (s DeviceClaim) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceClaim
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceIdentifier: Encapsulates hardware and product IDs to identify a
@@ -831,6 +834,8 @@ type DeviceIdentifier struct {
 	DeviceType string `json:"deviceType,omitempty"`
 	// Imei: The device’s IMEI number. Validated on input.
 	Imei string `json:"imei,omitempty"`
+	// Imei2: The device’s second IMEI number.
+	Imei2 string `json:"imei2,omitempty"`
 	// Manufacturer: The device manufacturer’s name. Matches the device's
 	// built-in value returned from `android.os.Build.MANUFACTURER`. Allowed values
 	// are listed in Android manufacturers
@@ -838,6 +843,8 @@ type DeviceIdentifier struct {
 	Manufacturer string `json:"manufacturer,omitempty"`
 	// Meid: The device’s MEID number.
 	Meid string `json:"meid,omitempty"`
+	// Meid2: The device’s second MEID number.
+	Meid2 string `json:"meid2,omitempty"`
 	// Model: The device model's name. Allowed values are listed in Android models
 	// (/zero-touch/resources/manufacturer-names#model-names) and Chrome OS models
 	// (https://support.google.com/chrome/a/answer/10130175#identify_compatible).
@@ -858,9 +865,9 @@ type DeviceIdentifier struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceIdentifier) MarshalJSON() ([]byte, error) {
+func (s DeviceIdentifier) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceIdentifier
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceMetadata: Metadata entries that can be attached to a `Device`. To
@@ -885,9 +892,9 @@ type DeviceMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceMetadata) MarshalJSON() ([]byte, error) {
+func (s DeviceMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceReference: A `DeviceReference` is an API abstraction that lets you
@@ -915,9 +922,9 @@ type DeviceReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceReference) MarshalJSON() ([]byte, error) {
+func (s DeviceReference) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DevicesLongRunningOperationMetadata: Tracks the status of a long-running
@@ -956,9 +963,9 @@ type DevicesLongRunningOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DevicesLongRunningOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s DevicesLongRunningOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod DevicesLongRunningOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DevicesLongRunningOperationResponse: Tracks the status of a long-running
@@ -986,9 +993,9 @@ type DevicesLongRunningOperationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DevicesLongRunningOperationResponse) MarshalJSON() ([]byte, error) {
+func (s DevicesLongRunningOperationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DevicesLongRunningOperationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Dpc: An EMM's DPC (device policy controller
@@ -1022,9 +1029,9 @@ type Dpc struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Dpc) MarshalJSON() ([]byte, error) {
+func (s Dpc) MarshalJSON() ([]byte, error) {
 	type NoMethod Dpc
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1058,9 +1065,9 @@ type FindDevicesByDeviceIdentifierRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FindDevicesByDeviceIdentifierRequest) MarshalJSON() ([]byte, error) {
+func (s FindDevicesByDeviceIdentifierRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod FindDevicesByDeviceIdentifierRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FindDevicesByDeviceIdentifierResponse: Response containing found devices.
@@ -1088,9 +1095,9 @@ type FindDevicesByDeviceIdentifierResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FindDevicesByDeviceIdentifierResponse) MarshalJSON() ([]byte, error) {
+func (s FindDevicesByDeviceIdentifierResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FindDevicesByDeviceIdentifierResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FindDevicesByOwnerRequest: Request to find devices by customers.
@@ -1125,9 +1132,9 @@ type FindDevicesByOwnerRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FindDevicesByOwnerRequest) MarshalJSON() ([]byte, error) {
+func (s FindDevicesByOwnerRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod FindDevicesByOwnerRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FindDevicesByOwnerResponse: Response containing found devices.
@@ -1155,9 +1162,9 @@ type FindDevicesByOwnerResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FindDevicesByOwnerResponse) MarshalJSON() ([]byte, error) {
+func (s FindDevicesByOwnerResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FindDevicesByOwnerResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetDeviceSimLockStateRequest: Request to get a device's SIM lock status.
@@ -1177,9 +1184,9 @@ type GetDeviceSimLockStateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetDeviceSimLockStateRequest) MarshalJSON() ([]byte, error) {
+func (s GetDeviceSimLockStateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetDeviceSimLockStateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetDeviceSimLockStateResponse: Response containing a device's SimLock state.
@@ -1207,9 +1214,9 @@ type GetDeviceSimLockStateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetDeviceSimLockStateResponse) MarshalJSON() ([]byte, error) {
+func (s GetDeviceSimLockStateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetDeviceSimLockStateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleWorkspaceAccount: A Google Workspace customer.
@@ -1232,9 +1239,9 @@ type GoogleWorkspaceAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleWorkspaceAccount) MarshalJSON() ([]byte, error) {
+func (s GoogleWorkspaceAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleWorkspaceAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCustomersResponse: Response message of all customers related to this
@@ -1263,9 +1270,9 @@ type ListCustomersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCustomersResponse) MarshalJSON() ([]byte, error) {
+func (s ListCustomersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCustomersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVendorCustomersResponse: Response message to list customers of the
@@ -1294,9 +1301,9 @@ type ListVendorCustomersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVendorCustomersResponse) MarshalJSON() ([]byte, error) {
+func (s ListVendorCustomersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVendorCustomersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVendorsResponse: Response message to list vendors of the partner.
@@ -1325,9 +1332,9 @@ type ListVendorsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVendorsResponse) MarshalJSON() ([]byte, error) {
+func (s ListVendorsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVendorsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1370,9 +1377,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationPerDevice: A task for each device in the operation. Corresponds to
@@ -1401,9 +1408,9 @@ type OperationPerDevice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationPerDevice) MarshalJSON() ([]byte, error) {
+func (s OperationPerDevice) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationPerDevice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartnerClaim: Identifies one claim request.
@@ -1446,9 +1453,9 @@ type PartnerClaim struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartnerClaim) MarshalJSON() ([]byte, error) {
+func (s PartnerClaim) MarshalJSON() ([]byte, error) {
 	type NoMethod PartnerClaim
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartnerUnclaim: Identifies one unclaim request.
@@ -1483,9 +1490,9 @@ type PartnerUnclaim struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartnerUnclaim) MarshalJSON() ([]byte, error) {
+func (s PartnerUnclaim) MarshalJSON() ([]byte, error) {
 	type NoMethod PartnerUnclaim
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerDeviceStatusInBatch: Captures the processing status for each device in
@@ -1531,9 +1538,9 @@ type PerDeviceStatusInBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerDeviceStatusInBatch) MarshalJSON() ([]byte, error) {
+func (s PerDeviceStatusInBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod PerDeviceStatusInBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -1565,9 +1572,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnclaimDeviceRequest: Request message to unclaim a device.
@@ -1602,9 +1609,9 @@ type UnclaimDeviceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnclaimDeviceRequest) MarshalJSON() ([]byte, error) {
+func (s UnclaimDeviceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UnclaimDeviceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnclaimDevicesRequest: Request to unclaim devices asynchronously in batch.
@@ -1624,9 +1631,9 @@ type UnclaimDevicesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnclaimDevicesRequest) MarshalJSON() ([]byte, error) {
+func (s UnclaimDevicesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UnclaimDevicesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateDeviceMetadataInBatchRequest: Request to update device metadata in
@@ -1647,9 +1654,9 @@ type UpdateDeviceMetadataInBatchRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateDeviceMetadataInBatchRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateDeviceMetadataInBatchRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateDeviceMetadataInBatchRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateDeviceMetadataRequest: Request to set metadata for a device.
@@ -1669,9 +1676,9 @@ type UpdateDeviceMetadataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateDeviceMetadataRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateDeviceMetadataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateDeviceMetadataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateMetadataArguments: Identifies metadata updates to one device.
@@ -1695,9 +1702,9 @@ type UpdateMetadataArguments struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateMetadataArguments) MarshalJSON() ([]byte, error) {
+func (s UpdateMetadataArguments) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateMetadataArguments
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CustomersListCall struct {
@@ -1714,8 +1721,8 @@ func (r *CustomersService) List() *CustomersListCall {
 	return c
 }
 
-// PageSize sets the optional parameter "pageSize": The maximum number of
-// customers to show in a page of results. A number between 1 and 100
+// PageSize sets the optional parameter "pageSize": Required. The maximum
+// number of customers to show in a page of results. A number between 1 and 100
 // (inclusive).
 func (c *CustomersListCall) PageSize(pageSize int64) *CustomersListCall {
 	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
@@ -1766,16 +1773,16 @@ func (c *CustomersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/customers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1811,9 +1818,11 @@ func (c *CustomersListCall) Do(opts ...googleapi.CallOption) (*CustomerListCusto
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1885,8 +1894,7 @@ func (c *CustomersConfigurationsCreateCall) Header() http.Header {
 
 func (c *CustomersConfigurationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.configuration)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.configuration)
 	if err != nil {
 		return nil, err
 	}
@@ -1902,6 +1910,7 @@ func (c *CustomersConfigurationsCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1936,9 +1945,11 @@ func (c *CustomersConfigurationsCreateCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1987,12 +1998,11 @@ func (c *CustomersConfigurationsDeleteCall) Header() http.Header {
 
 func (c *CustomersConfigurationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2000,6 +2010,7 @@ func (c *CustomersConfigurationsDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2034,9 +2045,11 @@ func (c *CustomersConfigurationsDeleteCall) Do(opts ...googleapi.CallOption) (*E
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2095,12 +2108,11 @@ func (c *CustomersConfigurationsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2108,6 +2120,7 @@ func (c *CustomersConfigurationsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2142,9 +2155,11 @@ func (c *CustomersConfigurationsGetCall) Do(opts ...googleapi.CallOption) (*Conf
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2203,12 +2218,11 @@ func (c *CustomersConfigurationsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/configurations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2216,6 +2230,7 @@ func (c *CustomersConfigurationsListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2251,9 +2266,11 @@ func (c *CustomersConfigurationsListCall) Do(opts ...googleapi.CallOption) (*Cus
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2313,8 +2330,7 @@ func (c *CustomersConfigurationsPatchCall) Header() http.Header {
 
 func (c *CustomersConfigurationsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.configuration)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.configuration)
 	if err != nil {
 		return nil, err
 	}
@@ -2330,6 +2346,7 @@ func (c *CustomersConfigurationsPatchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2364,9 +2381,11 @@ func (c *CustomersConfigurationsPatchCall) Do(opts ...googleapi.CallOption) (*Co
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.configurations.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2418,8 +2437,7 @@ func (c *CustomersDevicesApplyConfigurationCall) Header() http.Header {
 
 func (c *CustomersDevicesApplyConfigurationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customerapplyconfigurationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customerapplyconfigurationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2435,6 +2453,7 @@ func (c *CustomersDevicesApplyConfigurationCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.applyConfiguration", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2469,9 +2488,11 @@ func (c *CustomersDevicesApplyConfigurationCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.applyConfiguration", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2530,12 +2551,11 @@ func (c *CustomersDevicesGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2543,6 +2563,7 @@ func (c *CustomersDevicesGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2577,9 +2598,11 @@ func (c *CustomersDevicesGetCall) Do(opts ...googleapi.CallOption) (*Device, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2602,8 +2625,9 @@ func (r *CustomersDevicesService) List(parent string) *CustomersDevicesListCall 
 	return c
 }
 
-// PageSize sets the optional parameter "pageSize": The maximum number of
-// devices to show in a page of results. Must be between 1 and 100 inclusive.
+// PageSize sets the optional parameter "pageSize": Required. The maximum
+// number of devices to show in a page of results. Must be between 1 and 100
+// inclusive.
 func (c *CustomersDevicesListCall) PageSize(pageSize int64) *CustomersDevicesListCall {
 	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
 	return c
@@ -2652,12 +2676,11 @@ func (c *CustomersDevicesListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/devices")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2665,6 +2688,7 @@ func (c *CustomersDevicesListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2700,9 +2724,11 @@ func (c *CustomersDevicesListCall) Do(opts ...googleapi.CallOption) (*CustomerLi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2772,8 +2798,7 @@ func (c *CustomersDevicesRemoveConfigurationCall) Header() http.Header {
 
 func (c *CustomersDevicesRemoveConfigurationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customerremoveconfigurationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customerremoveconfigurationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2789,6 +2814,7 @@ func (c *CustomersDevicesRemoveConfigurationCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.removeConfiguration", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2823,9 +2849,11 @@ func (c *CustomersDevicesRemoveConfigurationCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.removeConfiguration", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2876,8 +2904,7 @@ func (c *CustomersDevicesUnclaimCall) Header() http.Header {
 
 func (c *CustomersDevicesUnclaimCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customerunclaimdevicerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customerunclaimdevicerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2893,6 +2920,7 @@ func (c *CustomersDevicesUnclaimCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.unclaim", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2927,9 +2955,11 @@ func (c *CustomersDevicesUnclaimCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.devices.unclaim", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2989,12 +3019,11 @@ func (c *CustomersDpcsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dpcs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3002,6 +3031,7 @@ func (c *CustomersDpcsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.dpcs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3037,9 +3067,11 @@ func (c *CustomersDpcsListCall) Do(opts ...googleapi.CallOption) (*CustomerListD
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.customers.dpcs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3099,12 +3131,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3112,6 +3143,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3146,9 +3178,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3201,8 +3235,7 @@ func (c *PartnersCustomersCreateCall) Header() http.Header {
 
 func (c *PartnersCustomersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createcustomerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createcustomerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3218,6 +3251,7 @@ func (c *PartnersCustomersCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.customers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3252,9 +3286,11 @@ func (c *PartnersCustomersCreateCall) Do(opts ...googleapi.CallOption) (*Company
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.customers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3328,12 +3364,11 @@ func (c *PartnersCustomersListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/partners/{+partnerId}/customers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3341,6 +3376,7 @@ func (c *PartnersCustomersListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.customers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3376,9 +3412,11 @@ func (c *PartnersCustomersListCall) Do(opts ...googleapi.CallOption) (*ListCusto
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.customers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3449,8 +3487,7 @@ func (c *PartnersDevicesClaimCall) Header() http.Header {
 
 func (c *PartnersDevicesClaimCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.claimdevicerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.claimdevicerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3466,6 +3503,7 @@ func (c *PartnersDevicesClaimCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.claim", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3501,9 +3539,11 @@ func (c *PartnersDevicesClaimCall) Do(opts ...googleapi.CallOption) (*ClaimDevic
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.claim", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3553,8 +3593,7 @@ func (c *PartnersDevicesClaimAsyncCall) Header() http.Header {
 
 func (c *PartnersDevicesClaimAsyncCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.claimdevicesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.claimdevicesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3570,6 +3609,7 @@ func (c *PartnersDevicesClaimAsyncCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.claimAsync", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3604,9 +3644,11 @@ func (c *PartnersDevicesClaimAsyncCall) Do(opts ...googleapi.CallOption) (*Opera
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.claimAsync", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3654,8 +3696,7 @@ func (c *PartnersDevicesFindByIdentifierCall) Header() http.Header {
 
 func (c *PartnersDevicesFindByIdentifierCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.finddevicesbydeviceidentifierrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.finddevicesbydeviceidentifierrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3671,6 +3712,7 @@ func (c *PartnersDevicesFindByIdentifierCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.findByIdentifier", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3706,9 +3748,11 @@ func (c *PartnersDevicesFindByIdentifierCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.findByIdentifier", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3780,8 +3824,7 @@ func (c *PartnersDevicesFindByOwnerCall) Header() http.Header {
 
 func (c *PartnersDevicesFindByOwnerCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.finddevicesbyownerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.finddevicesbyownerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3797,6 +3840,7 @@ func (c *PartnersDevicesFindByOwnerCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.findByOwner", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3832,9 +3876,11 @@ func (c *PartnersDevicesFindByOwnerCall) Do(opts ...googleapi.CallOption) (*Find
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.findByOwner", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3914,12 +3960,11 @@ func (c *PartnersDevicesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3927,6 +3972,7 @@ func (c *PartnersDevicesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3961,9 +4007,11 @@ func (c *PartnersDevicesGetCall) Do(opts ...googleapi.CallOption) (*Device, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4011,8 +4059,7 @@ func (c *PartnersDevicesGetSimLockStateCall) Header() http.Header {
 
 func (c *PartnersDevicesGetSimLockStateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getdevicesimlockstaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getdevicesimlockstaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4028,6 +4075,7 @@ func (c *PartnersDevicesGetSimLockStateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.getSimLockState", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4063,9 +4111,11 @@ func (c *PartnersDevicesGetSimLockStateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.getSimLockState", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4118,8 +4168,7 @@ func (c *PartnersDevicesMetadataCall) Header() http.Header {
 
 func (c *PartnersDevicesMetadataCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatedevicemetadatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatedevicemetadatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4136,6 +4185,7 @@ func (c *PartnersDevicesMetadataCall) doRequest(alt string) (*http.Response, err
 		"metadataOwnerId": strconv.FormatInt(c.metadataOwnerId, 10),
 		"deviceId":        strconv.FormatInt(c.deviceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.metadata", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4170,9 +4220,11 @@ func (c *PartnersDevicesMetadataCall) Do(opts ...googleapi.CallOption) (*DeviceM
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.metadata", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4221,8 +4273,7 @@ func (c *PartnersDevicesUnclaimCall) Header() http.Header {
 
 func (c *PartnersDevicesUnclaimCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.unclaimdevicerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.unclaimdevicerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4238,6 +4289,7 @@ func (c *PartnersDevicesUnclaimCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.unclaim", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4272,9 +4324,11 @@ func (c *PartnersDevicesUnclaimCall) Do(opts ...googleapi.CallOption) (*Empty, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.unclaim", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4325,8 +4379,7 @@ func (c *PartnersDevicesUnclaimAsyncCall) Header() http.Header {
 
 func (c *PartnersDevicesUnclaimAsyncCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.unclaimdevicesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.unclaimdevicesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4342,6 +4395,7 @@ func (c *PartnersDevicesUnclaimAsyncCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.unclaimAsync", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4376,9 +4430,11 @@ func (c *PartnersDevicesUnclaimAsyncCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.unclaimAsync", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4430,8 +4486,7 @@ func (c *PartnersDevicesUpdateMetadataAsyncCall) Header() http.Header {
 
 func (c *PartnersDevicesUpdateMetadataAsyncCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatedevicemetadatainbatchrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatedevicemetadatainbatchrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4447,6 +4502,7 @@ func (c *PartnersDevicesUpdateMetadataAsyncCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"partnerId": strconv.FormatInt(c.partnerId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.updateMetadataAsync", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4481,9 +4537,11 @@ func (c *PartnersDevicesUpdateMetadataAsyncCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.devices.updateMetadataAsync", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4555,12 +4613,11 @@ func (c *PartnersVendorsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/vendors")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4568,6 +4625,7 @@ func (c *PartnersVendorsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.vendors.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4603,9 +4661,11 @@ func (c *PartnersVendorsListCall) Do(opts ...googleapi.CallOption) (*ListVendors
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.vendors.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4699,12 +4759,11 @@ func (c *PartnersVendorsCustomersListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/customers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4712,6 +4771,7 @@ func (c *PartnersVendorsCustomersListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.vendors.customers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4747,9 +4807,11 @@ func (c *PartnersVendorsCustomersListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androiddeviceprovisioning.partners.vendors.customers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

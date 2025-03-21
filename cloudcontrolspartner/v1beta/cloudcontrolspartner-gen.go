@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "cloudcontrolspartner:v1beta"
 const apiName = "cloudcontrolspartner"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Organizations = NewOrganizationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Organizations = NewOrganizationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -250,9 +253,9 @@ type AccessApprovalRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccessApprovalRequest) MarshalJSON() ([]byte, error) {
+func (s AccessApprovalRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AccessApprovalRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccessReason: Reason for the access.
@@ -299,9 +302,9 @@ type AccessReason struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccessReason) MarshalJSON() ([]byte, error) {
+func (s AccessReason) MarshalJSON() ([]byte, error) {
 	type NoMethod AccessReason
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConnectionError: Information around the error that occurred if the
@@ -324,9 +327,9 @@ type ConnectionError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConnectionError) MarshalJSON() ([]byte, error) {
+func (s ConnectionError) MarshalJSON() ([]byte, error) {
 	type NoMethod ConnectionError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Console: Remediation instructions to resolve violation via cloud console
@@ -350,22 +353,26 @@ type Console struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Console) MarshalJSON() ([]byte, error) {
+func (s Console) MarshalJSON() ([]byte, error) {
 	type NoMethod Console
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Customer: Contains metadata around a Cloud Controls Partner Customer
 type Customer struct {
-	// CustomerOnboardingState: Container for customer onboarding steps
+	// CustomerOnboardingState: Output only. Container for customer onboarding
+	// steps
 	CustomerOnboardingState *CustomerOnboardingState `json:"customerOnboardingState,omitempty"`
-	// DisplayName: The customer organization's display name. E.g. "google.com".
+	// DisplayName: Required. Display name for the customer
 	DisplayName string `json:"displayName,omitempty"`
-	// IsOnboarded: Indicates whether a customer is fully onboarded
+	// IsOnboarded: Output only. Indicates whether a customer is fully onboarded
 	IsOnboarded bool `json:"isOnboarded,omitempty"`
 	// Name: Identifier. Format:
 	// `organizations/{organization}/locations/{location}/customers/{customer}`
 	Name string `json:"name,omitempty"`
+	// OrganizationDomain: Output only. The customer organization domain, extracted
+	// from CRM Organization’s display_name field. e.g. "google.com"
+	OrganizationDomain string `json:"organizationDomain,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -382,9 +389,9 @@ type Customer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Customer) MarshalJSON() ([]byte, error) {
+func (s Customer) MarshalJSON() ([]byte, error) {
 	type NoMethod Customer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerOnboardingState: Container for customer onboarding steps
@@ -404,9 +411,9 @@ type CustomerOnboardingState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerOnboardingState) MarshalJSON() ([]byte, error) {
+func (s CustomerOnboardingState) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerOnboardingState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerOnboardingStep: Container for customer onboarding information
@@ -444,9 +451,9 @@ type CustomerOnboardingStep struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerOnboardingStep) MarshalJSON() ([]byte, error) {
+func (s CustomerOnboardingStep) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerOnboardingStep
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EkmConnection: Details about the EKM connection
@@ -478,9 +485,9 @@ type EkmConnection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EkmConnection) MarshalJSON() ([]byte, error) {
+func (s EkmConnection) MarshalJSON() ([]byte, error) {
 	type NoMethod EkmConnection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EkmConnections: The EKM connections associated with a workload
@@ -507,9 +514,9 @@ type EkmConnections struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EkmConnections) MarshalJSON() ([]byte, error) {
+func (s EkmConnections) MarshalJSON() ([]byte, error) {
 	type NoMethod EkmConnections
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EkmMetadata: Holds information needed by Mudbray to use partner EKMs for
@@ -525,7 +532,7 @@ type EkmMetadata struct {
 	//   "FORTANIX" - EKM Partner Fortanix
 	//   "FUTUREX" - EKM Partner FutureX
 	//   "THALES" - EKM Partner Thales
-	//   "VIRTRU" - EKM Partner Virtu
+	//   "VIRTRU" - This enum value is never used.
 	EkmSolution string `json:"ekmSolution,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EkmEndpointUri") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -540,9 +547,18 @@ type EkmMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EkmMetadata) MarshalJSON() ([]byte, error) {
+func (s EkmMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod EkmMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Empty: A generic empty message that you can re-use to avoid defining
+// duplicated empty messages in your APIs. A typical example is to use it as
+// the request or the response type of an API method. For instance: service Foo
+// { rpc Bar(google.protobuf.Empty) returns (google.protobuf.Empty); }
+type Empty struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // Gcloud: Remediation instructions to resolve violation via gcloud cli
@@ -566,9 +582,9 @@ type Gcloud struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Gcloud) MarshalJSON() ([]byte, error) {
+func (s Gcloud) MarshalJSON() ([]byte, error) {
 	type NoMethod Gcloud
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Instructions: Instructions to remediate violation
@@ -592,9 +608,9 @@ type Instructions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Instructions) MarshalJSON() ([]byte, error) {
+func (s Instructions) MarshalJSON() ([]byte, error) {
 	type NoMethod Instructions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccessApprovalRequestsResponse: Response message for list access
@@ -623,9 +639,9 @@ type ListAccessApprovalRequestsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccessApprovalRequestsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccessApprovalRequestsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccessApprovalRequestsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCustomersResponse: Response message for list customer Customers requests
@@ -653,9 +669,9 @@ type ListCustomersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCustomersResponse) MarshalJSON() ([]byte, error) {
+func (s ListCustomersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCustomersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListViolationsResponse: Response message for list customer violation
@@ -685,9 +701,9 @@ type ListViolationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListViolationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListViolationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListViolationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkloadsResponse: Response message for list customer workloads
@@ -716,9 +732,9 @@ type ListWorkloadsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkloadsResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkloadsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkloadsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of the long-running operation.
@@ -754,9 +770,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Partner: Message describing Partner resource
@@ -797,9 +813,9 @@ type Partner struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Partner) MarshalJSON() ([]byte, error) {
+func (s Partner) MarshalJSON() ([]byte, error) {
 	type NoMethod Partner
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartnerPermissions: The permissions granted to the partner for a workload
@@ -819,6 +835,8 @@ type PartnerPermissions struct {
 	//   "ACCESS_APPROVAL_REQUESTS" - Permission for Access Approval requests
 	//   "ASSURED_WORKLOADS_EKM_CONNECTION_STATUS" - Permission for External Key
 	// Manager connection status
+	//   "ACCESS_TRANSPARENCY_LOGS_SUPPORT_CASE_VIEWER" - Permission for support
+	// case details for Access Transparency log entries
 	PartnerPermissions []string `json:"partnerPermissions,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -836,9 +854,9 @@ type PartnerPermissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartnerPermissions) MarshalJSON() ([]byte, error) {
+func (s PartnerPermissions) MarshalJSON() ([]byte, error) {
 	type NoMethod PartnerPermissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Remediation: Represents remediation guidance to resolve compliance violation
@@ -879,9 +897,9 @@ type Remediation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Remediation) MarshalJSON() ([]byte, error) {
+func (s Remediation) MarshalJSON() ([]byte, error) {
 	type NoMethod Remediation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Sku: Represents the SKU a partner owns inside Google Cloud to sell to
@@ -908,9 +926,9 @@ type Sku struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Sku) MarshalJSON() ([]byte, error) {
+func (s Sku) MarshalJSON() ([]byte, error) {
 	type NoMethod Sku
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Violation: Details of resource Violation
@@ -967,9 +985,9 @@ type Violation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Violation) MarshalJSON() ([]byte, error) {
+func (s Violation) MarshalJSON() ([]byte, error) {
 	type NoMethod Violation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Workload: Contains metadata around the Workload resource
@@ -1027,9 +1045,9 @@ type Workload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Workload) MarshalJSON() ([]byte, error) {
+func (s Workload) MarshalJSON() ([]byte, error) {
 	type NoMethod Workload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkloadOnboardingState: Container for workload onboarding steps.
@@ -1049,9 +1067,9 @@ type WorkloadOnboardingState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkloadOnboardingState) MarshalJSON() ([]byte, error) {
+func (s WorkloadOnboardingState) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkloadOnboardingState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkloadOnboardingStep: Container for workload onboarding information.
@@ -1089,9 +1107,9 @@ type WorkloadOnboardingStep struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkloadOnboardingStep) MarshalJSON() ([]byte, error) {
+func (s WorkloadOnboardingStep) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkloadOnboardingStep
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OrganizationsLocationsGetPartnerCall struct {
@@ -1148,12 +1166,11 @@ func (c *OrganizationsLocationsGetPartnerCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1161,6 +1178,7 @@ func (c *OrganizationsLocationsGetPartnerCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.getPartner", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1195,9 +1213,222 @@ func (c *OrganizationsLocationsGetPartnerCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.getPartner", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsCustomersCreateCall struct {
+	s          *Service
+	parent     string
+	customer   *Customer
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Create: Creates a new customer.
+//
+//   - parent: Parent resource Format:
+//     `organizations/{organization}/locations/{location}`.
+func (r *OrganizationsLocationsCustomersService) Create(parent string, customer *Customer) *OrganizationsLocationsCustomersCreateCall {
+	c := &OrganizationsLocationsCustomersCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.customer = customer
+	return c
+}
+
+// CustomerId sets the optional parameter "customerId": Required. The customer
+// id to use for the customer, which will become the final component of the
+// customer's resource name. The specified value must be a valid Google cloud
+// organization id.
+func (c *OrganizationsLocationsCustomersCreateCall) CustomerId(customerId string) *OrganizationsLocationsCustomersCreateCall {
+	c.urlParams_.Set("customerId", customerId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsCustomersCreateCall) Fields(s ...googleapi.Field) *OrganizationsLocationsCustomersCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsCustomersCreateCall) Context(ctx context.Context) *OrganizationsLocationsCustomersCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsCustomersCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsCustomersCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customer)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/customers")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudcontrolspartner.organizations.locations.customers.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Customer.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *OrganizationsLocationsCustomersCreateCall) Do(opts ...googleapi.CallOption) (*Customer, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Customer{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsCustomersDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Delete details of a single customer
+//
+//   - name: name of the resource to be deleted format:
+//     name=organizations/*/locations/*/customers/*.
+func (r *OrganizationsLocationsCustomersService) Delete(name string) *OrganizationsLocationsCustomersDeleteCall {
+	c := &OrganizationsLocationsCustomersDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsCustomersDeleteCall) Fields(s ...googleapi.Field) *OrganizationsLocationsCustomersDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsCustomersDeleteCall) Context(ctx context.Context) *OrganizationsLocationsCustomersDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsCustomersDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsCustomersDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudcontrolspartner.organizations.locations.customers.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *OrganizationsLocationsCustomersDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1256,12 +1487,11 @@ func (c *OrganizationsLocationsCustomersGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1269,6 +1499,7 @@ func (c *OrganizationsLocationsCustomersGetCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1303,9 +1534,11 @@ func (c *OrganizationsLocationsCustomersGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1394,12 +1627,11 @@ func (c *OrganizationsLocationsCustomersListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/customers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1407,6 +1639,7 @@ func (c *OrganizationsLocationsCustomersListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1442,9 +1675,11 @@ func (c *OrganizationsLocationsCustomersListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1467,6 +1702,117 @@ func (c *OrganizationsLocationsCustomersListCall) Pages(ctx context.Context, f f
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type OrganizationsLocationsCustomersPatchCall struct {
+	s          *Service
+	name       string
+	customer   *Customer
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Patch: Update details of a single customer
+//
+//   - name: Identifier. Format:
+//     `organizations/{organization}/locations/{location}/customers/{customer}`.
+func (r *OrganizationsLocationsCustomersService) Patch(name string, customer *Customer) *OrganizationsLocationsCustomersPatchCall {
+	c := &OrganizationsLocationsCustomersPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.customer = customer
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": The list of fields to
+// update
+func (c *OrganizationsLocationsCustomersPatchCall) UpdateMask(updateMask string) *OrganizationsLocationsCustomersPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsCustomersPatchCall) Fields(s ...googleapi.Field) *OrganizationsLocationsCustomersPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsCustomersPatchCall) Context(ctx context.Context) *OrganizationsLocationsCustomersPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsCustomersPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsCustomersPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customer)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "cloudcontrolspartner.organizations.locations.customers.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Customer.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *OrganizationsLocationsCustomersPatchCall) Do(opts ...googleapi.CallOption) (*Customer, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Customer{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type OrganizationsLocationsCustomersWorkloadsGetCall struct {
@@ -1525,12 +1871,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1538,6 +1883,7 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1572,9 +1918,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1634,12 +1982,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetEkmConnectionsCall) doReques
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1647,6 +1994,7 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetEkmConnectionsCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.getEkmConnections", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1681,9 +2029,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetEkmConnectionsCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.getEkmConnections", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1743,12 +2093,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetPartnerPermissionsCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1756,6 +2105,7 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetPartnerPermissionsCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.getPartnerPermissions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1791,9 +2141,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsGetPartnerPermissionsCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.getPartnerPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1881,12 +2233,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/workloads")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1894,6 +2245,7 @@ func (c *OrganizationsLocationsCustomersWorkloadsListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1929,9 +2281,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1965,7 +2319,8 @@ type OrganizationsLocationsCustomersWorkloadsAccessApprovalRequestsListCall stru
 	header_      http.Header
 }
 
-// List: Lists access requests associated with a workload
+// List: Deprecated: Only returns access approval requests directly associated
+// with an assured workload folder.
 //
 //   - parent: Parent resource Format:
 //     `organizations/{organization}/locations/{location}/customers/{customer}/wor
@@ -2041,12 +2396,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsAccessApprovalRequestsListCall)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/accessApprovalRequests")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2054,6 +2408,7 @@ func (c *OrganizationsLocationsCustomersWorkloadsAccessApprovalRequestsListCall)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.accessApprovalRequests.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2089,9 +2444,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsAccessApprovalRequestsListCall)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.accessApprovalRequests.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2172,12 +2529,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsViolationsGetCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2185,6 +2541,7 @@ func (c *OrganizationsLocationsCustomersWorkloadsViolationsGetCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.violations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2219,9 +2576,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsViolationsGetCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.violations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2331,12 +2690,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsViolationsListCall) doRequest(a
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/violations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2344,6 +2702,7 @@ func (c *OrganizationsLocationsCustomersWorkloadsViolationsListCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.violations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2379,9 +2738,11 @@ func (c *OrganizationsLocationsCustomersWorkloadsViolationsListCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudcontrolspartner.organizations.locations.customers.workloads.violations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

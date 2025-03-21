@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "dialogflow:v2beta1"
 const apiName = "dialogflow"
@@ -126,7 +129,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -175,6 +178,7 @@ func NewProjectsService(s *Service) *ProjectsService {
 	rs.KnowledgeBases = NewProjectsKnowledgeBasesService(s)
 	rs.Locations = NewProjectsLocationsService(s)
 	rs.Operations = NewProjectsOperationsService(s)
+	rs.PhoneNumbers = NewProjectsPhoneNumbersService(s)
 	rs.Suggestions = NewProjectsSuggestionsService(s)
 	return rs
 }
@@ -197,6 +201,8 @@ type ProjectsService struct {
 	Locations *ProjectsLocationsService
 
 	Operations *ProjectsOperationsService
+
+	PhoneNumbers *ProjectsPhoneNumbersService
 
 	Suggestions *ProjectsSuggestionsService
 }
@@ -501,9 +507,12 @@ func NewProjectsLocationsService(s *Service) *ProjectsLocationsService {
 	rs.AnswerRecords = NewProjectsLocationsAnswerRecordsService(s)
 	rs.ConversationProfiles = NewProjectsLocationsConversationProfilesService(s)
 	rs.Conversations = NewProjectsLocationsConversationsService(s)
+	rs.EncryptionSpec = NewProjectsLocationsEncryptionSpecService(s)
 	rs.Generators = NewProjectsLocationsGeneratorsService(s)
 	rs.KnowledgeBases = NewProjectsLocationsKnowledgeBasesService(s)
 	rs.Operations = NewProjectsLocationsOperationsService(s)
+	rs.PhoneNumbers = NewProjectsLocationsPhoneNumbersService(s)
+	rs.SipTrunks = NewProjectsLocationsSipTrunksService(s)
 	rs.StatelessSuggestion = NewProjectsLocationsStatelessSuggestionService(s)
 	rs.Suggestions = NewProjectsLocationsSuggestionsService(s)
 	return rs
@@ -520,11 +529,17 @@ type ProjectsLocationsService struct {
 
 	Conversations *ProjectsLocationsConversationsService
 
+	EncryptionSpec *ProjectsLocationsEncryptionSpecService
+
 	Generators *ProjectsLocationsGeneratorsService
 
 	KnowledgeBases *ProjectsLocationsKnowledgeBasesService
 
 	Operations *ProjectsLocationsOperationsService
+
+	PhoneNumbers *ProjectsLocationsPhoneNumbersService
+
+	SipTrunks *ProjectsLocationsSipTrunksService
 
 	StatelessSuggestion *ProjectsLocationsStatelessSuggestionService
 
@@ -771,6 +786,15 @@ type ProjectsLocationsConversationsSuggestionsService struct {
 	s *Service
 }
 
+func NewProjectsLocationsEncryptionSpecService(s *Service) *ProjectsLocationsEncryptionSpecService {
+	rs := &ProjectsLocationsEncryptionSpecService{s: s}
+	return rs
+}
+
+type ProjectsLocationsEncryptionSpecService struct {
+	s *Service
+}
+
 func NewProjectsLocationsGeneratorsService(s *Service) *ProjectsLocationsGeneratorsService {
 	rs := &ProjectsLocationsGeneratorsService{s: s}
 	return rs
@@ -810,6 +834,24 @@ type ProjectsLocationsOperationsService struct {
 	s *Service
 }
 
+func NewProjectsLocationsPhoneNumbersService(s *Service) *ProjectsLocationsPhoneNumbersService {
+	rs := &ProjectsLocationsPhoneNumbersService{s: s}
+	return rs
+}
+
+type ProjectsLocationsPhoneNumbersService struct {
+	s *Service
+}
+
+func NewProjectsLocationsSipTrunksService(s *Service) *ProjectsLocationsSipTrunksService {
+	rs := &ProjectsLocationsSipTrunksService{s: s}
+	return rs
+}
+
+type ProjectsLocationsSipTrunksService struct {
+	s *Service
+}
+
 func NewProjectsLocationsStatelessSuggestionService(s *Service) *ProjectsLocationsStatelessSuggestionService {
 	rs := &ProjectsLocationsStatelessSuggestionService{s: s}
 	return rs
@@ -834,6 +876,15 @@ func NewProjectsOperationsService(s *Service) *ProjectsOperationsService {
 }
 
 type ProjectsOperationsService struct {
+	s *Service
+}
+
+func NewProjectsPhoneNumbersService(s *Service) *ProjectsPhoneNumbersService {
+	rs := &ProjectsPhoneNumbersService{s: s}
+	return rs
+}
+
+type ProjectsPhoneNumbersService struct {
 	s *Service
 }
 
@@ -883,9 +934,9 @@ type GoogleCloudDialogflowCxV3AdvancedSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3AdvancedSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3AdvancedSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3AdvancedSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3AdvancedSettingsDtmfSettings: Define behaviors for
@@ -921,34 +972,39 @@ type GoogleCloudDialogflowCxV3AdvancedSettingsDtmfSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3AdvancedSettingsDtmfSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3AdvancedSettingsDtmfSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3AdvancedSettingsDtmfSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3AdvancedSettingsLoggingSettings: Define behaviors
 // on logging.
 type GoogleCloudDialogflowCxV3AdvancedSettingsLoggingSettings struct {
+	// EnableConsentBasedRedaction: Enables consent-based end-user input redaction,
+	// if true, a pre-defined session parameter
+	// `$session.params.conversation-redaction` will be used to determine if the
+	// utterance should be redacted.
+	EnableConsentBasedRedaction bool `json:"enableConsentBasedRedaction,omitempty"`
 	// EnableInteractionLogging: Enables DF Interaction logging.
 	EnableInteractionLogging bool `json:"enableInteractionLogging,omitempty"`
-	// EnableStackdriverLogging: Enables StackDriver logging.
+	// EnableStackdriverLogging: Enables Google Cloud Logging.
 	EnableStackdriverLogging bool `json:"enableStackdriverLogging,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "EnableInteractionLogging")
-	// to unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
+	// ForceSendFields is a list of field names (e.g.
+	// "EnableConsentBasedRedaction") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
+	// for more details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "EnableInteractionLogging") to
+	// NullFields is a list of field names (e.g. "EnableConsentBasedRedaction") to
 	// include in API requests with the JSON null value. By default, fields with
 	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3AdvancedSettingsLoggingSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3AdvancedSettingsLoggingSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3AdvancedSettingsLoggingSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3AdvancedSettingsSpeechSettings: Define behaviors of
@@ -965,7 +1021,7 @@ type GoogleCloudDialogflowCxV3AdvancedSettingsSpeechSettings struct {
 	// NoSpeechTimeout: Timeout before detecting no speech.
 	NoSpeechTimeout string `json:"noSpeechTimeout,omitempty"`
 	// UseTimeoutBasedEndpointing: Use timeout based endpointing, interpreting
-	// endpointer sensitivy as seconds of timeout value.
+	// endpointer sensitivity as seconds of timeout value.
 	UseTimeoutBasedEndpointing bool `json:"useTimeoutBasedEndpointing,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EndpointerSensitivity") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -980,9 +1036,9 @@ type GoogleCloudDialogflowCxV3AdvancedSettingsSpeechSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3AdvancedSettingsSpeechSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3AdvancedSettingsSpeechSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3AdvancedSettingsSpeechSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3AudioInput: Represents the natural speech audio to
@@ -1011,9 +1067,9 @@ type GoogleCloudDialogflowCxV3AudioInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3AudioInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3AudioInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3AudioInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3BargeInConfig: Configuration of the barge-in
@@ -1030,7 +1086,7 @@ func (s *GoogleCloudDialogflowCxV3AudioInput) MarshalJSON() ([]byte, error) {
 // an utterance has been detected. Note that no-speech event is not expected in
 // this phase. The client provides this configuration in terms of the durations
 // of those two phases. The durations are measured in terms of the audio length
-// from the the start of the input audio. No-speech event is a response with
+// from the start of the input audio. No-speech event is a response with
 // END_OF_UTTERANCE without any transcript following up.
 type GoogleCloudDialogflowCxV3BargeInConfig struct {
 	// NoBargeInDuration: Duration that is not eligible for barge-in at the
@@ -1052,9 +1108,9 @@ type GoogleCloudDialogflowCxV3BargeInConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3BargeInConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3BargeInConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3BargeInConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3BatchRunTestCasesMetadata: Metadata returned for
@@ -1075,9 +1131,9 @@ type GoogleCloudDialogflowCxV3BatchRunTestCasesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3BatchRunTestCasesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3BatchRunTestCasesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3BatchRunTestCasesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3BatchRunTestCasesResponse: The response message for
@@ -1099,9 +1155,9 @@ type GoogleCloudDialogflowCxV3BatchRunTestCasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3BatchRunTestCasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3BatchRunTestCasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3BatchRunTestCasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ContinuousTestResult: Represents a result from
@@ -1137,9 +1193,9 @@ type GoogleCloudDialogflowCxV3ContinuousTestResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ContinuousTestResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ContinuousTestResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ContinuousTestResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ConversationSignals: This message is used to hold
@@ -1161,9 +1217,9 @@ type GoogleCloudDialogflowCxV3ConversationSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ConversationSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ConversationSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ConversationSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ConversationTurn: One interaction between a human
@@ -1187,9 +1243,9 @@ type GoogleCloudDialogflowCxV3ConversationTurn struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ConversationTurn) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ConversationTurn) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ConversationTurn
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ConversationTurnUserInput: The input from the human
@@ -1219,9 +1275,9 @@ type GoogleCloudDialogflowCxV3ConversationTurnUserInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ConversationTurnUserInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ConversationTurnUserInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ConversationTurnUserInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ConversationTurnVirtualAgentOutput: The output from
@@ -1261,32 +1317,9 @@ type GoogleCloudDialogflowCxV3ConversationTurnVirtualAgentOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ConversationTurnVirtualAgentOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ConversationTurnVirtualAgentOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ConversationTurnVirtualAgentOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3CreateDocumentOperationMetadata: Metadata for
-// CreateDocument operation.
-type GoogleCloudDialogflowCxV3CreateDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3CreateDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3CreateDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3CreateVersionOperationMetadata: Metadata associated
@@ -1308,9 +1341,9 @@ type GoogleCloudDialogflowCxV3CreateVersionOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3CreateVersionOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3CreateVersionOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3CreateVersionOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3DataStoreConnection: A data store connection. It
@@ -1332,6 +1365,17 @@ type GoogleCloudDialogflowCxV3DataStoreConnection struct {
 	//   "STRUCTURED" - A data store that contains structured data (for example
 	// FAQ).
 	DataStoreType string `json:"dataStoreType,omitempty"`
+	// DocumentProcessingMode: The document processing mode for the data store
+	// connection. Should only be set for PUBLIC_WEB and UNSTRUCTURED data stores.
+	// If not set it is considered as DOCUMENTS, as this is the legacy mode.
+	//
+	// Possible values:
+	//   "DOCUMENT_PROCESSING_MODE_UNSPECIFIED" - Not specified. This should be set
+	// for STRUCTURED type data stores. Due to legacy reasons this is considered as
+	// DOCUMENTS for STRUCTURED and PUBLIC_WEB data stores.
+	//   "DOCUMENTS" - Documents are processed as documents.
+	//   "CHUNKS" - Documents are converted to chunks.
+	DocumentProcessingMode string `json:"documentProcessingMode,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DataStore") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1345,32 +1389,9 @@ type GoogleCloudDialogflowCxV3DataStoreConnection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3DataStoreConnection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3DataStoreConnection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3DataStoreConnection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3DeleteDocumentOperationMetadata: Metadata for
-// DeleteDocument operation.
-type GoogleCloudDialogflowCxV3DeleteDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3DeleteDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3DeleteDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3DeployFlowMetadata: Metadata returned for the
@@ -1391,16 +1412,16 @@ type GoogleCloudDialogflowCxV3DeployFlowMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3DeployFlowMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3DeployFlowMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3DeployFlowMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3DeployFlowResponse: The response message for
 // Environments.DeployFlow.
 type GoogleCloudDialogflowCxV3DeployFlowResponse struct {
 	// Deployment: The name of the flow version Deployment. Format:
-	// `projects//locations//agents// environments//deployments/`.
+	// `projects//locations//agents//environments//deployments/`.
 	Deployment string `json:"deployment,omitempty"`
 	// Environment: The updated environment where the flow is deployed.
 	Environment *GoogleCloudDialogflowCxV3Environment `json:"environment,omitempty"`
@@ -1417,9 +1438,9 @@ type GoogleCloudDialogflowCxV3DeployFlowResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3DeployFlowResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3DeployFlowResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3DeployFlowResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3DtmfInput: Represents the input for dtmf event.
@@ -1441,9 +1462,9 @@ type GoogleCloudDialogflowCxV3DtmfInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3DtmfInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3DtmfInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3DtmfInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3Environment: Represents an environment for an
@@ -1488,9 +1509,9 @@ type GoogleCloudDialogflowCxV3Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3Environment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3EnvironmentTestCasesConfig: The configuration for
@@ -1504,8 +1525,8 @@ type GoogleCloudDialogflowCxV3EnvironmentTestCasesConfig struct {
 	// environment. Default false.
 	EnablePredeploymentRun bool `json:"enablePredeploymentRun,omitempty"`
 	// TestCases: A list of test case names to run. They should be under the same
-	// agent. Format of each test case name: `projects//locations/
-	// /agents//testCases/`
+	// agent. Format of each test case name:
+	// `projects//locations//agents//testCases/`
 	TestCases []string `json:"testCases,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EnableContinuousRun") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1520,15 +1541,17 @@ type GoogleCloudDialogflowCxV3EnvironmentTestCasesConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3EnvironmentTestCasesConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3EnvironmentTestCasesConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3EnvironmentTestCasesConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3EnvironmentVersionConfig: Configuration for the
 // version.
 type GoogleCloudDialogflowCxV3EnvironmentVersionConfig struct {
-	// Version: Required. Format: projects//locations//agents//flows//versions/.
+	// Version: Required. Both flow and playbook versions are supported. Format for
+	// flow version: projects//locations//agents//flows//versions/. Format for
+	// playbook version: projects//locations//agents//playbooks//versions/.
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Version") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1543,9 +1566,9 @@ type GoogleCloudDialogflowCxV3EnvironmentVersionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3EnvironmentVersionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3EnvironmentVersionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3EnvironmentVersionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3EnvironmentWebhookConfig: Configuration for
@@ -1568,9 +1591,9 @@ type GoogleCloudDialogflowCxV3EnvironmentWebhookConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3EnvironmentWebhookConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3EnvironmentWebhookConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3EnvironmentWebhookConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3EventHandler: An event handler specifies an event
@@ -1591,6 +1614,9 @@ type GoogleCloudDialogflowCxV3EventHandler struct {
 	// TargetPage: The target page to transition to. Format:
 	// `projects//locations//agents//flows//pages/`.
 	TargetPage string `json:"targetPage,omitempty"`
+	// TargetPlaybook: The target playbook to transition to. Format:
+	// `projects//locations//agents//playbooks/`.
+	TargetPlaybook string `json:"targetPlaybook,omitempty"`
 	// TriggerFulfillment: The fulfillment to call when the event occurs. Handling
 	// webhook errors with a fulfillment enabled with webhook could cause infinite
 	// loop. It is invalid to specify such fulfillment for a handler handling
@@ -1609,9 +1635,9 @@ type GoogleCloudDialogflowCxV3EventHandler struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3EventHandler) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3EventHandler) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3EventHandler
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3EventInput: Represents the event to trigger.
@@ -1631,9 +1657,9 @@ type GoogleCloudDialogflowCxV3EventInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3EventInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3EventInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3EventInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ExportAgentResponse: The response message for
@@ -1662,9 +1688,9 @@ type GoogleCloudDialogflowCxV3ExportAgentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ExportAgentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ExportAgentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ExportAgentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ExportEntityTypesMetadata: Metadata returned for
@@ -1696,9 +1722,9 @@ type GoogleCloudDialogflowCxV3ExportEntityTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ExportEntityTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ExportEntityTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ExportEntityTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ExportFlowResponse: The response message for
@@ -1722,9 +1748,9 @@ type GoogleCloudDialogflowCxV3ExportFlowResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ExportFlowResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ExportFlowResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ExportFlowResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ExportIntentsMetadata: Metadata returned for the
@@ -1755,9 +1781,9 @@ type GoogleCloudDialogflowCxV3ExportIntentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ExportIntentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ExportIntentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ExportIntentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ExportTestCasesMetadata: Metadata returned for the
@@ -1787,9 +1813,9 @@ type GoogleCloudDialogflowCxV3ExportTestCasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ExportTestCasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ExportTestCasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ExportTestCasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3Form: A form is a data model that groups related
@@ -1813,9 +1839,9 @@ type GoogleCloudDialogflowCxV3Form struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3Form) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3Form) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3Form
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3FormParameter: Represents a form parameter.
@@ -1861,9 +1887,9 @@ type GoogleCloudDialogflowCxV3FormParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3FormParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3FormParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3FormParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3FormParameterFillBehavior: Configuration for how
@@ -1908,9 +1934,9 @@ type GoogleCloudDialogflowCxV3FormParameterFillBehavior struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3FormParameterFillBehavior) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3FormParameterFillBehavior) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3FormParameterFillBehavior
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3Fulfillment: A fulfillment can do one or more of
@@ -1967,9 +1993,9 @@ type GoogleCloudDialogflowCxV3Fulfillment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3Fulfillment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3Fulfillment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3Fulfillment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3FulfillmentConditionalCases: A list of cascading
@@ -1991,9 +2017,9 @@ type GoogleCloudDialogflowCxV3FulfillmentConditionalCases struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3FulfillmentConditionalCases) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3FulfillmentConditionalCases) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3FulfillmentConditionalCases
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCase: Each case has a
@@ -2020,9 +2046,9 @@ type GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCaseCaseContent: The
@@ -2045,9 +2071,9 @@ type GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCaseCaseContent struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCaseCaseContent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCaseCaseContent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3FulfillmentConditionalCasesCaseCaseContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3FulfillmentSetParameterAction: Setting a parameter
@@ -2070,9 +2096,9 @@ type GoogleCloudDialogflowCxV3FulfillmentSetParameterAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3FulfillmentSetParameterAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3FulfillmentSetParameterAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3FulfillmentSetParameterAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3GcsDestination: Google Cloud Storage location for a
@@ -2096,84 +2122,9 @@ type GoogleCloudDialogflowCxV3GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata: Metadata in
-// google::longrunning::Operation for Knowledge operations.
-type GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata struct {
-	// State: Required. Output only. The current state of this operation.
-	//
-	// Possible values:
-	//   "STATE_UNSPECIFIED" - State unspecified.
-	//   "PENDING" - The operation has been created.
-	//   "RUNNING" - The operation is currently running.
-	//   "DONE" - The operation is done, either cancelled or completed.
-	State string `json:"state,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "State") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "State") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3ImportDocumentsOperationMetadata: Metadata for
-// ImportDocuments operation.
-type GoogleCloudDialogflowCxV3ImportDocumentsOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3ImportDocumentsOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3ImportDocumentsOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3ImportDocumentsResponse: Response message for
-// Documents.ImportDocuments.
-type GoogleCloudDialogflowCxV3ImportDocumentsResponse struct {
-	// Warnings: Includes details about skipped documents or any other warnings.
-	Warnings []*GoogleRpcStatus `json:"warnings,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Warnings") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Warnings") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3ImportDocumentsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3ImportDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ImportEntityTypesMetadata: Metadata returned for
@@ -2203,9 +2154,9 @@ type GoogleCloudDialogflowCxV3ImportEntityTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ImportEntityTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ImportEntityTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ImportEntityTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ImportEntityTypesResponseConflictingResources:
@@ -2230,9 +2181,9 @@ type GoogleCloudDialogflowCxV3ImportEntityTypesResponseConflictingResources stru
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ImportEntityTypesResponseConflictingResources) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ImportEntityTypesResponseConflictingResources) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ImportEntityTypesResponseConflictingResources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ImportFlowResponse: The response message for
@@ -2254,9 +2205,9 @@ type GoogleCloudDialogflowCxV3ImportFlowResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ImportFlowResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ImportFlowResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ImportFlowResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ImportIntentsMetadata: Metadata returned for the
@@ -2286,9 +2237,9 @@ type GoogleCloudDialogflowCxV3ImportIntentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ImportIntentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ImportIntentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ImportIntentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ImportIntentsResponseConflictingResources:
@@ -2313,9 +2264,9 @@ type GoogleCloudDialogflowCxV3ImportIntentsResponseConflictingResources struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ImportIntentsResponseConflictingResources) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ImportIntentsResponseConflictingResources) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ImportIntentsResponseConflictingResources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ImportTestCasesMetadata: Metadata returned for the
@@ -2336,9 +2287,9 @@ type GoogleCloudDialogflowCxV3ImportTestCasesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ImportTestCasesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ImportTestCasesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ImportTestCasesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ImportTestCasesResponse: The response message for
@@ -2360,9 +2311,9 @@ type GoogleCloudDialogflowCxV3ImportTestCasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ImportTestCasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ImportTestCasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ImportTestCasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3InlineDestination: Inline destination for a
@@ -2385,9 +2336,9 @@ type GoogleCloudDialogflowCxV3InlineDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3InlineDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3InlineDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3InlineDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3InputAudioConfig: Instructs the speech recognizer
@@ -2426,6 +2377,8 @@ type GoogleCloudDialogflowCxV3InputAudioConfig struct {
 	// 5574. In other words, each RTP header is replaced with a single byte
 	// containing the block length. Only Speex wideband is supported.
 	// `sample_rate_hertz` must be 16000.
+	//   "AUDIO_ENCODING_ALAW" - 8-bit samples that compand 13-bit audio samples
+	// using G.711 PCMU/a-law.
 	AudioEncoding string `json:"audioEncoding,omitempty"`
 	// BargeInConfig: Configuration of barge-in behavior during the streaming of
 	// input audio.
@@ -2493,9 +2446,9 @@ type GoogleCloudDialogflowCxV3InputAudioConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3InputAudioConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3InputAudioConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3InputAudioConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3Intent: An intent represents a user's intent to
@@ -2554,9 +2507,9 @@ type GoogleCloudDialogflowCxV3Intent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3Intent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3Intent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3Intent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3IntentInput: Represents the intent to trigger
@@ -2578,9 +2531,9 @@ type GoogleCloudDialogflowCxV3IntentInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3IntentInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3IntentInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3IntentInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3IntentParameter: Represents an intent parameter.
@@ -2613,9 +2566,9 @@ type GoogleCloudDialogflowCxV3IntentParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3IntentParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3IntentParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3IntentParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3IntentTrainingPhrase: Represents an example that
@@ -2650,9 +2603,9 @@ type GoogleCloudDialogflowCxV3IntentTrainingPhrase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3IntentTrainingPhrase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3IntentTrainingPhrase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3IntentTrainingPhrase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3IntentTrainingPhrasePart: Represents a part of a
@@ -2676,9 +2629,9 @@ type GoogleCloudDialogflowCxV3IntentTrainingPhrasePart struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3IntentTrainingPhrasePart) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3IntentTrainingPhrasePart) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3IntentTrainingPhrasePart
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3KnowledgeConnectorSettings: The Knowledge Connector
@@ -2714,9 +2667,9 @@ type GoogleCloudDialogflowCxV3KnowledgeConnectorSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3KnowledgeConnectorSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3KnowledgeConnectorSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3KnowledgeConnectorSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3LanguageInfo: Represents the language information
@@ -2743,9 +2696,9 @@ type GoogleCloudDialogflowCxV3LanguageInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3LanguageInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3LanguageInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3LanguageInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowCxV3LanguageInfo) UnmarshalJSON(data []byte) error {
@@ -2817,7 +2770,7 @@ type GoogleCloudDialogflowCxV3Page struct {
 	// TransitionRoutes: A list of transitions for the transition rules of this
 	// page. They route the conversation to another page in the same flow, or
 	// another flow. When we are in a certain page, the TransitionRoutes are
-	// evalauted in the following order: * TransitionRoutes defined in the page
+	// evaluated in the following order: * TransitionRoutes defined in the page
 	// with intent specified. * TransitionRoutes defined in the transition route
 	// groups with intent specified. * TransitionRoutes defined in flow with intent
 	// specified. * TransitionRoutes defined in the transition route groups with
@@ -2838,9 +2791,9 @@ type GoogleCloudDialogflowCxV3Page struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3Page) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3Page) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3Page
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3PageInfo: Represents page information communicated
@@ -2869,9 +2822,9 @@ type GoogleCloudDialogflowCxV3PageInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3PageInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3PageInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3PageInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3PageInfoFormInfo: Represents form information.
@@ -2893,9 +2846,9 @@ type GoogleCloudDialogflowCxV3PageInfoFormInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3PageInfoFormInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3PageInfoFormInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3PageInfoFormInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3PageInfoFormInfoParameterInfo: Represents parameter
@@ -2944,9 +2897,9 @@ type GoogleCloudDialogflowCxV3PageInfoFormInfoParameterInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3PageInfoFormInfoParameterInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3PageInfoFormInfoParameterInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3PageInfoFormInfoParameterInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3QueryInput: Represents the query input. It can
@@ -2984,32 +2937,9 @@ type GoogleCloudDialogflowCxV3QueryInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3QueryInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3QueryInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3QueryInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3ReloadDocumentOperationMetadata: Metadata for
-// ReloadDocument operation.
-type GoogleCloudDialogflowCxV3ReloadDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3ReloadDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3ReloadDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessage: Represents a response message that
@@ -3085,9 +3015,9 @@ type GoogleCloudDialogflowCxV3ResponseMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessageConversationSuccess: Indicates that
@@ -3116,9 +3046,9 @@ type GoogleCloudDialogflowCxV3ResponseMessageConversationSuccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessageConversationSuccess) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessageConversationSuccess) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessageConversationSuccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessageEndInteraction: Indicates that
@@ -3159,9 +3089,9 @@ type GoogleCloudDialogflowCxV3ResponseMessageLiveAgentHandoff struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessageLiveAgentHandoff) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessageLiveAgentHandoff) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessageLiveAgentHandoff
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessageMixedAudio: Represents an audio
@@ -3185,9 +3115,9 @@ type GoogleCloudDialogflowCxV3ResponseMessageMixedAudio struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessageMixedAudio) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessageMixedAudio) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessageMixedAudio
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessageMixedAudioSegment: Represents one
@@ -3216,9 +3146,9 @@ type GoogleCloudDialogflowCxV3ResponseMessageMixedAudioSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessageMixedAudioSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessageMixedAudioSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessageMixedAudioSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessageOutputAudioText: A text or ssml
@@ -3247,9 +3177,9 @@ type GoogleCloudDialogflowCxV3ResponseMessageOutputAudioText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessageOutputAudioText) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessageOutputAudioText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessageOutputAudioText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessagePlayAudio: Specifies an audio clip
@@ -3275,9 +3205,9 @@ type GoogleCloudDialogflowCxV3ResponseMessagePlayAudio struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessagePlayAudio) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessagePlayAudio) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessagePlayAudio
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessageTelephonyTransferCall: Represents
@@ -3300,9 +3230,9 @@ type GoogleCloudDialogflowCxV3ResponseMessageTelephonyTransferCall struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessageTelephonyTransferCall) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessageTelephonyTransferCall) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessageTelephonyTransferCall
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3ResponseMessageText: The text response message.
@@ -3311,7 +3241,8 @@ type GoogleCloudDialogflowCxV3ResponseMessageText struct {
 	// can be interrupted by the end user's speech and the client can then starts
 	// the next Dialogflow request.
 	AllowPlaybackInterruption bool `json:"allowPlaybackInterruption,omitempty"`
-	// Text: Required. A collection of text responses.
+	// Text: Required. A collection of text response variants. If multiple variants
+	// are defined, only one text response variant is returned at runtime.
 	Text []string `json:"text,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AllowPlaybackInterruption")
 	// to unconditionally include in API requests. By default, fields with empty or
@@ -3326,9 +3257,9 @@ type GoogleCloudDialogflowCxV3ResponseMessageText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3ResponseMessageText) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3ResponseMessageText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3ResponseMessageText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3RunContinuousTestMetadata: Metadata returned for
@@ -3349,9 +3280,9 @@ type GoogleCloudDialogflowCxV3RunContinuousTestMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3RunContinuousTestMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3RunContinuousTestMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3RunContinuousTestMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3RunContinuousTestResponse: The response message for
@@ -3372,9 +3303,9 @@ type GoogleCloudDialogflowCxV3RunContinuousTestResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3RunContinuousTestResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3RunContinuousTestResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3RunContinuousTestResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3RunTestCaseMetadata: Metadata returned for the
@@ -3401,9 +3332,9 @@ type GoogleCloudDialogflowCxV3RunTestCaseResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3RunTestCaseResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3RunTestCaseResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3RunTestCaseResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3SessionInfo: Represents session information
@@ -3434,9 +3365,9 @@ type GoogleCloudDialogflowCxV3SessionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3SessionInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3SessionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3SessionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TestCase: Represents a test case.
@@ -3450,7 +3381,7 @@ type GoogleCloudDialogflowCxV3TestCase struct {
 	LastTestResult *GoogleCloudDialogflowCxV3TestCaseResult `json:"lastTestResult,omitempty"`
 	// Name: The unique identifier of the test case. TestCases.CreateTestCase will
 	// populate the name automatically. Otherwise use format:
-	// `projects//locations//agents/ /testCases/`.
+	// `projects//locations//agents//testCases/`.
 	Name string `json:"name,omitempty"`
 	// Notes: Additional freeform notes about the test case. Limit of 400
 	// characters.
@@ -3478,9 +3409,9 @@ type GoogleCloudDialogflowCxV3TestCase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TestCase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TestCase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TestCase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TestCaseError: Error info for importing a test.
@@ -3502,9 +3433,9 @@ type GoogleCloudDialogflowCxV3TestCaseError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TestCaseError) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TestCaseError) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TestCaseError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TestCaseResult: Represents a result from running a
@@ -3517,7 +3448,7 @@ type GoogleCloudDialogflowCxV3TestCaseResult struct {
 	// the draft environment.
 	Environment string `json:"environment,omitempty"`
 	// Name: The resource name for the test case result. Format:
-	// `projects//locations//agents//testCases/ /results/`.
+	// `projects//locations//agents//testCases//results/`.
 	Name string `json:"name,omitempty"`
 	// TestResult: Whether the test case passed in the agent environment.
 	//
@@ -3541,9 +3472,9 @@ type GoogleCloudDialogflowCxV3TestCaseResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TestCaseResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TestCaseResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TestCaseResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TestConfig: Represents configurations for a test
@@ -3551,15 +3482,13 @@ func (s *GoogleCloudDialogflowCxV3TestCaseResult) MarshalJSON() ([]byte, error) 
 type GoogleCloudDialogflowCxV3TestConfig struct {
 	// Flow: Flow name to start the test case with. Format:
 	// `projects//locations//agents//flows/`. Only one of `flow` and `page` should
-	// be set to indicate the starting point of the test case. If both are set,
-	// `page` takes precedence over `flow`. If neither is set, the test case will
-	// start with start page on the default start flow.
+	// be set to indicate the starting point of the test case. If neither is set,
+	// the test case will start with start page on the default start flow.
 	Flow string `json:"flow,omitempty"`
 	// Page: The page to start the test case with. Format:
 	// `projects//locations//agents//flows//pages/`. Only one of `flow` and `page`
-	// should be set to indicate the starting point of the test case. If both are
-	// set, `page` takes precedence over `flow`. If neither is set, the test case
-	// will start with start page on the default start flow.
+	// should be set to indicate the starting point of the test case. If neither is
+	// set, the test case will start with start page on the default start flow.
 	Page string `json:"page,omitempty"`
 	// TrackingParameters: Session parameters to be compared when calculating
 	// differences.
@@ -3577,9 +3506,9 @@ type GoogleCloudDialogflowCxV3TestConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TestConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TestConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TestConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TestError: Error info for running a test.
@@ -3603,9 +3532,9 @@ type GoogleCloudDialogflowCxV3TestError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TestError) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TestError) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TestError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TestRunDifference: The description of differences
@@ -3637,9 +3566,9 @@ type GoogleCloudDialogflowCxV3TestRunDifference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TestRunDifference) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TestRunDifference) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TestRunDifference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TextInput: Represents the natural language text to
@@ -3660,9 +3589,9 @@ type GoogleCloudDialogflowCxV3TextInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TextInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TextInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TextInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TransitionRoute: A transition route specifies a
@@ -3715,9 +3644,9 @@ type GoogleCloudDialogflowCxV3TransitionRoute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TransitionRoute) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TransitionRoute) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TransitionRoute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3TurnSignals: Collection of all signals that were
@@ -3764,9 +3693,9 @@ type GoogleCloudDialogflowCxV3TurnSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3TurnSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3TurnSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3TurnSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowCxV3TurnSignals) UnmarshalJSON(data []byte) error {
@@ -3783,29 +3712,6 @@ func (s *GoogleCloudDialogflowCxV3TurnSignals) UnmarshalJSON(data []byte) error 
 	s.SentimentMagnitude = float64(s1.SentimentMagnitude)
 	s.SentimentScore = float64(s1.SentimentScore)
 	return nil
-}
-
-// GoogleCloudDialogflowCxV3UpdateDocumentOperationMetadata: Metadata for
-// UpdateDocument operation.
-type GoogleCloudDialogflowCxV3UpdateDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3UpdateDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3UpdateDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3Webhook: Webhooks host the developer's business
@@ -3844,9 +3750,9 @@ type GoogleCloudDialogflowCxV3Webhook struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3Webhook) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3Webhook) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3Webhook
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3WebhookGenericWebService: Represents configuration
@@ -3935,9 +3841,9 @@ type GoogleCloudDialogflowCxV3WebhookGenericWebService struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookGenericWebService) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookGenericWebService) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookGenericWebService
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3WebhookGenericWebServiceOAuthConfig: Represents
@@ -3946,7 +3852,7 @@ func (s *GoogleCloudDialogflowCxV3WebhookGenericWebService) MarshalJSON() ([]byt
 type GoogleCloudDialogflowCxV3WebhookGenericWebServiceOAuthConfig struct {
 	// ClientId: Required. The client ID provided by the 3rd party platform.
 	ClientId string `json:"clientId,omitempty"`
-	// ClientSecret: Required. The client secret provided by the 3rd party
+	// ClientSecret: Optional. The client secret provided by the 3rd party
 	// platform.
 	ClientSecret string `json:"clientSecret,omitempty"`
 	// Scopes: Optional. The OAuth scopes to grant.
@@ -3967,9 +3873,9 @@ type GoogleCloudDialogflowCxV3WebhookGenericWebServiceOAuthConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookGenericWebServiceOAuthConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookGenericWebServiceOAuthConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookGenericWebServiceOAuthConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3WebhookRequest: The request message for a webhook
@@ -4033,9 +3939,9 @@ type GoogleCloudDialogflowCxV3WebhookRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3WebhookRequestFulfillmentInfo: Represents
@@ -4059,9 +3965,9 @@ type GoogleCloudDialogflowCxV3WebhookRequestFulfillmentInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookRequestFulfillmentInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookRequestFulfillmentInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookRequestFulfillmentInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3WebhookRequestIntentInfo: Represents intent
@@ -4093,9 +3999,9 @@ type GoogleCloudDialogflowCxV3WebhookRequestIntentInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookRequestIntentInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookRequestIntentInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookRequestIntentInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowCxV3WebhookRequestIntentInfo) UnmarshalJSON(data []byte) error {
@@ -4134,9 +4040,9 @@ type GoogleCloudDialogflowCxV3WebhookRequestIntentInfoIntentParameterValue struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookRequestIntentInfoIntentParameterValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookRequestIntentInfoIntentParameterValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookRequestIntentInfoIntentParameterValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3WebhookRequestSentimentAnalysisResult: Represents
@@ -4162,9 +4068,9 @@ type GoogleCloudDialogflowCxV3WebhookRequestSentimentAnalysisResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookRequestSentimentAnalysisResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookRequestSentimentAnalysisResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookRequestSentimentAnalysisResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowCxV3WebhookRequestSentimentAnalysisResult) UnmarshalJSON(data []byte) error {
@@ -4217,9 +4123,9 @@ type GoogleCloudDialogflowCxV3WebhookResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3WebhookResponseFulfillmentResponse: Represents a
@@ -4249,9 +4155,9 @@ type GoogleCloudDialogflowCxV3WebhookResponseFulfillmentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookResponseFulfillmentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookResponseFulfillmentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookResponseFulfillmentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig: Represents
@@ -4278,9 +4184,9 @@ type GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3WebhookServiceDirectoryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1AdvancedSettings: Hierarchical advanced
@@ -4320,9 +4226,9 @@ type GoogleCloudDialogflowCxV3beta1AdvancedSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1AdvancedSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1AdvancedSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1AdvancedSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1AdvancedSettingsDtmfSettings: Define behaviors
@@ -4358,34 +4264,39 @@ type GoogleCloudDialogflowCxV3beta1AdvancedSettingsDtmfSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1AdvancedSettingsDtmfSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1AdvancedSettingsDtmfSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1AdvancedSettingsDtmfSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1AdvancedSettingsLoggingSettings: Define
 // behaviors on logging.
 type GoogleCloudDialogflowCxV3beta1AdvancedSettingsLoggingSettings struct {
+	// EnableConsentBasedRedaction: Enables consent-based end-user input redaction,
+	// if true, a pre-defined session parameter
+	// `$session.params.conversation-redaction` will be used to determine if the
+	// utterance should be redacted.
+	EnableConsentBasedRedaction bool `json:"enableConsentBasedRedaction,omitempty"`
 	// EnableInteractionLogging: Enables DF Interaction logging.
 	EnableInteractionLogging bool `json:"enableInteractionLogging,omitempty"`
-	// EnableStackdriverLogging: Enables StackDriver logging.
+	// EnableStackdriverLogging: Enables Google Cloud Logging.
 	EnableStackdriverLogging bool `json:"enableStackdriverLogging,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "EnableInteractionLogging")
-	// to unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
+	// ForceSendFields is a list of field names (e.g.
+	// "EnableConsentBasedRedaction") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
+	// for more details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "EnableInteractionLogging") to
+	// NullFields is a list of field names (e.g. "EnableConsentBasedRedaction") to
 	// include in API requests with the JSON null value. By default, fields with
 	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1AdvancedSettingsLoggingSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1AdvancedSettingsLoggingSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1AdvancedSettingsLoggingSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1AdvancedSettingsSpeechSettings: Define
@@ -4402,7 +4313,7 @@ type GoogleCloudDialogflowCxV3beta1AdvancedSettingsSpeechSettings struct {
 	// NoSpeechTimeout: Timeout before detecting no speech.
 	NoSpeechTimeout string `json:"noSpeechTimeout,omitempty"`
 	// UseTimeoutBasedEndpointing: Use timeout based endpointing, interpreting
-	// endpointer sensitivy as seconds of timeout value.
+	// endpointer sensitivity as seconds of timeout value.
 	UseTimeoutBasedEndpointing bool `json:"useTimeoutBasedEndpointing,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EndpointerSensitivity") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -4417,9 +4328,9 @@ type GoogleCloudDialogflowCxV3beta1AdvancedSettingsSpeechSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1AdvancedSettingsSpeechSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1AdvancedSettingsSpeechSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1AdvancedSettingsSpeechSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1AudioInput: Represents the natural speech
@@ -4448,9 +4359,9 @@ type GoogleCloudDialogflowCxV3beta1AudioInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1AudioInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1AudioInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1AudioInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1BargeInConfig: Configuration of the barge-in
@@ -4467,7 +4378,7 @@ func (s *GoogleCloudDialogflowCxV3beta1AudioInput) MarshalJSON() ([]byte, error)
 // an utterance has been detected. Note that no-speech event is not expected in
 // this phase. The client provides this configuration in terms of the durations
 // of those two phases. The durations are measured in terms of the audio length
-// from the the start of the input audio. No-speech event is a response with
+// from the start of the input audio. No-speech event is a response with
 // END_OF_UTTERANCE without any transcript following up.
 type GoogleCloudDialogflowCxV3beta1BargeInConfig struct {
 	// NoBargeInDuration: Duration that is not eligible for barge-in at the
@@ -4489,9 +4400,9 @@ type GoogleCloudDialogflowCxV3beta1BargeInConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1BargeInConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1BargeInConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1BargeInConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1BatchRunTestCasesMetadata: Metadata returned
@@ -4512,9 +4423,9 @@ type GoogleCloudDialogflowCxV3beta1BatchRunTestCasesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1BatchRunTestCasesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1BatchRunTestCasesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1BatchRunTestCasesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1BatchRunTestCasesResponse: The response
@@ -4536,9 +4447,9 @@ type GoogleCloudDialogflowCxV3beta1BatchRunTestCasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1BatchRunTestCasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1BatchRunTestCasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1BatchRunTestCasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ContinuousTestResult: Represents a result from
@@ -4574,9 +4485,9 @@ type GoogleCloudDialogflowCxV3beta1ContinuousTestResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ContinuousTestResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ContinuousTestResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ContinuousTestResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ConversationSignals: This message is used to
@@ -4598,9 +4509,9 @@ type GoogleCloudDialogflowCxV3beta1ConversationSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ConversationSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ConversationSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ConversationSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ConversationTurn: One interaction between a
@@ -4624,9 +4535,9 @@ type GoogleCloudDialogflowCxV3beta1ConversationTurn struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ConversationTurn) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ConversationTurn) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ConversationTurn
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ConversationTurnUserInput: The input from the
@@ -4656,9 +4567,9 @@ type GoogleCloudDialogflowCxV3beta1ConversationTurnUserInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ConversationTurnUserInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ConversationTurnUserInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ConversationTurnUserInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ConversationTurnVirtualAgentOutput: The output
@@ -4698,32 +4609,9 @@ type GoogleCloudDialogflowCxV3beta1ConversationTurnVirtualAgentOutput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ConversationTurnVirtualAgentOutput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ConversationTurnVirtualAgentOutput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ConversationTurnVirtualAgentOutput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3beta1CreateDocumentOperationMetadata: Metadata for
-// CreateDocument operation.
-type GoogleCloudDialogflowCxV3beta1CreateDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3beta1CreateDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3beta1CreateDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1CreateVersionOperationMetadata: Metadata
@@ -4745,9 +4633,9 @@ type GoogleCloudDialogflowCxV3beta1CreateVersionOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1CreateVersionOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1CreateVersionOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1CreateVersionOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1DataStoreConnection: A data store connection.
@@ -4769,6 +4657,17 @@ type GoogleCloudDialogflowCxV3beta1DataStoreConnection struct {
 	//   "STRUCTURED" - A data store that contains structured data (for example
 	// FAQ).
 	DataStoreType string `json:"dataStoreType,omitempty"`
+	// DocumentProcessingMode: The document processing mode for the data store
+	// connection. Should only be set for PUBLIC_WEB and UNSTRUCTURED data stores.
+	// If not set it is considered as DOCUMENTS, as this is the legacy mode.
+	//
+	// Possible values:
+	//   "DOCUMENT_PROCESSING_MODE_UNSPECIFIED" - Not specified. This should be set
+	// for STRUCTURED type data stores. Due to legacy reasons this is considered as
+	// DOCUMENTS for STRUCTURED and PUBLIC_WEB data stores.
+	//   "DOCUMENTS" - Documents are processed as documents.
+	//   "CHUNKS" - Documents are converted to chunks.
+	DocumentProcessingMode string `json:"documentProcessingMode,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DataStore") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -4782,32 +4681,9 @@ type GoogleCloudDialogflowCxV3beta1DataStoreConnection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1DataStoreConnection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1DataStoreConnection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1DataStoreConnection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3beta1DeleteDocumentOperationMetadata: Metadata for
-// DeleteDocument operation.
-type GoogleCloudDialogflowCxV3beta1DeleteDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3beta1DeleteDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3beta1DeleteDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1DeployFlowMetadata: Metadata returned for the
@@ -4828,16 +4704,16 @@ type GoogleCloudDialogflowCxV3beta1DeployFlowMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1DeployFlowMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1DeployFlowMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1DeployFlowMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1DeployFlowResponse: The response message for
 // Environments.DeployFlow.
 type GoogleCloudDialogflowCxV3beta1DeployFlowResponse struct {
 	// Deployment: The name of the flow version deployment. Format:
-	// `projects//locations//agents// environments//deployments/`.
+	// `projects//locations//agents//environments//deployments/`.
 	Deployment string `json:"deployment,omitempty"`
 	// Environment: The updated environment where the flow is deployed.
 	Environment *GoogleCloudDialogflowCxV3beta1Environment `json:"environment,omitempty"`
@@ -4854,9 +4730,9 @@ type GoogleCloudDialogflowCxV3beta1DeployFlowResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1DeployFlowResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1DeployFlowResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1DeployFlowResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1DtmfInput: Represents the input for dtmf
@@ -4879,9 +4755,9 @@ type GoogleCloudDialogflowCxV3beta1DtmfInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1DtmfInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1DtmfInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1DtmfInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1Environment: Represents an environment for an
@@ -4926,9 +4802,9 @@ type GoogleCloudDialogflowCxV3beta1Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1Environment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1EnvironmentTestCasesConfig: The configuration
@@ -4942,8 +4818,8 @@ type GoogleCloudDialogflowCxV3beta1EnvironmentTestCasesConfig struct {
 	// environment. Default false.
 	EnablePredeploymentRun bool `json:"enablePredeploymentRun,omitempty"`
 	// TestCases: A list of test case names to run. They should be under the same
-	// agent. Format of each test case name: `projects//locations/
-	// /agents//testCases/`
+	// agent. Format of each test case name:
+	// `projects//locations//agents//testCases/`
 	TestCases []string `json:"testCases,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EnableContinuousRun") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -4958,15 +4834,17 @@ type GoogleCloudDialogflowCxV3beta1EnvironmentTestCasesConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1EnvironmentTestCasesConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1EnvironmentTestCasesConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1EnvironmentTestCasesConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1EnvironmentVersionConfig: Configuration for
 // the version.
 type GoogleCloudDialogflowCxV3beta1EnvironmentVersionConfig struct {
-	// Version: Required. Format: projects//locations//agents//flows//versions/.
+	// Version: Required. Both flow and playbook versions are supported. Format for
+	// flow version: projects//locations//agents//flows//versions/. Format for
+	// playbook version: projects//locations//agents//playbooks//versions/.
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Version") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -4981,9 +4859,9 @@ type GoogleCloudDialogflowCxV3beta1EnvironmentVersionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1EnvironmentVersionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1EnvironmentVersionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1EnvironmentVersionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1EnvironmentWebhookConfig: Configuration for
@@ -5006,9 +4884,9 @@ type GoogleCloudDialogflowCxV3beta1EnvironmentWebhookConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1EnvironmentWebhookConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1EnvironmentWebhookConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1EnvironmentWebhookConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1EventHandler: An event handler specifies an
@@ -5029,6 +4907,9 @@ type GoogleCloudDialogflowCxV3beta1EventHandler struct {
 	// TargetPage: The target page to transition to. Format:
 	// `projects//locations//agents//flows//pages/`.
 	TargetPage string `json:"targetPage,omitempty"`
+	// TargetPlaybook: The target playbook to transition to. Format:
+	// `projects//locations//agents//playbooks/`.
+	TargetPlaybook string `json:"targetPlaybook,omitempty"`
 	// TriggerFulfillment: The fulfillment to call when the event occurs. Handling
 	// webhook errors with a fulfillment enabled with webhook could cause infinite
 	// loop. It is invalid to specify such fulfillment for a handler handling
@@ -5047,9 +4928,9 @@ type GoogleCloudDialogflowCxV3beta1EventHandler struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1EventHandler) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1EventHandler) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1EventHandler
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1EventInput: Represents the event to trigger.
@@ -5069,9 +4950,9 @@ type GoogleCloudDialogflowCxV3beta1EventInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1EventInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1EventInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1EventInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ExportAgentResponse: The response message for
@@ -5100,9 +4981,9 @@ type GoogleCloudDialogflowCxV3beta1ExportAgentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ExportAgentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ExportAgentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ExportAgentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ExportEntityTypesMetadata: Metadata returned
@@ -5134,9 +5015,9 @@ type GoogleCloudDialogflowCxV3beta1ExportEntityTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ExportEntityTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ExportEntityTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ExportEntityTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ExportFlowResponse: The response message for
@@ -5160,9 +5041,9 @@ type GoogleCloudDialogflowCxV3beta1ExportFlowResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ExportFlowResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ExportFlowResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ExportFlowResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ExportIntentsMetadata: Metadata returned for
@@ -5193,9 +5074,9 @@ type GoogleCloudDialogflowCxV3beta1ExportIntentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ExportIntentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ExportIntentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ExportIntentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ExportTestCasesMetadata: Metadata returned for
@@ -5225,9 +5106,9 @@ type GoogleCloudDialogflowCxV3beta1ExportTestCasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ExportTestCasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ExportTestCasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ExportTestCasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1Form: A form is a data model that groups
@@ -5251,9 +5132,9 @@ type GoogleCloudDialogflowCxV3beta1Form struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1Form) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1Form) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1Form
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1FormParameter: Represents a form parameter.
@@ -5299,9 +5180,9 @@ type GoogleCloudDialogflowCxV3beta1FormParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1FormParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1FormParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1FormParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1FormParameterFillBehavior: Configuration for
@@ -5346,9 +5227,9 @@ type GoogleCloudDialogflowCxV3beta1FormParameterFillBehavior struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1FormParameterFillBehavior) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1FormParameterFillBehavior) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1FormParameterFillBehavior
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1Fulfillment: A fulfillment can do one or more
@@ -5405,9 +5286,9 @@ type GoogleCloudDialogflowCxV3beta1Fulfillment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1Fulfillment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1Fulfillment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1Fulfillment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCases: A list of
@@ -5429,9 +5310,9 @@ type GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCases struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCases) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCases) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCases
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCase: Each case has
@@ -5458,9 +5339,9 @@ type GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCaseCaseContent:
@@ -5483,9 +5364,9 @@ type GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCaseCaseContent st
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCaseCaseContent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCaseCaseContent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1FulfillmentConditionalCasesCaseCaseContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1FulfillmentSetParameterAction: Setting a
@@ -5508,9 +5389,9 @@ type GoogleCloudDialogflowCxV3beta1FulfillmentSetParameterAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1FulfillmentSetParameterAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1FulfillmentSetParameterAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1FulfillmentSetParameterAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1GcsDestination: Google Cloud Storage location
@@ -5534,84 +5415,9 @@ type GoogleCloudDialogflowCxV3beta1GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata: Metadata in
-// google::longrunning::Operation for Knowledge operations.
-type GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata struct {
-	// State: Required. Output only. The current state of this operation.
-	//
-	// Possible values:
-	//   "STATE_UNSPECIFIED" - State unspecified.
-	//   "PENDING" - The operation has been created.
-	//   "RUNNING" - The operation is currently running.
-	//   "DONE" - The operation is done, either cancelled or completed.
-	State string `json:"state,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "State") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "State") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3beta1ImportDocumentsOperationMetadata: Metadata for
-// ImportDocuments operation.
-type GoogleCloudDialogflowCxV3beta1ImportDocumentsOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3beta1ImportDocumentsOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3beta1ImportDocumentsOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3beta1ImportDocumentsResponse: Response message for
-// Documents.ImportDocuments.
-type GoogleCloudDialogflowCxV3beta1ImportDocumentsResponse struct {
-	// Warnings: Includes details about skipped documents or any other warnings.
-	Warnings []*GoogleRpcStatus `json:"warnings,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Warnings") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Warnings") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3beta1ImportDocumentsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3beta1ImportDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ImportEntityTypesMetadata: Metadata returned
@@ -5641,9 +5447,9 @@ type GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponseConflictingResources:
@@ -5668,9 +5474,9 @@ type GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponseConflictingResources
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponseConflictingResources) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponseConflictingResources) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ImportEntityTypesResponseConflictingResources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ImportFlowResponse: The response message for
@@ -5692,9 +5498,9 @@ type GoogleCloudDialogflowCxV3beta1ImportFlowResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ImportFlowResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ImportFlowResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ImportFlowResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ImportIntentsMetadata: Metadata returned for
@@ -5724,9 +5530,9 @@ type GoogleCloudDialogflowCxV3beta1ImportIntentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ImportIntentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ImportIntentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ImportIntentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ImportIntentsResponseConflictingResources:
@@ -5751,9 +5557,9 @@ type GoogleCloudDialogflowCxV3beta1ImportIntentsResponseConflictingResources str
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ImportIntentsResponseConflictingResources) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ImportIntentsResponseConflictingResources) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ImportIntentsResponseConflictingResources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ImportTestCasesMetadata: Metadata returned for
@@ -5774,9 +5580,9 @@ type GoogleCloudDialogflowCxV3beta1ImportTestCasesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ImportTestCasesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ImportTestCasesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ImportTestCasesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ImportTestCasesResponse: The response message
@@ -5798,9 +5604,9 @@ type GoogleCloudDialogflowCxV3beta1ImportTestCasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ImportTestCasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ImportTestCasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ImportTestCasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1InlineDestination: Inline destination for a
@@ -5823,9 +5629,9 @@ type GoogleCloudDialogflowCxV3beta1InlineDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1InlineDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1InlineDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1InlineDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1InputAudioConfig: Instructs the speech
@@ -5864,6 +5670,8 @@ type GoogleCloudDialogflowCxV3beta1InputAudioConfig struct {
 	// 5574. In other words, each RTP header is replaced with a single byte
 	// containing the block length. Only Speex wideband is supported.
 	// `sample_rate_hertz` must be 16000.
+	//   "AUDIO_ENCODING_ALAW" - 8-bit samples that compand 13-bit audio samples
+	// using G.711 PCMU/a-law.
 	AudioEncoding string `json:"audioEncoding,omitempty"`
 	// BargeInConfig: Configuration of barge-in behavior during the streaming of
 	// input audio.
@@ -5931,9 +5739,9 @@ type GoogleCloudDialogflowCxV3beta1InputAudioConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1InputAudioConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1InputAudioConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1InputAudioConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1Intent: An intent represents a user's intent
@@ -5992,9 +5800,9 @@ type GoogleCloudDialogflowCxV3beta1Intent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1Intent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1Intent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1Intent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1IntentInput: Represents the intent to trigger
@@ -6016,9 +5824,9 @@ type GoogleCloudDialogflowCxV3beta1IntentInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1IntentInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1IntentInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1IntentInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1IntentParameter: Represents an intent
@@ -6052,9 +5860,9 @@ type GoogleCloudDialogflowCxV3beta1IntentParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1IntentParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1IntentParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1IntentParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1IntentTrainingPhrase: Represents an example
@@ -6089,9 +5897,9 @@ type GoogleCloudDialogflowCxV3beta1IntentTrainingPhrase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1IntentTrainingPhrase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1IntentTrainingPhrase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1IntentTrainingPhrase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1IntentTrainingPhrasePart: Represents a part of
@@ -6115,9 +5923,9 @@ type GoogleCloudDialogflowCxV3beta1IntentTrainingPhrasePart struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1IntentTrainingPhrasePart) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1IntentTrainingPhrasePart) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1IntentTrainingPhrasePart
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1KnowledgeConnectorSettings: The Knowledge
@@ -6153,9 +5961,9 @@ type GoogleCloudDialogflowCxV3beta1KnowledgeConnectorSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1KnowledgeConnectorSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1KnowledgeConnectorSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1KnowledgeConnectorSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1LanguageInfo: Represents the language
@@ -6182,9 +5990,9 @@ type GoogleCloudDialogflowCxV3beta1LanguageInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1LanguageInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1LanguageInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1LanguageInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowCxV3beta1LanguageInfo) UnmarshalJSON(data []byte) error {
@@ -6256,7 +6064,7 @@ type GoogleCloudDialogflowCxV3beta1Page struct {
 	// TransitionRoutes: A list of transitions for the transition rules of this
 	// page. They route the conversation to another page in the same flow, or
 	// another flow. When we are in a certain page, the TransitionRoutes are
-	// evalauted in the following order: * TransitionRoutes defined in the page
+	// evaluated in the following order: * TransitionRoutes defined in the page
 	// with intent specified. * TransitionRoutes defined in the transition route
 	// groups with intent specified. * TransitionRoutes defined in flow with intent
 	// specified. * TransitionRoutes defined in the transition route groups with
@@ -6277,9 +6085,9 @@ type GoogleCloudDialogflowCxV3beta1Page struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1Page) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1Page) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1Page
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1PageInfo: Represents page information
@@ -6308,9 +6116,9 @@ type GoogleCloudDialogflowCxV3beta1PageInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1PageInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1PageInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1PageInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1PageInfoFormInfo: Represents form information.
@@ -6332,9 +6140,9 @@ type GoogleCloudDialogflowCxV3beta1PageInfoFormInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1PageInfoFormInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1PageInfoFormInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1PageInfoFormInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1PageInfoFormInfoParameterInfo: Represents
@@ -6383,9 +6191,9 @@ type GoogleCloudDialogflowCxV3beta1PageInfoFormInfoParameterInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1PageInfoFormInfoParameterInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1PageInfoFormInfoParameterInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1PageInfoFormInfoParameterInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1QueryInput: Represents the query input. It can
@@ -6425,32 +6233,9 @@ type GoogleCloudDialogflowCxV3beta1QueryInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1QueryInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1QueryInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1QueryInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowCxV3beta1ReloadDocumentOperationMetadata: Metadata for
-// ReloadDocument operation.
-type GoogleCloudDialogflowCxV3beta1ReloadDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3beta1ReloadDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3beta1ReloadDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessage: Represents a response message
@@ -6520,9 +6305,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessageConversationSuccess: Indicates
@@ -6551,9 +6336,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessageConversationSuccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessageConversationSuccess) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessageConversationSuccess) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessageConversationSuccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessageEndInteraction: Indicates that
@@ -6594,9 +6379,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessageLiveAgentHandoff struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessageLiveAgentHandoff) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessageLiveAgentHandoff) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessageLiveAgentHandoff
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudio: Represents an audio
@@ -6620,9 +6405,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudio struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudio) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudio) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudio
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudioSegment: Represents
@@ -6651,9 +6436,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudioSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudioSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudioSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessageMixedAudioSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessageOutputAudioText: A text or ssml
@@ -6682,9 +6467,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessageOutputAudioText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessageOutputAudioText) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessageOutputAudioText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessageOutputAudioText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessagePlayAudio: Specifies an audio
@@ -6710,9 +6495,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessagePlayAudio struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessagePlayAudio) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessagePlayAudio) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessagePlayAudio
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessageTelephonyTransferCall:
@@ -6735,9 +6520,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessageTelephonyTransferCall struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessageTelephonyTransferCall) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessageTelephonyTransferCall) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessageTelephonyTransferCall
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ResponseMessageText: The text response
@@ -6747,7 +6532,8 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessageText struct {
 	// can be interrupted by the end user's speech and the client can then starts
 	// the next Dialogflow request.
 	AllowPlaybackInterruption bool `json:"allowPlaybackInterruption,omitempty"`
-	// Text: Required. A collection of text responses.
+	// Text: Required. A collection of text response variants. If multiple variants
+	// are defined, only one text response variant is returned at runtime.
 	Text []string `json:"text,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AllowPlaybackInterruption")
 	// to unconditionally include in API requests. By default, fields with empty or
@@ -6762,9 +6548,9 @@ type GoogleCloudDialogflowCxV3beta1ResponseMessageText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ResponseMessageText) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ResponseMessageText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ResponseMessageText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1RunContinuousTestMetadata: Metadata returned
@@ -6785,9 +6571,9 @@ type GoogleCloudDialogflowCxV3beta1RunContinuousTestMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1RunContinuousTestMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1RunContinuousTestMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1RunContinuousTestMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1RunContinuousTestResponse: The response
@@ -6808,9 +6594,9 @@ type GoogleCloudDialogflowCxV3beta1RunContinuousTestResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1RunContinuousTestResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1RunContinuousTestResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1RunContinuousTestResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1RunTestCaseMetadata: Metadata returned for the
@@ -6837,9 +6623,9 @@ type GoogleCloudDialogflowCxV3beta1RunTestCaseResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1RunTestCaseResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1RunTestCaseResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1RunTestCaseResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1SessionInfo: Represents session information
@@ -6870,9 +6656,9 @@ type GoogleCloudDialogflowCxV3beta1SessionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1SessionInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1SessionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1SessionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TestCase: Represents a test case.
@@ -6886,7 +6672,7 @@ type GoogleCloudDialogflowCxV3beta1TestCase struct {
 	LastTestResult *GoogleCloudDialogflowCxV3beta1TestCaseResult `json:"lastTestResult,omitempty"`
 	// Name: The unique identifier of the test case. TestCases.CreateTestCase will
 	// populate the name automatically. Otherwise use format:
-	// `projects//locations//agents/ /testCases/`.
+	// `projects//locations//agents//testCases/`.
 	Name string `json:"name,omitempty"`
 	// Notes: Additional freeform notes about the test case. Limit of 400
 	// characters.
@@ -6914,9 +6700,9 @@ type GoogleCloudDialogflowCxV3beta1TestCase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TestCase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TestCase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TestCase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TestCaseError: Error info for importing a
@@ -6939,9 +6725,9 @@ type GoogleCloudDialogflowCxV3beta1TestCaseError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TestCaseError) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TestCaseError) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TestCaseError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TestCaseResult: Represents a result from
@@ -6954,7 +6740,7 @@ type GoogleCloudDialogflowCxV3beta1TestCaseResult struct {
 	// the draft environment.
 	Environment string `json:"environment,omitempty"`
 	// Name: The resource name for the test case result. Format:
-	// `projects//locations//agents//testCases/ /results/`.
+	// `projects//locations//agents//testCases//results/`.
 	Name string `json:"name,omitempty"`
 	// TestResult: Whether the test case passed in the agent environment.
 	//
@@ -6978,9 +6764,9 @@ type GoogleCloudDialogflowCxV3beta1TestCaseResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TestCaseResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TestCaseResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TestCaseResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TestConfig: Represents configurations for a
@@ -6988,15 +6774,13 @@ func (s *GoogleCloudDialogflowCxV3beta1TestCaseResult) MarshalJSON() ([]byte, er
 type GoogleCloudDialogflowCxV3beta1TestConfig struct {
 	// Flow: Flow name to start the test case with. Format:
 	// `projects//locations//agents//flows/`. Only one of `flow` and `page` should
-	// be set to indicate the starting point of the test case. If both are set,
-	// `page` takes precedence over `flow`. If neither is set, the test case will
-	// start with start page on the default start flow.
+	// be set to indicate the starting point of the test case. If neither is set,
+	// the test case will start with start page on the default start flow.
 	Flow string `json:"flow,omitempty"`
 	// Page: The page to start the test case with. Format:
 	// `projects//locations//agents//flows//pages/`. Only one of `flow` and `page`
-	// should be set to indicate the starting point of the test case. If both are
-	// set, `page` takes precedence over `flow`. If neither is set, the test case
-	// will start with start page on the default start flow.
+	// should be set to indicate the starting point of the test case. If neither is
+	// set, the test case will start with start page on the default start flow.
 	Page string `json:"page,omitempty"`
 	// TrackingParameters: Session parameters to be compared when calculating
 	// differences.
@@ -7014,9 +6798,9 @@ type GoogleCloudDialogflowCxV3beta1TestConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TestConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TestConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TestConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TestError: Error info for running a test.
@@ -7040,9 +6824,9 @@ type GoogleCloudDialogflowCxV3beta1TestError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TestError) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TestError) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TestError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TestRunDifference: The description of
@@ -7074,9 +6858,9 @@ type GoogleCloudDialogflowCxV3beta1TestRunDifference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TestRunDifference) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TestRunDifference) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TestRunDifference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TextInput: Represents the natural language
@@ -7097,9 +6881,9 @@ type GoogleCloudDialogflowCxV3beta1TextInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TextInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TextInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TextInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ToolCall: Represents a call of a specific
@@ -7125,9 +6909,9 @@ type GoogleCloudDialogflowCxV3beta1ToolCall struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ToolCall) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ToolCall) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ToolCall
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ToolCallResult: The result of calling a tool's
@@ -7155,9 +6939,9 @@ type GoogleCloudDialogflowCxV3beta1ToolCallResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ToolCallResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ToolCallResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ToolCallResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1ToolCallResultError: An error produced by the
@@ -7178,9 +6962,9 @@ type GoogleCloudDialogflowCxV3beta1ToolCallResultError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1ToolCallResultError) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1ToolCallResultError) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1ToolCallResultError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TransitionRoute: A transition route specifies
@@ -7233,9 +7017,9 @@ type GoogleCloudDialogflowCxV3beta1TransitionRoute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TransitionRoute) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TransitionRoute) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TransitionRoute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1TurnSignals: Collection of all signals that
@@ -7282,9 +7066,9 @@ type GoogleCloudDialogflowCxV3beta1TurnSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1TurnSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1TurnSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1TurnSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowCxV3beta1TurnSignals) UnmarshalJSON(data []byte) error {
@@ -7301,29 +7085,6 @@ func (s *GoogleCloudDialogflowCxV3beta1TurnSignals) UnmarshalJSON(data []byte) e
 	s.SentimentMagnitude = float64(s1.SentimentMagnitude)
 	s.SentimentScore = float64(s1.SentimentScore)
 	return nil
-}
-
-// GoogleCloudDialogflowCxV3beta1UpdateDocumentOperationMetadata: Metadata for
-// UpdateDocument operation.
-type GoogleCloudDialogflowCxV3beta1UpdateDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowCxV3beta1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowCxV3beta1UpdateDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowCxV3beta1UpdateDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1Webhook: Webhooks host the developer's
@@ -7363,9 +7124,9 @@ type GoogleCloudDialogflowCxV3beta1Webhook struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1Webhook) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1Webhook) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1Webhook
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1WebhookGenericWebService: Represents
@@ -7454,9 +7215,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookGenericWebService struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookGenericWebService) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookGenericWebService) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookGenericWebService
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1WebhookGenericWebServiceOAuthConfig:
@@ -7465,7 +7226,7 @@ func (s *GoogleCloudDialogflowCxV3beta1WebhookGenericWebService) MarshalJSON() (
 type GoogleCloudDialogflowCxV3beta1WebhookGenericWebServiceOAuthConfig struct {
 	// ClientId: Required. The client ID provided by the 3rd party platform.
 	ClientId string `json:"clientId,omitempty"`
-	// ClientSecret: Required. The client secret provided by the 3rd party
+	// ClientSecret: Optional. The client secret provided by the 3rd party
 	// platform.
 	ClientSecret string `json:"clientSecret,omitempty"`
 	// Scopes: Optional. The OAuth scopes to grant.
@@ -7486,9 +7247,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookGenericWebServiceOAuthConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookGenericWebServiceOAuthConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookGenericWebServiceOAuthConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookGenericWebServiceOAuthConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1WebhookRequest: The request message for a
@@ -7552,9 +7313,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1WebhookRequestFulfillmentInfo: Represents
@@ -7578,9 +7339,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookRequestFulfillmentInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookRequestFulfillmentInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookRequestFulfillmentInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookRequestFulfillmentInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfo: Represents intent
@@ -7612,9 +7373,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfo) UnmarshalJSON(data []byte) error {
@@ -7653,9 +7414,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfoIntentParameterValue 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfoIntentParameterValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfoIntentParameterValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookRequestIntentInfoIntentParameterValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1WebhookRequestSentimentAnalysisResult:
@@ -7681,9 +7442,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookRequestSentimentAnalysisResult struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookRequestSentimentAnalysisResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookRequestSentimentAnalysisResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookRequestSentimentAnalysisResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowCxV3beta1WebhookRequestSentimentAnalysisResult) UnmarshalJSON(data []byte) error {
@@ -7736,9 +7497,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1WebhookResponseFulfillmentResponse: Represents
@@ -7768,9 +7529,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookResponseFulfillmentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookResponseFulfillmentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookResponseFulfillmentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookResponseFulfillmentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig: Represents
@@ -7797,9 +7558,9 @@ type GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowCxV3beta1WebhookServiceDirectoryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2AnnotatedMessagePart: Represents a part of a message
@@ -7831,9 +7592,9 @@ type GoogleCloudDialogflowV2AnnotatedMessagePart struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2AnnotatedMessagePart) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2AnnotatedMessagePart) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2AnnotatedMessagePart
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ArticleAnswer: Represents article answer.
@@ -7867,9 +7628,9 @@ type GoogleCloudDialogflowV2ArticleAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ArticleAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ArticleAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ArticleAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2ArticleAnswer) UnmarshalJSON(data []byte) error {
@@ -7911,9 +7672,9 @@ type GoogleCloudDialogflowV2ArticleSuggestionModelMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ArticleSuggestionModelMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ArticleSuggestionModelMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ArticleSuggestionModelMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2BatchUpdateEntityTypesResponse: The response message
@@ -7934,9 +7695,9 @@ type GoogleCloudDialogflowV2BatchUpdateEntityTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2BatchUpdateEntityTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2BatchUpdateEntityTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2BatchUpdateEntityTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2BatchUpdateIntentsResponse: The response message for
@@ -7957,13 +7718,13 @@ type GoogleCloudDialogflowV2BatchUpdateIntentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2BatchUpdateIntentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2BatchUpdateIntentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2BatchUpdateIntentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ClearSuggestionFeatureConfigOperationMetadata:
-// Metadata for a ConversationProfile.ClearSuggestionFeatureConfig operation.
+// Metadata for a ConversationProfiles.ClearSuggestionFeatureConfig operation.
 type GoogleCloudDialogflowV2ClearSuggestionFeatureConfigOperationMetadata struct {
 	// ConversationProfile: The resource name of the conversation profile. Format:
 	// `projects//locations//conversationProfiles/`
@@ -7990,6 +7751,8 @@ type GoogleCloudDialogflowV2ClearSuggestionFeatureConfigOperationMetadata struct
 	//   "ARTICLE_SUGGESTION" - Run article suggestion model for chat.
 	//   "FAQ" - Run FAQ model for chat.
 	//   "SMART_REPLY" - Run smart reply model for chat.
+	//   "CONVERSATION_SUMMARIZATION" - Run conversation summarization model for
+	// chat.
 	//   "KNOWLEDGE_SEARCH" - Run knowledge search with text input from agent or
 	// text generated query.
 	//   "KNOWLEDGE_ASSIST" - Run knowledge assist with automatic query generation.
@@ -8007,9 +7770,9 @@ type GoogleCloudDialogflowV2ClearSuggestionFeatureConfigOperationMetadata struct
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ClearSuggestionFeatureConfigOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ClearSuggestionFeatureConfigOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ClearSuggestionFeatureConfigOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2Context: Dialogflow contexts are similar to natural
@@ -8066,9 +7829,9 @@ type GoogleCloudDialogflowV2Context struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2Context) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2Context) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2Context
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ConversationEvent: Represents a notification sent to
@@ -8082,6 +7845,8 @@ type GoogleCloudDialogflowV2ConversationEvent struct {
 	ErrorStatus *GoogleRpcStatus `json:"errorStatus,omitempty"`
 	// NewMessagePayload: Payload of NEW_MESSAGE event.
 	NewMessagePayload *GoogleCloudDialogflowV2Message `json:"newMessagePayload,omitempty"`
+	// NewRecognitionResultPayload: Payload of NEW_RECOGNITION_RESULT event.
+	NewRecognitionResultPayload *GoogleCloudDialogflowV2StreamingRecognitionResult `json:"newRecognitionResultPayload,omitempty"`
 	// Type: The type of the event that this notification refers to.
 	//
 	// Possible values:
@@ -8096,6 +7861,10 @@ type GoogleCloudDialogflowV2ConversationEvent struct {
 	//   "NEW_MESSAGE" - An existing conversation has received a new message,
 	// either from API or telephony. It is configured in
 	// ConversationProfile.new_message_event_notification_config
+	//   "NEW_RECOGNITION_RESULT" - An existing conversation has received a new
+	// speech recognition result. This is mainly for delivering intermediate
+	// transcripts. The notification is configured in
+	// ConversationProfile.new_recognition_event_notification_config.
 	//   "UNRECOVERABLE_ERROR" - Unrecoverable error during a telephone call. In
 	// general non-recoverable errors only occur if something was misconfigured in
 	// the ConversationProfile corresponding to the call. After a non-recoverable
@@ -8116,9 +7885,9 @@ type GoogleCloudDialogflowV2ConversationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ConversationEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ConversationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ConversationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ConversationModel: Represents a conversation model.
@@ -8140,6 +7909,12 @@ type GoogleCloudDialogflowV2ConversationModel struct {
 	// Name: ConversationModel resource name. Format:
 	// `projects//conversationModels/`
 	Name string `json:"name,omitempty"`
+	// SatisfiesPzi: Output only. A read only boolean field reflecting Zone
+	// Isolation status of the model.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
+	// SatisfiesPzs: Output only. A read only boolean field reflecting Zone
+	// Separation status of the model.
+	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
 	// SmartReplyModelMetadata: Metadata for smart reply models.
 	SmartReplyModelMetadata *GoogleCloudDialogflowV2SmartReplyModelMetadata `json:"smartReplyModelMetadata,omitempty"`
 	// State: Output only. State of the model. A model can only serve prediction
@@ -8173,13 +7948,13 @@ type GoogleCloudDialogflowV2ConversationModel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ConversationModel) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ConversationModel) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ConversationModel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2CreateConversationDatasetOperationMetadata: Metadata
-// for ConversationDatasets.
+// for CreateConversationDataset.
 type GoogleCloudDialogflowV2CreateConversationDatasetOperationMetadata struct {
 	// ConversationDataset: The resource name of the conversation dataset that will
 	// be created. Format: `projects//locations//conversationDatasets/`
@@ -8197,9 +7972,9 @@ type GoogleCloudDialogflowV2CreateConversationDatasetOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2CreateConversationDatasetOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2CreateConversationDatasetOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2CreateConversationDatasetOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2CreateConversationModelEvaluationOperationMetadata:
@@ -8238,9 +8013,9 @@ type GoogleCloudDialogflowV2CreateConversationModelEvaluationOperationMetadata s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2CreateConversationModelEvaluationOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2CreateConversationModelEvaluationOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2CreateConversationModelEvaluationOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2CreateConversationModelOperationMetadata: Metadata
@@ -8278,13 +8053,13 @@ type GoogleCloudDialogflowV2CreateConversationModelOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2CreateConversationModelOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2CreateConversationModelOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2CreateConversationModelOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2DeleteConversationDatasetOperationMetadata: Metadata
-// for ConversationDatasets.
+// for DeleteConversationDataset.
 type GoogleCloudDialogflowV2DeleteConversationDatasetOperationMetadata struct {
 }
 
@@ -8310,9 +8085,9 @@ type GoogleCloudDialogflowV2DeleteConversationModelOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2DeleteConversationModelOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2DeleteConversationModelOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2DeleteConversationModelOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2DeployConversationModelOperationMetadata: Metadata
@@ -8337,9 +8112,40 @@ type GoogleCloudDialogflowV2DeployConversationModelOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2DeployConversationModelOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2DeployConversationModelOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2DeployConversationModelOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2EncryptionSpec: A customer-managed encryption key
+// specification that can be applied to all created resources (e.g.
+// Conversation).
+type GoogleCloudDialogflowV2EncryptionSpec struct {
+	// KmsKey: Required. The name of customer-managed encryption key that is used
+	// to secure a resource and its sub-resources. If empty, the resource is
+	// secured by the default Google encryption key. Only the key in the same
+	// location as this resource is allowed to be used for encryption. Format:
+	// `projects/{project}/locations/{location}/keyRings/{keyRing}/cryptoKeys/{key}`
+	KmsKey string `json:"kmsKey,omitempty"`
+	// Name: Immutable. The resource name of the encryption key specification
+	// resource. Format: projects/{project}/locations/{location}/encryptionSpec
+	Name string `json:"name,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "KmsKey") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "KmsKey") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2EncryptionSpec) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2EncryptionSpec
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2EntityType: Each intent parameter has a type, called
@@ -8399,9 +8205,9 @@ type GoogleCloudDialogflowV2EntityType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2EntityType) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2EntityType) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2EntityType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2EntityTypeEntity: An **entity entry** for an
@@ -8431,9 +8237,9 @@ type GoogleCloudDialogflowV2EntityTypeEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2EntityTypeEntity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2EntityTypeEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2EntityTypeEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2EventInput: Events allow for matching intents by
@@ -8476,9 +8282,9 @@ type GoogleCloudDialogflowV2EventInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2EventInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2EventInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2EventInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ExportAgentResponse: The response message for
@@ -8502,9 +8308,9 @@ type GoogleCloudDialogflowV2ExportAgentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ExportAgentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ExportAgentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ExportAgentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ExportOperationMetadata: Metadata related to the
@@ -8525,9 +8331,9 @@ type GoogleCloudDialogflowV2ExportOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ExportOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ExportOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ExportOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2FaqAnswer: Represents answer from "frequently asked
@@ -8563,9 +8369,9 @@ type GoogleCloudDialogflowV2FaqAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2FaqAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2FaqAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2FaqAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2FaqAnswer) UnmarshalJSON(data []byte) error {
@@ -8580,6 +8386,29 @@ func (s *GoogleCloudDialogflowV2FaqAnswer) UnmarshalJSON(data []byte) error {
 	}
 	s.Confidence = float64(s1.Confidence)
 	return nil
+}
+
+// GoogleCloudDialogflowV2FreeFormSuggestion: Suggestion generated using free
+// form generator.
+type GoogleCloudDialogflowV2FreeFormSuggestion struct {
+	// Response: Required. Free form suggestion.
+	Response string `json:"response,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Response") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Response") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2FreeFormSuggestion) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2FreeFormSuggestion
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2GcsDestination: Google Cloud Storage location for the
@@ -8603,9 +8432,91 @@ type GoogleCloudDialogflowV2GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2GenerateSuggestionsResponse: The response message for
+// Conversations.GenerateSuggestions.
+type GoogleCloudDialogflowV2GenerateSuggestionsResponse struct {
+	// GeneratorSuggestionAnswers: The answers generated for the conversation based
+	// on context.
+	GeneratorSuggestionAnswers []*GoogleCloudDialogflowV2GenerateSuggestionsResponseGeneratorSuggestionAnswer `json:"generatorSuggestionAnswers,omitempty"`
+	// LatestMessage: The name of the latest conversation message used as context
+	// for compiling suggestion. Format:
+	// `projects//locations//conversations//messages/`.
+	LatestMessage string `json:"latestMessage,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "GeneratorSuggestionAnswers")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "GeneratorSuggestionAnswers") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2GenerateSuggestionsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2GenerateSuggestionsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2GenerateSuggestionsResponseGeneratorSuggestionAnswer:
+// A GeneratorSuggestion answer.
+type GoogleCloudDialogflowV2GenerateSuggestionsResponseGeneratorSuggestionAnswer struct {
+	// AnswerRecord: Answer record that uniquely identifies the suggestion. This
+	// can be used to provide suggestion feedback.
+	AnswerRecord string `json:"answerRecord,omitempty"`
+	// GeneratorSuggestion: Suggestion details.
+	GeneratorSuggestion *GoogleCloudDialogflowV2GeneratorSuggestion `json:"generatorSuggestion,omitempty"`
+	// SourceGenerator: The name of the generator used to generate this suggestion.
+	// Format: `projects//locations//generators/`.
+	SourceGenerator string `json:"sourceGenerator,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AnswerRecord") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AnswerRecord") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2GenerateSuggestionsResponseGeneratorSuggestionAnswer) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2GenerateSuggestionsResponseGeneratorSuggestionAnswer
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2GeneratorSuggestion: Suggestion generated using a
+// Generator.
+type GoogleCloudDialogflowV2GeneratorSuggestion struct {
+	// FreeFormSuggestion: Optional. Free form suggestion.
+	FreeFormSuggestion *GoogleCloudDialogflowV2FreeFormSuggestion `json:"freeFormSuggestion,omitempty"`
+	// SummarySuggestion: Optional. Suggested summary.
+	SummarySuggestion *GoogleCloudDialogflowV2SummarySuggestion `json:"summarySuggestion,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FreeFormSuggestion") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FreeFormSuggestion") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2GeneratorSuggestion) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2GeneratorSuggestion
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2HumanAgentAssistantEvent: Represents a notification
@@ -8635,9 +8546,9 @@ type GoogleCloudDialogflowV2HumanAgentAssistantEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2HumanAgentAssistantEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2HumanAgentAssistantEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2HumanAgentAssistantEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ImportConversationDataOperationMetadata: Metadata for
@@ -8665,9 +8576,9 @@ type GoogleCloudDialogflowV2ImportConversationDataOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ImportConversationDataOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ImportConversationDataOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ImportConversationDataOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ImportConversationDataOperationResponse: Response
@@ -8691,9 +8602,9 @@ type GoogleCloudDialogflowV2ImportConversationDataOperationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ImportConversationDataOperationResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ImportConversationDataOperationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ImportConversationDataOperationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2ImportDocumentsResponse: Response message for
@@ -8714,9 +8625,58 @@ type GoogleCloudDialogflowV2ImportDocumentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2ImportDocumentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2ImportDocumentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2ImportDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2InitializeEncryptionSpecMetadata: Metadata for
+// initializing a location-level encryption specification.
+type GoogleCloudDialogflowV2InitializeEncryptionSpecMetadata struct {
+	// Request: Output only. The original request for initialization.
+	Request *GoogleCloudDialogflowV2InitializeEncryptionSpecRequest `json:"request,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Request") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Request") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2InitializeEncryptionSpecMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2InitializeEncryptionSpecMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2InitializeEncryptionSpecRequest: The request to
+// initialize a location-level encryption specification.
+type GoogleCloudDialogflowV2InitializeEncryptionSpecRequest struct {
+	// EncryptionSpec: Required. The encryption spec used for CMEK encryption. It
+	// is required that the kms key is in the same region as the endpoint. The same
+	// key will be used for all provisioned resources, if encryption is available.
+	// If the kms_key_name is left empty, no encryption will be enforced.
+	EncryptionSpec *GoogleCloudDialogflowV2EncryptionSpec `json:"encryptionSpec,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EncryptionSpec") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EncryptionSpec") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2InitializeEncryptionSpecRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2InitializeEncryptionSpecRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2InputDataset: InputDataset used to create model or do
@@ -8738,9 +8698,9 @@ type GoogleCloudDialogflowV2InputDataset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2InputDataset) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2InputDataset) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2InputDataset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2Intent: An intent categorizes an end-user's intention
@@ -8867,9 +8827,9 @@ type GoogleCloudDialogflowV2Intent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2Intent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2Intent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2Intent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentFollowupIntentInfo: Represents a single
@@ -8894,9 +8854,9 @@ type GoogleCloudDialogflowV2IntentFollowupIntentInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentFollowupIntentInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentFollowupIntentInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentFollowupIntentInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessage: A rich response message. Corresponds
@@ -8961,9 +8921,9 @@ type GoogleCloudDialogflowV2IntentMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageBasicCard: The basic card message.
@@ -8992,9 +8952,9 @@ type GoogleCloudDialogflowV2IntentMessageBasicCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageBasicCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageBasicCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageBasicCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageBasicCardButton: The button object that
@@ -9017,9 +8977,9 @@ type GoogleCloudDialogflowV2IntentMessageBasicCardButton struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageBasicCardButton) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageBasicCardButton) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageBasicCardButton
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageBasicCardButtonOpenUriAction: Opens the
@@ -9040,9 +9000,9 @@ type GoogleCloudDialogflowV2IntentMessageBasicCardButtonOpenUriAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageBasicCardButtonOpenUriAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageBasicCardButtonOpenUriAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageBasicCardButtonOpenUriAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageBrowseCarouselCard: Browse Carousel Card
@@ -9084,9 +9044,9 @@ type GoogleCloudDialogflowV2IntentMessageBrowseCarouselCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageBrowseCarouselCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageBrowseCarouselCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageBrowseCarouselCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardItem:
@@ -9118,9 +9078,9 @@ type GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardIte
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardItemO
@@ -9150,9 +9110,9 @@ type GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardIte
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardItemOpenUrlAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardItemOpenUrlAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageBrowseCarouselCardBrowseCarouselCardItemOpenUrlAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageCard: The card response message.
@@ -9178,9 +9138,9 @@ type GoogleCloudDialogflowV2IntentMessageCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageCardButton: Contains information about a
@@ -9204,9 +9164,9 @@ type GoogleCloudDialogflowV2IntentMessageCardButton struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageCardButton) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageCardButton) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageCardButton
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageCarouselSelect: The card for presenting
@@ -9227,9 +9187,9 @@ type GoogleCloudDialogflowV2IntentMessageCarouselSelect struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageCarouselSelect) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageCarouselSelect) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageCarouselSelect
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageCarouselSelectItem: An item in the
@@ -9256,9 +9216,9 @@ type GoogleCloudDialogflowV2IntentMessageCarouselSelectItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageCarouselSelectItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageCarouselSelectItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageCarouselSelectItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageColumnProperties: Column properties for
@@ -9289,9 +9249,9 @@ type GoogleCloudDialogflowV2IntentMessageColumnProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageColumnProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageColumnProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageColumnProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageImage: The image response message.
@@ -9314,9 +9274,9 @@ type GoogleCloudDialogflowV2IntentMessageImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageLinkOutSuggestion: The suggestion chip
@@ -9342,9 +9302,9 @@ type GoogleCloudDialogflowV2IntentMessageLinkOutSuggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageLinkOutSuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageLinkOutSuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageLinkOutSuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageListSelect: The card for presenting a
@@ -9369,9 +9329,9 @@ type GoogleCloudDialogflowV2IntentMessageListSelect struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageListSelect) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageListSelect) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageListSelect
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageListSelectItem: An item in the list.
@@ -9397,9 +9357,9 @@ type GoogleCloudDialogflowV2IntentMessageListSelectItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageListSelectItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageListSelectItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageListSelectItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageMediaContent: The media content card for
@@ -9426,9 +9386,9 @@ type GoogleCloudDialogflowV2IntentMessageMediaContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageMediaContent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageMediaContent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageMediaContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageMediaContentResponseMediaObject:
@@ -9457,9 +9417,9 @@ type GoogleCloudDialogflowV2IntentMessageMediaContentResponseMediaObject struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageMediaContentResponseMediaObject) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageMediaContentResponseMediaObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageMediaContentResponseMediaObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageQuickReplies: The quick replies response
@@ -9482,9 +9442,9 @@ type GoogleCloudDialogflowV2IntentMessageQuickReplies struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageQuickReplies) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageQuickReplies) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageQuickReplies
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageSelectItemInfo: Additional info about
@@ -9509,9 +9469,9 @@ type GoogleCloudDialogflowV2IntentMessageSelectItemInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageSelectItemInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageSelectItemInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageSelectItemInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageSimpleResponse: The simple response
@@ -9539,9 +9499,9 @@ type GoogleCloudDialogflowV2IntentMessageSimpleResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageSimpleResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageSimpleResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageSimpleResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageSimpleResponses: The collection of
@@ -9565,9 +9525,9 @@ type GoogleCloudDialogflowV2IntentMessageSimpleResponses struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageSimpleResponses) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageSimpleResponses) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageSimpleResponses
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageSuggestion: The suggestion chip message
@@ -9588,9 +9548,9 @@ type GoogleCloudDialogflowV2IntentMessageSuggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageSuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageSuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageSuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageSuggestions: The collection of
@@ -9611,9 +9571,9 @@ type GoogleCloudDialogflowV2IntentMessageSuggestions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageSuggestions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageSuggestions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageSuggestions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageTableCard: Table card for Actions on
@@ -9645,9 +9605,9 @@ type GoogleCloudDialogflowV2IntentMessageTableCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageTableCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageTableCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageTableCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageTableCardCell: Cell of TableCardRow.
@@ -9667,9 +9627,9 @@ type GoogleCloudDialogflowV2IntentMessageTableCardCell struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageTableCardCell) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageTableCardCell) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageTableCardCell
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageTableCardRow: Row of TableCard.
@@ -9691,9 +9651,9 @@ type GoogleCloudDialogflowV2IntentMessageTableCardRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageTableCardRow) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageTableCardRow) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageTableCardRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentMessageText: The text response message.
@@ -9713,9 +9673,9 @@ type GoogleCloudDialogflowV2IntentMessageText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentMessageText) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentMessageText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentMessageText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentParameter: Represents intent parameters.
@@ -9760,9 +9720,9 @@ type GoogleCloudDialogflowV2IntentParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentTrainingPhrase: Represents an example that the
@@ -9812,9 +9772,9 @@ type GoogleCloudDialogflowV2IntentTrainingPhrase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentTrainingPhrase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentTrainingPhrase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentTrainingPhrase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2IntentTrainingPhrasePart: Represents a part of a
@@ -9847,9 +9807,9 @@ type GoogleCloudDialogflowV2IntentTrainingPhrasePart struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2IntentTrainingPhrasePart) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2IntentTrainingPhrasePart) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2IntentTrainingPhrasePart
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2KnowledgeAssistAnswer: Represents a Knowledge Assist
@@ -9878,9 +9838,9 @@ type GoogleCloudDialogflowV2KnowledgeAssistAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2KnowledgeAssistAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2KnowledgeAssistAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2KnowledgeAssistAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswer: Represents an
@@ -9906,9 +9866,9 @@ type GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerFaqSource:
@@ -9929,9 +9889,9 @@ type GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerFaqSource struct
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerFaqSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerFaqSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerFaqSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSource:
@@ -9953,36 +9913,38 @@ type GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSource
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSn
 // ippet: Snippet Source for a Generative Prediction.
 type GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSnippet struct {
+	// Metadata: Metadata of the document.
+	Metadata googleapi.RawMessage `json:"metadata,omitempty"`
 	// Text: Text taken from that URI.
 	Text string `json:"text,omitempty"`
 	// Title: Title of the document.
 	Title string `json:"title,omitempty"`
 	// Uri: URI the data is sourced from.
 	Uri string `json:"uri,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Text") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "Metadata") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Text") to include in API requests
-	// with the JSON null value. By default, fields with empty values are omitted
-	// from API requests. See
+	// NullFields is a list of field names (e.g. "Metadata") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSnippet) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSnippet) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSnippet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2KnowledgeAssistAnswerSuggestedQuery: Represents a
@@ -10003,9 +9965,9 @@ type GoogleCloudDialogflowV2KnowledgeAssistAnswerSuggestedQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2KnowledgeAssistAnswerSuggestedQuery) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2KnowledgeAssistAnswerSuggestedQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2KnowledgeAssistAnswerSuggestedQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2KnowledgeOperationMetadata: Metadata in
@@ -10038,9 +10000,9 @@ type GoogleCloudDialogflowV2KnowledgeOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2KnowledgeOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2KnowledgeOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2KnowledgeOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2Message: Represents a message posted into a
@@ -10072,7 +10034,8 @@ type GoogleCloudDialogflowV2Message struct {
 	//   "END_USER" - Participant is an end user that has called or chatted with
 	// Dialogflow services.
 	ParticipantRole string `json:"participantRole,omitempty"`
-	// SendTime: Optional. The time when the message was sent.
+	// SendTime: Optional. The time when the message was sent. For voice messages,
+	// this is the time when an utterance started.
 	SendTime string `json:"sendTime,omitempty"`
 	// SentimentAnalysis: Output only. The sentiment analysis result for the
 	// message.
@@ -10090,9 +10053,9 @@ type GoogleCloudDialogflowV2Message struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2Message) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2Message) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2Message
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2MessageAnnotation: Represents the result of
@@ -10117,9 +10080,9 @@ type GoogleCloudDialogflowV2MessageAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2MessageAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2MessageAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2MessageAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2OriginalDetectIntentRequest: Represents the contents
@@ -10154,9 +10117,9 @@ type GoogleCloudDialogflowV2OriginalDetectIntentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2OriginalDetectIntentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2OriginalDetectIntentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2OriginalDetectIntentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2QueryResult: Represents the result of conversational
@@ -10254,9 +10217,9 @@ type GoogleCloudDialogflowV2QueryResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2QueryResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2QueryResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2QueryResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2QueryResult) UnmarshalJSON(data []byte) error {
@@ -10300,9 +10263,9 @@ type GoogleCloudDialogflowV2Sentiment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2Sentiment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2Sentiment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2Sentiment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2Sentiment) UnmarshalJSON(data []byte) error {
@@ -10324,10 +10287,9 @@ func (s *GoogleCloudDialogflowV2Sentiment) UnmarshalJSON(data []byte) error {
 // GoogleCloudDialogflowV2SentimentAnalysisResult: The result of sentiment
 // analysis. Sentiment analysis inspects user input and identifies the
 // prevailing subjective opinion, especially to determine a user's attitude as
-// positive, negative, or neutral. For Participants.DetectIntent, it needs to
-// be configured in DetectIntentRequest.query_params. For
-// Participants.StreamingDetectIntent, it needs to be configured in
-// StreamingDetectIntentRequest.query_params. And for
+// positive, negative, or neutral. For DetectIntent, it needs to be configured
+// in DetectIntentRequest.query_params. For StreamingDetectIntent, it needs to
+// be configured in StreamingDetectIntentRequest.query_params. And for
 // Participants.AnalyzeContent and Participants.StreamingAnalyzeContent, it
 // needs to be configured in ConversationProfile.human_agent_assistant_config
 type GoogleCloudDialogflowV2SentimentAnalysisResult struct {
@@ -10346,9 +10308,9 @@ type GoogleCloudDialogflowV2SentimentAnalysisResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SentimentAnalysisResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SentimentAnalysisResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SentimentAnalysisResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2SessionEntityType: A session represents a
@@ -10401,13 +10363,13 @@ type GoogleCloudDialogflowV2SessionEntityType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SessionEntityType) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SessionEntityType) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SessionEntityType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2SetSuggestionFeatureConfigOperationMetadata: Metadata
-// for a ConversationProfile.SetSuggestionFeatureConfig operation.
+// for a ConversationProfiles.SetSuggestionFeatureConfig operation.
 type GoogleCloudDialogflowV2SetSuggestionFeatureConfigOperationMetadata struct {
 	// ConversationProfile: The resource name of the conversation profile. Format:
 	// `projects//locations//conversationProfiles/`
@@ -10434,6 +10396,8 @@ type GoogleCloudDialogflowV2SetSuggestionFeatureConfigOperationMetadata struct {
 	//   "ARTICLE_SUGGESTION" - Run article suggestion model for chat.
 	//   "FAQ" - Run FAQ model for chat.
 	//   "SMART_REPLY" - Run smart reply model for chat.
+	//   "CONVERSATION_SUMMARIZATION" - Run conversation summarization model for
+	// chat.
 	//   "KNOWLEDGE_SEARCH" - Run knowledge search with text input from agent or
 	// text generated query.
 	//   "KNOWLEDGE_ASSIST" - Run knowledge assist with automatic query generation.
@@ -10451,9 +10415,9 @@ type GoogleCloudDialogflowV2SetSuggestionFeatureConfigOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SetSuggestionFeatureConfigOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SetSuggestionFeatureConfigOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SetSuggestionFeatureConfigOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2SmartReplyAnswer: Represents a smart reply answer.
@@ -10480,9 +10444,9 @@ type GoogleCloudDialogflowV2SmartReplyAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SmartReplyAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SmartReplyAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SmartReplyAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2SmartReplyAnswer) UnmarshalJSON(data []byte) error {
@@ -10524,9 +10488,157 @@ type GoogleCloudDialogflowV2SmartReplyModelMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SmartReplyModelMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SmartReplyModelMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SmartReplyModelMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2SpeechWordInfo: Information for a word recognized by
+// the speech recognizer.
+type GoogleCloudDialogflowV2SpeechWordInfo struct {
+	// Confidence: The Speech confidence between 0.0 and 1.0 for this word. A
+	// higher number indicates an estimated greater likelihood that the recognized
+	// word is correct. The default of 0.0 is a sentinel value indicating that
+	// confidence was not set. This field is not guaranteed to be fully stable over
+	// time for the same audio input. Users should also not rely on it to always be
+	// provided.
+	Confidence float64 `json:"confidence,omitempty"`
+	// EndOffset: Time offset relative to the beginning of the audio that
+	// corresponds to the end of the spoken word. This is an experimental feature
+	// and the accuracy of the time offset can vary.
+	EndOffset string `json:"endOffset,omitempty"`
+	// StartOffset: Time offset relative to the beginning of the audio that
+	// corresponds to the start of the spoken word. This is an experimental feature
+	// and the accuracy of the time offset can vary.
+	StartOffset string `json:"startOffset,omitempty"`
+	// Word: The word this info is for.
+	Word string `json:"word,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Confidence") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Confidence") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2SpeechWordInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2SpeechWordInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GoogleCloudDialogflowV2SpeechWordInfo) UnmarshalJSON(data []byte) error {
+	type NoMethod GoogleCloudDialogflowV2SpeechWordInfo
+	var s1 struct {
+		Confidence gensupport.JSONFloat64 `json:"confidence"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Confidence = float64(s1.Confidence)
+	return nil
+}
+
+// GoogleCloudDialogflowV2StreamingRecognitionResult: Contains a speech
+// recognition result corresponding to a portion of the audio that is currently
+// being processed or an indication that this is the end of the single
+// requested utterance. While end-user audio is being processed, Dialogflow
+// sends a series of results. Each result may contain a `transcript` value. A
+// transcript represents a portion of the utterance. While the recognizer is
+// processing audio, transcript values may be interim values or finalized
+// values. Once a transcript is finalized, the `is_final` value is set to true
+// and processing continues for the next transcript. If
+// `StreamingDetectIntentRequest.query_input.audio_config.single_utterance` was
+// true, and the recognizer has completed processing audio, the `message_type`
+// value is set to `END_OF_SINGLE_UTTERANCE and the following (last) result
+// contains the last finalized transcript. The complete end-user utterance is
+// determined by concatenating the finalized transcript values received for the
+// series of results. In the following example, single utterance is enabled. In
+// the case where single utterance is not enabled, result 7 would not occur.
+// ``` Num | transcript | message_type | is_final --- | -----------------------
+// | ----------------------- | -------- 1 | "tube" | TRANSCRIPT | false 2 | "to
+// be a" | TRANSCRIPT | false 3 | "to be" | TRANSCRIPT | false 4 | "to be or
+// not to be" | TRANSCRIPT | true 5 | "that's" | TRANSCRIPT | false 6 | "that
+// is | TRANSCRIPT | false 7 | unset | END_OF_SINGLE_UTTERANCE | unset 8 | "
+// that is the question" | TRANSCRIPT | true ``` Concatenating the finalized
+// transcripts with `is_final` set to true, the complete utterance becomes "to
+// be or not to be that is the question".
+type GoogleCloudDialogflowV2StreamingRecognitionResult struct {
+	// Confidence: The Speech confidence between 0.0 and 1.0 for the current
+	// portion of audio. A higher number indicates an estimated greater likelihood
+	// that the recognized words are correct. The default of 0.0 is a sentinel
+	// value indicating that confidence was not set. This field is typically only
+	// provided if `is_final` is true and you should not rely on it being accurate
+	// or even set.
+	Confidence float64 `json:"confidence,omitempty"`
+	// IsFinal: If `false`, the `StreamingRecognitionResult` represents an interim
+	// result that may change. If `true`, the recognizer will not return any
+	// further hypotheses about this piece of the audio. May only be populated for
+	// `message_type` = `TRANSCRIPT`.
+	IsFinal bool `json:"isFinal,omitempty"`
+	// LanguageCode: Detected language code for the transcript.
+	LanguageCode string `json:"languageCode,omitempty"`
+	// MessageType: Type of the result message.
+	//
+	// Possible values:
+	//   "MESSAGE_TYPE_UNSPECIFIED" - Not specified. Should never be used.
+	//   "TRANSCRIPT" - Message contains a (possibly partial) transcript.
+	//   "END_OF_SINGLE_UTTERANCE" - This event indicates that the server has
+	// detected the end of the user's speech utterance and expects no additional
+	// inputs. Therefore, the server will not process additional audio (although it
+	// may subsequently return additional results). The client should stop sending
+	// additional audio data, half-close the gRPC connection, and wait for any
+	// additional results until the server closes the gRPC connection. This message
+	// is only sent if `single_utterance` was set to `true`, and is not used
+	// otherwise.
+	MessageType string `json:"messageType,omitempty"`
+	// SpeechEndOffset: Time offset of the end of this Speech recognition result
+	// relative to the beginning of the audio. Only populated for `message_type` =
+	// `TRANSCRIPT`.
+	SpeechEndOffset string `json:"speechEndOffset,omitempty"`
+	// SpeechWordInfo: Word-specific information for the words recognized by Speech
+	// in transcript. Populated if and only if `message_type` = `TRANSCRIPT` and
+	// [InputAudioConfig.enable_word_info] is set.
+	SpeechWordInfo []*GoogleCloudDialogflowV2SpeechWordInfo `json:"speechWordInfo,omitempty"`
+	// Transcript: Transcript text representing the words that the user spoke.
+	// Populated if and only if `message_type` = `TRANSCRIPT`.
+	Transcript string `json:"transcript,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Confidence") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Confidence") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2StreamingRecognitionResult) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2StreamingRecognitionResult
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GoogleCloudDialogflowV2StreamingRecognitionResult) UnmarshalJSON(data []byte) error {
+	type NoMethod GoogleCloudDialogflowV2StreamingRecognitionResult
+	var s1 struct {
+		Confidence gensupport.JSONFloat64 `json:"confidence"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Confidence = float64(s1.Confidence)
+	return nil
 }
 
 // GoogleCloudDialogflowV2SuggestArticlesResponse: The response message for
@@ -10555,9 +10667,9 @@ type GoogleCloudDialogflowV2SuggestArticlesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SuggestArticlesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SuggestArticlesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SuggestArticlesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2SuggestFaqAnswersResponse: The request message for
@@ -10586,9 +10698,9 @@ type GoogleCloudDialogflowV2SuggestFaqAnswersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SuggestFaqAnswersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SuggestFaqAnswersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SuggestFaqAnswersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2SuggestKnowledgeAssistResponse: The response message
@@ -10617,9 +10729,9 @@ type GoogleCloudDialogflowV2SuggestKnowledgeAssistResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SuggestKnowledgeAssistResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SuggestKnowledgeAssistResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SuggestKnowledgeAssistResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2SuggestSmartRepliesResponse: The response message for
@@ -10650,9 +10762,9 @@ type GoogleCloudDialogflowV2SuggestSmartRepliesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SuggestSmartRepliesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SuggestSmartRepliesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SuggestSmartRepliesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2SuggestionResult: One response of different type of
@@ -10662,6 +10774,9 @@ func (s *GoogleCloudDialogflowV2SuggestSmartRepliesResponse) MarshalJSON() ([]by
 type GoogleCloudDialogflowV2SuggestionResult struct {
 	// Error: Error status if the request failed.
 	Error *GoogleRpcStatus `json:"error,omitempty"`
+	// GenerateSuggestionsResponse: Suggestions generated using generators
+	// triggered by customer or agent messages.
+	GenerateSuggestionsResponse *GoogleCloudDialogflowV2GenerateSuggestionsResponse `json:"generateSuggestionsResponse,omitempty"`
 	// SuggestArticlesResponse: SuggestArticlesResponse if request is for
 	// ARTICLE_SUGGESTION.
 	SuggestArticlesResponse *GoogleCloudDialogflowV2SuggestArticlesResponse `json:"suggestArticlesResponse,omitempty"`
@@ -10687,9 +10802,57 @@ type GoogleCloudDialogflowV2SuggestionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2SuggestionResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2SuggestionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2SuggestionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2SummarySuggestion: Suggested summary of the
+// conversation.
+type GoogleCloudDialogflowV2SummarySuggestion struct {
+	// SummarySections: Required. All the parts of generated summary.
+	SummarySections []*GoogleCloudDialogflowV2SummarySuggestionSummarySection `json:"summarySections,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SummarySections") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SummarySections") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2SummarySuggestion) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2SummarySuggestion
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2SummarySuggestionSummarySection: A component of the
+// generated summary.
+type GoogleCloudDialogflowV2SummarySuggestionSummarySection struct {
+	// Section: Required. Name of the section.
+	Section string `json:"section,omitempty"`
+	// Summary: Required. Summary text for the section.
+	Summary string `json:"summary,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Section") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Section") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2SummarySuggestionSummarySection) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2SummarySuggestionSummarySection
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2UndeployConversationModelOperationMetadata: Metadata
@@ -10714,9 +10877,9 @@ type GoogleCloudDialogflowV2UndeployConversationModelOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2UndeployConversationModelOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2UndeployConversationModelOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2UndeployConversationModelOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2WebhookRequest: The request message for a webhook
@@ -10749,9 +10912,9 @@ type GoogleCloudDialogflowV2WebhookRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2WebhookRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2WebhookRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2WebhookRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2WebhookResponse: The response message for a webhook
@@ -10815,9 +10978,9 @@ type GoogleCloudDialogflowV2WebhookResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2WebhookResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2WebhookResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2WebhookResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Agent: A Dialogflow agent is a virtual agent
@@ -10912,9 +11075,9 @@ type GoogleCloudDialogflowV2beta1Agent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Agent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Agent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Agent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1Agent) UnmarshalJSON(data []byte) error {
@@ -10948,7 +11111,7 @@ type GoogleCloudDialogflowV2beta1AgentAssistantFeedback struct {
 	// document is correct. For example: * Query: "Can I return the package in 2
 	// days once received?" * Suggested document says: "Items must be
 	// returned/exchanged within 60 days of the purchase date." * Ground truth: "No
-	// return or exchange is allowed." * [document_correctness]: INCORRECT
+	// return or exchange is allowed." * document_correctness: INCORRECT
 	//
 	// Possible values:
 	//   "DOCUMENT_CORRECTNESS_UNSPECIFIED" - Document correctness unspecified.
@@ -10984,9 +11147,9 @@ type GoogleCloudDialogflowV2beta1AgentAssistantFeedback struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AgentAssistantFeedback) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AgentAssistantFeedback) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AgentAssistantFeedback
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeAssistFeedback:
@@ -11013,9 +11176,9 @@ type GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeAssistFeedback s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeAssistFeedback) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeAssistFeedback) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeAssistFeedback
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeSearchFeedback:
@@ -11042,9 +11205,9 @@ type GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeSearchFeedback s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeSearchFeedback) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeSearchFeedback) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AgentAssistantFeedbackKnowledgeSearchFeedback
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AgentAssistantFeedbackSummarizationFeedback:
@@ -11071,9 +11234,9 @@ type GoogleCloudDialogflowV2beta1AgentAssistantFeedbackSummarizationFeedback str
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AgentAssistantFeedbackSummarizationFeedback) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AgentAssistantFeedbackSummarizationFeedback) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AgentAssistantFeedbackSummarizationFeedback
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AgentAssistantRecord: Represents a record of a
@@ -11098,9 +11261,9 @@ type GoogleCloudDialogflowV2beta1AgentAssistantRecord struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AgentAssistantRecord) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AgentAssistantRecord) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AgentAssistantRecord
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AnalyzeContentRequest: The request message for
@@ -11110,8 +11273,8 @@ type GoogleCloudDialogflowV2beta1AnalyzeContentRequest struct {
 	AssistQueryParams *GoogleCloudDialogflowV2beta1AssistQueryParameters `json:"assistQueryParams,omitempty"`
 	// AudioInput: The natural language speech audio to be processed.
 	AudioInput *GoogleCloudDialogflowV2beta1AudioInput `json:"audioInput,omitempty"`
-	// CxCurrentPage: The unique identifier of the CX page to override the
-	// `current_page` in the session. Format:
+	// CxCurrentPage: The unique identifier of the Dialogflow CX page to override
+	// the `current_page` in the session. Format:
 	// `projects//locations//agents//flows//pages/`. If `cx_current_page` is
 	// specified, the previous state of the session will be ignored by Dialogflow
 	// CX, including the previous page and the previous session parameters. In most
@@ -11130,14 +11293,14 @@ type GoogleCloudDialogflowV2beta1AnalyzeContentRequest struct {
 	IntentInput *GoogleCloudDialogflowV2beta1IntentInput `json:"intentInput,omitempty"`
 	// MessageSendTime: Optional. The send time of the message from end user or
 	// human agent's perspective. It is used for identifying the same message under
-	// one participant. Given two messages under the same participant: * If send
-	// time are different regardless of whether the content of the messages are
-	// exactly the same, the conversation will regard them as two distinct messages
-	// sent by the participant. * If send time is the same regardless of whether
-	// the content of the messages are exactly the same, the conversation will
-	// regard them as same message, and ignore the message received later. If the
-	// value is not provided, a new request will always be regarded as a new
-	// message without any de-duplication.
+	// one participant. For BatchCreateMessages API only: Given two messages under
+	// the same participant: * If send time are different regardless of whether the
+	// content of the messages are exactly the same, the conversation will regard
+	// them as two distinct messages sent by the participant. * If send time is the
+	// same regardless of whether the content of the messages are exactly the same,
+	// the conversation will regard them as same message, and ignore the message
+	// received later. If the value is not provided, a new request will always be
+	// regarded as a new message without any de-duplication.
 	MessageSendTime string `json:"messageSendTime,omitempty"`
 	// QueryParams: Parameters for a Dialogflow virtual-agent query.
 	QueryParams *GoogleCloudDialogflowV2beta1QueryParameters `json:"queryParams,omitempty"`
@@ -11167,9 +11330,9 @@ type GoogleCloudDialogflowV2beta1AnalyzeContentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AnalyzeContentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AnalyzeContentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AnalyzeContentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AnalyzeContentResponse: The response message for
@@ -11228,9 +11391,9 @@ type GoogleCloudDialogflowV2beta1AnalyzeContentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AnalyzeContentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AnalyzeContentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AnalyzeContentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AnnotatedMessagePart: Represents a part of a
@@ -11262,9 +11425,9 @@ type GoogleCloudDialogflowV2beta1AnnotatedMessagePart struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AnnotatedMessagePart) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AnnotatedMessagePart) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AnnotatedMessagePart
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AnswerFeedback: Represents feedback the customer
@@ -11305,9 +11468,9 @@ type GoogleCloudDialogflowV2beta1AnswerFeedback struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AnswerFeedback) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AnswerFeedback) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AnswerFeedback
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AnswerRecord: Answer records are records to
@@ -11350,9 +11513,9 @@ type GoogleCloudDialogflowV2beta1AnswerRecord struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AnswerRecord) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AnswerRecord) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AnswerRecord
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ArticleAnswer: Represents article answer.
@@ -11382,9 +11545,9 @@ type GoogleCloudDialogflowV2beta1ArticleAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ArticleAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ArticleAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ArticleAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AssistQueryParameters: Represents the parameters
@@ -11412,16 +11575,16 @@ type GoogleCloudDialogflowV2beta1AssistQueryParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AssistQueryParameters) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AssistQueryParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AssistQueryParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AudioInput: Represents the natural language
 // speech audio to be processed.
 type GoogleCloudDialogflowV2beta1AudioInput struct {
 	// Audio: Required. The natural language speech audio to be processed. A single
-	// request can contain up to 1 minute of speech audio data. The transcribed
+	// request can contain up to 2 minutes of speech audio data. The transcribed
 	// text cannot contain more than 256 bytes for virtual agent interactions.
 	Audio string `json:"audio,omitempty"`
 	// Config: Required. Instructs the speech recognizer how to process the speech
@@ -11440,9 +11603,9 @@ type GoogleCloudDialogflowV2beta1AudioInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AudioInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AudioInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AudioInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AutomatedAgentConfig: Defines the Automated
@@ -11477,9 +11640,9 @@ type GoogleCloudDialogflowV2beta1AutomatedAgentConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AutomatedAgentConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AutomatedAgentConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AutomatedAgentConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1AutomatedAgentReply: Represents a response from
@@ -11541,9 +11704,9 @@ type GoogleCloudDialogflowV2beta1AutomatedAgentReply struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1AutomatedAgentReply) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1AutomatedAgentReply) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1AutomatedAgentReply
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1AutomatedAgentReply) UnmarshalJSON(data []byte) error {
@@ -11600,9 +11763,9 @@ type GoogleCloudDialogflowV2beta1BargeInConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BargeInConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BargeInConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BargeInConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchCreateEntitiesRequest: The request message
@@ -11628,9 +11791,9 @@ type GoogleCloudDialogflowV2beta1BatchCreateEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchCreateEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchCreateEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchCreateEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchCreateMessagesRequest: The request message
@@ -11653,9 +11816,9 @@ type GoogleCloudDialogflowV2beta1BatchCreateMessagesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchCreateMessagesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchCreateMessagesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchCreateMessagesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchCreateMessagesResponse: The request message
@@ -11679,9 +11842,9 @@ type GoogleCloudDialogflowV2beta1BatchCreateMessagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchCreateMessagesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchCreateMessagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchCreateMessagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchDeleteEntitiesRequest: The request message
@@ -11709,9 +11872,9 @@ type GoogleCloudDialogflowV2beta1BatchDeleteEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchDeleteEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchDeleteEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchDeleteEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchDeleteEntityTypesRequest: The request
@@ -11733,9 +11896,9 @@ type GoogleCloudDialogflowV2beta1BatchDeleteEntityTypesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchDeleteEntityTypesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchDeleteEntityTypesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchDeleteEntityTypesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchDeleteIntentsRequest: The request message
@@ -11757,9 +11920,9 @@ type GoogleCloudDialogflowV2beta1BatchDeleteIntentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchDeleteIntentsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchDeleteIntentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchDeleteIntentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchUpdateEntitiesRequest: The request message
@@ -11787,9 +11950,9 @@ type GoogleCloudDialogflowV2beta1BatchUpdateEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchUpdateEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchUpdateEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchUpdateEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesRequest: The request
@@ -11822,9 +11985,9 @@ type GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesResponse: The response
@@ -11845,9 +12008,9 @@ type GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchUpdateIntentsRequest: The request message
@@ -11886,9 +12049,9 @@ type GoogleCloudDialogflowV2beta1BatchUpdateIntentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchUpdateIntentsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchUpdateIntentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchUpdateIntentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1BatchUpdateIntentsResponse: The response message
@@ -11909,9 +12072,9 @@ type GoogleCloudDialogflowV2beta1BatchUpdateIntentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1BatchUpdateIntentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1BatchUpdateIntentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1BatchUpdateIntentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigOperationMetadata:
@@ -11963,9 +12126,9 @@ type GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigOperationMetadata s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigRequest: The request
@@ -12011,9 +12174,9 @@ type GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ClearSuggestionFeatureConfigRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1CompileSuggestionRequest: The request message
@@ -12040,9 +12203,9 @@ type GoogleCloudDialogflowV2beta1CompileSuggestionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1CompileSuggestionRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1CompileSuggestionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1CompileSuggestionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1CompileSuggestionResponse: The response message
@@ -12074,14 +12237,90 @@ type GoogleCloudDialogflowV2beta1CompileSuggestionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1CompileSuggestionResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1CompileSuggestionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1CompileSuggestionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1CompleteConversationRequest: The request message
 // for Conversations.CompleteConversation.
 type GoogleCloudDialogflowV2beta1CompleteConversationRequest struct {
+}
+
+// GoogleCloudDialogflowV2beta1Connection: Represents a connection for SIP
+// Trunk.
+type GoogleCloudDialogflowV2beta1Connection struct {
+	// ConnectionId: Output only. The unique identifier of the SIP Trunk
+	// connection.
+	ConnectionId string `json:"connectionId,omitempty"`
+	// ErrorDetails: Output only. The error details for the connection. Only
+	// populated when authentication errors occur.
+	ErrorDetails *GoogleCloudDialogflowV2beta1ConnectionErrorDetails `json:"errorDetails,omitempty"`
+	// State: Output only. State of the connection.
+	//
+	// Possible values:
+	//   "STATE_UNSPECIFIED" - SIP Trunk connection state is Not specified.
+	//   "CONNECTED" - SIP Trunk connection is connected.
+	//   "DISCONNECTED" - SIP Trunk connection is disconnected.
+	//   "AUTHENTICATION_FAILED" - SIP Trunk connection has authentication error.
+	//   "KEEPALIVE" - SIP Trunk connection is keepalive.
+	State string `json:"state,omitempty"`
+	// UpdateTime: Output only. When the connection status changed.
+	UpdateTime string `json:"updateTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ConnectionId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ConnectionId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1Connection) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1Connection
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1ConnectionErrorDetails: The error details of Sip
+// Trunk connection authentication.
+type GoogleCloudDialogflowV2beta1ConnectionErrorDetails struct {
+	// CertificateState: Output only. The status of the certificate authentication.
+	//
+	// Possible values:
+	//   "CERTIFICATE_STATE_UNSPECIFIED" - Certificate state is not specified.
+	//   "CERTIFICATE_VALID" - Certificate is valid.
+	//   "CERTIFICATE_INVALID" - Catch all for any error not specified.
+	//   "CERTIFICATE_EXPIRED" - Certificate leaf node has expired.
+	//   "CERTIFICATE_HOSTNAME_NOT_FOUND" - There is no hostname defined to
+	// authenticate in SipTrunkingServer.
+	//   "CERTIFICATE_UNAUTHENTICATED" - No path found from the leaf certificate to
+	// any root.
+	//   "CERTIFICATE_TRUST_STORE_NOT_FOUND" - Trust store does not exist.
+	//   "CERTIFICATE_HOSTNAME_INVALID_FORMAT" - Hostname has invalid format.
+	//   "CERTIFICATE_QUOTA_EXCEEDED" - Certificate has exhausted its quota.
+	CertificateState string `json:"certificateState,omitempty"`
+	// ErrorMessage: The error message provided from SIP trunking auth service
+	ErrorMessage string `json:"errorMessage,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CertificateState") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CertificateState") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1ConnectionErrorDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1ConnectionErrorDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Context: Dialogflow contexts are similar to
@@ -12143,9 +12382,9 @@ type GoogleCloudDialogflowV2beta1Context struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Context) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Context) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Context
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Conversation: Represents a conversation. A
@@ -12157,14 +12396,15 @@ type GoogleCloudDialogflowV2beta1Conversation struct {
 	// configure this Conversation. This field cannot be updated. Format:
 	// `projects//locations//conversationProfiles/`.
 	ConversationProfile string `json:"conversationProfile,omitempty"`
-	// ConversationStage: The stage of a conversation. It indicates whether the
-	// virtual agent or a human agent is handling the conversation. If the
+	// ConversationStage: Optional. The stage of a conversation. It indicates
+	// whether the virtual agent or a human agent is handling the conversation. If
+	// the conversation is created with the conversation profile that has
+	// Dialogflow config set, defaults to ConversationStage.VIRTUAL_AGENT_STAGE;
+	// Otherwise, defaults to ConversationStage.HUMAN_ASSIST_STAGE. If the
 	// conversation is created with the conversation profile that has Dialogflow
-	// config set, defaults to ConversationStage.VIRTUAL_AGENT_STAGE; Otherwise,
-	// defaults to ConversationStage.HUMAN_ASSIST_STAGE. If the conversation is
-	// created with the conversation profile that has Dialogflow config set but
-	// explicitly sets conversation_stage to ConversationStage.HUMAN_ASSIST_STAGE,
-	// it skips ConversationStage.VIRTUAL_AGENT_STAGE stage and directly goes to
+	// config set but explicitly sets conversation_stage to
+	// ConversationStage.HUMAN_ASSIST_STAGE, it skips
+	// ConversationStage.VIRTUAL_AGENT_STAGE stage and directly goes to
 	// ConversationStage.HUMAN_ASSIST_STAGE.
 	//
 	// Possible values:
@@ -12177,6 +12417,9 @@ type GoogleCloudDialogflowV2beta1Conversation struct {
 	ConversationStage string `json:"conversationStage,omitempty"`
 	// EndTime: Output only. The time the conversation was finished.
 	EndTime string `json:"endTime,omitempty"`
+	// IngestedContextReferences: Output only. The context reference updates
+	// provided by external systems.
+	IngestedContextReferences map[string]GoogleCloudDialogflowV2beta1ConversationContextReference `json:"ingestedContextReferences,omitempty"`
 	// LifecycleState: Output only. The current state of the Conversation.
 	//
 	// Possible values:
@@ -12184,14 +12427,16 @@ type GoogleCloudDialogflowV2beta1Conversation struct {
 	//   "IN_PROGRESS" - Conversation is currently open for media analysis.
 	//   "COMPLETED" - Conversation has been completed.
 	LifecycleState string `json:"lifecycleState,omitempty"`
-	// Name: Output only. The unique identifier of this conversation. Format:
-	// `projects//locations//conversations/`.
+	// Name: Output only. Identifier. The unique identifier of this conversation.
+	// Format: `projects//locations//conversations/`.
 	Name string `json:"name,omitempty"`
 	// PhoneNumber: Output only. Required if the conversation is to be connected
 	// over telephony.
 	PhoneNumber *GoogleCloudDialogflowV2beta1ConversationPhoneNumber `json:"phoneNumber,omitempty"`
 	// StartTime: Output only. The time the conversation was started.
 	StartTime string `json:"startTime,omitempty"`
+	// TelephonyConnectionInfo: Output only. The telephony connection information.
+	TelephonyConnectionInfo *GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfo `json:"telephonyConnectionInfo,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -12208,9 +12453,9 @@ type GoogleCloudDialogflowV2beta1Conversation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Conversation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Conversation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Conversation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ConversationContext: Context of the
@@ -12231,9 +12476,79 @@ type GoogleCloudDialogflowV2beta1ConversationContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ConversationContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ConversationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ConversationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1ConversationContextReference: Represents a piece
+// of ingested context information.
+type GoogleCloudDialogflowV2beta1ConversationContextReference struct {
+	// ContextContents: Required. The list of content updates for a context
+	// reference.
+	ContextContents []*GoogleCloudDialogflowV2beta1ConversationContextReferenceContextContent `json:"contextContents,omitempty"`
+	// CreateTime: Output only. The time the context reference was first created.
+	CreateTime string `json:"createTime,omitempty"`
+	// LanguageCode: Optional. The language of the information ingested, defaults
+	// to "en-US" if not set.
+	LanguageCode string `json:"languageCode,omitempty"`
+	// UpdateMode: Required. The mode in which context reference contents are
+	// updated.
+	//
+	// Possible values:
+	//   "UPDATE_MODE_UNSPECIFIED" - Unspecified update mode.
+	//   "APPEND" - Context content updates are applied in append mode.
+	//   "OVERWRITE" - Context content updates are applied in overwrite mode.
+	UpdateMode string `json:"updateMode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ContextContents") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ContextContents") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1ConversationContextReference) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1ConversationContextReference
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1ConversationContextReferenceContextContent:
+// Contents ingested.
+type GoogleCloudDialogflowV2beta1ConversationContextReferenceContextContent struct {
+	// Content: Required. The information ingested in a single request.
+	Content string `json:"content,omitempty"`
+	// ContentFormat: Required. The format of the ingested string.
+	//
+	// Possible values:
+	//   "CONTENT_FORMAT_UNSPECIFIED" - Unspecified content format.
+	//   "JSON" - Content was provided in JSON format.
+	//   "PLAIN_TEXT" - Content was provided as plain text.
+	ContentFormat string `json:"contentFormat,omitempty"`
+	// IngestionTime: Output only. The time when this information was incorporated
+	// into the relevant context reference.
+	IngestionTime string `json:"ingestionTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Content") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Content") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1ConversationContextReferenceContextContent) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1ConversationContextReferenceContextContent
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ConversationEvent: Represents a notification
@@ -12247,6 +12562,8 @@ type GoogleCloudDialogflowV2beta1ConversationEvent struct {
 	ErrorStatus *GoogleRpcStatus `json:"errorStatus,omitempty"`
 	// NewMessagePayload: Payload of NEW_MESSAGE event.
 	NewMessagePayload *GoogleCloudDialogflowV2beta1Message `json:"newMessagePayload,omitempty"`
+	// NewRecognitionResultPayload: Payload of NEW_RECOGNITION_RESULT event.
+	NewRecognitionResultPayload *GoogleCloudDialogflowV2beta1StreamingRecognitionResult `json:"newRecognitionResultPayload,omitempty"`
 	// Type: Required. The type of the event that this notification refers to.
 	//
 	// Possible values:
@@ -12261,6 +12578,10 @@ type GoogleCloudDialogflowV2beta1ConversationEvent struct {
 	//   "NEW_MESSAGE" - An existing conversation has received a new message,
 	// either from API or telephony. It is configured in
 	// ConversationProfile.new_message_event_notification_config
+	//   "NEW_RECOGNITION_RESULT" - An existing conversation has received a new
+	// speech recognition result. This is mainly for delivering intermediate
+	// transcripts. The notification is configured in
+	// ConversationProfile.new_recognition_event_notification_config.
 	//   "UNRECOVERABLE_ERROR" - Unrecoverable error during a telephone call. In
 	// general non-recoverable errors only occur if something was misconfigured in
 	// the ConversationProfile corresponding to the call. After a non-recoverable
@@ -12281,33 +12602,35 @@ type GoogleCloudDialogflowV2beta1ConversationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ConversationEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ConversationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ConversationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ConversationPhoneNumber: Represents a phone
 // number for telephony integration. It allows for connecting a particular
 // conversation over telephony.
 type GoogleCloudDialogflowV2beta1ConversationPhoneNumber struct {
+	// CountryCode: Output only. Desired country code for the phone number.
+	CountryCode int64 `json:"countryCode,omitempty"`
 	// PhoneNumber: Output only. The phone number to connect to this conversation.
 	PhoneNumber string `json:"phoneNumber,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "PhoneNumber") to
+	// ForceSendFields is a list of field names (e.g. "CountryCode") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "PhoneNumber") to include in API
+	// NullFields is a list of field names (e.g. "CountryCode") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ConversationPhoneNumber) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ConversationPhoneNumber) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ConversationPhoneNumber
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ConversationProfile: Defines the services to
@@ -12342,6 +12665,12 @@ type GoogleCloudDialogflowV2beta1ConversationProfile struct {
 	// NewMessageEventNotificationConfig: Configuration for publishing new message
 	// events. Event will be sent in format of ConversationEvent
 	NewMessageEventNotificationConfig *GoogleCloudDialogflowV2beta1NotificationConfig `json:"newMessageEventNotificationConfig,omitempty"`
+	// NewRecognitionResultNotificationConfig: Optional. Configuration for
+	// publishing transcription intermediate results. Event will be sent in format
+	// of ConversationEvent. If configured, the following information will be
+	// populated as ConversationEvent Pub/Sub message attributes: -
+	// "participant_id" - "participant_role" - "message_id"
+	NewRecognitionResultNotificationConfig *GoogleCloudDialogflowV2beta1NotificationConfig `json:"newRecognitionResultNotificationConfig,omitempty"`
 	// NotificationConfig: Configuration for publishing conversation lifecycle
 	// events.
 	NotificationConfig *GoogleCloudDialogflowV2beta1NotificationConfig `json:"notificationConfig,omitempty"`
@@ -12376,9 +12705,93 @@ type GoogleCloudDialogflowV2beta1ConversationProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ConversationProfile) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ConversationProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ConversationProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfo: The
+// information about phone calls connected via phone gateway to the
+// conversation.
+type GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfo struct {
+	// DialedNumber: Output only. The number dialed to connect this call in E.164
+	// format.
+	DialedNumber string `json:"dialedNumber,omitempty"`
+	// ExtraMimeContents: Output only. The mime content from the initial SIP
+	// INVITE.
+	ExtraMimeContents []*GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoMimeContent `json:"extraMimeContents,omitempty"`
+	// Sdp: Optional. SDP of the call. It's initially the SDP answer to the
+	// endpoint, but maybe later updated for the purpose of making the link active,
+	// etc.
+	Sdp string `json:"sdp,omitempty"`
+	// SipHeaders: Output only. The SIP headers from the initial SIP INVITE.
+	SipHeaders []*GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoSipHeader `json:"sipHeaders,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DialedNumber") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DialedNumber") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoMimeContent:
+// The mime content from the initial SIP INVITE.
+type GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoMimeContent struct {
+	// Content: Optional. The content payload.
+	Content string `json:"content,omitempty"`
+	// MimeType: Optional. The mime type of the content.
+	MimeType string `json:"mimeType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Content") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Content") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoMimeContent) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoMimeContent
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoSipHeader:
+// The SIP headers from the initial SIP INVITE.
+type GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoSipHeader struct {
+	// Name: Optional. The name of the header.
+	Name string `json:"name,omitempty"`
+	// Value: Optional. The value of the header.
+	Value string `json:"value,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Name") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Name") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoSipHeader) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1ConversationTelephonyConnectionInfoSipHeader
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1CreateMessageRequest: The request message to
@@ -12402,9 +12815,9 @@ type GoogleCloudDialogflowV2beta1CreateMessageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1CreateMessageRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1CreateMessageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1CreateMessageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1DetectIntentRequest: The request to detect
@@ -12443,9 +12856,9 @@ type GoogleCloudDialogflowV2beta1DetectIntentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1DetectIntentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1DetectIntentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1DetectIntentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1DetectIntentResponse: The message returned from
@@ -12497,9 +12910,9 @@ type GoogleCloudDialogflowV2beta1DetectIntentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1DetectIntentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1DetectIntentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1DetectIntentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1DialogflowAssistAnswer: Represents a Dialogflow
@@ -12525,9 +12938,9 @@ type GoogleCloudDialogflowV2beta1DialogflowAssistAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1DialogflowAssistAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1DialogflowAssistAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1DialogflowAssistAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Document: A knowledge document to be used by a
@@ -12623,9 +13036,9 @@ type GoogleCloudDialogflowV2beta1Document struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Document) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Document) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Document
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1DocumentReloadStatus: The status of a reload
@@ -12649,9 +13062,9 @@ type GoogleCloudDialogflowV2beta1DocumentReloadStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1DocumentReloadStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1DocumentReloadStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1DocumentReloadStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1DtmfParameters: The message in the response that
@@ -12673,9 +13086,43 @@ type GoogleCloudDialogflowV2beta1DtmfParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1DtmfParameters) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1DtmfParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1DtmfParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1EncryptionSpec: A customer-managed encryption
+// key specification that can be applied to all created resources (e.g.
+// Conversation).
+type GoogleCloudDialogflowV2beta1EncryptionSpec struct {
+	// KmsKey: Required. The name of customer-managed encryption key that is used
+	// to secure a resource and its sub-resources. If empty, the resource is
+	// secured by the default Google encryption key. Only the key in the same
+	// location as this resource is allowed to be used for encryption. Format:
+	// `projects/{project}/locations/{location}/keyRings/{keyRing}/cryptoKeys/{key}`
+	KmsKey string `json:"kmsKey,omitempty"`
+	// Name: Immutable. The resource name of the encryption key specification
+	// resource. Format: projects/{project}/locations/{location}/encryptionSpec
+	Name string `json:"name,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "KmsKey") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "KmsKey") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1EncryptionSpec) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1EncryptionSpec
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1EntityType: Each intent parameter has a type,
@@ -12739,9 +13186,9 @@ type GoogleCloudDialogflowV2beta1EntityType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1EntityType) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1EntityType) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1EntityType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1EntityTypeBatch: This message is a wrapper
@@ -12762,9 +13209,9 @@ type GoogleCloudDialogflowV2beta1EntityTypeBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1EntityTypeBatch) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1EntityTypeBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1EntityTypeBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1EntityTypeEntity: An **entity entry** for an
@@ -12794,9 +13241,9 @@ type GoogleCloudDialogflowV2beta1EntityTypeEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1EntityTypeEntity) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1EntityTypeEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1EntityTypeEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Environment: You can create multiple versions of
@@ -12854,9 +13301,9 @@ type GoogleCloudDialogflowV2beta1Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Environment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1EnvironmentHistory: The response message for
@@ -12889,9 +13336,9 @@ type GoogleCloudDialogflowV2beta1EnvironmentHistory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1EnvironmentHistory) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1EnvironmentHistory) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1EnvironmentHistory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1EnvironmentHistoryEntry: Represents an
@@ -12917,9 +13364,9 @@ type GoogleCloudDialogflowV2beta1EnvironmentHistoryEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1EnvironmentHistoryEntry) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1EnvironmentHistoryEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1EnvironmentHistoryEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1EventInput: Events allow for matching intents by
@@ -12962,9 +13409,9 @@ type GoogleCloudDialogflowV2beta1EventInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1EventInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1EventInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1EventInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ExportAgentRequest: The request message for
@@ -12992,9 +13439,9 @@ type GoogleCloudDialogflowV2beta1ExportAgentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ExportAgentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ExportAgentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ExportAgentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ExportAgentResponse: The response message for
@@ -13018,9 +13465,9 @@ type GoogleCloudDialogflowV2beta1ExportAgentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ExportAgentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ExportAgentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ExportAgentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ExportOperationMetadata: Metadata related to the
@@ -13041,9 +13488,9 @@ type GoogleCloudDialogflowV2beta1ExportOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ExportOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ExportOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ExportOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1FaqAnswer: Represents answer from "frequently
@@ -13079,9 +13526,9 @@ type GoogleCloudDialogflowV2beta1FaqAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1FaqAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1FaqAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1FaqAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1FaqAnswer) UnmarshalJSON(data []byte) error {
@@ -13100,7 +13547,7 @@ func (s *GoogleCloudDialogflowV2beta1FaqAnswer) UnmarshalJSON(data []byte) error
 
 // GoogleCloudDialogflowV2beta1FewShotExample: Providing examples in the
 // generator (i.e. building a few-shot generator) helps convey the desired
-// format of the LLM response. NEXT_ID: 10
+// format of the LLM response.
 type GoogleCloudDialogflowV2beta1FewShotExample struct {
 	// ConversationContext: Optional. Conversation transcripts.
 	ConversationContext *GoogleCloudDialogflowV2beta1ConversationContext `json:"conversationContext,omitempty"`
@@ -13125,9 +13572,55 @@ type GoogleCloudDialogflowV2beta1FewShotExample struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1FewShotExample) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1FewShotExample) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1FewShotExample
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1FreeFormContext: Free form generator context
+// that customer can configure.
+type GoogleCloudDialogflowV2beta1FreeFormContext struct {
+	// Text: Optional. Free form text input to LLM.
+	Text string `json:"text,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Text") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Text") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1FreeFormContext) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1FreeFormContext
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1FreeFormSuggestion: Suggestion generated using
+// free form generator.
+type GoogleCloudDialogflowV2beta1FreeFormSuggestion struct {
+	// Response: Required. Free form suggestion.
+	Response string `json:"response,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Response") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Response") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1FreeFormSuggestion) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1FreeFormSuggestion
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Fulfillment: By default, your agent responds to
@@ -13170,9 +13663,9 @@ type GoogleCloudDialogflowV2beta1Fulfillment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Fulfillment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Fulfillment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Fulfillment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1FulfillmentFeature: Whether fulfillment is
@@ -13197,9 +13690,9 @@ type GoogleCloudDialogflowV2beta1FulfillmentFeature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1FulfillmentFeature) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1FulfillmentFeature) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1FulfillmentFeature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1FulfillmentGenericWebService: Represents
@@ -13237,9 +13730,9 @@ type GoogleCloudDialogflowV2beta1FulfillmentGenericWebService struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1FulfillmentGenericWebService) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1FulfillmentGenericWebService) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1FulfillmentGenericWebService
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GcsDestination: Google Cloud Storage location
@@ -13263,9 +13756,9 @@ type GoogleCloudDialogflowV2beta1GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GcsSource: Google Cloud Storage location for
@@ -13288,9 +13781,9 @@ type GoogleCloudDialogflowV2beta1GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GcsSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GcsSources: Google Cloud Storage locations for
@@ -13313,14 +13806,19 @@ type GoogleCloudDialogflowV2beta1GcsSources struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GcsSources) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GcsSources) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GcsSources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionRequest: The request
 // message for Conversations.GenerateStatelessSuggestion.
 type GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionRequest struct {
+	// ContextReferences: Optional. A section of ingested context information. The
+	// key is the name of the context reference and the value contains the contents
+	// of the context reference. The key is used to incorporate ingested context
+	// references to enhance the generator.
+	ContextReferences map[string]GoogleCloudDialogflowV2beta1ConversationContextReference `json:"contextReferences,omitempty"`
 	// ConversationContext: Optional. Context of the conversation, including
 	// transcripts.
 	ConversationContext *GoogleCloudDialogflowV2beta1ConversationContext `json:"conversationContext,omitempty"`
@@ -13340,23 +13838,25 @@ type GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionRequest struct {
 	//   "MANUAL_CALL" - Triggers on the conversation manually by API calls, such
 	// as Conversations.GenerateStatelessSuggestion and
 	// Conversations.GenerateSuggestions.
+	//   "CUSTOMER_MESSAGE" - Triggers after each customer message only.
+	//   "AGENT_MESSAGE" - Triggers after each agent message only.
 	TriggerEvents []string `json:"triggerEvents,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "ConversationContext") to
+	// ForceSendFields is a list of field names (e.g. "ContextReferences") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ConversationContext") to include
-	// in API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "ContextReferences") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionResponse: The
@@ -13380,9 +13880,9 @@ type GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GenerateStatelessSuggestionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequest: The request
@@ -13392,12 +13892,12 @@ type GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequest struct {
 	// required for Summary generation. Required fields: {language_code,
 	// security_settings} Optional fields: {agent_assistant_config}
 	ConversationProfile *GoogleCloudDialogflowV2beta1ConversationProfile `json:"conversationProfile,omitempty"`
-	// LatestMessage: The name of the latest conversation message used as context
-	// for generating a Summary. If empty, the latest message of the conversation
-	// will be used. The format is specific to the user and the names of the
-	// messages provided.
+	// LatestMessage: Optional. The name of the latest conversation message used as
+	// context for generating a Summary. If empty, the latest message of the
+	// conversation will be used. The format is specific to the user and the names
+	// of the messages provided.
 	LatestMessage string `json:"latestMessage,omitempty"`
-	// MaxContextSize: Max number of messages prior to and including
+	// MaxContextSize: Optional. Max number of messages prior to and including
 	// [latest_message] to use as context when compiling the suggestion. By default
 	// 500 and at most 1000.
 	MaxContextSize int64 `json:"maxContextSize,omitempty"`
@@ -13416,9 +13916,9 @@ type GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequestMinimalConversatio
@@ -13444,9 +13944,9 @@ type GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequestMinimalConversat
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequestMinimalConversation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequestMinimalConversation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GenerateStatelessSummaryRequestMinimalConversation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponse: The response
@@ -13479,9 +13979,9 @@ type GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponseSummary:
@@ -13510,9 +14010,108 @@ type GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponseSummary struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponseSummary) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponseSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GenerateStatelessSummaryResponseSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1GenerateSuggestionsRequest: The request message
+// for Conversations.GenerateSuggestions.
+type GoogleCloudDialogflowV2beta1GenerateSuggestionsRequest struct {
+	// LatestMessage: Optional. The name of the latest conversation message for
+	// which the request is triggered. Format:
+	// `projects//locations//conversations//messages/`.
+	LatestMessage string `json:"latestMessage,omitempty"`
+	// TriggerEvents: Optional. A list of trigger events. Only generators
+	// configured in the conversation_profile whose trigger_event is listed here
+	// will be triggered.
+	//
+	// Possible values:
+	//   "TRIGGER_EVENT_UNSPECIFIED" - Default value for TriggerEvent.
+	//   "END_OF_UTTERANCE" - Triggers when each chat message or voice utterance
+	// ends.
+	//   "MANUAL_CALL" - Triggers on the conversation manually by API calls, such
+	// as Conversations.GenerateStatelessSuggestion and
+	// Conversations.GenerateSuggestions.
+	//   "CUSTOMER_MESSAGE" - Triggers after each customer message only.
+	//   "AGENT_MESSAGE" - Triggers after each agent message only.
+	TriggerEvents []string `json:"triggerEvents,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "LatestMessage") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "LatestMessage") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1GenerateSuggestionsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1GenerateSuggestionsRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse: The response
+// message for Conversations.GenerateSuggestions.
+type GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse struct {
+	// GeneratorSuggestionAnswers: The answers generated for the conversation based
+	// on context.
+	GeneratorSuggestionAnswers []*GoogleCloudDialogflowV2beta1GenerateSuggestionsResponseGeneratorSuggestionAnswer `json:"generatorSuggestionAnswers,omitempty"`
+	// LatestMessage: The name of the latest conversation message used as context
+	// for compiling suggestion. Format:
+	// `projects//locations//conversations//messages/`.
+	LatestMessage string `json:"latestMessage,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "GeneratorSuggestionAnswers")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "GeneratorSuggestionAnswers") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1GenerateSuggestionsResponseGeneratorSuggestionAns
+// wer: A GeneratorSuggestion answer.
+type GoogleCloudDialogflowV2beta1GenerateSuggestionsResponseGeneratorSuggestionAnswer struct {
+	// AnswerRecord: Answer record that uniquely identifies the suggestion. This
+	// can be used to provide suggestion feedback.
+	AnswerRecord string `json:"answerRecord,omitempty"`
+	// GeneratorSuggestion: Suggestion details.
+	GeneratorSuggestion *GoogleCloudDialogflowV2beta1GeneratorSuggestion `json:"generatorSuggestion,omitempty"`
+	// SourceGenerator: The name of the generator used to generate this suggestion.
+	// Format: `projects//locations//generators/`.
+	SourceGenerator string `json:"sourceGenerator,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AnswerRecord") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AnswerRecord") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1GenerateSuggestionsResponseGeneratorSuggestionAnswer) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1GenerateSuggestionsResponseGeneratorSuggestionAnswer
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Generator: LLM generator.
@@ -13521,12 +14120,19 @@ type GoogleCloudDialogflowV2beta1Generator struct {
 	CreateTime string `json:"createTime,omitempty"`
 	// Description: Optional. Human readable description of the generator.
 	Description string `json:"description,omitempty"`
+	// FreeFormContext: Input of free from generator to LLM.
+	FreeFormContext *GoogleCloudDialogflowV2beta1FreeFormContext `json:"freeFormContext,omitempty"`
 	// InferenceParameter: Optional. Inference parameters for this generator.
 	InferenceParameter *GoogleCloudDialogflowV2beta1InferenceParameter `json:"inferenceParameter,omitempty"`
 	// Name: Output only. Identifier. The resource name of the generator. Format:
 	// `projects//locations//generators/`
 	Name string `json:"name,omitempty"`
-	// SummarizationContext: Input of prebuilt Summarization feature.
+	// PublishedModel: Optional. The published Large Language Model name. * To use
+	// the latest model version, specify the model name without version number.
+	// Example: `text-bison` * To use a stable model version, specify the version
+	// number as well. Example: `text-bison@002`.
+	PublishedModel string `json:"publishedModel,omitempty"`
+	// SummarizationContext: Input of Summarization feature.
 	SummarizationContext *GoogleCloudDialogflowV2beta1SummarizationContext `json:"summarizationContext,omitempty"`
 	// TriggerEvent: Optional. The trigger event of the generator. It defines when
 	// the generator is triggered in a conversation.
@@ -13538,6 +14144,8 @@ type GoogleCloudDialogflowV2beta1Generator struct {
 	//   "MANUAL_CALL" - Triggers on the conversation manually by API calls, such
 	// as Conversations.GenerateStatelessSuggestion and
 	// Conversations.GenerateSuggestions.
+	//   "CUSTOMER_MESSAGE" - Triggers after each customer message only.
+	//   "AGENT_MESSAGE" - Triggers after each agent message only.
 	TriggerEvent string `json:"triggerEvent,omitempty"`
 	// UpdateTime: Output only. Update time of this generator.
 	UpdateTime string `json:"updateTime,omitempty"`
@@ -13557,32 +14165,34 @@ type GoogleCloudDialogflowV2beta1Generator struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Generator) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Generator) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Generator
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1GeneratorSuggestion: Suggestion generated using
 // a Generator.
 type GoogleCloudDialogflowV2beta1GeneratorSuggestion struct {
+	// FreeFormSuggestion: Optional. Free form suggestion.
+	FreeFormSuggestion *GoogleCloudDialogflowV2beta1FreeFormSuggestion `json:"freeFormSuggestion,omitempty"`
 	// SummarySuggestion: Optional. Suggested summary.
 	SummarySuggestion *GoogleCloudDialogflowV2beta1SummarySuggestion `json:"summarySuggestion,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "SummarySuggestion") to
+	// ForceSendFields is a list of field names (e.g. "FreeFormSuggestion") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "SummarySuggestion") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "FreeFormSuggestion") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1GeneratorSuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1GeneratorSuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1GeneratorSuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfig: Defines the Human
@@ -13613,9 +14223,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationModelConfig:
@@ -13644,9 +14254,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationModelConfi
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationModelConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationModelConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationModelConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationProcessConfi
@@ -13668,9 +14278,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationProcessCon
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationProcessConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationProcessConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigConversationProcessConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigMessageAnalysisConfig:
@@ -13711,9 +14321,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigMessageAnalysisConfig 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigMessageAnalysisConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigMessageAnalysisConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigMessageAnalysisConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionConfig:
@@ -13726,7 +14336,7 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionConfig struc
 	// human_agent_assistant_config.notification_config must be configured and
 	// enable_event_based_suggestion must be set to true to receive the responses
 	// from high latency features in Pub/Sub. High latency feature(s):
-	// KNOWLEDGE_ASSIST.
+	// KNOWLEDGE_ASSIST
 	DisableHighLatencyFeaturesSyncDelivery bool `json:"disableHighLatencyFeaturesSyncDelivery,omitempty"`
 	// FeatureConfigs: Configuration of different suggestion features. One feature
 	// can have only one config.
@@ -13759,9 +14369,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionConfig struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionFeatureConfig:
@@ -13811,9 +14421,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionFeatureConfi
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionFeatureConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionFeatureConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionFeatureConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfig:
@@ -13836,6 +14446,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfig 
 	// filtered when generating suggestions. If unspecified, no messages will be
 	// dropped.
 	ContextFilterSettings *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigContextFilterSettings `json:"contextFilterSettings,omitempty"`
+	// ContextSize: Optional. The number of recent messages to include in the
+	// context. Supported features: KNOWLEDGE_ASSIST.
+	ContextSize int64 `json:"contextSize,omitempty"`
 	// DialogflowQuerySource: Query from Dialogflow agent. It is used by
 	// DIALOGFLOW_ASSIST, ENTITY_EXTRACTION.
 	DialogflowQuerySource *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDialogflowQuerySource `json:"dialogflowQuerySource,omitempty"`
@@ -13864,9 +14477,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfig 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfig) UnmarshalJSON(data []byte) error {
@@ -13909,9 +14522,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigC
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigContextFilterSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigContextFilterSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigContextFilterSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDia
@@ -13937,9 +14550,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigD
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDialogflowQuerySource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDialogflowQuerySource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDialogflowQuerySource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDia
@@ -13963,9 +14576,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigD
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDialogflowQuerySourceHumanAgentSideConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDialogflowQuerySourceHumanAgentSideConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDialogflowQuerySourceHumanAgentSideConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDoc
@@ -13989,9 +14602,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigD
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDocumentQuerySource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDocumentQuerySource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigDocumentQuerySource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigKno
@@ -14015,9 +14628,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigK
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigKnowledgeBaseQuerySource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigKnowledgeBaseQuerySource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigKnowledgeBaseQuerySource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigSec
@@ -14063,9 +14676,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigS
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigSections) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigSections) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionQueryConfigSections
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionTriggerSetting
@@ -14089,9 +14702,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionTriggerSetti
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionTriggerSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionTriggerSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantConfigSuggestionTriggerSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentAssistantEvent: Output only.
@@ -14124,9 +14737,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentAssistantEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentAssistantEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentAssistantEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentAssistantEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentHandoffConfig: Defines the hand off to
@@ -14151,9 +14764,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentHandoffConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentHandoffConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentHandoffConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentHandoffConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigLivePersonConfig:
@@ -14175,9 +14788,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigLivePersonConfig struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigLivePersonConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigLivePersonConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigLivePersonConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigSalesforceLiveAgentConfig:
@@ -14208,9 +14821,9 @@ type GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigSalesforceLiveAgentConfi
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigSalesforceLiveAgentConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigSalesforceLiveAgentConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1HumanAgentHandoffConfigSalesforceLiveAgentConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ImportAgentRequest: The request message for
@@ -14238,9 +14851,9 @@ type GoogleCloudDialogflowV2beta1ImportAgentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ImportAgentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ImportAgentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ImportAgentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ImportDocumentTemplate: The template used for
@@ -14283,9 +14896,9 @@ type GoogleCloudDialogflowV2beta1ImportDocumentTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ImportDocumentTemplate) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ImportDocumentTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ImportDocumentTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ImportDocumentsRequest: Request message for
@@ -14314,9 +14927,9 @@ type GoogleCloudDialogflowV2beta1ImportDocumentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ImportDocumentsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ImportDocumentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ImportDocumentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ImportDocumentsResponse: Response message for
@@ -14337,9 +14950,9 @@ type GoogleCloudDialogflowV2beta1ImportDocumentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ImportDocumentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ImportDocumentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ImportDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1InferenceParameter: The parameters of inference.
@@ -14383,9 +14996,9 @@ type GoogleCloudDialogflowV2beta1InferenceParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1InferenceParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1InferenceParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1InferenceParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1InferenceParameter) UnmarshalJSON(data []byte) error {
@@ -14402,6 +15015,107 @@ func (s *GoogleCloudDialogflowV2beta1InferenceParameter) UnmarshalJSON(data []by
 	s.Temperature = float64(s1.Temperature)
 	s.TopP = float64(s1.TopP)
 	return nil
+}
+
+// GoogleCloudDialogflowV2beta1IngestContextReferencesRequest: The request
+// message for ConversationsService.IngestContextReferences.
+type GoogleCloudDialogflowV2beta1IngestContextReferencesRequest struct {
+	// ContextReferences: Required. The context references to ingest. The key is
+	// the name of the context reference and the value contains the contents of the
+	// context reference. The key is used to incorporate ingested context
+	// references to enhance the generator.
+	ContextReferences map[string]GoogleCloudDialogflowV2beta1ConversationContextReference `json:"contextReferences,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ContextReferences") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ContextReferences") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1IngestContextReferencesRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1IngestContextReferencesRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1IngestContextReferencesResponse: The response
+// message for ConversationsService.IngestContextReferences.
+type GoogleCloudDialogflowV2beta1IngestContextReferencesResponse struct {
+	// IngestedContextReferences: All context references ingested.
+	IngestedContextReferences map[string]GoogleCloudDialogflowV2beta1ConversationContextReference `json:"ingestedContextReferences,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "IngestedContextReferences")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IngestedContextReferences") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1IngestContextReferencesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1IngestContextReferencesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1InitializeEncryptionSpecMetadata: Metadata for
+// initializing a location-level encryption specification.
+type GoogleCloudDialogflowV2beta1InitializeEncryptionSpecMetadata struct {
+	// Request: Output only. The original request for initialization.
+	Request *GoogleCloudDialogflowV2beta1InitializeEncryptionSpecRequest `json:"request,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Request") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Request") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1InitializeEncryptionSpecMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1InitializeEncryptionSpecMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1InitializeEncryptionSpecRequest: The request to
+// initialize a location-level encryption specification.
+type GoogleCloudDialogflowV2beta1InitializeEncryptionSpecRequest struct {
+	// EncryptionSpec: Required. The encryption spec used for CMEK encryption. It
+	// is required that the kms key is in the same region as the endpoint. The same
+	// key will be used for all provisioned resources, if encryption is available.
+	// If the kms_key_name is left empty, no encryption will be enforced.
+	EncryptionSpec *GoogleCloudDialogflowV2beta1EncryptionSpec `json:"encryptionSpec,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EncryptionSpec") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EncryptionSpec") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1InitializeEncryptionSpecRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1InitializeEncryptionSpecRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1InputAudioConfig: Instructs the speech
@@ -14440,6 +15154,8 @@ type GoogleCloudDialogflowV2beta1InputAudioConfig struct {
 	// 5574. In other words, each RTP header is replaced with a single byte
 	// containing the block length. Only Speex wideband is supported.
 	// `sample_rate_hertz` must be 16000.
+	//   "AUDIO_ENCODING_ALAW" - 8-bit samples that compand 13-bit audio samples
+	// using G.711 PCMU/a-law.
 	AudioEncoding string `json:"audioEncoding,omitempty"`
 	// BargeInConfig: Configuration of barge-in behavior during the streaming of
 	// input audio.
@@ -14505,6 +15221,9 @@ type GoogleCloudDialogflowV2beta1InputAudioConfig struct {
 	// If you specify both `phrase_hints` () and `speech_contexts` (), Dialogflow
 	// will treat the `phrase_hints` () as a single additional `SpeechContext` ().
 	PhraseHints []string `json:"phraseHints,omitempty"`
+	// PhraseSets: A collection of phrase set resources to use for speech
+	// adaptation.
+	PhraseSets []string `json:"phraseSets,omitempty"`
 	// SampleRateHertz: Required. Sample rate (in Hertz) of the audio content sent
 	// in the query. Refer to Cloud Speech API documentation
 	// (https://cloud.google.com/speech-to-text/docs/basics) for more details.
@@ -14536,9 +15255,9 @@ type GoogleCloudDialogflowV2beta1InputAudioConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1InputAudioConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1InputAudioConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1InputAudioConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Intent: An intent categorizes an end-user's
@@ -14680,9 +15399,9 @@ type GoogleCloudDialogflowV2beta1Intent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Intent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Intent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Intent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentBatch: This message is a wrapper around a
@@ -14703,9 +15422,9 @@ type GoogleCloudDialogflowV2beta1IntentBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentBatch) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentFollowupIntentInfo: Represents a single
@@ -14730,9 +15449,9 @@ type GoogleCloudDialogflowV2beta1IntentFollowupIntentInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentFollowupIntentInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentFollowupIntentInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentFollowupIntentInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentInput: Represents the intent to trigger
@@ -14760,9 +15479,9 @@ type GoogleCloudDialogflowV2beta1IntentInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessage: Corresponds to the `Response`
@@ -14844,9 +15563,9 @@ type GoogleCloudDialogflowV2beta1IntentMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageBasicCard: The basic card message.
@@ -14875,9 +15594,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageBasicCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageBasicCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageBasicCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageBasicCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageBasicCardButton: The button object
@@ -14900,9 +15619,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageBasicCardButton struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageBasicCardButton) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageBasicCardButton) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageBasicCardButton
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageBasicCardButtonOpenUriAction: Opens
@@ -14923,9 +15642,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageBasicCardButtonOpenUriAction struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageBasicCardButtonOpenUriAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageBasicCardButtonOpenUriAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageBasicCardButtonOpenUriAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCard: Browse Carousel
@@ -14967,9 +15686,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCard
@@ -15000,9 +15719,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCa
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCardItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCardItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCardItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCard
@@ -15032,9 +15751,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCa
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCardItemOpenUrlAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCardItemOpenUrlAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageBrowseCarouselCardBrowseCarouselCardItemOpenUrlAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageCard: The card response message.
@@ -15060,9 +15779,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageCardButton: Optional. Contains
@@ -15086,9 +15805,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageCardButton struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageCardButton) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageCardButton) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageCardButton
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageCarouselSelect: The card for
@@ -15109,9 +15828,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageCarouselSelect struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageCarouselSelect) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageCarouselSelect) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageCarouselSelect
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageCarouselSelectItem: An item in the
@@ -15138,9 +15857,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageCarouselSelectItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageCarouselSelectItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageCarouselSelectItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageCarouselSelectItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageColumnProperties: Column properties
@@ -15171,9 +15890,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageColumnProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageColumnProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageColumnProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageColumnProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageImage: The image response message.
@@ -15197,9 +15916,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageImage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageImage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageLinkOutSuggestion: The suggestion
@@ -15225,9 +15944,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageLinkOutSuggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageLinkOutSuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageLinkOutSuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageLinkOutSuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageListSelect: The card for presenting
@@ -15252,9 +15971,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageListSelect struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageListSelect) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageListSelect) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageListSelect
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageListSelectItem: An item in the
@@ -15281,9 +16000,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageListSelectItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageListSelectItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageListSelectItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageListSelectItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageMediaContent: The media content
@@ -15310,9 +16029,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageMediaContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageMediaContent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageMediaContent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageMediaContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageMediaContentResponseMediaObject:
@@ -15341,9 +16060,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageMediaContentResponseMediaObject st
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageMediaContentResponseMediaObject) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageMediaContentResponseMediaObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageMediaContentResponseMediaObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageQuickReplies: The quick replies
@@ -15366,9 +16085,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageQuickReplies struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageQuickReplies) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageQuickReplies) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageQuickReplies
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmCardContent: Rich Business
@@ -15398,9 +16117,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmCardContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmCardContent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmCardContent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmCardContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmCardContentRbmMedia: Rich
@@ -15444,9 +16163,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmCardContentRbmMedia struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmCardContentRbmMedia) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmCardContentRbmMedia) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmCardContentRbmMedia
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmCarouselCard: Carousel Rich
@@ -15478,9 +16197,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmCarouselCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmCarouselCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmCarouselCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmCarouselCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmStandaloneCard: Standalone Rich
@@ -15519,9 +16238,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmStandaloneCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmStandaloneCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmStandaloneCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmStandaloneCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedAction: Rich Business
@@ -15553,9 +16272,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedAction
@@ -15579,9 +16298,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedActi
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedActionDial) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedActionDial) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedActionDial
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedAction
@@ -15605,9 +16324,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedActi
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedActionOpenUri) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedActionOpenUri) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedActionOpenUri
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedActionRbmSuggestedAction
@@ -15639,9 +16358,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedReply struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedReply) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedReply) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestedReply
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestion: Rich Business
@@ -15665,9 +16384,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmSuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageRbmText: Rich Business Messaging
@@ -15690,9 +16409,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageRbmText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageRbmText) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageRbmText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageRbmText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageSelectItemInfo: Additional info
@@ -15717,9 +16436,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageSelectItemInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageSelectItemInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageSelectItemInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageSelectItemInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageSimpleResponse: The simple response
@@ -15747,9 +16466,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageSimpleResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageSimpleResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageSimpleResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageSimpleResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageSimpleResponses: The collection of
@@ -15773,9 +16492,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageSimpleResponses struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageSimpleResponses) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageSimpleResponses) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageSimpleResponses
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageSuggestion: The suggestion chip
@@ -15796,9 +16515,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageSuggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageSuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageSuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageSuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageSuggestions: The collection of
@@ -15819,9 +16538,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageSuggestions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageSuggestions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageSuggestions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageSuggestions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageTableCard: Table card for Actions
@@ -15853,9 +16572,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageTableCard struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageTableCard) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageTableCard) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageTableCard
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageTableCardCell: Cell of
@@ -15876,9 +16595,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageTableCardCell struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageTableCardCell) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageTableCardCell) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageTableCardCell
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageTableCardRow: Row of TableCard.
@@ -15900,9 +16619,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageTableCardRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageTableCardRow) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageTableCardRow) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageTableCardRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageTelephonyPlayAudio: Plays audio
@@ -15931,9 +16650,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageTelephonyPlayAudio struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageTelephonyPlayAudio) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageTelephonyPlayAudio) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageTelephonyPlayAudio
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageTelephonySynthesizeSpeech:
@@ -15960,9 +16679,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageTelephonySynthesizeSpeech struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageTelephonySynthesizeSpeech) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageTelephonySynthesizeSpeech) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageTelephonySynthesizeSpeech
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageTelephonyTransferCall: Transfers
@@ -15985,9 +16704,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageTelephonyTransferCall struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageTelephonyTransferCall) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageTelephonyTransferCall) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageTelephonyTransferCall
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentMessageText: The text response message.
@@ -16007,9 +16726,9 @@ type GoogleCloudDialogflowV2beta1IntentMessageText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentMessageText) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentMessageText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentMessageText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentParameter: Represents intent parameters.
@@ -16054,9 +16773,9 @@ type GoogleCloudDialogflowV2beta1IntentParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentSuggestion: Represents an intent
@@ -16084,9 +16803,9 @@ type GoogleCloudDialogflowV2beta1IntentSuggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentSuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentSuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentSuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentTrainingPhrase: Represents an example that
@@ -16137,9 +16856,9 @@ type GoogleCloudDialogflowV2beta1IntentTrainingPhrase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentTrainingPhrase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentTrainingPhrase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentTrainingPhrase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1IntentTrainingPhrasePart: Represents a part of a
@@ -16172,9 +16891,9 @@ type GoogleCloudDialogflowV2beta1IntentTrainingPhrasePart struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1IntentTrainingPhrasePart) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1IntentTrainingPhrasePart) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1IntentTrainingPhrasePart
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeAnswers: Represents the result of
@@ -16195,9 +16914,9 @@ type GoogleCloudDialogflowV2beta1KnowledgeAnswers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeAnswers) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeAnswers) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeAnswers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeAnswersAnswer: An answer from Knowledge
@@ -16246,9 +16965,9 @@ type GoogleCloudDialogflowV2beta1KnowledgeAnswersAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeAnswersAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeAnswersAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeAnswersAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1KnowledgeAnswersAnswer) UnmarshalJSON(data []byte) error {
@@ -16291,9 +17010,9 @@ type GoogleCloudDialogflowV2beta1KnowledgeAssistAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeAssistAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeAssistAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeAssistAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswer: Represents
@@ -16319,9 +17038,9 @@ type GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerFaqSource:
@@ -16342,9 +17061,9 @@ type GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerFaqSource s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerFaqSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerFaqSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerFaqSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSou
@@ -16366,36 +17085,38 @@ type GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeS
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSou
 // rceSnippet: Snippet Source for a Generative Prediction.
 type GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSnippet struct {
+	// Metadata: Metadata of the document.
+	Metadata googleapi.RawMessage `json:"metadata,omitempty"`
 	// Text: Text taken from that URI.
 	Text string `json:"text,omitempty"`
 	// Title: Title of the document.
 	Title string `json:"title,omitempty"`
 	// Uri: URI the data is sourced from.
 	Uri string `json:"uri,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Text") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "Metadata") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Text") to include in API requests
-	// with the JSON null value. By default, fields with empty values are omitted
-	// from API requests. See
+	// NullFields is a list of field names (e.g. "Metadata") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSnippet) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSnippet) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerKnowledgeAnswerGenerativeSourceSnippet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerSuggestedQuery: Represents
@@ -16416,9 +17137,9 @@ type GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerSuggestedQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerSuggestedQuery) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerSuggestedQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeAssistAnswerSuggestedQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeBase: A knowledge base represents a
@@ -16457,9 +17178,9 @@ type GoogleCloudDialogflowV2beta1KnowledgeBase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeBase) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeBase) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeBase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1KnowledgeOperationMetadata: Metadata in
@@ -16492,9 +17213,9 @@ type GoogleCloudDialogflowV2beta1KnowledgeOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1KnowledgeOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1KnowledgeOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1KnowledgeOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListAnswerRecordsResponse: Response message for
@@ -16523,9 +17244,9 @@ type GoogleCloudDialogflowV2beta1ListAnswerRecordsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListAnswerRecordsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListAnswerRecordsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListAnswerRecordsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListContextsResponse: The response message for
@@ -16553,9 +17274,9 @@ type GoogleCloudDialogflowV2beta1ListContextsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListContextsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListContextsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListContextsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListConversationProfilesResponse: The response
@@ -16584,9 +17305,9 @@ type GoogleCloudDialogflowV2beta1ListConversationProfilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListConversationProfilesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListConversationProfilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListConversationProfilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListConversationsResponse: The response message
@@ -16614,9 +17335,9 @@ type GoogleCloudDialogflowV2beta1ListConversationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListConversationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListConversationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListConversationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListDocumentsResponse: Response message for
@@ -16643,9 +17364,9 @@ type GoogleCloudDialogflowV2beta1ListDocumentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListDocumentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListDocumentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListEntityTypesResponse: The response message
@@ -16673,9 +17394,9 @@ type GoogleCloudDialogflowV2beta1ListEntityTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListEntityTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListEntityTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListEntityTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListEnvironmentsResponse: The response message
@@ -16703,9 +17424,9 @@ type GoogleCloudDialogflowV2beta1ListEnvironmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListEnvironmentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListEnvironmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListEnvironmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListGeneratorsResponse: Response of
@@ -16732,9 +17453,9 @@ type GoogleCloudDialogflowV2beta1ListGeneratorsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListGeneratorsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListGeneratorsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListGeneratorsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListIntentsResponse: The response message for
@@ -16762,9 +17483,9 @@ type GoogleCloudDialogflowV2beta1ListIntentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListIntentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListIntentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListIntentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListKnowledgeBasesResponse: Response message for
@@ -16791,9 +17512,9 @@ type GoogleCloudDialogflowV2beta1ListKnowledgeBasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListKnowledgeBasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListKnowledgeBasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListKnowledgeBasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListMessagesResponse: The response message for
@@ -16822,9 +17543,9 @@ type GoogleCloudDialogflowV2beta1ListMessagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListMessagesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListMessagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListMessagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListParticipantsResponse: The response message
@@ -16852,9 +17573,39 @@ type GoogleCloudDialogflowV2beta1ListParticipantsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListParticipantsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListParticipantsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListParticipantsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse: The response message
+// for PhoneNumbers.ListPhoneNumbers.
+type GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse struct {
+	// NextPageToken: Token to retrieve the next page of results, or empty if there
+	// are no more results in the list.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// PhoneNumbers: The list of `PhoneNumber` resources. There is a maximum number
+	// of items returned based on the page_size field in the request.
+	PhoneNumbers []*GoogleCloudDialogflowV2beta1PhoneNumber `json:"phoneNumbers,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListSessionEntityTypesResponse: The response
@@ -16883,9 +17634,38 @@ type GoogleCloudDialogflowV2beta1ListSessionEntityTypesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListSessionEntityTypesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListSessionEntityTypesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListSessionEntityTypesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1ListSipTrunksResponse: The response message for
+// SipTrunks.ListSipTrunks.
+type GoogleCloudDialogflowV2beta1ListSipTrunksResponse struct {
+	// NextPageToken: Token to retrieve the next page of results, or empty if there
+	// are no more results in the list.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SipTrunks: The list of SIP trunks.
+	SipTrunks []*GoogleCloudDialogflowV2beta1SipTrunk `json:"sipTrunks,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1ListSipTrunksResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1ListSipTrunksResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListSuggestionsResponse: The response message
@@ -16914,9 +17694,9 @@ type GoogleCloudDialogflowV2beta1ListSuggestionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListSuggestionsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListSuggestionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListSuggestionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ListVersionsResponse: The response message for
@@ -16944,9 +17724,9 @@ type GoogleCloudDialogflowV2beta1ListVersionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ListVersionsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ListVersionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ListVersionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1LoggingConfig: Defines logging behavior for
@@ -16969,9 +17749,9 @@ type GoogleCloudDialogflowV2beta1LoggingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1LoggingConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1LoggingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1LoggingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Message: Represents a message posted into a
@@ -17003,7 +17783,10 @@ type GoogleCloudDialogflowV2beta1Message struct {
 	//   "END_USER" - Participant is an end user that has called or chatted with
 	// Dialogflow services.
 	ParticipantRole string `json:"participantRole,omitempty"`
-	// SendTime: Optional. The time when the message was sent.
+	// ResponseMessages: Optional. Automated agent responses.
+	ResponseMessages []*GoogleCloudDialogflowV2beta1ResponseMessage `json:"responseMessages,omitempty"`
+	// SendTime: Optional. The time when the message was sent. For voice messages,
+	// this is the time when an utterance started.
 	SendTime string `json:"sendTime,omitempty"`
 	// SentimentAnalysis: Output only. The sentiment analysis result for the
 	// message.
@@ -17021,9 +17804,9 @@ type GoogleCloudDialogflowV2beta1Message struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Message) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Message) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Message
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1MessageAnnotation: Represents the result of
@@ -17049,9 +17832,9 @@ type GoogleCloudDialogflowV2beta1MessageAnnotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1MessageAnnotation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1MessageAnnotation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1MessageAnnotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1MessageEntry: Represents a message entry of a
@@ -17088,9 +17871,9 @@ type GoogleCloudDialogflowV2beta1MessageEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1MessageEntry) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1MessageEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1MessageEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1NotificationConfig: Defines notification
@@ -17125,9 +17908,9 @@ type GoogleCloudDialogflowV2beta1NotificationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1NotificationConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1NotificationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1NotificationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1OriginalDetectIntentRequest: Represents the
@@ -17162,9 +17945,9 @@ type GoogleCloudDialogflowV2beta1OriginalDetectIntentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1OriginalDetectIntentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1OriginalDetectIntentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1OriginalDetectIntentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1OutputAudio: Represents the natural language
@@ -17188,9 +17971,9 @@ type GoogleCloudDialogflowV2beta1OutputAudio struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1OutputAudio) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1OutputAudio) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1OutputAudio
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1OutputAudioConfig: Instructs the speech
@@ -17214,6 +17997,8 @@ type GoogleCloudDialogflowV2beta1OutputAudioConfig struct {
 	// bitrate.
 	//   "OUTPUT_AUDIO_ENCODING_MULAW" - 8-bit samples that compand 14-bit audio
 	// samples using G.711 PCMU/mu-law.
+	//   "OUTPUT_AUDIO_ENCODING_ALAW" - 8-bit samples that compand 13-bit audio
+	// samples using G.711 PCMU/a-law.
 	AudioEncoding string `json:"audioEncoding,omitempty"`
 	// SampleRateHertz: The synthesis sample rate (in hertz) for this audio. If not
 	// provided, then the synthesizer will use the default sample rate based on the
@@ -17236,9 +18021,9 @@ type GoogleCloudDialogflowV2beta1OutputAudioConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1OutputAudioConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1OutputAudioConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1OutputAudioConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Participant: Represents a conversation
@@ -17299,9 +18084,56 @@ type GoogleCloudDialogflowV2beta1Participant struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Participant) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Participant) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Participant
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1PhoneNumber: Represents a phone number.
+// `PhoneNumber` resources enable phone calls to be answered by Dialogflow
+// services and are added to a project through a PhoneNumberOrder.
+type GoogleCloudDialogflowV2beta1PhoneNumber struct {
+	// ConversationProfile: Optional. The conversation profile calls to this
+	// `PhoneNumber` should use. The project ID here should be the same as the one
+	// in name. Format: `projects//conversationProfiles/`. Format:
+	// `projects//locations//conversationProfiles/`.
+	ConversationProfile string `json:"conversationProfile,omitempty"`
+	// LifecycleState: Output only. The state of the `PhoneNumber`. Defaults to
+	// `ACTIVE`. `PhoneNumber` objects set to `DELETE_REQUESTED` always decline
+	// incoming calls and can be removed completely within 30 days.
+	//
+	// Possible values:
+	//   "LIFECYCLE_STATE_UNSPECIFIED" - This value is never used.
+	//   "ACTIVE" - Number is active and can receive phone calls.
+	//   "DELETE_REQUESTED" - Number is pending deletion, and cannot receive calls.
+	LifecycleState string `json:"lifecycleState,omitempty"`
+	// Name: Optional. The unique identifier of this phone number. Required for
+	// PhoneNumbers.UpdatePhoneNumber method. Format: `projects//phoneNumbers/`.
+	// Format: `projects//locations//phoneNumbers/`.
+	Name string `json:"name,omitempty"`
+	// PhoneNumber: Output only. Phone number in E.164
+	// (https://en.wikipedia.org/wiki/E.164) format. An example of a correctly
+	// formatted phone number: +15556767888.
+	PhoneNumber string `json:"phoneNumber,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ConversationProfile") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ConversationProfile") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1PhoneNumber) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1PhoneNumber
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1QueryInput: Represents the query input. It can
@@ -17331,9 +18163,9 @@ type GoogleCloudDialogflowV2beta1QueryInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1QueryInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1QueryInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1QueryInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1QueryParameters: Represents the parameters of
@@ -17401,9 +18233,9 @@ type GoogleCloudDialogflowV2beta1QueryParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1QueryParameters) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1QueryParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1QueryParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1QueryResult: Represents the result of
@@ -17504,9 +18336,9 @@ type GoogleCloudDialogflowV2beta1QueryResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1QueryResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1QueryResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1QueryResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1QueryResult) UnmarshalJSON(data []byte) error {
@@ -17547,9 +18379,9 @@ type GoogleCloudDialogflowV2beta1ReloadDocumentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ReloadDocumentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ReloadDocumentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ReloadDocumentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ResponseMessage: Response messages from an
@@ -17584,9 +18416,9 @@ type GoogleCloudDialogflowV2beta1ResponseMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ResponseMessage) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ResponseMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ResponseMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ResponseMessageEndInteraction: Indicates that
@@ -17599,8 +18431,8 @@ type GoogleCloudDialogflowV2beta1ResponseMessageEndInteraction struct {
 // this to determine which conversations were handed off to a human agent for
 // measurement purposes. What else to do with this signal is up to you and your
 // handoff procedures. You may set this, for example: * In the entry
-// fulfillment of a CX Page if entering the page indicates something went
-// extremely wrong in the conversation. * In a webhook response when you
+// fulfillment of a Dialogflow CX Page if entering the page indicates something
+// went extremely wrong in the conversation. * In a webhook response when you
 // determine that the customer issue can only be handled by a human.
 type GoogleCloudDialogflowV2beta1ResponseMessageLiveAgentHandoff struct {
 	// Metadata: Custom metadata for your handoff procedure. Dialogflow doesn't
@@ -17619,9 +18451,9 @@ type GoogleCloudDialogflowV2beta1ResponseMessageLiveAgentHandoff struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ResponseMessageLiveAgentHandoff) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ResponseMessageLiveAgentHandoff) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ResponseMessageLiveAgentHandoff
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ResponseMessageMixedAudio: Represents an audio
@@ -17643,9 +18475,9 @@ type GoogleCloudDialogflowV2beta1ResponseMessageMixedAudio struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ResponseMessageMixedAudio) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ResponseMessageMixedAudio) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ResponseMessageMixedAudio
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ResponseMessageMixedAudioSegment: Represents one
@@ -17674,9 +18506,9 @@ type GoogleCloudDialogflowV2beta1ResponseMessageMixedAudioSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ResponseMessageMixedAudioSegment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ResponseMessageMixedAudioSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ResponseMessageMixedAudioSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ResponseMessageTelephonyTransferCall: Represents
@@ -17701,14 +18533,15 @@ type GoogleCloudDialogflowV2beta1ResponseMessageTelephonyTransferCall struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ResponseMessageTelephonyTransferCall) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ResponseMessageTelephonyTransferCall) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ResponseMessageTelephonyTransferCall
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ResponseMessageText: The text response message.
 type GoogleCloudDialogflowV2beta1ResponseMessageText struct {
-	// Text: A collection of text responses.
+	// Text: A collection of text response variants. If multiple variants are
+	// defined, only one text response variant is returned at runtime.
 	Text []string `json:"text,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Text") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -17723,9 +18556,9 @@ type GoogleCloudDialogflowV2beta1ResponseMessageText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ResponseMessageText) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ResponseMessageText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ResponseMessageText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1RestoreAgentRequest: The request message for
@@ -17753,9 +18586,9 @@ type GoogleCloudDialogflowV2beta1RestoreAgentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1RestoreAgentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1RestoreAgentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1RestoreAgentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SearchAgentsResponse: The response message for
@@ -17783,9 +18616,9 @@ type GoogleCloudDialogflowV2beta1SearchAgentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SearchAgentsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SearchAgentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SearchAgentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SearchKnowledgeAnswer: Represents a
@@ -17820,61 +18653,87 @@ type GoogleCloudDialogflowV2beta1SearchKnowledgeAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SearchKnowledgeAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SearchKnowledgeAnswerAnswerSource: The sources
 // of the answers.
 type GoogleCloudDialogflowV2beta1SearchKnowledgeAnswerAnswerSource struct {
+	// Metadata: Metadata associated with the article.
+	Metadata googleapi.RawMessage `json:"metadata,omitempty"`
 	// Snippet: The relevant snippet of the article.
 	Snippet string `json:"snippet,omitempty"`
 	// Title: The title of the article.
 	Title string `json:"title,omitempty"`
 	// Uri: The URI of the article.
 	Uri string `json:"uri,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Snippet") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "Metadata") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Snippet") to include in API
+	// NullFields is a list of field names (e.g. "Metadata") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SearchKnowledgeAnswerAnswerSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeAnswerAnswerSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeAnswerAnswerSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SearchKnowledgeRequest: The request message for
 // Conversations.SearchKnowledge.
 type GoogleCloudDialogflowV2beta1SearchKnowledgeRequest struct {
-	// Conversation: The conversation (between human agent and end user) where the
-	// search request is triggered. Format: `projects//locations//conversations/`.
+	// Conversation: Optional. The conversation (between human agent and end user)
+	// where the search request is triggered. Format:
+	// `projects//locations//conversations/`.
 	Conversation string `json:"conversation,omitempty"`
 	// ConversationProfile: Required. The conversation profile used to configure
 	// the search. Format: `projects//locations//conversationProfiles/`.
 	ConversationProfile string `json:"conversationProfile,omitempty"`
-	// LatestMessage: The name of the latest conversation message when the request
-	// is triggered. Format: `projects//locations//conversations//messages/`.
+	// EndUserMetadata: Optional. Information about the end-user to improve the
+	// relevance and accuracy of generative answers. This will be interpreted and
+	// used by a language model, so, for good results, the data should be
+	// self-descriptive, and in a simple structure. Example: ```json {
+	// "subscription plan": "Business Premium Plus", "devices owned": [ {"model":
+	// "Google Pixel 7"}, {"model": "Google Pixel Tablet"} ] } ```
+	EndUserMetadata googleapi.RawMessage `json:"endUserMetadata,omitempty"`
+	// ExactSearch: Optional. Whether to search the query exactly without query
+	// rewrite.
+	ExactSearch bool `json:"exactSearch,omitempty"`
+	// LatestMessage: Optional. The name of the latest conversation message when
+	// the request is triggered. Format:
+	// `projects//locations//conversations//messages/`.
 	LatestMessage string `json:"latestMessage,omitempty"`
-	// Parent: The parent resource contains the conversation profile Format:
-	// 'projects/' or `projects//locations/`.
+	// Parent: Required. The parent resource contains the conversation profile
+	// Format: 'projects/' or `projects//locations/`.
 	Parent string `json:"parent,omitempty"`
 	// Query: Required. The natural language text query for knowledge search.
 	Query *GoogleCloudDialogflowV2beta1TextInput `json:"query,omitempty"`
-	// SessionId: The ID of the search session. The session_id can be combined with
-	// Dialogflow V3 Agent ID retrieved from conversation profile or on its own to
-	// identify a search session. The search history of the same session will
-	// impact the search result. It's up to the API caller to choose an appropriate
-	// `Session ID`. It can be a random number or some type of session identifiers
-	// (preferably hashed). The length must not exceed 36 characters.
+	// QuerySource: Optional. The source of the query in the request.
+	//
+	// Possible values:
+	//   "QUERY_SOURCE_UNSPECIFIED" - Unknown query source.
+	//   "AGENT_QUERY" - The query is from agents.
+	//   "SUGGESTED_QUERY" - The query is a suggested query from
+	// Participants.SuggestKnowledgeAssist.
+	QuerySource string `json:"querySource,omitempty"`
+	// SearchConfig: Optional. Configuration specific to search queries with data
+	// stores.
+	SearchConfig *GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfig `json:"searchConfig,omitempty"`
+	// SessionId: Required. The ID of the search session. The session_id can be
+	// combined with Dialogflow V3 Agent ID retrieved from conversation profile or
+	// on its own to identify a search session. The search history of the same
+	// session will impact the search result. It's up to the API caller to choose
+	// an appropriate `Session ID`. It can be a random number or some type of
+	// session identifiers (preferably hashed). The length must not exceed 36
+	// characters.
 	SessionId string `json:"sessionId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Conversation") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -17889,9 +18748,286 @@ type GoogleCloudDialogflowV2beta1SearchKnowledgeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SearchKnowledgeRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfig:
+// Configuration specific to search queries with data stores.
+type GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfig struct {
+	// BoostSpecs: Optional. Boost specifications for data stores.
+	BoostSpecs []*GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecs `json:"boostSpecs,omitempty"`
+	// FilterSpecs: Optional. Filter specification for data store queries. Maps
+	// from datastore name to the filter expression for that datastore. Do not
+	// specify more than one FilterSpecs for each datastore name. If multiple
+	// FilterSpecs are provided for the same datastore name, the behavior is
+	// undefined.
+	FilterSpecs []*GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigFilterSpecs `json:"filterSpecs,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BoostSpecs") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BoostSpecs") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecs:
+// Boost specifications for data stores. Maps from datastore name to their
+// boost configuration. Do not specify more than one BoostSpecs for each
+// datastore name. If multiple BoostSpecs are provided for the same datastore
+// name, the behavior is undefined.
+type GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecs struct {
+	// DataStores: Optional. Data Stores where the boosting configuration is
+	// applied. The full names of the referenced data stores. Formats:
+	// `projects/{project}/locations/{location}/collections/{collection}/dataStores/
+	// {data_store}`
+	// `projects/{project}/locations/{location}/dataStores/{data_store}`
+	DataStores []string `json:"dataStores,omitempty"`
+	// Spec: Optional. A list of boosting specifications.
+	Spec []*GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpec `json:"spec,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DataStores") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DataStores") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecs) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecs
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoost
+// Spec: Boost specification to boost certain documents. A copy of
+// google.cloud.discoveryengine.v1main.BoostSpec, field documentation is
+// available at
+// https://cloud.google.com/generative-ai-app-builder/docs/reference/rest/v1alpha/BoostSpec
+type GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpec struct {
+	// ConditionBoostSpecs: Optional. Condition boost specifications. If a document
+	// matches multiple conditions in the specifications, boost scores from these
+	// specifications are all applied and combined in a non-linear way. Maximum
+	// number of specifications is 20.
+	ConditionBoostSpecs []*GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpec `json:"conditionBoostSpecs,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ConditionBoostSpecs") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ConditionBoostSpecs") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpec) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpec
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoost
+// SpecConditionBoostSpec: Boost applies to documents which match a condition.
+type GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpec struct {
+	// Boost: Optional. Strength of the condition boost, which should be in [-1,
+	// 1]. Negative boost means demotion. Default is 0.0. Setting to 1.0 gives the
+	// document a big promotion. However, it does not necessarily mean that the
+	// boosted document will be the top result at all times, nor that other
+	// documents will be excluded. Results could still be shown even when none of
+	// them matches the condition. And results that are significantly more relevant
+	// to the search query can still trump your heavily favored but irrelevant
+	// documents. Setting to -1.0 gives the document a big demotion. However,
+	// results that are deeply relevant might still be shown. The document will
+	// have an upstream battle to get a fairly high ranking, but it is not blocked
+	// out completely. Setting to 0.0 means no boost applied. The boosting
+	// condition is ignored.
+	Boost float64 `json:"boost,omitempty"`
+	// BoostControlSpec: Optional. Complex specification for custom ranking based
+	// on customer defined attribute value.
+	BoostControlSpec *GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpec `json:"boostControlSpec,omitempty"`
+	// Condition: Optional. An expression which specifies a boost condition. The
+	// syntax and supported fields are the same as a filter expression. Examples: *
+	// To boost documents with document ID "doc_1" or "doc_2", and color "Red" or
+	// "Blue": * (id: ANY("doc_1", "doc_2")) AND (color: ANY("Red","Blue"))
+	Condition string `json:"condition,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Boost") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Boost") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpec) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpec
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpec) UnmarshalJSON(data []byte) error {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpec
+	var s1 struct {
+		Boost gensupport.JSONFloat64 `json:"boost"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Boost = float64(s1.Boost)
+	return nil
+}
+
+// GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoost
+// SpecConditionBoostSpecBoostControlSpec: Specification for custom ranking
+// based on customer specified attribute value. It provides more controls for
+// customized ranking than the simple (condition, boost) combination above.
+type GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpec struct {
+	// AttributeType: Optional. The attribute type to be used to determine the
+	// boost amount. The attribute value can be derived from the field value of the
+	// specified field_name. In the case of numerical it is straightforward i.e.
+	// attribute_value = numerical_field_value. In the case of freshness however,
+	// attribute_value = (time.now() - datetime_field_value).
+	//
+	// Possible values:
+	//   "ATTRIBUTE_TYPE_UNSPECIFIED" - Unspecified AttributeType.
+	//   "NUMERICAL" - The value of the numerical field will be used to dynamically
+	// update the boost amount. In this case, the attribute_value (the x value) of
+	// the control point will be the actual value of the numerical field for which
+	// the boost_amount is specified.
+	//   "FRESHNESS" - For the freshness use case the attribute value will be the
+	// duration between the current time and the date in the datetime field
+	// specified. The value must be formatted as an XSD `dayTimeDuration` value (a
+	// restricted subset of an ISO 8601 duration value). The pattern for this is:
+	// `nDnM]`. E.g. `5D`, `3DT12H30M`, `T24H`.
+	AttributeType string `json:"attributeType,omitempty"`
+	// ControlPoints: Optional. The control points used to define the curve. The
+	// monotonic function (defined through the interpolation_type above) passes
+	// through the control points listed here.
+	ControlPoints []*GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpecControlPoint `json:"controlPoints,omitempty"`
+	// FieldName: Optional. The name of the field whose value will be used to
+	// determine the boost amount.
+	FieldName string `json:"fieldName,omitempty"`
+	// InterpolationType: Optional. The interpolation type to be applied to connect
+	// the control points listed below.
+	//
+	// Possible values:
+	//   "INTERPOLATION_TYPE_UNSPECIFIED" - Interpolation type is unspecified. In
+	// this case, it defaults to Linear.
+	//   "LINEAR" - Piecewise linear interpolation will be applied.
+	InterpolationType string `json:"interpolationType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AttributeType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AttributeType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpec) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpec
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoost
+// SpecConditionBoostSpecBoostControlSpecControlPoint: The control points used
+// to define the curve. The curve defined through these control points can only
+// be monotonically increasing or decreasing(constant values are acceptable).
+type GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpecControlPoint struct {
+	// AttributeValue: Optional. Can be one of: 1. The numerical field value. 2.
+	// The duration spec for freshness: The value must be formatted as an XSD
+	// `dayTimeDuration` value (a restricted subset of an ISO 8601 duration value).
+	// The pattern for this is: `nDnM]`.
+	AttributeValue string `json:"attributeValue,omitempty"`
+	// BoostAmount: Optional. The value between -1 to 1 by which to boost the score
+	// if the attribute_value evaluates to the value specified above.
+	BoostAmount float64 `json:"boostAmount,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AttributeValue") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AttributeValue") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpecControlPoint) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpecControlPoint
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpecControlPoint) UnmarshalJSON(data []byte) error {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigBoostSpecsBoostSpecConditionBoostSpecBoostControlSpecControlPoint
+	var s1 struct {
+		BoostAmount gensupport.JSONFloat64 `json:"boostAmount"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.BoostAmount = float64(s1.BoostAmount)
+	return nil
+}
+
+// GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigFilterSpecs:
+// Filter specification for data store queries.
+type GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigFilterSpecs struct {
+	// DataStores: Optional. The data store where the filter configuration is
+	// applied. Full resource name of data store, such as
+	// projects/{project}/locations/{location}/collections/{collectionId}/
+	// dataStores/{dataStoreId}.
+	DataStores []string `json:"dataStores,omitempty"`
+	// Filter: Optional. The filter expression to be applied. Expression syntax is
+	// documented at
+	// https://cloud.google.com/generative-ai-app-builder/docs/filter-search-metadata#filter-expression-syntax
+	Filter string `json:"filter,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DataStores") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DataStores") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigFilterSpecs) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeRequestSearchConfigFilterSpecs
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SearchKnowledgeResponse: The response message
@@ -17918,9 +19054,9 @@ type GoogleCloudDialogflowV2beta1SearchKnowledgeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SearchKnowledgeResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SearchKnowledgeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SearchKnowledgeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Sentiment: The sentiment, such as
@@ -17949,9 +19085,9 @@ type GoogleCloudDialogflowV2beta1Sentiment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Sentiment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Sentiment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Sentiment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1Sentiment) UnmarshalJSON(data []byte) error {
@@ -17990,9 +19126,9 @@ type GoogleCloudDialogflowV2beta1SentimentAnalysisRequestConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SentimentAnalysisRequestConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SentimentAnalysisRequestConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SentimentAnalysisRequestConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SentimentAnalysisResult: The result of sentiment
@@ -18020,9 +19156,9 @@ type GoogleCloudDialogflowV2beta1SentimentAnalysisResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SentimentAnalysisResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SentimentAnalysisResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SentimentAnalysisResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SessionEntityType: A session represents a
@@ -18081,9 +19217,9 @@ type GoogleCloudDialogflowV2beta1SessionEntityType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SessionEntityType) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SessionEntityType) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SessionEntityType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigOperationMetadata:
@@ -18135,9 +19271,9 @@ type GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigOperationMetadata str
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigRequest: The request
@@ -18170,9 +19306,44 @@ type GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SetSuggestionFeatureConfigRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1SipTrunk: SipTrunk is the resource that
+// represents a SIP trunk to connect to Google Telephony platform SIP trunking
+// service.
+type GoogleCloudDialogflowV2beta1SipTrunk struct {
+	// Connections: Output only. Connections of the SIP trunk.
+	Connections []*GoogleCloudDialogflowV2beta1Connection `json:"connections,omitempty"`
+	// DisplayName: Optional. Human readable alias for this trunk.
+	DisplayName string `json:"displayName,omitempty"`
+	// ExpectedHostname: Required. The expected hostnames in the peer certificate
+	// from partner that is used for TLS authentication.
+	ExpectedHostname []string `json:"expectedHostname,omitempty"`
+	// Name: Identifier. The unique identifier of the SIP trunk. Format:
+	// `projects//locations//sipTrunks/`.
+	Name string `json:"name,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Connections") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Connections") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SipTrunk) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SipTrunk
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SmartReplyAnswer: Represents a smart reply
@@ -18200,9 +19371,9 @@ type GoogleCloudDialogflowV2beta1SmartReplyAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SmartReplyAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SmartReplyAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SmartReplyAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1SmartReplyAnswer) UnmarshalJSON(data []byte) error {
@@ -18249,9 +19420,9 @@ type GoogleCloudDialogflowV2beta1SpeechContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SpeechContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SpeechContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SpeechContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1SpeechContext) UnmarshalJSON(data []byte) error {
@@ -18271,6 +19442,53 @@ func (s *GoogleCloudDialogflowV2beta1SpeechContext) UnmarshalJSON(data []byte) e
 // GoogleCloudDialogflowV2beta1SpeechToTextConfig: Configures speech
 // transcription for ConversationProfile.
 type GoogleCloudDialogflowV2beta1SpeechToTextConfig struct {
+	// AudioEncoding: Audio encoding of the audio content to process.
+	//
+	// Possible values:
+	//   "AUDIO_ENCODING_UNSPECIFIED" - Not specified.
+	//   "AUDIO_ENCODING_LINEAR_16" - Uncompressed 16-bit signed little-endian
+	// samples (Linear PCM).
+	//   "AUDIO_ENCODING_FLAC" - [`FLAC`](https://xiph.org/flac/documentation.html)
+	// (Free Lossless Audio Codec) is the recommended encoding because it is
+	// lossless (therefore recognition is not compromised) and requires only about
+	// half the bandwidth of `LINEAR16`. `FLAC` stream encoding supports 16-bit and
+	// 24-bit samples, however, not all fields in `STREAMINFO` are supported.
+	//   "AUDIO_ENCODING_MULAW" - 8-bit samples that compand 14-bit audio samples
+	// using G.711 PCMU/mu-law.
+	//   "AUDIO_ENCODING_AMR" - Adaptive Multi-Rate Narrowband codec.
+	// `sample_rate_hertz` must be 8000.
+	//   "AUDIO_ENCODING_AMR_WB" - Adaptive Multi-Rate Wideband codec.
+	// `sample_rate_hertz` must be 16000.
+	//   "AUDIO_ENCODING_OGG_OPUS" - Opus encoded audio frames in Ogg container
+	// ([OggOpus](https://wiki.xiph.org/OggOpus)). `sample_rate_hertz` must be
+	// 16000.
+	//   "AUDIO_ENCODING_SPEEX_WITH_HEADER_BYTE" - Although the use of lossy
+	// encodings is not recommended, if a very low bitrate encoding is required,
+	// `OGG_OPUS` is highly preferred over Speex encoding. The
+	// [Speex](https://speex.org/) encoding supported by Dialogflow API has a
+	// header byte in each block, as in MIME type `audio/x-speex-with-header-byte`.
+	// It is a variant of the RTP Speex encoding defined in [RFC
+	// 5574](https://tools.ietf.org/html/rfc5574). The stream is a sequence of
+	// blocks, one block per RTP packet. Each block starts with a byte containing
+	// the length of the block, in bytes, followed by one or more frames of Speex
+	// data, padded to an integral number of bytes (octets) as specified in RFC
+	// 5574. In other words, each RTP header is replaced with a single byte
+	// containing the block length. Only Speex wideband is supported.
+	// `sample_rate_hertz` must be 16000.
+	//   "AUDIO_ENCODING_ALAW" - 8-bit samples that compand 13-bit audio samples
+	// using G.711 PCMU/a-law.
+	AudioEncoding string `json:"audioEncoding,omitempty"`
+	// EnableWordInfo: If `true`, Dialogflow returns SpeechWordInfo in
+	// StreamingRecognitionResult with information about the recognized speech
+	// words, e.g. start and end time offsets. If false or unspecified, Speech
+	// doesn't return any word-level information.
+	EnableWordInfo bool `json:"enableWordInfo,omitempty"`
+	// LanguageCode: The language of the supplied audio. Dialogflow does not do
+	// translations. See Language Support
+	// (https://cloud.google.com/dialogflow/docs/reference/language) for a list of
+	// the currently supported language codes. Note that queries in the same
+	// session do not necessarily need to specify the same language.
+	LanguageCode string `json:"languageCode,omitempty"`
 	// Model: Which Speech model to select. Select the model best suited to your
 	// domain to get best results. If a model is not explicitly specified, then
 	// Dialogflow auto-selects a model based on other parameters in the
@@ -18286,6 +19504,14 @@ type GoogleCloudDialogflowV2beta1SpeechToTextConfig struct {
 	// (https://cloud.google.com/dialogflow/cx/docs/concept/agent#settings-speech)
 	// for model selection.
 	Model string `json:"model,omitempty"`
+	// PhraseSets: List of names of Cloud Speech phrase sets that are used for
+	// transcription. For phrase set limitations, please refer to Cloud Speech API
+	// quotas and limits (https://cloud.google.com/speech-to-text/quotas#content).
+	PhraseSets []string `json:"phraseSets,omitempty"`
+	// SampleRateHertz: Sample rate (in Hertz) of the audio content sent in the
+	// query. Refer to Cloud Speech API documentation
+	// (https://cloud.google.com/speech-to-text/docs/basics) for more details.
+	SampleRateHertz int64 `json:"sampleRateHertz,omitempty"`
 	// SpeechModelVariant: The speech model used in speech to text.
 	// `SPEECH_MODEL_VARIANT_UNSPECIFIED`, `USE_BEST_AVAILABLE` will be treated as
 	// `USE_ENHANCED`. It can be overridden in AnalyzeContentRequest and
@@ -18314,24 +19540,189 @@ type GoogleCloudDialogflowV2beta1SpeechToTextConfig struct {
 	// how to make your project eligible.
 	SpeechModelVariant string `json:"speechModelVariant,omitempty"`
 	// UseTimeoutBasedEndpointing: Use timeout based endpointing, interpreting
-	// endpointer sensitivy as seconds of timeout value.
+	// endpointer sensitivity as seconds of timeout value.
 	UseTimeoutBasedEndpointing bool `json:"useTimeoutBasedEndpointing,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Model") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "AudioEncoding") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Model") to include in API
+	// NullFields is a list of field names (e.g. "AudioEncoding") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SpeechToTextConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SpeechToTextConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SpeechToTextConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDialogflowV2beta1SpeechWordInfo: Information for a word
+// recognized by the speech recognizer.
+type GoogleCloudDialogflowV2beta1SpeechWordInfo struct {
+	// Confidence: The Speech confidence between 0.0 and 1.0 for this word. A
+	// higher number indicates an estimated greater likelihood that the recognized
+	// word is correct. The default of 0.0 is a sentinel value indicating that
+	// confidence was not set. This field is not guaranteed to be fully stable over
+	// time for the same audio input. Users should also not rely on it to always be
+	// provided.
+	Confidence float64 `json:"confidence,omitempty"`
+	// EndOffset: Time offset relative to the beginning of the audio that
+	// corresponds to the end of the spoken word. This is an experimental feature
+	// and the accuracy of the time offset can vary.
+	EndOffset string `json:"endOffset,omitempty"`
+	// StartOffset: Time offset relative to the beginning of the audio that
+	// corresponds to the start of the spoken word. This is an experimental feature
+	// and the accuracy of the time offset can vary.
+	StartOffset string `json:"startOffset,omitempty"`
+	// Word: The word this info is for.
+	Word string `json:"word,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Confidence") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Confidence") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1SpeechWordInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1SpeechWordInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GoogleCloudDialogflowV2beta1SpeechWordInfo) UnmarshalJSON(data []byte) error {
+	type NoMethod GoogleCloudDialogflowV2beta1SpeechWordInfo
+	var s1 struct {
+		Confidence gensupport.JSONFloat64 `json:"confidence"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Confidence = float64(s1.Confidence)
+	return nil
+}
+
+// GoogleCloudDialogflowV2beta1StreamingRecognitionResult: Contains a speech
+// recognition result corresponding to a portion of the audio that is currently
+// being processed or an indication that this is the end of the single
+// requested utterance. While end-user audio is being processed, Dialogflow
+// sends a series of results. Each result may contain a `transcript` value. A
+// transcript represents a portion of the utterance. While the recognizer is
+// processing audio, transcript values may be interim values or finalized
+// values. Once a transcript is finalized, the `is_final` value is set to true
+// and processing continues for the next transcript. If
+// `StreamingDetectIntentRequest.query_input.audio_config.single_utterance` was
+// true, and the recognizer has completed processing audio, the `message_type`
+// value is set to `END_OF_SINGLE_UTTERANCE and the following (last) result
+// contains the last finalized transcript. The complete end-user utterance is
+// determined by concatenating the finalized transcript values received for the
+// series of results. In the following example, single utterance is enabled. In
+// the case where single utterance is not enabled, result 7 would not occur.
+// ``` Num | transcript | message_type | is_final --- | -----------------------
+// | ----------------------- | -------- 1 | "tube" | TRANSCRIPT | false 2 | "to
+// be a" | TRANSCRIPT | false 3 | "to be" | TRANSCRIPT | false 4 | "to be or
+// not to be" | TRANSCRIPT | true 5 | "that's" | TRANSCRIPT | false 6 | "that
+// is | TRANSCRIPT | false 7 | unset | END_OF_SINGLE_UTTERANCE | unset 8 | "
+// that is the question" | TRANSCRIPT | true ``` Concatenating the finalized
+// transcripts with `is_final` set to true, the complete utterance becomes "to
+// be or not to be that is the question".
+type GoogleCloudDialogflowV2beta1StreamingRecognitionResult struct {
+	// Confidence: The Speech confidence between 0.0 and 1.0 for the current
+	// portion of audio. A higher number indicates an estimated greater likelihood
+	// that the recognized words are correct. The default of 0.0 is a sentinel
+	// value indicating that confidence was not set. This field is typically only
+	// provided if `is_final` is true and you should not rely on it being accurate
+	// or even set.
+	Confidence float64 `json:"confidence,omitempty"`
+	// DtmfDigits: DTMF digits. Populated if and only if `message_type` =
+	// `DTMF_DIGITS`.
+	DtmfDigits *GoogleCloudDialogflowV2beta1TelephonyDtmfEvents `json:"dtmfDigits,omitempty"`
+	// IsFinal: If `false`, the `StreamingRecognitionResult` represents an interim
+	// result that may change. If `true`, the recognizer will not return any
+	// further hypotheses about this piece of the audio. May only be populated for
+	// `message_type` = `TRANSCRIPT`.
+	IsFinal bool `json:"isFinal,omitempty"`
+	// LanguageCode: Detected language code for the transcript.
+	LanguageCode string `json:"languageCode,omitempty"`
+	// MessageType: Type of the result message.
+	//
+	// Possible values:
+	//   "MESSAGE_TYPE_UNSPECIFIED" - Not specified. Should never be used.
+	//   "TRANSCRIPT" - Message contains a (possibly partial) transcript.
+	//   "DTMF_DIGITS" - Message contains DTMF digits.
+	//   "END_OF_SINGLE_UTTERANCE" - This event indicates that the server has
+	// detected the end of the user's speech utterance and expects no additional
+	// speech. Therefore, the server will not process additional audio (although it
+	// may subsequently return additional results). The client should stop sending
+	// additional audio data, half-close the gRPC connection, and wait for any
+	// additional results until the server closes the gRPC connection. This message
+	// is only sent if `single_utterance` was set to `true`, and is not used
+	// otherwise.
+	//   "PARTIAL_DTMF_DIGITS" - Message contains DTMF digits. Before a message
+	// with DTMF_DIGITS is sent, a message with PARTIAL_DTMF_DIGITS may be sent
+	// with DTMF digits collected up to the time of sending, which represents an
+	// intermediate result.
+	MessageType string `json:"messageType,omitempty"`
+	// SpeechEndOffset: Time offset of the end of this Speech recognition result
+	// relative to the beginning of the audio. Only populated for `message_type` =
+	// `TRANSCRIPT`.
+	SpeechEndOffset string `json:"speechEndOffset,omitempty"`
+	// SpeechWordInfo: Word-specific information for the words recognized by Speech
+	// in transcript. Populated if and only if `message_type` = `TRANSCRIPT` and
+	// [InputAudioConfig.enable_word_info] is set.
+	SpeechWordInfo []*GoogleCloudDialogflowV2beta1SpeechWordInfo `json:"speechWordInfo,omitempty"`
+	// Stability: An estimate of the likelihood that the speech recognizer will not
+	// change its guess about this interim recognition result: * If the value is
+	// unspecified or 0.0, Dialogflow didn't compute the stability. In particular,
+	// Dialogflow will only provide stability for `TRANSCRIPT` results with
+	// `is_final = false`. * Otherwise, the value is in (0.0, 1.0] where 0.0 means
+	// completely unstable and 1.0 means completely stable.
+	Stability float64 `json:"stability,omitempty"`
+	// Transcript: Transcript text representing the words that the user spoke.
+	// Populated if and only if `message_type` = `TRANSCRIPT`.
+	Transcript string `json:"transcript,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Confidence") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Confidence") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDialogflowV2beta1StreamingRecognitionResult) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDialogflowV2beta1StreamingRecognitionResult
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GoogleCloudDialogflowV2beta1StreamingRecognitionResult) UnmarshalJSON(data []byte) error {
+	type NoMethod GoogleCloudDialogflowV2beta1StreamingRecognitionResult
+	var s1 struct {
+		Confidence gensupport.JSONFloat64 `json:"confidence"`
+		Stability  gensupport.JSONFloat64 `json:"stability"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Confidence = float64(s1.Confidence)
+	s.Stability = float64(s1.Stability)
+	return nil
 }
 
 // GoogleCloudDialogflowV2beta1SubAgent: Contains basic configuration for a
@@ -18357,9 +19748,9 @@ type GoogleCloudDialogflowV2beta1SubAgent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SubAgent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SubAgent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SubAgent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestArticlesRequest: The request message for
@@ -18388,9 +19779,9 @@ type GoogleCloudDialogflowV2beta1SuggestArticlesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestArticlesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestArticlesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestArticlesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestArticlesResponse: The response message
@@ -18422,24 +19813,25 @@ type GoogleCloudDialogflowV2beta1SuggestArticlesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestArticlesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestArticlesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestArticlesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestConversationSummaryRequest: The request
 // message for Conversations.SuggestConversationSummary.
 type GoogleCloudDialogflowV2beta1SuggestConversationSummaryRequest struct {
-	// AssistQueryParams: Parameters for a human assist query. Only used for
-	// POC/demo purpose.
+	// AssistQueryParams: Optional. Parameters for a human assist query. Only used
+	// for POC/demo purpose.
 	AssistQueryParams *GoogleCloudDialogflowV2beta1AssistQueryParameters `json:"assistQueryParams,omitempty"`
-	// ContextSize: Max number of messages prior to and including [latest_message]
-	// to use as context when compiling the suggestion. By default 500 and at most
-	// 1000.
+	// ContextSize: Optional. Max number of messages prior to and including
+	// [latest_message] to use as context when compiling the suggestion. By default
+	// 500 and at most 1000.
 	ContextSize int64 `json:"contextSize,omitempty"`
-	// LatestMessage: The name of the latest conversation message used as context
-	// for compiling suggestion. If empty, the latest message of the conversation
-	// will be used. Format: `projects//locations//conversations//messages/`.
+	// LatestMessage: Optional. The name of the latest conversation message used as
+	// context for compiling suggestion. If empty, the latest message of the
+	// conversation will be used. Format:
+	// `projects//locations//conversations//messages/`.
 	LatestMessage string `json:"latestMessage,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AssistQueryParams") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -18454,9 +19846,9 @@ type GoogleCloudDialogflowV2beta1SuggestConversationSummaryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestConversationSummaryRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestConversationSummaryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestConversationSummaryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponse: The response
@@ -18489,9 +19881,9 @@ type GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponseSummary:
@@ -18523,9 +19915,9 @@ type GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponseSummary struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponseSummary) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponseSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestConversationSummaryResponseSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestDialogflowAssistsResponse: The response
@@ -18556,9 +19948,9 @@ type GoogleCloudDialogflowV2beta1SuggestDialogflowAssistsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestDialogflowAssistsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestDialogflowAssistsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestDialogflowAssistsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestFaqAnswersRequest: The request message
@@ -18587,9 +19979,9 @@ type GoogleCloudDialogflowV2beta1SuggestFaqAnswersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestFaqAnswersRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestFaqAnswersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestFaqAnswersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestFaqAnswersResponse: The request message
@@ -18621,9 +20013,9 @@ type GoogleCloudDialogflowV2beta1SuggestFaqAnswersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestFaqAnswersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestFaqAnswersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestFaqAnswersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistRequest: The request
@@ -18639,7 +20031,7 @@ type GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistRequest struct {
 	LatestMessage string `json:"latestMessage,omitempty"`
 	// PreviousSuggestedQuery: Optional. The previously suggested query for the
 	// given conversation. This helps identify whether the next suggestion we
-	// generate is resonably different from the previous one. This is useful to
+	// generate is reasonably different from the previous one. This is useful to
 	// avoid similar suggestions within the conversation.
 	PreviousSuggestedQuery string `json:"previousSuggestedQuery,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ContextSize") to
@@ -18655,9 +20047,9 @@ type GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistResponse: The response
@@ -18689,9 +20081,9 @@ type GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestKnowledgeAssistResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestSmartRepliesRequest: The request message
@@ -18722,9 +20114,9 @@ type GoogleCloudDialogflowV2beta1SuggestSmartRepliesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestSmartRepliesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestSmartRepliesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestSmartRepliesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestSmartRepliesResponse: The response
@@ -18758,9 +20150,9 @@ type GoogleCloudDialogflowV2beta1SuggestSmartRepliesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestSmartRepliesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestSmartRepliesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestSmartRepliesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Suggestion: Represents a suggestion for a human
@@ -18791,9 +20183,9 @@ type GoogleCloudDialogflowV2beta1Suggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Suggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Suggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Suggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestionArticle: Represents suggested article.
@@ -18823,9 +20215,9 @@ type GoogleCloudDialogflowV2beta1SuggestionArticle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestionArticle) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestionArticle) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestionArticle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestionFaqAnswer: Represents suggested answer
@@ -18863,9 +20255,9 @@ type GoogleCloudDialogflowV2beta1SuggestionFaqAnswer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestionFaqAnswer) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestionFaqAnswer) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestionFaqAnswer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1SuggestionFaqAnswer) UnmarshalJSON(data []byte) error {
@@ -18915,9 +20307,9 @@ type GoogleCloudDialogflowV2beta1SuggestionFeature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestionFeature) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestionFeature) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestionFeature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestionInput: Represents the selection of a
@@ -18960,9 +20352,9 @@ type GoogleCloudDialogflowV2beta1SuggestionInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestionInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestionInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestionInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SuggestionResult: One response of different type
@@ -18972,6 +20364,9 @@ func (s *GoogleCloudDialogflowV2beta1SuggestionInput) MarshalJSON() ([]byte, err
 type GoogleCloudDialogflowV2beta1SuggestionResult struct {
 	// Error: Error status if the request failed.
 	Error *GoogleRpcStatus `json:"error,omitempty"`
+	// GenerateSuggestionsResponse: Suggestions generated using generators
+	// triggered by customer or agent messages.
+	GenerateSuggestionsResponse *GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse `json:"generateSuggestionsResponse,omitempty"`
 	// SuggestArticlesResponse: SuggestArticlesResponse if request is for
 	// ARTICLE_SUGGESTION.
 	SuggestArticlesResponse *GoogleCloudDialogflowV2beta1SuggestArticlesResponse `json:"suggestArticlesResponse,omitempty"`
@@ -19003,9 +20398,9 @@ type GoogleCloudDialogflowV2beta1SuggestionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SuggestionResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SuggestionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SuggestionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SummarizationContext: Summarization context that
@@ -19036,9 +20431,9 @@ type GoogleCloudDialogflowV2beta1SummarizationContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SummarizationContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SummarizationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SummarizationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SummarizationSection: Represents the section of
@@ -19069,6 +20464,10 @@ type GoogleCloudDialogflowV2beta1SummarizationSection struct {
 	// number, order number, dollar amount, etc. Section names are prefixed by
 	// "entities/".
 	//   "CUSTOMER_DEFINED" - Customer defined sections.
+	//   "SITUATION_CONCISE" - Concise version of the situation section. This type
+	// is only available if type SITUATION is not selected.
+	//   "ACTION_CONCISE" - Concise version of the action section. This type is
+	// only available if type ACTION is not selected.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Definition") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -19083,9 +20482,9 @@ type GoogleCloudDialogflowV2beta1SummarizationSection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SummarizationSection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SummarizationSection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SummarizationSection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SummarizationSectionList: List of summarization
@@ -19106,9 +20505,9 @@ type GoogleCloudDialogflowV2beta1SummarizationSectionList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SummarizationSectionList) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SummarizationSectionList) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SummarizationSectionList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SummarySuggestion: Suggested summary of the
@@ -19129,9 +20528,9 @@ type GoogleCloudDialogflowV2beta1SummarySuggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SummarySuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SummarySuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SummarySuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SummarySuggestionSummarySection: A component of
@@ -19154,9 +20553,9 @@ type GoogleCloudDialogflowV2beta1SummarySuggestionSummarySection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SummarySuggestionSummarySection) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SummarySuggestionSummarySection) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SummarySuggestionSummarySection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1SynthesizeSpeechConfig: Configuration of how
@@ -19199,9 +20598,9 @@ type GoogleCloudDialogflowV2beta1SynthesizeSpeechConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1SynthesizeSpeechConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1SynthesizeSpeechConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1SynthesizeSpeechConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV2beta1SynthesizeSpeechConfig) UnmarshalJSON(data []byte) error {
@@ -19260,9 +20659,9 @@ type GoogleCloudDialogflowV2beta1TelephonyDtmfEvents struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1TelephonyDtmfEvents) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1TelephonyDtmfEvents) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1TelephonyDtmfEvents
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1TextInput: Represents the natural language text
@@ -19290,9 +20689,9 @@ type GoogleCloudDialogflowV2beta1TextInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1TextInput) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1TextInput) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1TextInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1TextToSpeechSettings: Instructs the speech
@@ -19319,6 +20718,8 @@ type GoogleCloudDialogflowV2beta1TextToSpeechSettings struct {
 	// bitrate.
 	//   "OUTPUT_AUDIO_ENCODING_MULAW" - 8-bit samples that compand 14-bit audio
 	// samples using G.711 PCMU/mu-law.
+	//   "OUTPUT_AUDIO_ENCODING_ALAW" - 8-bit samples that compand 13-bit audio
+	// samples using G.711 PCMU/a-law.
 	OutputAudioEncoding string `json:"outputAudioEncoding,omitempty"`
 	// SampleRateHertz: Optional. The synthesis sample rate (in hertz) for this
 	// audio. If not provided, then the synthesizer will use the default sample
@@ -19345,14 +20746,19 @@ type GoogleCloudDialogflowV2beta1TextToSpeechSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1TextToSpeechSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1TextToSpeechSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1TextToSpeechSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1TrainAgentRequest: The request message for
 // Agents.TrainAgent.
 type GoogleCloudDialogflowV2beta1TrainAgentRequest struct {
+}
+
+// GoogleCloudDialogflowV2beta1UndeletePhoneNumberRequest: The request message
+// for PhoneNumbers.UndeletePhoneNumber.
+type GoogleCloudDialogflowV2beta1UndeletePhoneNumberRequest struct {
 }
 
 // GoogleCloudDialogflowV2beta1ValidationError: Represents a single validation
@@ -19391,9 +20797,9 @@ type GoogleCloudDialogflowV2beta1ValidationError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ValidationError) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ValidationError) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ValidationError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1ValidationResult: Represents the output of agent
@@ -19417,9 +20823,9 @@ type GoogleCloudDialogflowV2beta1ValidationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1ValidationResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1ValidationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1ValidationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1Version: You can create multiple versions of
@@ -19471,9 +20877,9 @@ type GoogleCloudDialogflowV2beta1Version struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1Version) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1Version) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1Version
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1VoiceSelectionParams: Description of which voice
@@ -19511,9 +20917,9 @@ type GoogleCloudDialogflowV2beta1VoiceSelectionParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1VoiceSelectionParams) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1VoiceSelectionParams) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1VoiceSelectionParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1WebhookRequest: The request message for a
@@ -19549,9 +20955,9 @@ type GoogleCloudDialogflowV2beta1WebhookRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1WebhookRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1WebhookRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1WebhookRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV2beta1WebhookResponse: The response message for a
@@ -19624,9 +21030,9 @@ type GoogleCloudDialogflowV2beta1WebhookResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV2beta1WebhookResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV2beta1WebhookResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV2beta1WebhookResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV3alpha1ConversationSignals: This message is used to
@@ -19648,153 +21054,9 @@ type GoogleCloudDialogflowV3alpha1ConversationSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV3alpha1ConversationSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV3alpha1ConversationSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV3alpha1ConversationSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowV3alpha1CreateDocumentOperationMetadata: Metadata for
-// CreateDocument operation.
-type GoogleCloudDialogflowV3alpha1CreateDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowV3alpha1CreateDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowV3alpha1CreateDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowV3alpha1DeleteDocumentOperationMetadata: Metadata for
-// DeleteDocument operation.
-type GoogleCloudDialogflowV3alpha1DeleteDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowV3alpha1DeleteDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowV3alpha1DeleteDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata: Metadata in
-// google::longrunning::Operation for Knowledge operations.
-type GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata struct {
-	// State: Required. Output only. The current state of this operation.
-	//
-	// Possible values:
-	//   "STATE_UNSPECIFIED" - State unspecified.
-	//   "PENDING" - The operation has been created.
-	//   "RUNNING" - The operation is currently running.
-	//   "DONE" - The operation is done, either cancelled or completed.
-	State string `json:"state,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "State") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "State") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowV3alpha1ImportDocumentsOperationMetadata: Metadata for
-// ImportDocuments operation.
-type GoogleCloudDialogflowV3alpha1ImportDocumentsOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowV3alpha1ImportDocumentsOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowV3alpha1ImportDocumentsOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowV3alpha1ImportDocumentsResponse: Response message for
-// Documents.ImportDocuments.
-type GoogleCloudDialogflowV3alpha1ImportDocumentsResponse struct {
-	// Warnings: Includes details about skipped documents or any other warnings.
-	Warnings []*GoogleRpcStatus `json:"warnings,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Warnings") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Warnings") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowV3alpha1ImportDocumentsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowV3alpha1ImportDocumentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudDialogflowV3alpha1ReloadDocumentOperationMetadata: Metadata for
-// ReloadDocument operation.
-type GoogleCloudDialogflowV3alpha1ReloadDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowV3alpha1ReloadDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowV3alpha1ReloadDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDialogflowV3alpha1TurnSignals: Collection of all signals that
@@ -19844,9 +21106,9 @@ type GoogleCloudDialogflowV3alpha1TurnSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDialogflowV3alpha1TurnSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDialogflowV3alpha1TurnSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDialogflowV3alpha1TurnSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDialogflowV3alpha1TurnSignals) UnmarshalJSON(data []byte) error {
@@ -19863,29 +21125,6 @@ func (s *GoogleCloudDialogflowV3alpha1TurnSignals) UnmarshalJSON(data []byte) er
 	s.SentimentMagnitude = float64(s1.SentimentMagnitude)
 	s.SentimentScore = float64(s1.SentimentScore)
 	return nil
-}
-
-// GoogleCloudDialogflowV3alpha1UpdateDocumentOperationMetadata: Metadata for
-// UpdateDocument operation.
-type GoogleCloudDialogflowV3alpha1UpdateDocumentOperationMetadata struct {
-	// GenericMetadata: The generic information of the operation.
-	GenericMetadata *GoogleCloudDialogflowV3alpha1GenericKnowledgeOperationMetadata `json:"genericMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GenericMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GenericMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudDialogflowV3alpha1UpdateDocumentOperationMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudDialogflowV3alpha1UpdateDocumentOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudLocationListLocationsResponse: The response message for
@@ -19912,9 +21151,9 @@ type GoogleCloudLocationListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudLocationListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudLocationListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudLocationListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudLocationLocation: A resource that represents a Google Cloud
@@ -19951,9 +21190,9 @@ type GoogleCloudLocationLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudLocationLocation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudLocationLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudLocationLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningListOperationsResponse: The response message for
@@ -19980,9 +21219,9 @@ type GoogleLongrunningListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -20027,9 +21266,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -20071,9 +21310,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeLatLng: An object that represents a latitude/longitude pair. This
@@ -20099,9 +21338,9 @@ type GoogleTypeLatLng struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeLatLng) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeLatLng) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeLatLng
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleTypeLatLng) UnmarshalJSON(data []byte) error {
@@ -20163,12 +21402,11 @@ func (c *ProjectsDeleteAgentCall) Header() http.Header {
 
 func (c *ProjectsDeleteAgentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/agent")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20176,6 +21414,7 @@ func (c *ProjectsDeleteAgentCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.deleteAgent", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20211,9 +21450,11 @@ func (c *ProjectsDeleteAgentCall) Do(opts ...googleapi.CallOption) (*GoogleProto
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.deleteAgent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20272,12 +21513,11 @@ func (c *ProjectsGetAgentCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/agent")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20285,6 +21525,7 @@ func (c *ProjectsGetAgentCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.getAgent", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20320,9 +21561,11 @@ func (c *ProjectsGetAgentCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDia
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.getAgent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20380,8 +21623,7 @@ func (c *ProjectsSetAgentCall) Header() http.Header {
 
 func (c *ProjectsSetAgentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1agent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1agent)
 	if err != nil {
 		return nil, err
 	}
@@ -20397,6 +21639,7 @@ func (c *ProjectsSetAgentCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.setAgent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20432,9 +21675,11 @@ func (c *ProjectsSetAgentCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDia
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.setAgent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20489,8 +21734,7 @@ func (c *ProjectsAgentExportCall) Header() http.Header {
 
 func (c *ProjectsAgentExportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1exportagentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1exportagentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20506,6 +21750,7 @@ func (c *ProjectsAgentExportCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.export", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20541,9 +21786,11 @@ func (c *ProjectsAgentExportCall) Do(opts ...googleapi.CallOption) (*GoogleLongr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20602,12 +21849,11 @@ func (c *ProjectsAgentGetFulfillmentCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20615,6 +21861,7 @@ func (c *ProjectsAgentGetFulfillmentCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.getFulfillment", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20650,9 +21897,11 @@ func (c *ProjectsAgentGetFulfillmentCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.getFulfillment", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20723,12 +21972,11 @@ func (c *ProjectsAgentGetValidationResultCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/agent/validationResult")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20736,6 +21984,7 @@ func (c *ProjectsAgentGetValidationResultCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.getValidationResult", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20771,9 +22020,11 @@ func (c *ProjectsAgentGetValidationResultCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.getValidationResult", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20839,8 +22090,7 @@ func (c *ProjectsAgentImportCall) Header() http.Header {
 
 func (c *ProjectsAgentImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1importagentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1importagentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20856,6 +22106,7 @@ func (c *ProjectsAgentImportCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20891,9 +22142,11 @@ func (c *ProjectsAgentImportCall) Do(opts ...googleapi.CallOption) (*GoogleLongr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20958,8 +22211,7 @@ func (c *ProjectsAgentRestoreCall) Header() http.Header {
 
 func (c *ProjectsAgentRestoreCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1restoreagentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1restoreagentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20975,6 +22227,7 @@ func (c *ProjectsAgentRestoreCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.restore", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21010,9 +22263,11 @@ func (c *ProjectsAgentRestoreCall) Do(opts ...googleapi.CallOption) (*GoogleLong
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.restore", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21090,12 +22345,11 @@ func (c *ProjectsAgentSearchCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/agent:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21103,6 +22357,7 @@ func (c *ProjectsAgentSearchCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21138,9 +22393,11 @@ func (c *ProjectsAgentSearchCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21219,8 +22476,7 @@ func (c *ProjectsAgentTrainCall) Header() http.Header {
 
 func (c *ProjectsAgentTrainCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1trainagentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1trainagentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21236,6 +22492,7 @@ func (c *ProjectsAgentTrainCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.train", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21271,9 +22528,11 @@ func (c *ProjectsAgentTrainCall) Do(opts ...googleapi.CallOption) (*GoogleLongru
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.train", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21331,8 +22590,7 @@ func (c *ProjectsAgentUpdateFulfillmentCall) Header() http.Header {
 
 func (c *ProjectsAgentUpdateFulfillmentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1fulfillment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1fulfillment)
 	if err != nil {
 		return nil, err
 	}
@@ -21348,6 +22606,7 @@ func (c *ProjectsAgentUpdateFulfillmentCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.updateFulfillment", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21383,9 +22642,11 @@ func (c *ProjectsAgentUpdateFulfillmentCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.updateFulfillment", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21444,8 +22705,7 @@ func (c *ProjectsAgentEntityTypesBatchDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentEntityTypesBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchdeleteentitytypesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchdeleteentitytypesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21461,6 +22721,7 @@ func (c *ProjectsAgentEntityTypesBatchDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21496,9 +22757,11 @@ func (c *ProjectsAgentEntityTypesBatchDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21555,8 +22818,7 @@ func (c *ProjectsAgentEntityTypesBatchUpdateCall) Header() http.Header {
 
 func (c *ProjectsAgentEntityTypesBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchupdateentitytypesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchupdateentitytypesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -21572,6 +22834,7 @@ func (c *ProjectsAgentEntityTypesBatchUpdateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21607,9 +22870,11 @@ func (c *ProjectsAgentEntityTypesBatchUpdateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21670,8 +22935,7 @@ func (c *ProjectsAgentEntityTypesCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentEntityTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1entitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1entitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -21687,6 +22951,7 @@ func (c *ProjectsAgentEntityTypesCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21722,9 +22987,11 @@ func (c *ProjectsAgentEntityTypesCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21773,12 +23040,11 @@ func (c *ProjectsAgentEntityTypesDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentEntityTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21786,6 +23052,7 @@ func (c *ProjectsAgentEntityTypesDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21821,9 +23088,11 @@ func (c *ProjectsAgentEntityTypesDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -21892,12 +23161,11 @@ func (c *ProjectsAgentEntityTypesGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -21905,6 +23173,7 @@ func (c *ProjectsAgentEntityTypesGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -21940,9 +23209,11 @@ func (c *ProjectsAgentEntityTypesGetCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22025,12 +23296,11 @@ func (c *ProjectsAgentEntityTypesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/entityTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22038,6 +23308,7 @@ func (c *ProjectsAgentEntityTypesListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22073,9 +23344,11 @@ func (c *ProjectsAgentEntityTypesListCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22166,8 +23439,7 @@ func (c *ProjectsAgentEntityTypesPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentEntityTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1entitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1entitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -22183,6 +23455,7 @@ func (c *ProjectsAgentEntityTypesPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22218,9 +23491,11 @@ func (c *ProjectsAgentEntityTypesPatchCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22280,8 +23555,7 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentEntityTypesEntitiesBatchCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchcreateentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchcreateentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -22297,6 +23571,7 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.entities.batchCreate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22332,9 +23607,11 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.entities.batchCreate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22394,8 +23671,7 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentEntityTypesEntitiesBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchdeleteentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchdeleteentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -22411,6 +23687,7 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.entities.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22446,9 +23723,11 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.entities.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22509,8 +23788,7 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchUpdateCall) Header() http.Header {
 
 func (c *ProjectsAgentEntityTypesEntitiesBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchupdateentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchupdateentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -22526,6 +23804,7 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchUpdateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.entities.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22561,9 +23840,11 @@ func (c *ProjectsAgentEntityTypesEntitiesBatchUpdateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.entityTypes.entities.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22619,8 +23900,7 @@ func (c *ProjectsAgentEnvironmentsCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentEnvironmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1environment)
 	if err != nil {
 		return nil, err
 	}
@@ -22636,6 +23916,7 @@ func (c *ProjectsAgentEnvironmentsCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22671,9 +23952,11 @@ func (c *ProjectsAgentEnvironmentsCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22721,12 +24004,11 @@ func (c *ProjectsAgentEnvironmentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentEnvironmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22734,6 +24016,7 @@ func (c *ProjectsAgentEnvironmentsDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22769,9 +24052,11 @@ func (c *ProjectsAgentEnvironmentsDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22831,12 +24116,11 @@ func (c *ProjectsAgentEnvironmentsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22844,6 +24128,7 @@ func (c *ProjectsAgentEnvironmentsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -22879,9 +24164,11 @@ func (c *ProjectsAgentEnvironmentsGetCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -22955,12 +24242,11 @@ func (c *ProjectsAgentEnvironmentsGetHistoryCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/history")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22968,6 +24254,7 @@ func (c *ProjectsAgentEnvironmentsGetHistoryCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.getHistory", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23003,9 +24290,11 @@ func (c *ProjectsAgentEnvironmentsGetHistoryCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.getHistory", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23099,12 +24388,11 @@ func (c *ProjectsAgentEnvironmentsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/environments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23112,6 +24400,7 @@ func (c *ProjectsAgentEnvironmentsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23147,9 +24436,11 @@ func (c *ProjectsAgentEnvironmentsListCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23247,8 +24538,7 @@ func (c *ProjectsAgentEnvironmentsPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentEnvironmentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1environment)
 	if err != nil {
 		return nil, err
 	}
@@ -23264,6 +24554,7 @@ func (c *ProjectsAgentEnvironmentsPatchCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23299,9 +24590,11 @@ func (c *ProjectsAgentEnvironmentsPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23402,12 +24695,11 @@ func (c *ProjectsAgentEnvironmentsIntentsListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/intents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23415,6 +24707,7 @@ func (c *ProjectsAgentEnvironmentsIntentsListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.intents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23450,9 +24743,11 @@ func (c *ProjectsAgentEnvironmentsIntentsListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.intents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23526,12 +24821,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsDeleteContextsCall) Header() http
 
 func (c *ProjectsAgentEnvironmentsUsersSessionsDeleteContextsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/contexts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23539,6 +24833,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsDeleteContextsCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.deleteContexts", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23574,9 +24869,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsDeleteContextsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.deleteContexts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23647,8 +24944,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsDetectIntentCall) Header() http.H
 
 func (c *ProjectsAgentEnvironmentsUsersSessionsDetectIntentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1detectintentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1detectintentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -23664,6 +24960,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsDetectIntentCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"session": c.sessionid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.detectIntent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23699,9 +24996,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsDetectIntentCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.detectIntent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23756,8 +25055,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsCreateCall) Header() http
 
 func (c *ProjectsAgentEnvironmentsUsersSessionsContextsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1context)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1context)
 	if err != nil {
 		return nil, err
 	}
@@ -23773,6 +25071,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsCreateCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23808,9 +25107,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsCreateCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23863,12 +25164,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsDeleteCall) Header() http
 
 func (c *ProjectsAgentEnvironmentsUsersSessionsContextsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23876,6 +25176,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsDeleteCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -23911,9 +25212,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsDeleteCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -23978,12 +25281,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23991,6 +25293,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsGetCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24026,9 +25329,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24106,12 +25411,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/contexts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24119,6 +25423,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsListCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24154,9 +25459,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24243,8 +25550,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsPatchCall) Header() http.
 
 func (c *ProjectsAgentEnvironmentsUsersSessionsContextsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1context)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1context)
 	if err != nil {
 		return nil, err
 	}
@@ -24260,6 +25566,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsPatchCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24295,9 +25602,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsPatchCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.contexts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24355,8 +25664,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) Header() h
 
 func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1sessionentitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1sessionentitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -24372,6 +25680,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24407,9 +25716,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24464,12 +25775,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) Header() h
 
 func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24477,6 +25787,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24512,9 +25823,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24581,12 +25894,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesGetCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24594,6 +25906,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesGetCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24629,9 +25942,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesGetCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24713,12 +26028,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesListCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/entityTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -24726,6 +26040,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesListCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24761,9 +26076,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesListCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24850,8 +26167,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) Header() ht
 
 func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1sessionentitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1sessionentitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -24867,6 +26183,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -24902,9 +26219,11 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.environments.users.sessions.entityTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -24963,8 +26282,7 @@ func (c *ProjectsAgentIntentsBatchDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentIntentsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchdeleteintentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchdeleteintentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -24980,6 +26298,7 @@ func (c *ProjectsAgentIntentsBatchDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25015,9 +26334,11 @@ func (c *ProjectsAgentIntentsBatchDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25074,8 +26395,7 @@ func (c *ProjectsAgentIntentsBatchUpdateCall) Header() http.Header {
 
 func (c *ProjectsAgentIntentsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchupdateintentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchupdateintentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -25091,6 +26411,7 @@ func (c *ProjectsAgentIntentsBatchUpdateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25126,9 +26447,11 @@ func (c *ProjectsAgentIntentsBatchUpdateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25204,8 +26527,7 @@ func (c *ProjectsAgentIntentsCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentIntentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1intent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1intent)
 	if err != nil {
 		return nil, err
 	}
@@ -25221,6 +26543,7 @@ func (c *ProjectsAgentIntentsCreateCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25256,9 +26579,11 @@ func (c *ProjectsAgentIntentsCreateCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25309,12 +26634,11 @@ func (c *ProjectsAgentIntentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentIntentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25322,6 +26646,7 @@ func (c *ProjectsAgentIntentsDeleteCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25357,9 +26682,11 @@ func (c *ProjectsAgentIntentsDeleteCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25443,12 +26770,11 @@ func (c *ProjectsAgentIntentsGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25456,6 +26782,7 @@ func (c *ProjectsAgentIntentsGetCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25491,9 +26818,11 @@ func (c *ProjectsAgentIntentsGetCall) Do(opts ...googleapi.CallOption) (*GoogleC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25594,12 +26923,11 @@ func (c *ProjectsAgentIntentsListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/intents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25607,6 +26935,7 @@ func (c *ProjectsAgentIntentsListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25642,9 +26971,11 @@ func (c *ProjectsAgentIntentsListCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25750,8 +27081,7 @@ func (c *ProjectsAgentIntentsPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentIntentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1intent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1intent)
 	if err != nil {
 		return nil, err
 	}
@@ -25767,6 +27097,7 @@ func (c *ProjectsAgentIntentsPatchCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25802,9 +27133,11 @@ func (c *ProjectsAgentIntentsPatchCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.intents.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25854,8 +27187,7 @@ func (c *ProjectsAgentKnowledgeBasesCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentKnowledgeBasesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1knowledgebase)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1knowledgebase)
 	if err != nil {
 		return nil, err
 	}
@@ -25871,6 +27203,7 @@ func (c *ProjectsAgentKnowledgeBasesCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -25906,9 +27239,11 @@ func (c *ProjectsAgentKnowledgeBasesCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -25964,12 +27299,11 @@ func (c *ProjectsAgentKnowledgeBasesDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentKnowledgeBasesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25977,6 +27311,7 @@ func (c *ProjectsAgentKnowledgeBasesDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26012,9 +27347,11 @@ func (c *ProjectsAgentKnowledgeBasesDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26075,12 +27412,11 @@ func (c *ProjectsAgentKnowledgeBasesGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26088,6 +27424,7 @@ func (c *ProjectsAgentKnowledgeBasesGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26123,9 +27460,11 @@ func (c *ProjectsAgentKnowledgeBasesGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26218,12 +27557,11 @@ func (c *ProjectsAgentKnowledgeBasesListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/knowledgeBases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26231,6 +27569,7 @@ func (c *ProjectsAgentKnowledgeBasesListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26268,9 +27607,11 @@ func (c *ProjectsAgentKnowledgeBasesListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26350,8 +27691,7 @@ func (c *ProjectsAgentKnowledgeBasesPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentKnowledgeBasesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1knowledgebase)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1knowledgebase)
 	if err != nil {
 		return nil, err
 	}
@@ -26367,6 +27707,7 @@ func (c *ProjectsAgentKnowledgeBasesPatchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26402,9 +27743,11 @@ func (c *ProjectsAgentKnowledgeBasesPatchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26467,8 +27810,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentKnowledgeBasesDocumentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1document)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1document)
 	if err != nil {
 		return nil, err
 	}
@@ -26484,6 +27826,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26519,9 +27862,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26575,12 +27920,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentKnowledgeBasesDocumentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26588,6 +27932,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26623,9 +27968,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26686,12 +28033,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26699,6 +28045,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26734,9 +28081,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26826,12 +28175,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/documents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -26839,6 +28187,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -26874,9 +28223,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -26961,8 +28312,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentKnowledgeBasesDocumentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1document)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1document)
 	if err != nil {
 		return nil, err
 	}
@@ -26978,6 +28328,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27013,9 +28364,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27076,8 +28429,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsReloadCall) Header() http.Header {
 
 func (c *ProjectsAgentKnowledgeBasesDocumentsReloadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1reloaddocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1reloaddocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -27093,6 +28445,7 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsReloadCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.reload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27128,9 +28481,11 @@ func (c *ProjectsAgentKnowledgeBasesDocumentsReloadCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.knowledgeBases.documents.reload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27183,12 +28538,11 @@ func (c *ProjectsAgentSessionsDeleteContextsCall) Header() http.Header {
 
 func (c *ProjectsAgentSessionsDeleteContextsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/contexts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27196,6 +28550,7 @@ func (c *ProjectsAgentSessionsDeleteContextsCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.deleteContexts", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27231,9 +28586,11 @@ func (c *ProjectsAgentSessionsDeleteContextsCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.deleteContexts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27304,8 +28661,7 @@ func (c *ProjectsAgentSessionsDetectIntentCall) Header() http.Header {
 
 func (c *ProjectsAgentSessionsDetectIntentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1detectintentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1detectintentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -27321,6 +28677,7 @@ func (c *ProjectsAgentSessionsDetectIntentCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"session": c.sessionid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.detectIntent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27356,9 +28713,11 @@ func (c *ProjectsAgentSessionsDetectIntentCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.detectIntent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27413,8 +28772,7 @@ func (c *ProjectsAgentSessionsContextsCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentSessionsContextsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1context)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1context)
 	if err != nil {
 		return nil, err
 	}
@@ -27430,6 +28788,7 @@ func (c *ProjectsAgentSessionsContextsCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27465,9 +28824,11 @@ func (c *ProjectsAgentSessionsContextsCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27520,12 +28881,11 @@ func (c *ProjectsAgentSessionsContextsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentSessionsContextsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27533,6 +28893,7 @@ func (c *ProjectsAgentSessionsContextsDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27568,9 +28929,11 @@ func (c *ProjectsAgentSessionsContextsDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27635,12 +28998,11 @@ func (c *ProjectsAgentSessionsContextsGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27648,6 +29010,7 @@ func (c *ProjectsAgentSessionsContextsGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27683,9 +29046,11 @@ func (c *ProjectsAgentSessionsContextsGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27763,12 +29128,11 @@ func (c *ProjectsAgentSessionsContextsListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/contexts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -27776,6 +29140,7 @@ func (c *ProjectsAgentSessionsContextsListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27811,9 +29176,11 @@ func (c *ProjectsAgentSessionsContextsListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -27900,8 +29267,7 @@ func (c *ProjectsAgentSessionsContextsPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentSessionsContextsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1context)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1context)
 	if err != nil {
 		return nil, err
 	}
@@ -27917,6 +29283,7 @@ func (c *ProjectsAgentSessionsContextsPatchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -27952,9 +29319,11 @@ func (c *ProjectsAgentSessionsContextsPatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.contexts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28012,8 +29381,7 @@ func (c *ProjectsAgentSessionsEntityTypesCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentSessionsEntityTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1sessionentitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1sessionentitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -28029,6 +29397,7 @@ func (c *ProjectsAgentSessionsEntityTypesCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28064,9 +29433,11 @@ func (c *ProjectsAgentSessionsEntityTypesCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28121,12 +29492,11 @@ func (c *ProjectsAgentSessionsEntityTypesDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentSessionsEntityTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28134,6 +29504,7 @@ func (c *ProjectsAgentSessionsEntityTypesDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28169,9 +29540,11 @@ func (c *ProjectsAgentSessionsEntityTypesDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28238,12 +29611,11 @@ func (c *ProjectsAgentSessionsEntityTypesGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28251,6 +29623,7 @@ func (c *ProjectsAgentSessionsEntityTypesGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28286,9 +29659,11 @@ func (c *ProjectsAgentSessionsEntityTypesGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28370,12 +29745,11 @@ func (c *ProjectsAgentSessionsEntityTypesListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/entityTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28383,6 +29757,7 @@ func (c *ProjectsAgentSessionsEntityTypesListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28418,9 +29793,11 @@ func (c *ProjectsAgentSessionsEntityTypesListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28507,8 +29884,7 @@ func (c *ProjectsAgentSessionsEntityTypesPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentSessionsEntityTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1sessionentitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1sessionentitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -28524,6 +29900,7 @@ func (c *ProjectsAgentSessionsEntityTypesPatchCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28559,9 +29936,11 @@ func (c *ProjectsAgentSessionsEntityTypesPatchCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.sessions.entityTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28611,8 +29990,7 @@ func (c *ProjectsAgentVersionsCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentVersionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1version)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1version)
 	if err != nil {
 		return nil, err
 	}
@@ -28628,6 +30006,7 @@ func (c *ProjectsAgentVersionsCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28663,9 +30042,11 @@ func (c *ProjectsAgentVersionsCreateCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28712,12 +30093,11 @@ func (c *ProjectsAgentVersionsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentVersionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28725,6 +30105,7 @@ func (c *ProjectsAgentVersionsDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28760,9 +30141,11 @@ func (c *ProjectsAgentVersionsDeleteCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28821,12 +30204,11 @@ func (c *ProjectsAgentVersionsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28834,6 +30216,7 @@ func (c *ProjectsAgentVersionsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28869,9 +30252,11 @@ func (c *ProjectsAgentVersionsGetCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -28944,12 +30329,11 @@ func (c *ProjectsAgentVersionsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/versions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28957,6 +30341,7 @@ func (c *ProjectsAgentVersionsListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -28992,9 +30377,11 @@ func (c *ProjectsAgentVersionsListCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29074,8 +30461,7 @@ func (c *ProjectsAgentVersionsPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentVersionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1version)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1version)
 	if err != nil {
 		return nil, err
 	}
@@ -29091,6 +30477,7 @@ func (c *ProjectsAgentVersionsPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29126,9 +30513,11 @@ func (c *ProjectsAgentVersionsPatchCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.agent.versions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29187,12 +30576,11 @@ func (c *ProjectsAnswerRecordsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -29200,6 +30588,7 @@ func (c *ProjectsAnswerRecordsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.answerRecords.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29235,9 +30624,11 @@ func (c *ProjectsAnswerRecordsGetCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.answerRecords.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29262,8 +30653,12 @@ func (r *ProjectsAnswerRecordsService) List(parent string) *ProjectsAnswerRecord
 }
 
 // Filter sets the optional parameter "filter": Filters to restrict results to
-// specific answer records. For more information about filtering, see API
-// Filtering (https://aip.dev/160).
+// specific answer records. The expression has the following syntax: [AND ] ...
+// The following fields and operators are supported: * conversation_id with
+// equals(=) operator Examples: * "conversation_id=bar" matches answer records
+// in the projects/foo/locations/global/conversations/bar conversation
+// (assuming the parent is projects/foo/locations/global). For more information
+// about filtering, see API Filtering (https://aip.dev/160).
 func (c *ProjectsAnswerRecordsListCall) Filter(filter string) *ProjectsAnswerRecordsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -29321,12 +30716,11 @@ func (c *ProjectsAnswerRecordsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/answerRecords")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -29334,6 +30728,7 @@ func (c *ProjectsAnswerRecordsListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.answerRecords.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29369,9 +30764,11 @@ func (c *ProjectsAnswerRecordsListCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.answerRecords.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29449,8 +30846,7 @@ func (c *ProjectsAnswerRecordsPatchCall) Header() http.Header {
 
 func (c *ProjectsAnswerRecordsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1answerrecord)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1answerrecord)
 	if err != nil {
 		return nil, err
 	}
@@ -29466,6 +30862,7 @@ func (c *ProjectsAnswerRecordsPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.answerRecords.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29501,9 +30898,11 @@ func (c *ProjectsAnswerRecordsPatchCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.answerRecords.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29559,8 +30958,7 @@ func (c *ProjectsConversationProfilesClearSuggestionFeatureConfigCall) Header() 
 
 func (c *ProjectsConversationProfilesClearSuggestionFeatureConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1clearsuggestionfeatureconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1clearsuggestionfeatureconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -29576,6 +30974,7 @@ func (c *ProjectsConversationProfilesClearSuggestionFeatureConfigCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"conversationProfile": c.conversationProfile,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.clearSuggestionFeatureConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29611,9 +31010,11 @@ func (c *ProjectsConversationProfilesClearSuggestionFeatureConfigCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.clearSuggestionFeatureConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29665,8 +31066,7 @@ func (c *ProjectsConversationProfilesCreateCall) Header() http.Header {
 
 func (c *ProjectsConversationProfilesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1conversationprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1conversationprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -29682,6 +31082,7 @@ func (c *ProjectsConversationProfilesCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29717,9 +31118,11 @@ func (c *ProjectsConversationProfilesCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29766,12 +31169,11 @@ func (c *ProjectsConversationProfilesDeleteCall) Header() http.Header {
 
 func (c *ProjectsConversationProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -29779,6 +31181,7 @@ func (c *ProjectsConversationProfilesDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29814,9 +31217,11 @@ func (c *ProjectsConversationProfilesDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29875,12 +31280,11 @@ func (c *ProjectsConversationProfilesGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -29888,6 +31292,7 @@ func (c *ProjectsConversationProfilesGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -29923,9 +31328,11 @@ func (c *ProjectsConversationProfilesGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -29999,12 +31406,11 @@ func (c *ProjectsConversationProfilesListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/conversationProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30012,6 +31418,7 @@ func (c *ProjectsConversationProfilesListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30047,9 +31454,11 @@ func (c *ProjectsConversationProfilesListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30129,8 +31538,7 @@ func (c *ProjectsConversationProfilesPatchCall) Header() http.Header {
 
 func (c *ProjectsConversationProfilesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1conversationprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1conversationprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -30146,6 +31554,7 @@ func (c *ProjectsConversationProfilesPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30181,9 +31590,11 @@ func (c *ProjectsConversationProfilesPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30244,8 +31655,7 @@ func (c *ProjectsConversationProfilesSetSuggestionFeatureConfigCall) Header() ht
 
 func (c *ProjectsConversationProfilesSetSuggestionFeatureConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1setsuggestionfeatureconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1setsuggestionfeatureconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -30261,6 +31671,7 @@ func (c *ProjectsConversationProfilesSetSuggestionFeatureConfigCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"conversationProfile": c.conversationProfile,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.setSuggestionFeatureConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30296,9 +31707,11 @@ func (c *ProjectsConversationProfilesSetSuggestionFeatureConfigCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversationProfiles.setSuggestionFeatureConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30348,8 +31761,7 @@ func (c *ProjectsConversationsCompleteCall) Header() http.Header {
 
 func (c *ProjectsConversationsCompleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1completeconversationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1completeconversationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -30365,6 +31777,7 @@ func (c *ProjectsConversationsCompleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.complete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30400,9 +31813,11 @@ func (c *ProjectsConversationsCompleteCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.complete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30439,9 +31854,9 @@ func (r *ProjectsConversationsService) Create(parentid string, googleclouddialog
 // ConversationId sets the optional parameter "conversationId": Identifier of
 // the conversation. Generally it's auto generated by Google. Only set it if
 // you cannot wait for the response to return a auto-generated one to you. The
-// conversation ID must be compliant with the regression fomula `a-zA-Z*` with
+// conversation ID must be compliant with the regression formula `a-zA-Z*` with
 // the characters length in range of [3,64]. If the field is provided, the
-// caller is resposible for 1. the uniqueness of the ID, otherwise the request
+// caller is responsible for 1. the uniqueness of the ID, otherwise the request
 // will be rejected. 2. the consistency for whether to use custom ID or not
 // under a project to better ensure uniqueness.
 func (c *ProjectsConversationsCreateCall) ConversationId(conversationId string) *ProjectsConversationsCreateCall {
@@ -30474,8 +31889,7 @@ func (c *ProjectsConversationsCreateCall) Header() http.Header {
 
 func (c *ProjectsConversationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1conversation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1conversation)
 	if err != nil {
 		return nil, err
 	}
@@ -30491,6 +31905,7 @@ func (c *ProjectsConversationsCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30526,9 +31941,11 @@ func (c *ProjectsConversationsCreateCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30587,12 +32004,11 @@ func (c *ProjectsConversationsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30600,6 +32016,7 @@ func (c *ProjectsConversationsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30635,9 +32052,11 @@ func (c *ProjectsConversationsGetCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30661,16 +32080,10 @@ func (r *ProjectsConversationsService) List(parent string) *ProjectsConversation
 }
 
 // Filter sets the optional parameter "filter": A filter expression that
-// filters conversations listed in the response. In general, the expression
-// must specify the field name, a comparison operator, and the value to use for
-// filtering: - The value must be a string, a number, or a boolean. - The
-// comparison operator must be either `=`,`!=`, `>`, or `<`. - To filter on
-// multiple expressions, separate the expressions with `AND` or `OR` (omitting
-// both implies `AND`). - For clarity, expressions can be enclosed in
-// parentheses. Only `lifecycle_state` can be filtered on in this way. For
-// example, the following expression only returns `COMPLETED` conversations:
-// `lifecycle_state = "COMPLETED" For more information about filtering, see
-// API Filtering (https://aip.dev/160).
+// filters conversations listed in the response. Only `lifecycle_state` can be
+// filtered on in this way. For example, the following expression only returns
+// `COMPLETED` conversations: `lifecycle_state = "COMPLETED" For more
+// information about filtering, see API Filtering (https://aip.dev/160).
 func (c *ProjectsConversationsListCall) Filter(filter string) *ProjectsConversationsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -30726,12 +32139,11 @@ func (c *ProjectsConversationsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/conversations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30739,6 +32151,7 @@ func (c *ProjectsConversationsListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30774,9 +32187,11 @@ func (c *ProjectsConversationsListCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30847,8 +32262,7 @@ func (c *ProjectsConversationsMessagesBatchCreateCall) Header() http.Header {
 
 func (c *ProjectsConversationsMessagesBatchCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchcreatemessagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchcreatemessagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -30864,6 +32278,7 @@ func (c *ProjectsConversationsMessagesBatchCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.messages.batchCreate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -30899,9 +32314,11 @@ func (c *ProjectsConversationsMessagesBatchCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.messages.batchCreate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -30988,12 +32405,11 @@ func (c *ProjectsConversationsMessagesListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/messages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -31001,6 +32417,7 @@ func (c *ProjectsConversationsMessagesListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.messages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31036,9 +32453,11 @@ func (c *ProjectsConversationsMessagesListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.messages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31112,8 +32531,7 @@ func (c *ProjectsConversationsParticipantsAnalyzeContentCall) Header() http.Head
 
 func (c *ProjectsConversationsParticipantsAnalyzeContentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1analyzecontentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1analyzecontentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -31129,6 +32547,7 @@ func (c *ProjectsConversationsParticipantsAnalyzeContentCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"participant": c.participant,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.analyzeContent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31164,9 +32583,11 @@ func (c *ProjectsConversationsParticipantsAnalyzeContentCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.analyzeContent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31215,8 +32636,7 @@ func (c *ProjectsConversationsParticipantsCreateCall) Header() http.Header {
 
 func (c *ProjectsConversationsParticipantsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1participant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1participant)
 	if err != nil {
 		return nil, err
 	}
@@ -31232,6 +32652,7 @@ func (c *ProjectsConversationsParticipantsCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31267,9 +32688,11 @@ func (c *ProjectsConversationsParticipantsCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31328,12 +32751,11 @@ func (c *ProjectsConversationsParticipantsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -31341,6 +32763,7 @@ func (c *ProjectsConversationsParticipantsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31376,9 +32799,11 @@ func (c *ProjectsConversationsParticipantsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31451,12 +32876,11 @@ func (c *ProjectsConversationsParticipantsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/participants")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -31464,6 +32888,7 @@ func (c *ProjectsConversationsParticipantsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31499,9 +32924,11 @@ func (c *ProjectsConversationsParticipantsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31578,8 +33005,7 @@ func (c *ProjectsConversationsParticipantsPatchCall) Header() http.Header {
 
 func (c *ProjectsConversationsParticipantsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1participant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1participant)
 	if err != nil {
 		return nil, err
 	}
@@ -31595,6 +33021,7 @@ func (c *ProjectsConversationsParticipantsPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31630,9 +33057,11 @@ func (c *ProjectsConversationsParticipantsPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31685,8 +33114,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsCompileCall) Header() http.
 
 func (c *ProjectsConversationsParticipantsSuggestionsCompileCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1compilesuggestionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1compilesuggestionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -31702,6 +33130,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsCompileCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.compile", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31737,9 +33166,11 @@ func (c *ProjectsConversationsParticipantsSuggestionsCompileCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.compile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31837,12 +33268,11 @@ func (c *ProjectsConversationsParticipantsSuggestionsListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/suggestions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -31850,6 +33280,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsListCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -31885,9 +33316,11 @@ func (c *ProjectsConversationsParticipantsSuggestionsListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -31960,8 +33393,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestArticlesCall) Header
 
 func (c *ProjectsConversationsParticipantsSuggestionsSuggestArticlesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestarticlesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestarticlesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -31977,6 +33409,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestArticlesCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.suggestArticles", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32012,9 +33445,11 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestArticlesCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.suggestArticles", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32064,8 +33499,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestFaqAnswersCall) Head
 
 func (c *ProjectsConversationsParticipantsSuggestionsSuggestFaqAnswersCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestfaqanswersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestfaqanswersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -32081,6 +33515,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestFaqAnswersCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.suggestFaqAnswers", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32116,9 +33551,11 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestFaqAnswersCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.suggestFaqAnswers", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32168,8 +33605,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestKnowledgeAssistCall)
 
 func (c *ProjectsConversationsParticipantsSuggestionsSuggestKnowledgeAssistCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestknowledgeassistrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestknowledgeassistrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -32185,6 +33621,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestKnowledgeAssistCall)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.suggestKnowledgeAssist", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32220,9 +33657,11 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestKnowledgeAssistCall)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.suggestKnowledgeAssist", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32272,8 +33711,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestSmartRepliesCall) He
 
 func (c *ProjectsConversationsParticipantsSuggestionsSuggestSmartRepliesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestsmartrepliesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestsmartrepliesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -32289,6 +33727,7 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestSmartRepliesCall) do
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.suggestSmartReplies", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32324,9 +33763,120 @@ func (c *ProjectsConversationsParticipantsSuggestionsSuggestSmartRepliesCall) Do
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.participants.suggestions.suggestSmartReplies", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsConversationsSuggestionsGenerateCall struct {
+	s                                                      *Service
+	conversation                                           string
+	googleclouddialogflowv2beta1generatesuggestionsrequest *GoogleCloudDialogflowV2beta1GenerateSuggestionsRequest
+	urlParams_                                             gensupport.URLParams
+	ctx_                                                   context.Context
+	header_                                                http.Header
+}
+
+// Generate: Generates all the suggestions using generators configured in the
+// conversation profile. A generator is used only if its trigger event is
+// matched.
+//
+//   - conversation: The conversation for which the suggestions are generated.
+//     Format: `projects//locations//conversations/`. The conversation must be
+//     created with a conversation profile which has generators configured in it
+//     to be able to get suggestions.
+func (r *ProjectsConversationsSuggestionsService) Generate(conversation string, googleclouddialogflowv2beta1generatesuggestionsrequest *GoogleCloudDialogflowV2beta1GenerateSuggestionsRequest) *ProjectsConversationsSuggestionsGenerateCall {
+	c := &ProjectsConversationsSuggestionsGenerateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.conversation = conversation
+	c.googleclouddialogflowv2beta1generatesuggestionsrequest = googleclouddialogflowv2beta1generatesuggestionsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsConversationsSuggestionsGenerateCall) Fields(s ...googleapi.Field) *ProjectsConversationsSuggestionsGenerateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsConversationsSuggestionsGenerateCall) Context(ctx context.Context) *ProjectsConversationsSuggestionsGenerateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsConversationsSuggestionsGenerateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsConversationsSuggestionsGenerateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1generatesuggestionsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+conversation}/suggestions:generate")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"conversation": c.conversation,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.suggestions.generate", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.conversations.suggestions.generate" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse.ServerResponse.Heade
+// r or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsConversationsSuggestionsGenerateCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.suggestions.generate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32342,8 +33892,8 @@ type ProjectsConversationsSuggestionsSearchKnowledgeCall struct {
 // SearchKnowledge: Get answers for the given query based on knowledge
 // documents.
 //
-//   - conversation: The conversation (between human agent and end user) where
-//     the search request is triggered. Format:
+//   - conversation: Optional. The conversation (between human agent and end
+//     user) where the search request is triggered. Format:
 //     `projects//locations//conversations/`.
 func (r *ProjectsConversationsSuggestionsService) SearchKnowledge(conversation string, googleclouddialogflowv2beta1searchknowledgerequest *GoogleCloudDialogflowV2beta1SearchKnowledgeRequest) *ProjectsConversationsSuggestionsSearchKnowledgeCall {
 	c := &ProjectsConversationsSuggestionsSearchKnowledgeCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -32377,8 +33927,7 @@ func (c *ProjectsConversationsSuggestionsSearchKnowledgeCall) Header() http.Head
 
 func (c *ProjectsConversationsSuggestionsSearchKnowledgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1searchknowledgerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1searchknowledgerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -32394,6 +33943,7 @@ func (c *ProjectsConversationsSuggestionsSearchKnowledgeCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"conversation": c.conversation,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.suggestions.searchKnowledge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32429,9 +33979,11 @@ func (c *ProjectsConversationsSuggestionsSearchKnowledgeCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.suggestions.searchKnowledge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32482,8 +34034,7 @@ func (c *ProjectsConversationsSuggestionsSuggestConversationSummaryCall) Header(
 
 func (c *ProjectsConversationsSuggestionsSuggestConversationSummaryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestconversationsummaryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestconversationsummaryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -32499,6 +34050,7 @@ func (c *ProjectsConversationsSuggestionsSuggestConversationSummaryCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"conversation": c.conversation,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.suggestions.suggestConversationSummary", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32534,9 +34086,11 @@ func (c *ProjectsConversationsSuggestionsSuggestConversationSummaryCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.conversations.suggestions.suggestConversationSummary", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32562,11 +34116,11 @@ func (r *ProjectsGeneratorsService) Create(parent string, googleclouddialogflowv
 
 // GeneratorId sets the optional parameter "generatorId": The ID to use for the
 // generator, which will become the final component of the generator's resource
-// name. The generator ID must be compliant with the regression fomula
+// name. The generator ID must be compliant with the regression formula
 // `a-zA-Z*` with the characters length in range of [3,64]. If the field is not
 // provided, an Id will be auto-generated. If the field is provided, the caller
-// is resposible for 1. the uniqueness of the ID, otherwise the request will be
-// rejected. 2. the consistency for whether to use custom ID or not under a
+// is responsible for 1. the uniqueness of the ID, otherwise the request will
+// be rejected. 2. the consistency for whether to use custom ID or not under a
 // project to better ensure uniqueness.
 func (c *ProjectsGeneratorsCreateCall) GeneratorId(generatorId string) *ProjectsGeneratorsCreateCall {
 	c.urlParams_.Set("generatorId", generatorId)
@@ -32598,8 +34152,7 @@ func (c *ProjectsGeneratorsCreateCall) Header() http.Header {
 
 func (c *ProjectsGeneratorsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1generator)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1generator)
 	if err != nil {
 		return nil, err
 	}
@@ -32615,6 +34168,7 @@ func (c *ProjectsGeneratorsCreateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.generators.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32650,9 +34204,11 @@ func (c *ProjectsGeneratorsCreateCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.generators.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32725,12 +34281,11 @@ func (c *ProjectsGeneratorsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/generators")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -32738,6 +34293,7 @@ func (c *ProjectsGeneratorsListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.generators.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32773,9 +34329,11 @@ func (c *ProjectsGeneratorsListCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.generators.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32846,8 +34404,7 @@ func (c *ProjectsKnowledgeBasesCreateCall) Header() http.Header {
 
 func (c *ProjectsKnowledgeBasesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1knowledgebase)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1knowledgebase)
 	if err != nil {
 		return nil, err
 	}
@@ -32863,6 +34420,7 @@ func (c *ProjectsKnowledgeBasesCreateCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -32898,9 +34456,11 @@ func (c *ProjectsKnowledgeBasesCreateCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -32956,12 +34516,11 @@ func (c *ProjectsKnowledgeBasesDeleteCall) Header() http.Header {
 
 func (c *ProjectsKnowledgeBasesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -32969,6 +34528,7 @@ func (c *ProjectsKnowledgeBasesDeleteCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33004,9 +34564,11 @@ func (c *ProjectsKnowledgeBasesDeleteCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33067,12 +34629,11 @@ func (c *ProjectsKnowledgeBasesGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33080,6 +34641,7 @@ func (c *ProjectsKnowledgeBasesGetCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33115,9 +34677,11 @@ func (c *ProjectsKnowledgeBasesGetCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33210,12 +34774,11 @@ func (c *ProjectsKnowledgeBasesListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/knowledgeBases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33223,6 +34786,7 @@ func (c *ProjectsKnowledgeBasesListCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33260,9 +34824,11 @@ func (c *ProjectsKnowledgeBasesListCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33342,8 +34908,7 @@ func (c *ProjectsKnowledgeBasesPatchCall) Header() http.Header {
 
 func (c *ProjectsKnowledgeBasesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1knowledgebase)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1knowledgebase)
 	if err != nil {
 		return nil, err
 	}
@@ -33359,6 +34924,7 @@ func (c *ProjectsKnowledgeBasesPatchCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33394,9 +34960,11 @@ func (c *ProjectsKnowledgeBasesPatchCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33459,8 +35027,7 @@ func (c *ProjectsKnowledgeBasesDocumentsCreateCall) Header() http.Header {
 
 func (c *ProjectsKnowledgeBasesDocumentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1document)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1document)
 	if err != nil {
 		return nil, err
 	}
@@ -33476,6 +35043,7 @@ func (c *ProjectsKnowledgeBasesDocumentsCreateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33511,9 +35079,11 @@ func (c *ProjectsKnowledgeBasesDocumentsCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33567,12 +35137,11 @@ func (c *ProjectsKnowledgeBasesDocumentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsKnowledgeBasesDocumentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33580,6 +35149,7 @@ func (c *ProjectsKnowledgeBasesDocumentsDeleteCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33615,9 +35185,11 @@ func (c *ProjectsKnowledgeBasesDocumentsDeleteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33678,12 +35250,11 @@ func (c *ProjectsKnowledgeBasesDocumentsGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33691,6 +35262,7 @@ func (c *ProjectsKnowledgeBasesDocumentsGetCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33726,9 +35298,11 @@ func (c *ProjectsKnowledgeBasesDocumentsGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33782,8 +35356,7 @@ func (c *ProjectsKnowledgeBasesDocumentsImportCall) Header() http.Header {
 
 func (c *ProjectsKnowledgeBasesDocumentsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1importdocumentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1importdocumentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -33799,6 +35372,7 @@ func (c *ProjectsKnowledgeBasesDocumentsImportCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33834,9 +35408,11 @@ func (c *ProjectsKnowledgeBasesDocumentsImportCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -33926,12 +35502,11 @@ func (c *ProjectsKnowledgeBasesDocumentsListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/documents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33939,6 +35514,7 @@ func (c *ProjectsKnowledgeBasesDocumentsListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -33974,9 +35550,11 @@ func (c *ProjectsKnowledgeBasesDocumentsListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34061,8 +35639,7 @@ func (c *ProjectsKnowledgeBasesDocumentsPatchCall) Header() http.Header {
 
 func (c *ProjectsKnowledgeBasesDocumentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1document)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1document)
 	if err != nil {
 		return nil, err
 	}
@@ -34078,6 +35655,7 @@ func (c *ProjectsKnowledgeBasesDocumentsPatchCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34113,9 +35691,11 @@ func (c *ProjectsKnowledgeBasesDocumentsPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34176,8 +35756,7 @@ func (c *ProjectsKnowledgeBasesDocumentsReloadCall) Header() http.Header {
 
 func (c *ProjectsKnowledgeBasesDocumentsReloadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1reloaddocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1reloaddocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -34193,6 +35772,7 @@ func (c *ProjectsKnowledgeBasesDocumentsReloadCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.reload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34228,9 +35808,11 @@ func (c *ProjectsKnowledgeBasesDocumentsReloadCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.knowledgeBases.documents.reload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34277,12 +35859,11 @@ func (c *ProjectsLocationsDeleteAgentCall) Header() http.Header {
 
 func (c *ProjectsLocationsDeleteAgentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/agent")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34290,6 +35871,7 @@ func (c *ProjectsLocationsDeleteAgentCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.deleteAgent", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34325,9 +35907,11 @@ func (c *ProjectsLocationsDeleteAgentCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.deleteAgent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34385,12 +35969,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34398,6 +35981,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34433,9 +36017,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34494,12 +36080,11 @@ func (c *ProjectsLocationsGetAgentCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/agent")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34507,6 +36092,7 @@ func (c *ProjectsLocationsGetAgentCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.getAgent", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34542,9 +36128,121 @@ func (c *ProjectsLocationsGetAgentCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.getAgent", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsGetEncryptionSpecCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetEncryptionSpec: Gets location-level encryption key specification.
+//
+// - name: The name of the encryption spec resource to get.
+func (r *ProjectsLocationsService) GetEncryptionSpec(name string) *ProjectsLocationsGetEncryptionSpecCall {
+	c := &ProjectsLocationsGetEncryptionSpecCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsGetEncryptionSpecCall) Fields(s ...googleapi.Field) *ProjectsLocationsGetEncryptionSpecCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsGetEncryptionSpecCall) IfNoneMatch(entityTag string) *ProjectsLocationsGetEncryptionSpecCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsGetEncryptionSpecCall) Context(ctx context.Context) *ProjectsLocationsGetEncryptionSpecCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsGetEncryptionSpecCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsGetEncryptionSpecCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.getEncryptionSpec", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.getEncryptionSpec" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1EncryptionSpec.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsGetEncryptionSpecCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1EncryptionSpec, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1EncryptionSpec{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.getEncryptionSpec", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34626,12 +36324,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34639,6 +36336,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34674,9 +36372,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34755,8 +36455,7 @@ func (c *ProjectsLocationsSetAgentCall) Header() http.Header {
 
 func (c *ProjectsLocationsSetAgentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1agent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1agent)
 	if err != nil {
 		return nil, err
 	}
@@ -34772,6 +36471,7 @@ func (c *ProjectsLocationsSetAgentCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.setAgent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34807,9 +36507,11 @@ func (c *ProjectsLocationsSetAgentCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.setAgent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34864,8 +36566,7 @@ func (c *ProjectsLocationsAgentExportCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentExportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1exportagentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1exportagentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -34881,6 +36582,7 @@ func (c *ProjectsLocationsAgentExportCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.export", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -34916,9 +36618,11 @@ func (c *ProjectsLocationsAgentExportCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -34977,12 +36681,11 @@ func (c *ProjectsLocationsAgentGetFulfillmentCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34990,6 +36693,7 @@ func (c *ProjectsLocationsAgentGetFulfillmentCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.getFulfillment", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35025,9 +36729,11 @@ func (c *ProjectsLocationsAgentGetFulfillmentCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.getFulfillment", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35098,12 +36804,11 @@ func (c *ProjectsLocationsAgentGetValidationResultCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/agent/validationResult")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35111,6 +36816,7 @@ func (c *ProjectsLocationsAgentGetValidationResultCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.getValidationResult", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35146,9 +36852,11 @@ func (c *ProjectsLocationsAgentGetValidationResultCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.getValidationResult", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35214,8 +36922,7 @@ func (c *ProjectsLocationsAgentImportCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1importagentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1importagentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -35231,6 +36938,7 @@ func (c *ProjectsLocationsAgentImportCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35266,9 +36974,11 @@ func (c *ProjectsLocationsAgentImportCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35333,8 +37043,7 @@ func (c *ProjectsLocationsAgentRestoreCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentRestoreCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1restoreagentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1restoreagentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -35350,6 +37059,7 @@ func (c *ProjectsLocationsAgentRestoreCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.restore", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35385,9 +37095,11 @@ func (c *ProjectsLocationsAgentRestoreCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.restore", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35465,12 +37177,11 @@ func (c *ProjectsLocationsAgentSearchCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/agent:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35478,6 +37189,7 @@ func (c *ProjectsLocationsAgentSearchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35513,9 +37225,11 @@ func (c *ProjectsLocationsAgentSearchCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35594,8 +37308,7 @@ func (c *ProjectsLocationsAgentTrainCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentTrainCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1trainagentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1trainagentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -35611,6 +37324,7 @@ func (c *ProjectsLocationsAgentTrainCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.train", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35646,9 +37360,11 @@ func (c *ProjectsLocationsAgentTrainCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.train", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35706,8 +37422,7 @@ func (c *ProjectsLocationsAgentUpdateFulfillmentCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentUpdateFulfillmentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1fulfillment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1fulfillment)
 	if err != nil {
 		return nil, err
 	}
@@ -35723,6 +37438,7 @@ func (c *ProjectsLocationsAgentUpdateFulfillmentCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.updateFulfillment", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35758,9 +37474,11 @@ func (c *ProjectsLocationsAgentUpdateFulfillmentCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.updateFulfillment", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35819,8 +37537,7 @@ func (c *ProjectsLocationsAgentEntityTypesBatchDeleteCall) Header() http.Header 
 
 func (c *ProjectsLocationsAgentEntityTypesBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchdeleteentitytypesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchdeleteentitytypesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -35836,6 +37553,7 @@ func (c *ProjectsLocationsAgentEntityTypesBatchDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35871,9 +37589,11 @@ func (c *ProjectsLocationsAgentEntityTypesBatchDeleteCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -35930,8 +37650,7 @@ func (c *ProjectsLocationsAgentEntityTypesBatchUpdateCall) Header() http.Header 
 
 func (c *ProjectsLocationsAgentEntityTypesBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchupdateentitytypesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchupdateentitytypesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -35947,6 +37666,7 @@ func (c *ProjectsLocationsAgentEntityTypesBatchUpdateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -35982,9 +37702,11 @@ func (c *ProjectsLocationsAgentEntityTypesBatchUpdateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36045,8 +37767,7 @@ func (c *ProjectsLocationsAgentEntityTypesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentEntityTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1entitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1entitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -36062,6 +37783,7 @@ func (c *ProjectsLocationsAgentEntityTypesCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36097,9 +37819,11 @@ func (c *ProjectsLocationsAgentEntityTypesCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36148,12 +37872,11 @@ func (c *ProjectsLocationsAgentEntityTypesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentEntityTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -36161,6 +37884,7 @@ func (c *ProjectsLocationsAgentEntityTypesDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36196,9 +37920,11 @@ func (c *ProjectsLocationsAgentEntityTypesDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36267,12 +37993,11 @@ func (c *ProjectsLocationsAgentEntityTypesGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -36280,6 +38005,7 @@ func (c *ProjectsLocationsAgentEntityTypesGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36315,9 +38041,11 @@ func (c *ProjectsLocationsAgentEntityTypesGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36400,12 +38128,11 @@ func (c *ProjectsLocationsAgentEntityTypesListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/entityTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -36413,6 +38140,7 @@ func (c *ProjectsLocationsAgentEntityTypesListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36448,9 +38176,11 @@ func (c *ProjectsLocationsAgentEntityTypesListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36541,8 +38271,7 @@ func (c *ProjectsLocationsAgentEntityTypesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentEntityTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1entitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1entitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -36558,6 +38287,7 @@ func (c *ProjectsLocationsAgentEntityTypesPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36593,9 +38323,11 @@ func (c *ProjectsLocationsAgentEntityTypesPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36655,8 +38387,7 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchCreateCall) Header() http
 
 func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchcreateentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchcreateentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -36672,6 +38403,7 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchCreateCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.entities.batchCreate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36707,9 +38439,11 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchCreateCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.entities.batchCreate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36769,8 +38503,7 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchDeleteCall) Header() http
 
 func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchdeleteentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchdeleteentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -36786,6 +38519,7 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchDeleteCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.entities.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36821,9 +38555,11 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchDeleteCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.entities.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36884,8 +38620,7 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchUpdateCall) Header() http
 
 func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchupdateentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchupdateentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -36901,6 +38636,7 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchUpdateCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.entities.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -36936,9 +38672,11 @@ func (c *ProjectsLocationsAgentEntityTypesEntitiesBatchUpdateCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.entityTypes.entities.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -36994,8 +38732,7 @@ func (c *ProjectsLocationsAgentEnvironmentsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentEnvironmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1environment)
 	if err != nil {
 		return nil, err
 	}
@@ -37011,6 +38748,7 @@ func (c *ProjectsLocationsAgentEnvironmentsCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -37046,9 +38784,11 @@ func (c *ProjectsLocationsAgentEnvironmentsCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -37096,12 +38836,11 @@ func (c *ProjectsLocationsAgentEnvironmentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentEnvironmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -37109,6 +38848,7 @@ func (c *ProjectsLocationsAgentEnvironmentsDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -37144,9 +38884,11 @@ func (c *ProjectsLocationsAgentEnvironmentsDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -37206,12 +38948,11 @@ func (c *ProjectsLocationsAgentEnvironmentsGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -37219,6 +38960,7 @@ func (c *ProjectsLocationsAgentEnvironmentsGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -37254,9 +38996,11 @@ func (c *ProjectsLocationsAgentEnvironmentsGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -37330,12 +39074,11 @@ func (c *ProjectsLocationsAgentEnvironmentsGetHistoryCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/history")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -37343,6 +39086,7 @@ func (c *ProjectsLocationsAgentEnvironmentsGetHistoryCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.getHistory", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -37378,9 +39122,11 @@ func (c *ProjectsLocationsAgentEnvironmentsGetHistoryCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.getHistory", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -37474,12 +39220,11 @@ func (c *ProjectsLocationsAgentEnvironmentsListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/environments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -37487,6 +39232,7 @@ func (c *ProjectsLocationsAgentEnvironmentsListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -37522,9 +39268,11 @@ func (c *ProjectsLocationsAgentEnvironmentsListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -37622,8 +39370,7 @@ func (c *ProjectsLocationsAgentEnvironmentsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentEnvironmentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1environment)
 	if err != nil {
 		return nil, err
 	}
@@ -37639,6 +39386,7 @@ func (c *ProjectsLocationsAgentEnvironmentsPatchCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -37674,9 +39422,11 @@ func (c *ProjectsLocationsAgentEnvironmentsPatchCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -37777,12 +39527,11 @@ func (c *ProjectsLocationsAgentEnvironmentsIntentsListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/intents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -37790,6 +39539,7 @@ func (c *ProjectsLocationsAgentEnvironmentsIntentsListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.intents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -37825,9 +39575,11 @@ func (c *ProjectsLocationsAgentEnvironmentsIntentsListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.intents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -37901,12 +39653,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsDeleteContextsCall) Head
 
 func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsDeleteContextsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/contexts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -37914,6 +39665,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsDeleteContextsCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.deleteContexts", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -37949,9 +39701,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsDeleteContextsCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.deleteContexts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38022,8 +39776,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsDetectIntentCall) Header
 
 func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsDetectIntentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1detectintentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1detectintentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -38039,6 +39792,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsDetectIntentCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"session": c.sessionid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.detectIntent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -38074,9 +39828,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsDetectIntentCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.detectIntent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38131,8 +39887,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsCreateCall) Head
 
 func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1context)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1context)
 	if err != nil {
 		return nil, err
 	}
@@ -38148,6 +39903,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsCreateCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -38183,9 +39939,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsCreateCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38238,12 +39996,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsDeleteCall) Head
 
 func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -38251,6 +40008,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsDeleteCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -38286,9 +40044,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsDeleteCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38353,12 +40113,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsGetCall) doReque
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -38366,6 +40125,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsGetCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -38401,9 +40161,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsGetCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38481,12 +40243,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsListCall) doRequ
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/contexts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -38494,6 +40255,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsListCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -38529,9 +40291,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsListCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38618,8 +40382,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsPatchCall) Heade
 
 func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1context)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1context)
 	if err != nil {
 		return nil, err
 	}
@@ -38635,6 +40398,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsPatchCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -38670,9 +40434,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsContextsPatchCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.contexts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38730,8 +40496,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) H
 
 func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1sessionentitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1sessionentitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -38747,6 +40512,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) d
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -38782,9 +40548,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38839,12 +40607,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) H
 
 func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -38852,6 +40619,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) d
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -38887,9 +40655,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -38956,12 +40726,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesGetCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -38969,6 +40738,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesGetCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -39004,9 +40774,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesGetCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -39088,12 +40860,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesListCall) doR
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/entityTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -39101,6 +40872,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesListCall) doR
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -39136,9 +40908,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesListCall) Do(
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -39225,8 +40999,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) He
 
 func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1sessionentitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1sessionentitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -39242,6 +41015,7 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) do
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -39277,9 +41051,11 @@ func (c *ProjectsLocationsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) Do
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.environments.users.sessions.entityTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -39338,8 +41114,7 @@ func (c *ProjectsLocationsAgentIntentsBatchDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentIntentsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchdeleteintentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchdeleteintentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -39355,6 +41130,7 @@ func (c *ProjectsLocationsAgentIntentsBatchDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -39390,9 +41166,11 @@ func (c *ProjectsLocationsAgentIntentsBatchDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -39449,8 +41227,7 @@ func (c *ProjectsLocationsAgentIntentsBatchUpdateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentIntentsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchupdateintentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchupdateintentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -39466,6 +41243,7 @@ func (c *ProjectsLocationsAgentIntentsBatchUpdateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -39501,9 +41279,11 @@ func (c *ProjectsLocationsAgentIntentsBatchUpdateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -39579,8 +41359,7 @@ func (c *ProjectsLocationsAgentIntentsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentIntentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1intent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1intent)
 	if err != nil {
 		return nil, err
 	}
@@ -39596,6 +41375,7 @@ func (c *ProjectsLocationsAgentIntentsCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -39631,9 +41411,11 @@ func (c *ProjectsLocationsAgentIntentsCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -39684,12 +41466,11 @@ func (c *ProjectsLocationsAgentIntentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentIntentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -39697,6 +41478,7 @@ func (c *ProjectsLocationsAgentIntentsDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -39732,9 +41514,11 @@ func (c *ProjectsLocationsAgentIntentsDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -39818,12 +41602,11 @@ func (c *ProjectsLocationsAgentIntentsGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -39831,6 +41614,7 @@ func (c *ProjectsLocationsAgentIntentsGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -39866,9 +41650,11 @@ func (c *ProjectsLocationsAgentIntentsGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -39969,12 +41755,11 @@ func (c *ProjectsLocationsAgentIntentsListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/intents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -39982,6 +41767,7 @@ func (c *ProjectsLocationsAgentIntentsListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -40017,9 +41803,11 @@ func (c *ProjectsLocationsAgentIntentsListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -40125,8 +41913,7 @@ func (c *ProjectsLocationsAgentIntentsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentIntentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1intent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1intent)
 	if err != nil {
 		return nil, err
 	}
@@ -40142,6 +41929,7 @@ func (c *ProjectsLocationsAgentIntentsPatchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -40177,9 +41965,11 @@ func (c *ProjectsLocationsAgentIntentsPatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.intents.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -40232,12 +42022,11 @@ func (c *ProjectsLocationsAgentSessionsDeleteContextsCall) Header() http.Header 
 
 func (c *ProjectsLocationsAgentSessionsDeleteContextsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/contexts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -40245,6 +42034,7 @@ func (c *ProjectsLocationsAgentSessionsDeleteContextsCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.deleteContexts", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -40280,9 +42070,11 @@ func (c *ProjectsLocationsAgentSessionsDeleteContextsCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.deleteContexts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -40353,8 +42145,7 @@ func (c *ProjectsLocationsAgentSessionsDetectIntentCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentSessionsDetectIntentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1detectintentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1detectintentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -40370,6 +42161,7 @@ func (c *ProjectsLocationsAgentSessionsDetectIntentCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"session": c.sessionid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.detectIntent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -40405,9 +42197,11 @@ func (c *ProjectsLocationsAgentSessionsDetectIntentCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.detectIntent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -40462,8 +42256,7 @@ func (c *ProjectsLocationsAgentSessionsContextsCreateCall) Header() http.Header 
 
 func (c *ProjectsLocationsAgentSessionsContextsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1context)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1context)
 	if err != nil {
 		return nil, err
 	}
@@ -40479,6 +42272,7 @@ func (c *ProjectsLocationsAgentSessionsContextsCreateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -40514,9 +42308,11 @@ func (c *ProjectsLocationsAgentSessionsContextsCreateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -40569,12 +42365,11 @@ func (c *ProjectsLocationsAgentSessionsContextsDeleteCall) Header() http.Header 
 
 func (c *ProjectsLocationsAgentSessionsContextsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -40582,6 +42377,7 @@ func (c *ProjectsLocationsAgentSessionsContextsDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -40617,9 +42413,11 @@ func (c *ProjectsLocationsAgentSessionsContextsDeleteCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -40684,12 +42482,11 @@ func (c *ProjectsLocationsAgentSessionsContextsGetCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -40697,6 +42494,7 @@ func (c *ProjectsLocationsAgentSessionsContextsGetCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -40732,9 +42530,11 @@ func (c *ProjectsLocationsAgentSessionsContextsGetCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -40812,12 +42612,11 @@ func (c *ProjectsLocationsAgentSessionsContextsListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/contexts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -40825,6 +42624,7 @@ func (c *ProjectsLocationsAgentSessionsContextsListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -40860,9 +42660,11 @@ func (c *ProjectsLocationsAgentSessionsContextsListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -40949,8 +42751,7 @@ func (c *ProjectsLocationsAgentSessionsContextsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentSessionsContextsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1context)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1context)
 	if err != nil {
 		return nil, err
 	}
@@ -40966,6 +42767,7 @@ func (c *ProjectsLocationsAgentSessionsContextsPatchCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41001,9 +42803,11 @@ func (c *ProjectsLocationsAgentSessionsContextsPatchCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.contexts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41061,8 +42865,7 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesCreateCall) Header() http.Head
 
 func (c *ProjectsLocationsAgentSessionsEntityTypesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1sessionentitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1sessionentitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -41078,6 +42881,7 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesCreateCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41113,9 +42917,11 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesCreateCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41170,12 +42976,11 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesDeleteCall) Header() http.Head
 
 func (c *ProjectsLocationsAgentSessionsEntityTypesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41183,6 +42988,7 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesDeleteCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41218,9 +43024,11 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesDeleteCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41287,12 +43095,11 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesGetCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41300,6 +43107,7 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesGetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41335,9 +43143,11 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesGetCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41419,12 +43229,11 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/entityTypes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41432,6 +43241,7 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41467,9 +43277,11 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41556,8 +43368,7 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesPatchCall) Header() http.Heade
 
 func (c *ProjectsLocationsAgentSessionsEntityTypesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1sessionentitytype)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1sessionentitytype)
 	if err != nil {
 		return nil, err
 	}
@@ -41573,6 +43384,7 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesPatchCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41608,9 +43420,11 @@ func (c *ProjectsLocationsAgentSessionsEntityTypesPatchCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.sessions.entityTypes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41660,8 +43474,7 @@ func (c *ProjectsLocationsAgentVersionsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentVersionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1version)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1version)
 	if err != nil {
 		return nil, err
 	}
@@ -41677,6 +43490,7 @@ func (c *ProjectsLocationsAgentVersionsCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41712,9 +43526,11 @@ func (c *ProjectsLocationsAgentVersionsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41761,12 +43577,11 @@ func (c *ProjectsLocationsAgentVersionsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentVersionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41774,6 +43589,7 @@ func (c *ProjectsLocationsAgentVersionsDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41809,9 +43625,11 @@ func (c *ProjectsLocationsAgentVersionsDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41870,12 +43688,11 @@ func (c *ProjectsLocationsAgentVersionsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41883,6 +43700,7 @@ func (c *ProjectsLocationsAgentVersionsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -41918,9 +43736,11 @@ func (c *ProjectsLocationsAgentVersionsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -41993,12 +43813,11 @@ func (c *ProjectsLocationsAgentVersionsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/versions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -42006,6 +43825,7 @@ func (c *ProjectsLocationsAgentVersionsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42041,9 +43861,11 @@ func (c *ProjectsLocationsAgentVersionsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -42123,8 +43945,7 @@ func (c *ProjectsLocationsAgentVersionsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsAgentVersionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1version)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1version)
 	if err != nil {
 		return nil, err
 	}
@@ -42140,6 +43961,7 @@ func (c *ProjectsLocationsAgentVersionsPatchCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42175,9 +43997,11 @@ func (c *ProjectsLocationsAgentVersionsPatchCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.agent.versions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -42236,12 +44060,11 @@ func (c *ProjectsLocationsAnswerRecordsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -42249,6 +44072,7 @@ func (c *ProjectsLocationsAnswerRecordsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.answerRecords.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42284,9 +44108,11 @@ func (c *ProjectsLocationsAnswerRecordsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.answerRecords.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -42311,8 +44137,12 @@ func (r *ProjectsLocationsAnswerRecordsService) List(parent string) *ProjectsLoc
 }
 
 // Filter sets the optional parameter "filter": Filters to restrict results to
-// specific answer records. For more information about filtering, see API
-// Filtering (https://aip.dev/160).
+// specific answer records. The expression has the following syntax: [AND ] ...
+// The following fields and operators are supported: * conversation_id with
+// equals(=) operator Examples: * "conversation_id=bar" matches answer records
+// in the projects/foo/locations/global/conversations/bar conversation
+// (assuming the parent is projects/foo/locations/global). For more information
+// about filtering, see API Filtering (https://aip.dev/160).
 func (c *ProjectsLocationsAnswerRecordsListCall) Filter(filter string) *ProjectsLocationsAnswerRecordsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -42370,12 +44200,11 @@ func (c *ProjectsLocationsAnswerRecordsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/answerRecords")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -42383,6 +44212,7 @@ func (c *ProjectsLocationsAnswerRecordsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.answerRecords.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42418,9 +44248,11 @@ func (c *ProjectsLocationsAnswerRecordsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.answerRecords.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -42498,8 +44330,7 @@ func (c *ProjectsLocationsAnswerRecordsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsAnswerRecordsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1answerrecord)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1answerrecord)
 	if err != nil {
 		return nil, err
 	}
@@ -42515,6 +44346,7 @@ func (c *ProjectsLocationsAnswerRecordsPatchCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.answerRecords.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42550,9 +44382,11 @@ func (c *ProjectsLocationsAnswerRecordsPatchCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.answerRecords.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -42608,8 +44442,7 @@ func (c *ProjectsLocationsConversationProfilesClearSuggestionFeatureConfigCall) 
 
 func (c *ProjectsLocationsConversationProfilesClearSuggestionFeatureConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1clearsuggestionfeatureconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1clearsuggestionfeatureconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -42625,6 +44458,7 @@ func (c *ProjectsLocationsConversationProfilesClearSuggestionFeatureConfigCall) 
 	googleapi.Expand(req.URL, map[string]string{
 		"conversationProfile": c.conversationProfile,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.clearSuggestionFeatureConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42660,9 +44494,11 @@ func (c *ProjectsLocationsConversationProfilesClearSuggestionFeatureConfigCall) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.clearSuggestionFeatureConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -42714,8 +44550,7 @@ func (c *ProjectsLocationsConversationProfilesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversationProfilesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1conversationprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1conversationprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -42731,6 +44566,7 @@ func (c *ProjectsLocationsConversationProfilesCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42766,9 +44602,11 @@ func (c *ProjectsLocationsConversationProfilesCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -42815,12 +44653,11 @@ func (c *ProjectsLocationsConversationProfilesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversationProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -42828,6 +44665,7 @@ func (c *ProjectsLocationsConversationProfilesDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42863,9 +44701,11 @@ func (c *ProjectsLocationsConversationProfilesDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -42924,12 +44764,11 @@ func (c *ProjectsLocationsConversationProfilesGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -42937,6 +44776,7 @@ func (c *ProjectsLocationsConversationProfilesGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -42972,9 +44812,11 @@ func (c *ProjectsLocationsConversationProfilesGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -43048,12 +44890,11 @@ func (c *ProjectsLocationsConversationProfilesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/conversationProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -43061,6 +44902,7 @@ func (c *ProjectsLocationsConversationProfilesListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -43096,9 +44938,11 @@ func (c *ProjectsLocationsConversationProfilesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -43178,8 +45022,7 @@ func (c *ProjectsLocationsConversationProfilesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversationProfilesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1conversationprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1conversationprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -43195,6 +45038,7 @@ func (c *ProjectsLocationsConversationProfilesPatchCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -43230,9 +45074,11 @@ func (c *ProjectsLocationsConversationProfilesPatchCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -43293,8 +45139,7 @@ func (c *ProjectsLocationsConversationProfilesSetSuggestionFeatureConfigCall) He
 
 func (c *ProjectsLocationsConversationProfilesSetSuggestionFeatureConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1setsuggestionfeatureconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1setsuggestionfeatureconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -43310,6 +45155,7 @@ func (c *ProjectsLocationsConversationProfilesSetSuggestionFeatureConfigCall) do
 	googleapi.Expand(req.URL, map[string]string{
 		"conversationProfile": c.conversationProfile,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.setSuggestionFeatureConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -43345,9 +45191,11 @@ func (c *ProjectsLocationsConversationProfilesSetSuggestionFeatureConfigCall) Do
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversationProfiles.setSuggestionFeatureConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -43397,8 +45245,7 @@ func (c *ProjectsLocationsConversationsCompleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversationsCompleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1completeconversationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1completeconversationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -43414,6 +45261,7 @@ func (c *ProjectsLocationsConversationsCompleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.complete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -43449,9 +45297,11 @@ func (c *ProjectsLocationsConversationsCompleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.complete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -43488,9 +45338,9 @@ func (r *ProjectsLocationsConversationsService) Create(parentid string, googlecl
 // ConversationId sets the optional parameter "conversationId": Identifier of
 // the conversation. Generally it's auto generated by Google. Only set it if
 // you cannot wait for the response to return a auto-generated one to you. The
-// conversation ID must be compliant with the regression fomula `a-zA-Z*` with
+// conversation ID must be compliant with the regression formula `a-zA-Z*` with
 // the characters length in range of [3,64]. If the field is provided, the
-// caller is resposible for 1. the uniqueness of the ID, otherwise the request
+// caller is responsible for 1. the uniqueness of the ID, otherwise the request
 // will be rejected. 2. the consistency for whether to use custom ID or not
 // under a project to better ensure uniqueness.
 func (c *ProjectsLocationsConversationsCreateCall) ConversationId(conversationId string) *ProjectsLocationsConversationsCreateCall {
@@ -43523,8 +45373,7 @@ func (c *ProjectsLocationsConversationsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1conversation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1conversation)
 	if err != nil {
 		return nil, err
 	}
@@ -43540,6 +45389,7 @@ func (c *ProjectsLocationsConversationsCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -43575,9 +45425,11 @@ func (c *ProjectsLocationsConversationsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -43636,12 +45488,11 @@ func (c *ProjectsLocationsConversationsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -43649,6 +45500,7 @@ func (c *ProjectsLocationsConversationsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -43684,9 +45536,117 @@ func (c *ProjectsLocationsConversationsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsConversationsIngestContextReferencesCall struct {
+	s                                                          *Service
+	conversationid                                             string
+	googleclouddialogflowv2beta1ingestcontextreferencesrequest *GoogleCloudDialogflowV2beta1IngestContextReferencesRequest
+	urlParams_                                                 gensupport.URLParams
+	ctx_                                                       context.Context
+	header_                                                    http.Header
+}
+
+// IngestContextReferences: Data ingestion API. Ingests context references for
+// an existing conversation.
+//
+//   - conversation: Resource identifier of the conversation to ingest context
+//     information for. Format: `projects//locations//conversations/`.
+func (r *ProjectsLocationsConversationsService) IngestContextReferences(conversationid string, googleclouddialogflowv2beta1ingestcontextreferencesrequest *GoogleCloudDialogflowV2beta1IngestContextReferencesRequest) *ProjectsLocationsConversationsIngestContextReferencesCall {
+	c := &ProjectsLocationsConversationsIngestContextReferencesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.conversationid = conversationid
+	c.googleclouddialogflowv2beta1ingestcontextreferencesrequest = googleclouddialogflowv2beta1ingestcontextreferencesrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsConversationsIngestContextReferencesCall) Fields(s ...googleapi.Field) *ProjectsLocationsConversationsIngestContextReferencesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsConversationsIngestContextReferencesCall) Context(ctx context.Context) *ProjectsLocationsConversationsIngestContextReferencesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsConversationsIngestContextReferencesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsConversationsIngestContextReferencesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1ingestcontextreferencesrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+conversation}:ingestContextReferences")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"conversation": c.conversationid,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.ingestContextReferences", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.conversations.ingestContextReferences" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1IngestContextReferencesResponse.ServerResponse.H
+// eader or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsConversationsIngestContextReferencesCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1IngestContextReferencesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1IngestContextReferencesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.ingestContextReferences", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -43710,16 +45670,10 @@ func (r *ProjectsLocationsConversationsService) List(parent string) *ProjectsLoc
 }
 
 // Filter sets the optional parameter "filter": A filter expression that
-// filters conversations listed in the response. In general, the expression
-// must specify the field name, a comparison operator, and the value to use for
-// filtering: - The value must be a string, a number, or a boolean. - The
-// comparison operator must be either `=`,`!=`, `>`, or `<`. - To filter on
-// multiple expressions, separate the expressions with `AND` or `OR` (omitting
-// both implies `AND`). - For clarity, expressions can be enclosed in
-// parentheses. Only `lifecycle_state` can be filtered on in this way. For
-// example, the following expression only returns `COMPLETED` conversations:
-// `lifecycle_state = "COMPLETED" For more information about filtering, see
-// API Filtering (https://aip.dev/160).
+// filters conversations listed in the response. Only `lifecycle_state` can be
+// filtered on in this way. For example, the following expression only returns
+// `COMPLETED` conversations: `lifecycle_state = "COMPLETED" For more
+// information about filtering, see API Filtering (https://aip.dev/160).
 func (c *ProjectsLocationsConversationsListCall) Filter(filter string) *ProjectsLocationsConversationsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -43775,12 +45729,11 @@ func (c *ProjectsLocationsConversationsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/conversations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -43788,6 +45741,7 @@ func (c *ProjectsLocationsConversationsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -43823,9 +45777,11 @@ func (c *ProjectsLocationsConversationsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -43896,8 +45852,7 @@ func (c *ProjectsLocationsConversationsMessagesBatchCreateCall) Header() http.He
 
 func (c *ProjectsLocationsConversationsMessagesBatchCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1batchcreatemessagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1batchcreatemessagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -43913,6 +45868,7 @@ func (c *ProjectsLocationsConversationsMessagesBatchCreateCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.messages.batchCreate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -43948,9 +45904,11 @@ func (c *ProjectsLocationsConversationsMessagesBatchCreateCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.messages.batchCreate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44037,12 +45995,11 @@ func (c *ProjectsLocationsConversationsMessagesListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/messages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -44050,6 +46007,7 @@ func (c *ProjectsLocationsConversationsMessagesListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.messages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44085,9 +46043,11 @@ func (c *ProjectsLocationsConversationsMessagesListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.messages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44161,8 +46121,7 @@ func (c *ProjectsLocationsConversationsParticipantsAnalyzeContentCall) Header() 
 
 func (c *ProjectsLocationsConversationsParticipantsAnalyzeContentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1analyzecontentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1analyzecontentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -44178,6 +46137,7 @@ func (c *ProjectsLocationsConversationsParticipantsAnalyzeContentCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"participant": c.participant,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.analyzeContent", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44213,9 +46173,11 @@ func (c *ProjectsLocationsConversationsParticipantsAnalyzeContentCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.analyzeContent", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44264,8 +46226,7 @@ func (c *ProjectsLocationsConversationsParticipantsCreateCall) Header() http.Hea
 
 func (c *ProjectsLocationsConversationsParticipantsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1participant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1participant)
 	if err != nil {
 		return nil, err
 	}
@@ -44281,6 +46242,7 @@ func (c *ProjectsLocationsConversationsParticipantsCreateCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44316,9 +46278,11 @@ func (c *ProjectsLocationsConversationsParticipantsCreateCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44377,12 +46341,11 @@ func (c *ProjectsLocationsConversationsParticipantsGetCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -44390,6 +46353,7 @@ func (c *ProjectsLocationsConversationsParticipantsGetCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44425,9 +46389,11 @@ func (c *ProjectsLocationsConversationsParticipantsGetCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44500,12 +46466,11 @@ func (c *ProjectsLocationsConversationsParticipantsListCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/participants")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -44513,6 +46478,7 @@ func (c *ProjectsLocationsConversationsParticipantsListCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44548,9 +46514,11 @@ func (c *ProjectsLocationsConversationsParticipantsListCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44627,8 +46595,7 @@ func (c *ProjectsLocationsConversationsParticipantsPatchCall) Header() http.Head
 
 func (c *ProjectsLocationsConversationsParticipantsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1participant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1participant)
 	if err != nil {
 		return nil, err
 	}
@@ -44644,6 +46611,7 @@ func (c *ProjectsLocationsConversationsParticipantsPatchCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44679,9 +46647,11 @@ func (c *ProjectsLocationsConversationsParticipantsPatchCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44733,8 +46703,7 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestArticlesCal
 
 func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestArticlesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestarticlesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestarticlesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -44750,6 +46719,7 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestArticlesCal
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.suggestions.suggestArticles", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44785,9 +46755,11 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestArticlesCal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.suggestions.suggestArticles", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44837,8 +46809,7 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestFaqAnswersC
 
 func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestFaqAnswersCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestfaqanswersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestfaqanswersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -44854,6 +46825,7 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestFaqAnswersC
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.suggestions.suggestFaqAnswers", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44889,9 +46861,11 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestFaqAnswersC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.suggestions.suggestFaqAnswers", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -44941,8 +46915,7 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestKnowledgeAs
 
 func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestKnowledgeAssistCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestknowledgeassistrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestknowledgeassistrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -44958,6 +46931,7 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestKnowledgeAs
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.suggestions.suggestKnowledgeAssist", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -44993,9 +46967,11 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestKnowledgeAs
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.suggestions.suggestKnowledgeAssist", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45045,8 +47021,7 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestSmartReplie
 
 func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestSmartRepliesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestsmartrepliesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestsmartrepliesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -45062,6 +47037,7 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestSmartReplie
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.suggestions.suggestSmartReplies", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45097,9 +47073,120 @@ func (c *ProjectsLocationsConversationsParticipantsSuggestionsSuggestSmartReplie
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.participants.suggestions.suggestSmartReplies", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsConversationsSuggestionsGenerateCall struct {
+	s                                                      *Service
+	conversation                                           string
+	googleclouddialogflowv2beta1generatesuggestionsrequest *GoogleCloudDialogflowV2beta1GenerateSuggestionsRequest
+	urlParams_                                             gensupport.URLParams
+	ctx_                                                   context.Context
+	header_                                                http.Header
+}
+
+// Generate: Generates all the suggestions using generators configured in the
+// conversation profile. A generator is used only if its trigger event is
+// matched.
+//
+//   - conversation: The conversation for which the suggestions are generated.
+//     Format: `projects//locations//conversations/`. The conversation must be
+//     created with a conversation profile which has generators configured in it
+//     to be able to get suggestions.
+func (r *ProjectsLocationsConversationsSuggestionsService) Generate(conversation string, googleclouddialogflowv2beta1generatesuggestionsrequest *GoogleCloudDialogflowV2beta1GenerateSuggestionsRequest) *ProjectsLocationsConversationsSuggestionsGenerateCall {
+	c := &ProjectsLocationsConversationsSuggestionsGenerateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.conversation = conversation
+	c.googleclouddialogflowv2beta1generatesuggestionsrequest = googleclouddialogflowv2beta1generatesuggestionsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsConversationsSuggestionsGenerateCall) Fields(s ...googleapi.Field) *ProjectsLocationsConversationsSuggestionsGenerateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsConversationsSuggestionsGenerateCall) Context(ctx context.Context) *ProjectsLocationsConversationsSuggestionsGenerateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsConversationsSuggestionsGenerateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsConversationsSuggestionsGenerateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1generatesuggestionsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+conversation}/suggestions:generate")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"conversation": c.conversation,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.suggestions.generate", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.conversations.suggestions.generate" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse.ServerResponse.Heade
+// r or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsConversationsSuggestionsGenerateCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1GenerateSuggestionsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.suggestions.generate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45115,8 +47202,8 @@ type ProjectsLocationsConversationsSuggestionsSearchKnowledgeCall struct {
 // SearchKnowledge: Get answers for the given query based on knowledge
 // documents.
 //
-//   - conversation: The conversation (between human agent and end user) where
-//     the search request is triggered. Format:
+//   - conversation: Optional. The conversation (between human agent and end
+//     user) where the search request is triggered. Format:
 //     `projects//locations//conversations/`.
 func (r *ProjectsLocationsConversationsSuggestionsService) SearchKnowledge(conversation string, googleclouddialogflowv2beta1searchknowledgerequest *GoogleCloudDialogflowV2beta1SearchKnowledgeRequest) *ProjectsLocationsConversationsSuggestionsSearchKnowledgeCall {
 	c := &ProjectsLocationsConversationsSuggestionsSearchKnowledgeCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -45150,8 +47237,7 @@ func (c *ProjectsLocationsConversationsSuggestionsSearchKnowledgeCall) Header() 
 
 func (c *ProjectsLocationsConversationsSuggestionsSearchKnowledgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1searchknowledgerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1searchknowledgerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -45167,6 +47253,7 @@ func (c *ProjectsLocationsConversationsSuggestionsSearchKnowledgeCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"conversation": c.conversation,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.suggestions.searchKnowledge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45202,9 +47289,11 @@ func (c *ProjectsLocationsConversationsSuggestionsSearchKnowledgeCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.suggestions.searchKnowledge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45255,8 +47344,7 @@ func (c *ProjectsLocationsConversationsSuggestionsSuggestConversationSummaryCall
 
 func (c *ProjectsLocationsConversationsSuggestionsSuggestConversationSummaryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1suggestconversationsummaryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1suggestconversationsummaryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -45272,6 +47360,7 @@ func (c *ProjectsLocationsConversationsSuggestionsSuggestConversationSummaryCall
 	googleapi.Expand(req.URL, map[string]string{
 		"conversation": c.conversation,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.suggestions.suggestConversationSummary", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45307,9 +47396,120 @@ func (c *ProjectsLocationsConversationsSuggestionsSuggestConversationSummaryCall
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.conversations.suggestions.suggestConversationSummary", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsEncryptionSpecInitializeCall struct {
+	s                                                           *Service
+	name                                                        string
+	googleclouddialogflowv2beta1initializeencryptionspecrequest *GoogleCloudDialogflowV2beta1InitializeEncryptionSpecRequest
+	urlParams_                                                  gensupport.URLParams
+	ctx_                                                        context.Context
+	header_                                                     http.Header
+}
+
+// Initialize: Initializes a location-level encryption key specification. An
+// error will be thrown if the location has resources already created before
+// the initialization. Once the encryption specification is initialized at a
+// location, it is immutable and all newly created resources under the location
+// will be encrypted with the existing specification.
+//
+//   - name: Immutable. The resource name of the encryption key specification
+//     resource. Format: projects/{project}/locations/{location}/encryptionSpec.
+func (r *ProjectsLocationsEncryptionSpecService) Initialize(name string, googleclouddialogflowv2beta1initializeencryptionspecrequest *GoogleCloudDialogflowV2beta1InitializeEncryptionSpecRequest) *ProjectsLocationsEncryptionSpecInitializeCall {
+	c := &ProjectsLocationsEncryptionSpecInitializeCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googleclouddialogflowv2beta1initializeencryptionspecrequest = googleclouddialogflowv2beta1initializeencryptionspecrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsEncryptionSpecInitializeCall) Fields(s ...googleapi.Field) *ProjectsLocationsEncryptionSpecInitializeCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsEncryptionSpecInitializeCall) Context(ctx context.Context) *ProjectsLocationsEncryptionSpecInitializeCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsEncryptionSpecInitializeCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsEncryptionSpecInitializeCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1initializeencryptionspecrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}:initialize")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.encryptionSpec.initialize", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.encryptionSpec.initialize" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleLongrunningOperation.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsEncryptionSpecInitializeCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunningOperation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleLongrunningOperation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.encryptionSpec.initialize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45335,11 +47535,11 @@ func (r *ProjectsLocationsGeneratorsService) Create(parent string, googleclouddi
 
 // GeneratorId sets the optional parameter "generatorId": The ID to use for the
 // generator, which will become the final component of the generator's resource
-// name. The generator ID must be compliant with the regression fomula
+// name. The generator ID must be compliant with the regression formula
 // `a-zA-Z*` with the characters length in range of [3,64]. If the field is not
 // provided, an Id will be auto-generated. If the field is provided, the caller
-// is resposible for 1. the uniqueness of the ID, otherwise the request will be
-// rejected. 2. the consistency for whether to use custom ID or not under a
+// is responsible for 1. the uniqueness of the ID, otherwise the request will
+// be rejected. 2. the consistency for whether to use custom ID or not under a
 // project to better ensure uniqueness.
 func (c *ProjectsLocationsGeneratorsCreateCall) GeneratorId(generatorId string) *ProjectsLocationsGeneratorsCreateCall {
 	c.urlParams_.Set("generatorId", generatorId)
@@ -45371,8 +47571,7 @@ func (c *ProjectsLocationsGeneratorsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsGeneratorsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1generator)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1generator)
 	if err != nil {
 		return nil, err
 	}
@@ -45388,6 +47587,7 @@ func (c *ProjectsLocationsGeneratorsCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45423,9 +47623,11 @@ func (c *ProjectsLocationsGeneratorsCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45472,12 +47674,11 @@ func (c *ProjectsLocationsGeneratorsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsGeneratorsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -45485,6 +47686,7 @@ func (c *ProjectsLocationsGeneratorsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45520,9 +47722,11 @@ func (c *ProjectsLocationsGeneratorsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45581,12 +47785,11 @@ func (c *ProjectsLocationsGeneratorsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -45594,6 +47797,7 @@ func (c *ProjectsLocationsGeneratorsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45629,9 +47833,11 @@ func (c *ProjectsLocationsGeneratorsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45704,12 +47910,11 @@ func (c *ProjectsLocationsGeneratorsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/generators")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -45717,6 +47922,7 @@ func (c *ProjectsLocationsGeneratorsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45752,9 +47958,11 @@ func (c *ProjectsLocationsGeneratorsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45831,8 +48039,7 @@ func (c *ProjectsLocationsGeneratorsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsGeneratorsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1generator)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1generator)
 	if err != nil {
 		return nil, err
 	}
@@ -45848,6 +48055,7 @@ func (c *ProjectsLocationsGeneratorsPatchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45883,9 +48091,11 @@ func (c *ProjectsLocationsGeneratorsPatchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.generators.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -45935,8 +48145,7 @@ func (c *ProjectsLocationsKnowledgeBasesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsKnowledgeBasesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1knowledgebase)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1knowledgebase)
 	if err != nil {
 		return nil, err
 	}
@@ -45952,6 +48161,7 @@ func (c *ProjectsLocationsKnowledgeBasesCreateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -45987,9 +48197,11 @@ func (c *ProjectsLocationsKnowledgeBasesCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -46045,12 +48257,11 @@ func (c *ProjectsLocationsKnowledgeBasesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsKnowledgeBasesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46058,6 +48269,7 @@ func (c *ProjectsLocationsKnowledgeBasesDeleteCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -46093,9 +48305,11 @@ func (c *ProjectsLocationsKnowledgeBasesDeleteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -46156,12 +48370,11 @@ func (c *ProjectsLocationsKnowledgeBasesGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46169,6 +48382,7 @@ func (c *ProjectsLocationsKnowledgeBasesGetCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -46204,9 +48418,11 @@ func (c *ProjectsLocationsKnowledgeBasesGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -46299,12 +48515,11 @@ func (c *ProjectsLocationsKnowledgeBasesListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/knowledgeBases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46312,6 +48527,7 @@ func (c *ProjectsLocationsKnowledgeBasesListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -46349,9 +48565,11 @@ func (c *ProjectsLocationsKnowledgeBasesListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -46431,8 +48649,7 @@ func (c *ProjectsLocationsKnowledgeBasesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsKnowledgeBasesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1knowledgebase)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1knowledgebase)
 	if err != nil {
 		return nil, err
 	}
@@ -46448,6 +48665,7 @@ func (c *ProjectsLocationsKnowledgeBasesPatchCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -46483,9 +48701,11 @@ func (c *ProjectsLocationsKnowledgeBasesPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -46548,8 +48768,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsCreateCall) Header() http.Heade
 
 func (c *ProjectsLocationsKnowledgeBasesDocumentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1document)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1document)
 	if err != nil {
 		return nil, err
 	}
@@ -46565,6 +48784,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsCreateCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -46600,9 +48820,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsCreateCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -46656,12 +48878,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsDeleteCall) Header() http.Heade
 
 func (c *ProjectsLocationsKnowledgeBasesDocumentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46669,6 +48890,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsDeleteCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -46704,9 +48926,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsDeleteCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -46767,12 +48991,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsGetCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46780,6 +49003,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsGetCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -46815,9 +49039,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsGetCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -46871,8 +49097,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsImportCall) Header() http.Heade
 
 func (c *ProjectsLocationsKnowledgeBasesDocumentsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1importdocumentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1importdocumentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -46888,6 +49113,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsImportCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -46923,9 +49149,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsImportCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47015,12 +49243,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/documents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47028,6 +49255,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47063,9 +49291,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47150,8 +49380,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsPatchCall) Header() http.Header
 
 func (c *ProjectsLocationsKnowledgeBasesDocumentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1document)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1document)
 	if err != nil {
 		return nil, err
 	}
@@ -47167,6 +49396,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsPatchCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47202,9 +49432,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsPatchCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47265,8 +49497,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsReloadCall) Header() http.Heade
 
 func (c *ProjectsLocationsKnowledgeBasesDocumentsReloadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1reloaddocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1reloaddocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -47282,6 +49513,7 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsReloadCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.reload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47317,9 +49549,11 @@ func (c *ProjectsLocationsKnowledgeBasesDocumentsReloadCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.knowledgeBases.documents.reload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47338,7 +49572,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -47373,12 +49607,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47386,6 +49619,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47421,9 +49655,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47483,12 +49719,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47496,6 +49731,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47531,9 +49767,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47612,12 +49850,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47625,6 +49862,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47660,9 +49898,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47685,6 +49925,1056 @@ func (c *ProjectsLocationsOperationsListCall) Pages(ctx context.Context, f func(
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsLocationsPhoneNumbersDeleteCall struct {
+	s          *Service
+	nameid     string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Requests deletion of a `PhoneNumber`. The `PhoneNumber` is moved
+// into the DELETE_REQUESTED state immediately, and is deleted approximately 30
+// days later. This method may only be called on a `PhoneNumber` in the ACTIVE
+// state.
+//
+//   - name: The unique identifier of the `PhoneNumber` to delete. Format:
+//     `projects//phoneNumbers/`. Format: `projects//locations//phoneNumbers/`.
+func (r *ProjectsLocationsPhoneNumbersService) Delete(nameid string) *ProjectsLocationsPhoneNumbersDeleteCall {
+	c := &ProjectsLocationsPhoneNumbersDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.nameid = nameid
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsPhoneNumbersDeleteCall) Fields(s ...googleapi.Field) *ProjectsLocationsPhoneNumbersDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsPhoneNumbersDeleteCall) Context(ctx context.Context) *ProjectsLocationsPhoneNumbersDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsPhoneNumbersDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsPhoneNumbersDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.nameid,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.phoneNumbers.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.phoneNumbers.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1PhoneNumber.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsPhoneNumbersDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1PhoneNumber, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1PhoneNumber{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.phoneNumbers.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsPhoneNumbersListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns the list of all phone numbers in the specified project.
+//
+//   - parent: The project to list all `PhoneNumber` resources from. Format:
+//     `projects/`. Format: `projects//locations/`.
+func (r *ProjectsLocationsPhoneNumbersService) List(parent string) *ProjectsLocationsPhoneNumbersListCall {
+	c := &ProjectsLocationsPhoneNumbersListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of items
+// to return in a single page. The default value is 100. The maximum value is
+// 1000.
+func (c *ProjectsLocationsPhoneNumbersListCall) PageSize(pageSize int64) *ProjectsLocationsPhoneNumbersListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The next_page_token value
+// returned from a previous list request.
+func (c *ProjectsLocationsPhoneNumbersListCall) PageToken(pageToken string) *ProjectsLocationsPhoneNumbersListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// ShowDeleted sets the optional parameter "showDeleted": Controls whether
+// `PhoneNumber` resources in the DELETE_REQUESTED state should be returned.
+// Defaults to false.
+func (c *ProjectsLocationsPhoneNumbersListCall) ShowDeleted(showDeleted bool) *ProjectsLocationsPhoneNumbersListCall {
+	c.urlParams_.Set("showDeleted", fmt.Sprint(showDeleted))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsPhoneNumbersListCall) Fields(s ...googleapi.Field) *ProjectsLocationsPhoneNumbersListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsPhoneNumbersListCall) IfNoneMatch(entityTag string) *ProjectsLocationsPhoneNumbersListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsPhoneNumbersListCall) Context(ctx context.Context) *ProjectsLocationsPhoneNumbersListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsPhoneNumbersListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsPhoneNumbersListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/phoneNumbers")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.phoneNumbers.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.phoneNumbers.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsPhoneNumbersListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.phoneNumbers.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsPhoneNumbersListCall) Pages(ctx context.Context, f func(*GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsPhoneNumbersPatchCall struct {
+	s                                       *Service
+	nameid                                  string
+	googleclouddialogflowv2beta1phonenumber *GoogleCloudDialogflowV2beta1PhoneNumber
+	urlParams_                              gensupport.URLParams
+	ctx_                                    context.Context
+	header_                                 http.Header
+}
+
+// Patch: Updates the specified `PhoneNumber`.
+//
+//   - name: Optional. The unique identifier of this phone number. Required for
+//     PhoneNumbers.UpdatePhoneNumber method. Format: `projects//phoneNumbers/`.
+//     Format: `projects//locations//phoneNumbers/`.
+func (r *ProjectsLocationsPhoneNumbersService) Patch(nameid string, googleclouddialogflowv2beta1phonenumber *GoogleCloudDialogflowV2beta1PhoneNumber) *ProjectsLocationsPhoneNumbersPatchCall {
+	c := &ProjectsLocationsPhoneNumbersPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.nameid = nameid
+	c.googleclouddialogflowv2beta1phonenumber = googleclouddialogflowv2beta1phonenumber
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": The mask to control
+// which fields get updated.
+func (c *ProjectsLocationsPhoneNumbersPatchCall) UpdateMask(updateMask string) *ProjectsLocationsPhoneNumbersPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsPhoneNumbersPatchCall) Fields(s ...googleapi.Field) *ProjectsLocationsPhoneNumbersPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsPhoneNumbersPatchCall) Context(ctx context.Context) *ProjectsLocationsPhoneNumbersPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsPhoneNumbersPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsPhoneNumbersPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1phonenumber)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.nameid,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.phoneNumbers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.phoneNumbers.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1PhoneNumber.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsPhoneNumbersPatchCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1PhoneNumber, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1PhoneNumber{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.phoneNumbers.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsPhoneNumbersUndeleteCall struct {
+	s                                                      *Service
+	nameid                                                 string
+	googleclouddialogflowv2beta1undeletephonenumberrequest *GoogleCloudDialogflowV2beta1UndeletePhoneNumberRequest
+	urlParams_                                             gensupport.URLParams
+	ctx_                                                   context.Context
+	header_                                                http.Header
+}
+
+// Undelete: Cancels the deletion request for a `PhoneNumber`. This method may
+// only be called on a `PhoneNumber` in the DELETE_REQUESTED state.
+//
+//   - name: The unique identifier of the `PhoneNumber` to delete. Format:
+//     `projects//phoneNumbers/`. Format: `projects//locations//phoneNumbers/`.
+func (r *ProjectsLocationsPhoneNumbersService) Undelete(nameid string, googleclouddialogflowv2beta1undeletephonenumberrequest *GoogleCloudDialogflowV2beta1UndeletePhoneNumberRequest) *ProjectsLocationsPhoneNumbersUndeleteCall {
+	c := &ProjectsLocationsPhoneNumbersUndeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.nameid = nameid
+	c.googleclouddialogflowv2beta1undeletephonenumberrequest = googleclouddialogflowv2beta1undeletephonenumberrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsPhoneNumbersUndeleteCall) Fields(s ...googleapi.Field) *ProjectsLocationsPhoneNumbersUndeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsPhoneNumbersUndeleteCall) Context(ctx context.Context) *ProjectsLocationsPhoneNumbersUndeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsPhoneNumbersUndeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsPhoneNumbersUndeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1undeletephonenumberrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}:undelete")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.nameid,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.phoneNumbers.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.phoneNumbers.undelete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1PhoneNumber.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsPhoneNumbersUndeleteCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1PhoneNumber, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1PhoneNumber{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.phoneNumbers.undelete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSipTrunksCreateCall struct {
+	s                                    *Service
+	parent                               string
+	googleclouddialogflowv2beta1siptrunk *GoogleCloudDialogflowV2beta1SipTrunk
+	urlParams_                           gensupport.URLParams
+	ctx_                                 context.Context
+	header_                              http.Header
+}
+
+// Create: Creates a SipTrunk for a specified location.
+//
+//   - parent: The location to create a SIP trunk for. Format:
+//     `projects//locations/`.
+func (r *ProjectsLocationsSipTrunksService) Create(parent string, googleclouddialogflowv2beta1siptrunk *GoogleCloudDialogflowV2beta1SipTrunk) *ProjectsLocationsSipTrunksCreateCall {
+	c := &ProjectsLocationsSipTrunksCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.googleclouddialogflowv2beta1siptrunk = googleclouddialogflowv2beta1siptrunk
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSipTrunksCreateCall) Fields(s ...googleapi.Field) *ProjectsLocationsSipTrunksCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSipTrunksCreateCall) Context(ctx context.Context) *ProjectsLocationsSipTrunksCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSipTrunksCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSipTrunksCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1siptrunk)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/sipTrunks")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.sipTrunks.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1SipTrunk.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSipTrunksCreateCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1SipTrunk, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1SipTrunk{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSipTrunksDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Deletes a specified SipTrunk.
+//
+//   - name: The name of the SIP trunk to delete. Format:
+//     `projects//locations//sipTrunks/`.
+func (r *ProjectsLocationsSipTrunksService) Delete(name string) *ProjectsLocationsSipTrunksDeleteCall {
+	c := &ProjectsLocationsSipTrunksDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSipTrunksDeleteCall) Fields(s ...googleapi.Field) *ProjectsLocationsSipTrunksDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSipTrunksDeleteCall) Context(ctx context.Context) *ProjectsLocationsSipTrunksDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSipTrunksDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSipTrunksDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.sipTrunks.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleProtobufEmpty.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsSipTrunksDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProtobufEmpty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleProtobufEmpty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSipTrunksGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Retrieves the specified SipTrunk.
+//
+//   - name: The name of the SIP trunk to delete. Format:
+//     `projects//locations//sipTrunks/`.
+func (r *ProjectsLocationsSipTrunksService) Get(name string) *ProjectsLocationsSipTrunksGetCall {
+	c := &ProjectsLocationsSipTrunksGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSipTrunksGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsSipTrunksGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSipTrunksGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsSipTrunksGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSipTrunksGetCall) Context(ctx context.Context) *ProjectsLocationsSipTrunksGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSipTrunksGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSipTrunksGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.sipTrunks.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1SipTrunk.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSipTrunksGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1SipTrunk, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1SipTrunk{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSipTrunksListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns a list of SipTrunks in the specified location.
+//
+//   - parent: The location to list SIP trunks from. Format:
+//     `projects//locations/`.
+func (r *ProjectsLocationsSipTrunksService) List(parent string) *ProjectsLocationsSipTrunksListCall {
+	c := &ProjectsLocationsSipTrunksListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of items
+// to return in a single page. By default 100 and at most 1000.
+func (c *ProjectsLocationsSipTrunksListCall) PageSize(pageSize int64) *ProjectsLocationsSipTrunksListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The next_page_token value
+// returned from a previous list request.
+func (c *ProjectsLocationsSipTrunksListCall) PageToken(pageToken string) *ProjectsLocationsSipTrunksListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSipTrunksListCall) Fields(s ...googleapi.Field) *ProjectsLocationsSipTrunksListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSipTrunksListCall) IfNoneMatch(entityTag string) *ProjectsLocationsSipTrunksListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSipTrunksListCall) Context(ctx context.Context) *ProjectsLocationsSipTrunksListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSipTrunksListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSipTrunksListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/sipTrunks")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.sipTrunks.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1ListSipTrunksResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSipTrunksListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1ListSipTrunksResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1ListSipTrunksResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSipTrunksListCall) Pages(ctx context.Context, f func(*GoogleCloudDialogflowV2beta1ListSipTrunksResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSipTrunksPatchCall struct {
+	s                                    *Service
+	nameid                               string
+	googleclouddialogflowv2beta1siptrunk *GoogleCloudDialogflowV2beta1SipTrunk
+	urlParams_                           gensupport.URLParams
+	ctx_                                 context.Context
+	header_                              http.Header
+}
+
+// Patch: Updates the specified SipTrunk.
+//
+//   - name: Identifier. The unique identifier of the SIP trunk. Format:
+//     `projects//locations//sipTrunks/`.
+func (r *ProjectsLocationsSipTrunksService) Patch(nameid string, googleclouddialogflowv2beta1siptrunk *GoogleCloudDialogflowV2beta1SipTrunk) *ProjectsLocationsSipTrunksPatchCall {
+	c := &ProjectsLocationsSipTrunksPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.nameid = nameid
+	c.googleclouddialogflowv2beta1siptrunk = googleclouddialogflowv2beta1siptrunk
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": The mask to control
+// which fields get updated. If the mask is not present, all fields will be
+// updated.
+func (c *ProjectsLocationsSipTrunksPatchCall) UpdateMask(updateMask string) *ProjectsLocationsSipTrunksPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSipTrunksPatchCall) Fields(s ...googleapi.Field) *ProjectsLocationsSipTrunksPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSipTrunksPatchCall) Context(ctx context.Context) *ProjectsLocationsSipTrunksPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSipTrunksPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSipTrunksPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1siptrunk)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.nameid,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.locations.sipTrunks.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1SipTrunk.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSipTrunksPatchCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1SipTrunk, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1SipTrunk{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.sipTrunks.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsLocationsStatelessSuggestionGenerateCall struct {
@@ -47733,8 +51023,7 @@ func (c *ProjectsLocationsStatelessSuggestionGenerateCall) Header() http.Header 
 
 func (c *ProjectsLocationsStatelessSuggestionGenerateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1generatestatelesssuggestionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1generatestatelesssuggestionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -47750,6 +51039,7 @@ func (c *ProjectsLocationsStatelessSuggestionGenerateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.statelessSuggestion.generate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47785,9 +51075,11 @@ func (c *ProjectsLocationsStatelessSuggestionGenerateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.statelessSuggestion.generate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47837,8 +51129,7 @@ func (c *ProjectsLocationsSuggestionsGenerateStatelessSummaryCall) Header() http
 
 func (c *ProjectsLocationsSuggestionsGenerateStatelessSummaryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1generatestatelesssummaryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1generatestatelesssummaryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -47854,6 +51145,7 @@ func (c *ProjectsLocationsSuggestionsGenerateStatelessSummaryCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.suggestions.generateStatelessSummary", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47889,9 +51181,11 @@ func (c *ProjectsLocationsSuggestionsGenerateStatelessSummaryCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.suggestions.generateStatelessSummary", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -47941,8 +51235,7 @@ func (c *ProjectsLocationsSuggestionsSearchKnowledgeCall) Header() http.Header {
 
 func (c *ProjectsLocationsSuggestionsSearchKnowledgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1searchknowledgerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1searchknowledgerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -47958,6 +51251,7 @@ func (c *ProjectsLocationsSuggestionsSearchKnowledgeCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.suggestions.searchKnowledge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -47993,9 +51287,11 @@ func (c *ProjectsLocationsSuggestionsSearchKnowledgeCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.locations.suggestions.searchKnowledge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -48014,7 +51310,7 @@ type ProjectsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -48049,12 +51345,11 @@ func (c *ProjectsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48062,6 +51357,7 @@ func (c *ProjectsOperationsCancelCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -48097,9 +51393,11 @@ func (c *ProjectsOperationsCancelCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -48159,12 +51457,11 @@ func (c *ProjectsOperationsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48172,6 +51469,7 @@ func (c *ProjectsOperationsGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -48207,9 +51505,11 @@ func (c *ProjectsOperationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleLon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -48288,12 +51588,11 @@ func (c *ProjectsOperationsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48301,6 +51600,7 @@ func (c *ProjectsOperationsListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -48336,9 +51636,11 @@ func (c *ProjectsOperationsListCall) Do(opts ...googleapi.CallOption) (*GoogleLo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -48361,6 +51663,482 @@ func (c *ProjectsOperationsListCall) Pages(ctx context.Context, f func(*GoogleLo
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsPhoneNumbersDeleteCall struct {
+	s          *Service
+	nameid     string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Requests deletion of a `PhoneNumber`. The `PhoneNumber` is moved
+// into the DELETE_REQUESTED state immediately, and is deleted approximately 30
+// days later. This method may only be called on a `PhoneNumber` in the ACTIVE
+// state.
+//
+//   - name: The unique identifier of the `PhoneNumber` to delete. Format:
+//     `projects//phoneNumbers/`. Format: `projects//locations//phoneNumbers/`.
+func (r *ProjectsPhoneNumbersService) Delete(nameid string) *ProjectsPhoneNumbersDeleteCall {
+	c := &ProjectsPhoneNumbersDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.nameid = nameid
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsPhoneNumbersDeleteCall) Fields(s ...googleapi.Field) *ProjectsPhoneNumbersDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsPhoneNumbersDeleteCall) Context(ctx context.Context) *ProjectsPhoneNumbersDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsPhoneNumbersDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsPhoneNumbersDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.nameid,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.phoneNumbers.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.phoneNumbers.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1PhoneNumber.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsPhoneNumbersDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1PhoneNumber, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1PhoneNumber{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.phoneNumbers.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsPhoneNumbersListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns the list of all phone numbers in the specified project.
+//
+//   - parent: The project to list all `PhoneNumber` resources from. Format:
+//     `projects/`. Format: `projects//locations/`.
+func (r *ProjectsPhoneNumbersService) List(parent string) *ProjectsPhoneNumbersListCall {
+	c := &ProjectsPhoneNumbersListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of items
+// to return in a single page. The default value is 100. The maximum value is
+// 1000.
+func (c *ProjectsPhoneNumbersListCall) PageSize(pageSize int64) *ProjectsPhoneNumbersListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The next_page_token value
+// returned from a previous list request.
+func (c *ProjectsPhoneNumbersListCall) PageToken(pageToken string) *ProjectsPhoneNumbersListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// ShowDeleted sets the optional parameter "showDeleted": Controls whether
+// `PhoneNumber` resources in the DELETE_REQUESTED state should be returned.
+// Defaults to false.
+func (c *ProjectsPhoneNumbersListCall) ShowDeleted(showDeleted bool) *ProjectsPhoneNumbersListCall {
+	c.urlParams_.Set("showDeleted", fmt.Sprint(showDeleted))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsPhoneNumbersListCall) Fields(s ...googleapi.Field) *ProjectsPhoneNumbersListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsPhoneNumbersListCall) IfNoneMatch(entityTag string) *ProjectsPhoneNumbersListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsPhoneNumbersListCall) Context(ctx context.Context) *ProjectsPhoneNumbersListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsPhoneNumbersListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsPhoneNumbersListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+parent}/phoneNumbers")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.phoneNumbers.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.phoneNumbers.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsPhoneNumbersListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.phoneNumbers.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsPhoneNumbersListCall) Pages(ctx context.Context, f func(*GoogleCloudDialogflowV2beta1ListPhoneNumbersResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsPhoneNumbersPatchCall struct {
+	s                                       *Service
+	nameid                                  string
+	googleclouddialogflowv2beta1phonenumber *GoogleCloudDialogflowV2beta1PhoneNumber
+	urlParams_                              gensupport.URLParams
+	ctx_                                    context.Context
+	header_                                 http.Header
+}
+
+// Patch: Updates the specified `PhoneNumber`.
+//
+//   - name: Optional. The unique identifier of this phone number. Required for
+//     PhoneNumbers.UpdatePhoneNumber method. Format: `projects//phoneNumbers/`.
+//     Format: `projects//locations//phoneNumbers/`.
+func (r *ProjectsPhoneNumbersService) Patch(nameid string, googleclouddialogflowv2beta1phonenumber *GoogleCloudDialogflowV2beta1PhoneNumber) *ProjectsPhoneNumbersPatchCall {
+	c := &ProjectsPhoneNumbersPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.nameid = nameid
+	c.googleclouddialogflowv2beta1phonenumber = googleclouddialogflowv2beta1phonenumber
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": The mask to control
+// which fields get updated.
+func (c *ProjectsPhoneNumbersPatchCall) UpdateMask(updateMask string) *ProjectsPhoneNumbersPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsPhoneNumbersPatchCall) Fields(s ...googleapi.Field) *ProjectsPhoneNumbersPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsPhoneNumbersPatchCall) Context(ctx context.Context) *ProjectsPhoneNumbersPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsPhoneNumbersPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsPhoneNumbersPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1phonenumber)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.nameid,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.phoneNumbers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.phoneNumbers.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1PhoneNumber.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsPhoneNumbersPatchCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1PhoneNumber, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1PhoneNumber{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.phoneNumbers.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsPhoneNumbersUndeleteCall struct {
+	s                                                      *Service
+	nameid                                                 string
+	googleclouddialogflowv2beta1undeletephonenumberrequest *GoogleCloudDialogflowV2beta1UndeletePhoneNumberRequest
+	urlParams_                                             gensupport.URLParams
+	ctx_                                                   context.Context
+	header_                                                http.Header
+}
+
+// Undelete: Cancels the deletion request for a `PhoneNumber`. This method may
+// only be called on a `PhoneNumber` in the DELETE_REQUESTED state.
+//
+//   - name: The unique identifier of the `PhoneNumber` to delete. Format:
+//     `projects//phoneNumbers/`. Format: `projects//locations//phoneNumbers/`.
+func (r *ProjectsPhoneNumbersService) Undelete(nameid string, googleclouddialogflowv2beta1undeletephonenumberrequest *GoogleCloudDialogflowV2beta1UndeletePhoneNumberRequest) *ProjectsPhoneNumbersUndeleteCall {
+	c := &ProjectsPhoneNumbersUndeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.nameid = nameid
+	c.googleclouddialogflowv2beta1undeletephonenumberrequest = googleclouddialogflowv2beta1undeletephonenumberrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsPhoneNumbersUndeleteCall) Fields(s ...googleapi.Field) *ProjectsPhoneNumbersUndeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsPhoneNumbersUndeleteCall) Context(ctx context.Context) *ProjectsPhoneNumbersUndeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsPhoneNumbersUndeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsPhoneNumbersUndeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1undeletephonenumberrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}:undelete")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.nameid,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.phoneNumbers.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dialogflow.projects.phoneNumbers.undelete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDialogflowV2beta1PhoneNumber.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsPhoneNumbersUndeleteCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDialogflowV2beta1PhoneNumber, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDialogflowV2beta1PhoneNumber{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.phoneNumbers.undelete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsSuggestionsGenerateStatelessSummaryCall struct {
@@ -48409,8 +52187,7 @@ func (c *ProjectsSuggestionsGenerateStatelessSummaryCall) Header() http.Header {
 
 func (c *ProjectsSuggestionsGenerateStatelessSummaryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1generatestatelesssummaryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1generatestatelesssummaryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -48426,6 +52203,7 @@ func (c *ProjectsSuggestionsGenerateStatelessSummaryCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.suggestions.generateStatelessSummary", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -48461,9 +52239,11 @@ func (c *ProjectsSuggestionsGenerateStatelessSummaryCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.suggestions.generateStatelessSummary", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -48513,8 +52293,7 @@ func (c *ProjectsSuggestionsSearchKnowledgeCall) Header() http.Header {
 
 func (c *ProjectsSuggestionsSearchKnowledgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddialogflowv2beta1searchknowledgerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddialogflowv2beta1searchknowledgerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -48530,6 +52309,7 @@ func (c *ProjectsSuggestionsSearchKnowledgeCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dialogflow.projects.suggestions.searchKnowledge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -48565,8 +52345,10 @@ func (c *ProjectsSuggestionsSearchKnowledgeCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dialogflow.projects.suggestions.searchKnowledge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

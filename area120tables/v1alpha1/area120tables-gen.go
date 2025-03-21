@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "area120tables:v1alpha1"
 const apiName = "area120tables"
@@ -140,7 +143,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Tables = NewTablesService(s)
+	s.Workspaces = NewWorkspacesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -159,14 +164,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Tables = NewTablesService(s)
-	s.Workspaces = NewWorkspacesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -230,9 +233,9 @@ type BatchCreateRowsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchCreateRowsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchCreateRowsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchCreateRowsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchCreateRowsResponse: Response message for TablesService.BatchCreateRows.
@@ -255,9 +258,9 @@ type BatchCreateRowsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchCreateRowsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchCreateRowsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchCreateRowsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeleteRowsRequest: Request message for TablesService.BatchDeleteRows
@@ -279,9 +282,9 @@ type BatchDeleteRowsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeleteRowsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchDeleteRowsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeleteRowsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateRowsRequest: Request message for TablesService.BatchUpdateRows.
@@ -302,9 +305,9 @@ type BatchUpdateRowsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateRowsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateRowsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateRowsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateRowsResponse: Response message for TablesService.BatchUpdateRows.
@@ -327,9 +330,9 @@ type BatchUpdateRowsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateRowsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateRowsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateRowsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ColumnDescription: Details on a column in the table.
@@ -379,9 +382,9 @@ type ColumnDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ColumnDescription) MarshalJSON() ([]byte, error) {
+func (s ColumnDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod ColumnDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateRowRequest: Request message for TablesService.CreateRow.
@@ -411,9 +414,9 @@ type CreateRowRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateRowRequest) MarshalJSON() ([]byte, error) {
+func (s CreateRowRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateRowRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DateDetails: Details about a date column.
@@ -433,9 +436,9 @@ type DateDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DateDetails) MarshalJSON() ([]byte, error) {
+func (s DateDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DateDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -466,9 +469,9 @@ type LabeledItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LabeledItem) MarshalJSON() ([]byte, error) {
+func (s LabeledItem) MarshalJSON() ([]byte, error) {
 	type NoMethod LabeledItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListRowsResponse: Response message for TablesService.ListRows.
@@ -494,9 +497,9 @@ type ListRowsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListRowsResponse) MarshalJSON() ([]byte, error) {
+func (s ListRowsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListRowsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTablesResponse: Response message for TablesService.ListTables.
@@ -522,9 +525,9 @@ type ListTablesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTablesResponse) MarshalJSON() ([]byte, error) {
+func (s ListTablesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTablesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkspacesResponse: Response message for TablesService.ListWorkspaces.
@@ -550,9 +553,9 @@ type ListWorkspacesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkspacesResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkspacesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkspacesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupDetails: Details about a lookup column whose value comes from the
@@ -576,9 +579,9 @@ type LookupDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupDetails) MarshalJSON() ([]byte, error) {
+func (s LookupDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RelationshipDetails: Details about a relationship column.
@@ -598,9 +601,9 @@ type RelationshipDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RelationshipDetails) MarshalJSON() ([]byte, error) {
+func (s RelationshipDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod RelationshipDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Row: A single row in a table.
@@ -632,9 +635,9 @@ type Row struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Row) MarshalJSON() ([]byte, error) {
+func (s Row) MarshalJSON() ([]byte, error) {
 	type NoMethod Row
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SavedView: A saved view of a table. NextId: 3
@@ -656,9 +659,9 @@ type SavedView struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SavedView) MarshalJSON() ([]byte, error) {
+func (s SavedView) MarshalJSON() ([]byte, error) {
 	type NoMethod SavedView
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Table: A single table. NextId: 8
@@ -697,9 +700,9 @@ type Table struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Table) MarshalJSON() ([]byte, error) {
+func (s Table) MarshalJSON() ([]byte, error) {
 	type NoMethod Table
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateRowRequest: Request message for TablesService.UpdateRow.
@@ -728,9 +731,9 @@ type UpdateRowRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateRowRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateRowRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateRowRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Workspace: A single workspace.
@@ -762,9 +765,9 @@ type Workspace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Workspace) MarshalJSON() ([]byte, error) {
+func (s Workspace) MarshalJSON() ([]byte, error) {
 	type NoMethod Workspace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TablesGetCall struct {
@@ -821,12 +824,11 @@ func (c *TablesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -834,6 +836,7 @@ func (c *TablesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -868,9 +871,11 @@ func (c *TablesGetCall) Do(opts ...googleapi.CallOption) (*Table, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -949,16 +954,16 @@ func (c *TablesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/tables")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -994,9 +999,11 @@ func (c *TablesListCall) Do(opts ...googleapi.CallOption) (*ListTablesResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1066,8 +1073,7 @@ func (c *TablesRowsBatchCreateCall) Header() http.Header {
 
 func (c *TablesRowsBatchCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchcreaterowsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchcreaterowsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1083,6 +1089,7 @@ func (c *TablesRowsBatchCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.rows.batchCreate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1118,9 +1125,11 @@ func (c *TablesRowsBatchCreateCall) Do(opts ...googleapi.CallOption) (*BatchCrea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.rows.batchCreate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1169,8 +1178,7 @@ func (c *TablesRowsBatchDeleteCall) Header() http.Header {
 
 func (c *TablesRowsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchdeleterowsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchdeleterowsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1186,6 +1194,7 @@ func (c *TablesRowsBatchDeleteCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.rows.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1220,9 +1229,11 @@ func (c *TablesRowsBatchDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.rows.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1271,8 +1282,7 @@ func (c *TablesRowsBatchUpdateCall) Header() http.Header {
 
 func (c *TablesRowsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdaterowsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdaterowsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1288,6 +1298,7 @@ func (c *TablesRowsBatchUpdateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.rows.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1323,9 +1334,11 @@ func (c *TablesRowsBatchUpdateCall) Do(opts ...googleapi.CallOption) (*BatchUpda
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.rows.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1386,8 +1399,7 @@ func (c *TablesRowsCreateCall) Header() http.Header {
 
 func (c *TablesRowsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.row)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.row)
 	if err != nil {
 		return nil, err
 	}
@@ -1403,6 +1415,7 @@ func (c *TablesRowsCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.rows.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1437,9 +1450,11 @@ func (c *TablesRowsCreateCall) Do(opts ...googleapi.CallOption) (*Row, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.rows.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1485,12 +1500,11 @@ func (c *TablesRowsDeleteCall) Header() http.Header {
 
 func (c *TablesRowsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1498,6 +1512,7 @@ func (c *TablesRowsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.rows.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1532,9 +1547,11 @@ func (c *TablesRowsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.rows.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1604,12 +1621,11 @@ func (c *TablesRowsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1617,6 +1633,7 @@ func (c *TablesRowsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.rows.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1651,9 +1668,11 @@ func (c *TablesRowsGetCall) Do(opts ...googleapi.CallOption) (*Row, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.rows.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1756,12 +1775,11 @@ func (c *TablesRowsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/rows")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1769,6 +1787,7 @@ func (c *TablesRowsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.rows.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1804,9 +1823,11 @@ func (c *TablesRowsListCall) Do(opts ...googleapi.CallOption) (*ListRowsResponse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.rows.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1895,8 +1916,7 @@ func (c *TablesRowsPatchCall) Header() http.Header {
 
 func (c *TablesRowsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.row)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.row)
 	if err != nil {
 		return nil, err
 	}
@@ -1912,6 +1932,7 @@ func (c *TablesRowsPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.tables.rows.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1946,9 +1967,11 @@ func (c *TablesRowsPatchCall) Do(opts ...googleapi.CallOption) (*Row, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.tables.rows.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2007,12 +2030,11 @@ func (c *WorkspacesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2020,6 +2042,7 @@ func (c *WorkspacesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.workspaces.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2054,9 +2077,11 @@ func (c *WorkspacesGetCall) Do(opts ...googleapi.CallOption) (*Workspace, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.workspaces.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2128,16 +2153,16 @@ func (c *WorkspacesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/workspaces")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "area120tables.workspaces.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2173,9 +2198,11 @@ func (c *WorkspacesListCall) Do(opts ...googleapi.CallOption) (*ListWorkspacesRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "area120tables.workspaces.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "essentialcontacts:v1"
 const apiName = "essentialcontacts"
@@ -115,7 +118,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Folders = NewFoldersService(s)
+	s.Organizations = NewOrganizationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,15 +140,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Folders = NewFoldersService(s)
-	s.Organizations = NewOrganizationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -252,9 +255,9 @@ type GoogleCloudEssentialcontactsV1ComputeContactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudEssentialcontactsV1ComputeContactsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudEssentialcontactsV1ComputeContactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudEssentialcontactsV1ComputeContactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudEssentialcontactsV1Contact: A contact that will receive
@@ -298,8 +301,9 @@ type GoogleCloudEssentialcontactsV1Contact struct {
 	// manually or automatically. A contact is considered stale if its validation
 	// state was updated more than 1 year ago.
 	ValidateTime string `json:"validateTime,omitempty"`
-	// ValidationState: The validity of the contact. A contact is considered valid
-	// if it is the correct recipient for notifications for a particular resource.
+	// ValidationState: Output only. The validity of the contact. A contact is
+	// considered valid if it is the correct recipient for notifications for a
+	// particular resource.
 	//
 	// Possible values:
 	//   "VALIDATION_STATE_UNSPECIFIED" - The validation state is unknown or
@@ -325,9 +329,9 @@ type GoogleCloudEssentialcontactsV1Contact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudEssentialcontactsV1Contact) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudEssentialcontactsV1Contact) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudEssentialcontactsV1Contact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudEssentialcontactsV1ListContactsResponse: Response message for the
@@ -357,9 +361,9 @@ type GoogleCloudEssentialcontactsV1ListContactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudEssentialcontactsV1ListContactsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudEssentialcontactsV1ListContactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudEssentialcontactsV1ListContactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudEssentialcontactsV1SendTestMessageRequest: Request message for
@@ -406,9 +410,9 @@ type GoogleCloudEssentialcontactsV1SendTestMessageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudEssentialcontactsV1SendTestMessageRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudEssentialcontactsV1SendTestMessageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudEssentialcontactsV1SendTestMessageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -543,12 +547,11 @@ func (c *FoldersContactsComputeCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/contacts:compute")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -556,6 +559,7 @@ func (c *FoldersContactsComputeCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.compute", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -591,9 +595,11 @@ func (c *FoldersContactsComputeCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.compute", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -664,8 +670,7 @@ func (c *FoldersContactsCreateCall) Header() http.Header {
 
 func (c *FoldersContactsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1contact)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1contact)
 	if err != nil {
 		return nil, err
 	}
@@ -681,6 +686,7 @@ func (c *FoldersContactsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -716,9 +722,11 @@ func (c *FoldersContactsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -767,12 +775,11 @@ func (c *FoldersContactsDeleteCall) Header() http.Header {
 
 func (c *FoldersContactsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -780,6 +787,7 @@ func (c *FoldersContactsDeleteCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -815,9 +823,11 @@ func (c *FoldersContactsDeleteCall) Do(opts ...googleapi.CallOption) (*GooglePro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -878,12 +888,11 @@ func (c *FoldersContactsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -891,6 +900,7 @@ func (c *FoldersContactsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -926,9 +936,11 @@ func (c *FoldersContactsGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloudE
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1006,12 +1018,11 @@ func (c *FoldersContactsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/contacts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1019,6 +1030,7 @@ func (c *FoldersContactsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1054,9 +1066,11 @@ func (c *FoldersContactsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1134,8 +1148,7 @@ func (c *FoldersContactsPatchCall) Header() http.Header {
 
 func (c *FoldersContactsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1contact)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1contact)
 	if err != nil {
 		return nil, err
 	}
@@ -1151,6 +1164,7 @@ func (c *FoldersContactsPatchCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1186,9 +1200,11 @@ func (c *FoldersContactsPatchCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1241,8 +1257,7 @@ func (c *FoldersContactsSendTestMessageCall) Header() http.Header {
 
 func (c *FoldersContactsSendTestMessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1sendtestmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1sendtestmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1258,6 +1273,7 @@ func (c *FoldersContactsSendTestMessageCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.sendTestMessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1293,9 +1309,11 @@ func (c *FoldersContactsSendTestMessageCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.folders.contacts.sendTestMessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1421,12 +1439,11 @@ func (c *OrganizationsContactsComputeCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/contacts:compute")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1434,6 +1451,7 @@ func (c *OrganizationsContactsComputeCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.compute", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1469,9 +1487,11 @@ func (c *OrganizationsContactsComputeCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.compute", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1542,8 +1562,7 @@ func (c *OrganizationsContactsCreateCall) Header() http.Header {
 
 func (c *OrganizationsContactsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1contact)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1contact)
 	if err != nil {
 		return nil, err
 	}
@@ -1559,6 +1578,7 @@ func (c *OrganizationsContactsCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1594,9 +1614,11 @@ func (c *OrganizationsContactsCreateCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1645,12 +1667,11 @@ func (c *OrganizationsContactsDeleteCall) Header() http.Header {
 
 func (c *OrganizationsContactsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1658,6 +1679,7 @@ func (c *OrganizationsContactsDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1693,9 +1715,11 @@ func (c *OrganizationsContactsDeleteCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1756,12 +1780,11 @@ func (c *OrganizationsContactsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1769,6 +1792,7 @@ func (c *OrganizationsContactsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1804,9 +1828,11 @@ func (c *OrganizationsContactsGetCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1884,12 +1910,11 @@ func (c *OrganizationsContactsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/contacts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1897,6 +1922,7 @@ func (c *OrganizationsContactsListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1932,9 +1958,11 @@ func (c *OrganizationsContactsListCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2012,8 +2040,7 @@ func (c *OrganizationsContactsPatchCall) Header() http.Header {
 
 func (c *OrganizationsContactsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1contact)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1contact)
 	if err != nil {
 		return nil, err
 	}
@@ -2029,6 +2056,7 @@ func (c *OrganizationsContactsPatchCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2064,9 +2092,11 @@ func (c *OrganizationsContactsPatchCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2119,8 +2149,7 @@ func (c *OrganizationsContactsSendTestMessageCall) Header() http.Header {
 
 func (c *OrganizationsContactsSendTestMessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1sendtestmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1sendtestmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2136,6 +2165,7 @@ func (c *OrganizationsContactsSendTestMessageCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.sendTestMessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2171,9 +2201,11 @@ func (c *OrganizationsContactsSendTestMessageCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.organizations.contacts.sendTestMessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2299,12 +2331,11 @@ func (c *ProjectsContactsComputeCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/contacts:compute")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2312,6 +2343,7 @@ func (c *ProjectsContactsComputeCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.compute", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2347,9 +2379,11 @@ func (c *ProjectsContactsComputeCall) Do(opts ...googleapi.CallOption) (*GoogleC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.compute", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2420,8 +2454,7 @@ func (c *ProjectsContactsCreateCall) Header() http.Header {
 
 func (c *ProjectsContactsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1contact)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1contact)
 	if err != nil {
 		return nil, err
 	}
@@ -2437,6 +2470,7 @@ func (c *ProjectsContactsCreateCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2472,9 +2506,11 @@ func (c *ProjectsContactsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2523,12 +2559,11 @@ func (c *ProjectsContactsDeleteCall) Header() http.Header {
 
 func (c *ProjectsContactsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2536,6 +2571,7 @@ func (c *ProjectsContactsDeleteCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2571,9 +2607,11 @@ func (c *ProjectsContactsDeleteCall) Do(opts ...googleapi.CallOption) (*GooglePr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2634,12 +2672,11 @@ func (c *ProjectsContactsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2647,6 +2684,7 @@ func (c *ProjectsContactsGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2682,9 +2720,11 @@ func (c *ProjectsContactsGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2762,12 +2802,11 @@ func (c *ProjectsContactsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/contacts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2775,6 +2814,7 @@ func (c *ProjectsContactsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2810,9 +2850,11 @@ func (c *ProjectsContactsListCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2890,8 +2932,7 @@ func (c *ProjectsContactsPatchCall) Header() http.Header {
 
 func (c *ProjectsContactsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1contact)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1contact)
 	if err != nil {
 		return nil, err
 	}
@@ -2907,6 +2948,7 @@ func (c *ProjectsContactsPatchCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2942,9 +2984,11 @@ func (c *ProjectsContactsPatchCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2997,8 +3041,7 @@ func (c *ProjectsContactsSendTestMessageCall) Header() http.Header {
 
 func (c *ProjectsContactsSendTestMessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudessentialcontactsv1sendtestmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudessentialcontactsv1sendtestmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3014,6 +3057,7 @@ func (c *ProjectsContactsSendTestMessageCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.sendTestMessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3049,8 +3093,10 @@ func (c *ProjectsContactsSendTestMessageCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "essentialcontacts.projects.contacts.sendTestMessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

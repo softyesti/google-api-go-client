@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "tagmanager:v2"
 const apiName = "tagmanager"
@@ -144,7 +147,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -163,13 +167,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -405,8 +408,7 @@ type Account struct {
 	// Fingerprint: The fingerprint of the GTM Account as computed at storage time.
 	// This value is recomputed whenever the account is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Account display name. @mutable tagmanager.accounts.create @mutable
-	// tagmanager.accounts.update
+	// Name: Account display name.
 	Name string `json:"name,omitempty"`
 	// Path: GTM Account's API relative path.
 	Path string `json:"path,omitempty"`
@@ -414,8 +416,7 @@ type Account struct {
 	// others. This flag enables benchmarking by sharing your data in an anonymous
 	// form. Google will remove all identifiable information about your website,
 	// combine the data with hundreds of other anonymous sites and report aggregate
-	// trends in the benchmarking service. @mutable tagmanager.accounts.create
-	// @mutable tagmanager.accounts.update
+	// trends in the benchmarking service.
 	ShareData bool `json:"shareData,omitempty"`
 	// TagManagerUrl: Auto generated link to the tag manager UI
 	TagManagerUrl string `json:"tagManagerUrl,omitempty"`
@@ -435,16 +436,15 @@ type Account struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Account) MarshalJSON() ([]byte, error) {
+func (s Account) MarshalJSON() ([]byte, error) {
 	type NoMethod Account
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountAccess: Defines the Google Tag Manager Account access permissions.
 type AccountAccess struct {
 	// Permission: Whether the user has no access, user access, or admin access to
-	// an account. @mutable tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// an account.
 	//
 	// Possible values:
 	//   "accountPermissionUnspecified"
@@ -465,9 +465,9 @@ type AccountAccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountAccess) MarshalJSON() ([]byte, error) {
+func (s AccountAccess) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountAccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountFeatures struct {
@@ -490,9 +490,9 @@ type AccountFeatures struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountFeatures) MarshalJSON() ([]byte, error) {
+func (s AccountFeatures) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountFeatures
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BuiltInVariable: Built-in variables are a special category of variables that
@@ -510,8 +510,6 @@ type BuiltInVariable struct {
 	// Path: GTM BuiltInVariable's API relative path.
 	Path string `json:"path,omitempty"`
 	// Type: Type of built-in variable.
-	// @required.tagmanager.accounts.containers.workspaces.built_in_variable.update
-	// @mutable tagmanager.accounts.containers.workspaces.built_in_variable.update
 	//
 	// Possible values:
 	//   "builtInVariableTypeUnspecified"
@@ -644,9 +642,9 @@ type BuiltInVariable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BuiltInVariable) MarshalJSON() ([]byte, error) {
+func (s BuiltInVariable) MarshalJSON() ([]byte, error) {
 	type NoMethod BuiltInVariable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Client struct {
@@ -659,31 +657,21 @@ type Client struct {
 	// Fingerprint: The fingerprint of the GTM Client as computed at storage time.
 	// This value is recomputed whenever the client is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Client display name. @mutable
-	// tagmanager.accounts.containers.workspaces.clients.create @mutable
-	// tagmanager.accounts.containers.workspaces.clients.update
+	// Name: Client display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this tag in the container. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// Notes: User notes on how to apply this tag in the container.
 	Notes string `json:"notes,omitempty"`
-	// Parameter: The client's parameters. @mutable
-	// tagmanager.accounts.containers.workspaces.clients.create @mutable
-	// tagmanager.accounts.containers.workspaces.clients.update
+	// Parameter: The client's parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
 	// Path: GTM client's API relative path.
 	Path string `json:"path,omitempty"`
-	// Priority: Priority determines relative firing order. @mutable
-	// tagmanager.accounts.containers.workspaces.clients.create @mutable
-	// tagmanager.accounts.containers.workspaces.clients.update
+	// Priority: Priority determines relative firing order.
 	Priority int64 `json:"priority,omitempty"`
 	// TagManagerUrl: Auto generated link to the tag manager UI
 	TagManagerUrl string `json:"tagManagerUrl,omitempty"`
-	// Type: Client type. @mutable
-	// tagmanager.accounts.containers.workspaces.clients.create @mutable
-	// tagmanager.accounts.containers.workspaces.clients.update
+	// Type: Client type.
 	Type string `json:"type,omitempty"`
 	// WorkspaceId: GTM Workspace ID.
 	WorkspaceId string `json:"workspaceId,omitempty"`
@@ -703,9 +691,9 @@ type Client struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Client) MarshalJSON() ([]byte, error) {
+func (s Client) MarshalJSON() ([]byte, error) {
 	type NoMethod Client
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Condition: Represents a predicate.
@@ -718,12 +706,8 @@ type Condition struct {
 	// ignore_case that is set to true. If not specified or set to any other value,
 	// the matching will be case sensitive. - To negate an operator, include a
 	// boolean parameter named negate boolean parameter that is set to true.
-	// @mutable tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
 	Parameter []*Parameter `json:"parameter,omitempty"`
-	// Type: The type of operator for this condition. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Type: The type of operator for this condition.
 	//
 	// Possible values:
 	//   "conditionTypeUnspecified"
@@ -752,9 +736,9 @@ type Condition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Condition) MarshalJSON() ([]byte, error) {
+func (s Condition) MarshalJSON() ([]byte, error) {
 	type NoMethod Condition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Container: Represents a Google Tag Manager Container, which specifies the
@@ -765,20 +749,16 @@ type Container struct {
 	AccountId string `json:"accountId,omitempty"`
 	// ContainerId: The Container ID uniquely identifies the GTM Container.
 	ContainerId string `json:"containerId,omitempty"`
-	// DomainName: List of domain names associated with the Container. @mutable
-	// tagmanager.accounts.containers.create @mutable
-	// tagmanager.accounts.containers.update
+	// DomainName: List of domain names associated with the Container.
 	DomainName []string `json:"domainName,omitempty"`
 	// Features: Read-only Container feature set.
 	Features *ContainerFeatures `json:"features,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Container as computed at storage
 	// time. This value is recomputed whenever the account is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Container display name. @mutable tagmanager.accounts.containers.create
-	// @mutable tagmanager.accounts.containers.update
+	// Name: Container display name.
 	Name string `json:"name,omitempty"`
-	// Notes: Container Notes. @mutable tagmanager.accounts.containers.create
-	// @mutable tagmanager.accounts.containers.update
+	// Notes: Container Notes.
 	Notes string `json:"notes,omitempty"`
 	// Path: GTM Container's API relative path.
 	Path string `json:"path,omitempty"`
@@ -789,14 +769,10 @@ type Container struct {
 	// TagManagerUrl: Auto generated link to the tag manager UI
 	TagManagerUrl string `json:"tagManagerUrl,omitempty"`
 	// TaggingServerUrls: List of server-side container URLs for the Container. If
-	// multiple URLs are provided, all URL paths must match. @mutable
-	// tagmanager.accounts.containers.create @mutable
-	// tagmanager.accounts.containers.update
+	// multiple URLs are provided, all URL paths must match.
 	TaggingServerUrls []string `json:"taggingServerUrls,omitempty"`
 	// UsageContext: List of Usage Contexts for the Container. Valid values
-	// include: web, android, or ios. @mutable
-	// tagmanager.accounts.containers.create @mutable
-	// tagmanager.accounts.containers.update
+	// include: web, android, or ios.
 	//
 	// Possible values:
 	//   "usageContextUnspecified"
@@ -824,21 +800,17 @@ type Container struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Container) MarshalJSON() ([]byte, error) {
+func (s Container) MarshalJSON() ([]byte, error) {
 	type NoMethod Container
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContainerAccess: Defines the Google Tag Manager Container access
 // permissions.
 type ContainerAccess struct {
-	// ContainerId: GTM Container ID. @mutable
-	// tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// ContainerId: GTM Container ID.
 	ContainerId string `json:"containerId,omitempty"`
-	// Permission: List of Container permissions. @mutable
-	// tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// Permission: List of Container permissions.
 	//
 	// Possible values:
 	//   "containerPermissionUnspecified"
@@ -861,9 +833,9 @@ type ContainerAccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContainerAccess) MarshalJSON() ([]byte, error) {
+func (s ContainerAccess) MarshalJSON() ([]byte, error) {
 	type NoMethod ContainerAccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ContainerFeatures struct {
@@ -909,9 +881,9 @@ type ContainerFeatures struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContainerFeatures) MarshalJSON() ([]byte, error) {
+func (s ContainerFeatures) MarshalJSON() ([]byte, error) {
 	type NoMethod ContainerFeatures
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContainerVersion: Represents a Google Tag Manager Container Version.
@@ -935,8 +907,7 @@ type ContainerVersion struct {
 	CustomTemplate []*CustomTemplate `json:"customTemplate,omitempty"`
 	// Deleted: A value of true indicates this container version has been deleted.
 	Deleted bool `json:"deleted,omitempty"`
-	// Description: Container version description. @mutable
-	// tagmanager.accounts.containers.versions.update
+	// Description: Container version description.
 	Description string `json:"description,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Container Version as computed at
 	// storage time. This value is recomputed whenever the container version is
@@ -947,8 +918,7 @@ type ContainerVersion struct {
 	// GtagConfig: The Google tag configs in the container that this version was
 	// taken from.
 	GtagConfig []*GtagConfig `json:"gtagConfig,omitempty"`
-	// Name: Container version display name. @mutable
-	// tagmanager.accounts.containers.versions.update
+	// Name: Container version display name.
 	Name string `json:"name,omitempty"`
 	// Path: GTM Container Version's API relative path.
 	Path string `json:"path,omitempty"`
@@ -981,9 +951,9 @@ type ContainerVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContainerVersion) MarshalJSON() ([]byte, error) {
+func (s ContainerVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod ContainerVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContainerVersionHeader: Represents a Google Tag Manager Container Version
@@ -1038,9 +1008,9 @@ type ContainerVersionHeader struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContainerVersionHeader) MarshalJSON() ([]byte, error) {
+func (s ContainerVersionHeader) MarshalJSON() ([]byte, error) {
 	type NoMethod ContainerVersionHeader
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CreateBuiltInVariableResponse struct {
@@ -1062,9 +1032,9 @@ type CreateBuiltInVariableResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateBuiltInVariableResponse) MarshalJSON() ([]byte, error) {
+func (s CreateBuiltInVariableResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateBuiltInVariableResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateContainerVersionRequestVersionOptions: Options for new container
@@ -1087,9 +1057,9 @@ type CreateContainerVersionRequestVersionOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateContainerVersionRequestVersionOptions) MarshalJSON() ([]byte, error) {
+func (s CreateContainerVersionRequestVersionOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateContainerVersionRequestVersionOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateContainerVersionResponse: Create container versions response.
@@ -1121,9 +1091,9 @@ type CreateContainerVersionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateContainerVersionResponse) MarshalJSON() ([]byte, error) {
+func (s CreateContainerVersionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateContainerVersionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomTemplate: Represents a Google Tag Manager Custom Template's contents.
@@ -1166,9 +1136,9 @@ type CustomTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomTemplate) MarshalJSON() ([]byte, error) {
+func (s CustomTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Destination: Represents a Google Tag Destination.
@@ -1207,9 +1177,9 @@ type Destination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Destination) MarshalJSON() ([]byte, error) {
+func (s Destination) MarshalJSON() ([]byte, error) {
 	type NoMethod Destination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Entity: A workspace entity that may represent a tag, trigger, variable, or
@@ -1257,9 +1227,9 @@ type Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Entity) MarshalJSON() ([]byte, error) {
+func (s Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Environment: Represents a Google Tag Manager Environment. Note that a user
@@ -1278,13 +1248,9 @@ type Environment struct {
 	// ContainerVersionId: Represents a link to a container version.
 	ContainerVersionId string `json:"containerVersionId,omitempty"`
 	// Description: The environment description. Can be set or changed only on USER
-	// type environments. @mutable
-	// tagmanager.accounts.containers.environments.create @mutable
-	// tagmanager.accounts.containers.environments.update
+	// type environments.
 	Description string `json:"description,omitempty"`
 	// EnableDebug: Whether or not to enable debug by default for the environment.
-	// @mutable tagmanager.accounts.containers.environments.create @mutable
-	// tagmanager.accounts.containers.environments.update
 	EnableDebug bool `json:"enableDebug,omitempty"`
 	// EnvironmentId: GTM Environment ID uniquely identifies the GTM Environment.
 	EnvironmentId string `json:"environmentId,omitempty"`
@@ -1292,8 +1258,7 @@ type Environment struct {
 	// time. This value is recomputed whenever the environment is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// Name: The environment display name. Can be set or changed only on USER type
-	// environments. @mutable tagmanager.accounts.containers.environments.create
-	// @mutable tagmanager.accounts.containers.environments.update
+	// environments.
 	Name string `json:"name,omitempty"`
 	// Path: GTM Environment's API relative path.
 	Path string `json:"path,omitempty"`
@@ -1308,9 +1273,7 @@ type Environment struct {
 	//   "workspace" - Automatically managed environment that points to a workspace
 	// preview or version created by a workspace.
 	Type string `json:"type,omitempty"`
-	// Url: Default preview page url for the environment. @mutable
-	// tagmanager.accounts.containers.environments.create @mutable
-	// tagmanager.accounts.containers.environments.update
+	// Url: Default preview page url for the environment.
 	Url string `json:"url,omitempty"`
 	// WorkspaceId: Represents a link to a quick preview of a workspace.
 	WorkspaceId string `json:"workspaceId,omitempty"`
@@ -1330,9 +1293,9 @@ type Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Environment) MarshalJSON() ([]byte, error) {
+func (s Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Folder: Represents a Google Tag Manager Folder.
@@ -1346,13 +1309,9 @@ type Folder struct {
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// FolderId: The Folder ID uniquely identifies the GTM Folder.
 	FolderId string `json:"folderId,omitempty"`
-	// Name: Folder display name. @mutable
-	// tagmanager.accounts.containers.workspaces.folders.create @mutable
-	// tagmanager.accounts.containers.workspaces.folders.update
+	// Name: Folder display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this folder in the container. @mutable
-	// tagmanager.accounts.containers.workspaces.folders.create @mutable
-	// tagmanager.accounts.containers.workspaces.folders.update
+	// Notes: User notes on how to apply this folder in the container.
 	Notes string `json:"notes,omitempty"`
 	// Path: GTM Folder's API relative path.
 	Path string `json:"path,omitempty"`
@@ -1376,9 +1335,9 @@ type Folder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Folder) MarshalJSON() ([]byte, error) {
+func (s Folder) MarshalJSON() ([]byte, error) {
 	type NoMethod Folder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FolderEntities: Represents a Google Tag Manager Folder's contents.
@@ -1407,14 +1366,17 @@ type FolderEntities struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FolderEntities) MarshalJSON() ([]byte, error) {
+func (s FolderEntities) MarshalJSON() ([]byte, error) {
 	type NoMethod FolderEntities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GalleryReference: Represents the link between a custom template and an entry
 // on the Community Template Gallery site.
 type GalleryReference struct {
+	// GalleryTemplateId: ID for the gallery template that is generated once during
+	// first sync and travels with the template redirects.
+	GalleryTemplateId string `json:"galleryTemplateId,omitempty"`
 	// Host: The name of the host for the community gallery template.
 	Host string `json:"host,omitempty"`
 	// IsModified: If a user has manually edited the community gallery template.
@@ -1427,48 +1389,54 @@ type GalleryReference struct {
 	// import time. This value is recomputed whenever the template is updated from
 	// the gallery.
 	Signature string `json:"signature,omitempty"`
+	// TemplateDeveloperId: The developer id of the community gallery template.
+	// This value is set whenever the template is created from the gallery.
+	TemplateDeveloperId string `json:"templateDeveloperId,omitempty"`
 	// Version: The version of the community gallery template.
 	Version string `json:"version,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Host") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "GalleryTemplateId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Host") to include in API requests
-	// with the JSON null value. By default, fields with empty values are omitted
-	// from API requests. See
+	// NullFields is a list of field names (e.g. "GalleryTemplateId") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GalleryReference) MarshalJSON() ([]byte, error) {
+func (s GalleryReference) MarshalJSON() ([]byte, error) {
 	type NoMethod GalleryReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GetContainerSnippetResponse struct {
+	// ContainerConfig: Server container config param for manually provisioning a
+	// tagging server.
+	ContainerConfig string `json:"containerConfig,omitempty"`
 	// Snippet: Tagging snippet for a Container.
 	Snippet string `json:"snippet,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "Snippet") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "ContainerConfig") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Snippet") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "ContainerConfig") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GetContainerSnippetResponse) MarshalJSON() ([]byte, error) {
+func (s GetContainerSnippetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetContainerSnippetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetWorkspaceStatusResponse: The changes that have occurred in the workspace
@@ -1494,9 +1462,9 @@ type GetWorkspaceStatusResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetWorkspaceStatusResponse) MarshalJSON() ([]byte, error) {
+func (s GetWorkspaceStatusResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetWorkspaceStatusResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GtagConfig: Represents a Google tag configuration.
@@ -1510,19 +1478,13 @@ type GtagConfig struct {
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// GtagConfigId: The ID uniquely identifies the Google tag config.
 	GtagConfigId string `json:"gtagConfigId,omitempty"`
-	// Parameter: The Google tag config's parameters. @mutable
-	// tagmanager.accounts.containers.workspaces.gtag_config.create @mutable
-	// tagmanager.accounts.containers.workspaces.gtag_config.update
+	// Parameter: The Google tag config's parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// Path: Google tag config's API relative path.
 	Path string `json:"path,omitempty"`
 	// TagManagerUrl: Auto generated link to the tag manager UI
 	TagManagerUrl string `json:"tagManagerUrl,omitempty"`
-	// Type: Google tag config type. @required
-	// tagmanager.accounts.containers.workspaces.gtag_config.create @required
-	// tagmanager.accounts.containers.workspaces.gtag_config.update @mutable
-	// tagmanager.accounts.containers.workspaces.gtag_config.create @mutable
-	// tagmanager.accounts.containers.workspaces.gtag_config.update
+	// Type: Google tag config type.
 	Type string `json:"type,omitempty"`
 	// WorkspaceId: Google tag workspace ID. Only used by GTM containers. Set to 0
 	// otherwise.
@@ -1543,9 +1505,9 @@ type GtagConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GtagConfig) MarshalJSON() ([]byte, error) {
+func (s GtagConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GtagConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccountsResponse: List Accounts Response.
@@ -1570,9 +1532,9 @@ type ListAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListClientsResponse struct {
@@ -1596,9 +1558,9 @@ type ListClientsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListClientsResponse) MarshalJSON() ([]byte, error) {
+func (s ListClientsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListClientsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListContainerVersionsResponse: List container versions response.
@@ -1623,9 +1585,9 @@ type ListContainerVersionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListContainerVersionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListContainerVersionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListContainerVersionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListContainersResponse: List Containers Response.
@@ -1650,9 +1612,9 @@ type ListContainersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListContainersResponse) MarshalJSON() ([]byte, error) {
+func (s ListContainersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListContainersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListDestinationsResponse struct {
@@ -1676,9 +1638,9 @@ type ListDestinationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDestinationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDestinationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDestinationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListEnabledBuiltInVariablesResponse: A list of enabled built-in variables.
@@ -1703,9 +1665,9 @@ type ListEnabledBuiltInVariablesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListEnabledBuiltInVariablesResponse) MarshalJSON() ([]byte, error) {
+func (s ListEnabledBuiltInVariablesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListEnabledBuiltInVariablesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListEnvironmentsResponse: List Environments Response.
@@ -1730,9 +1692,9 @@ type ListEnvironmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListEnvironmentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListEnvironmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListEnvironmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFoldersResponse: List Folders Response.
@@ -1757,9 +1719,9 @@ type ListFoldersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFoldersResponse) MarshalJSON() ([]byte, error) {
+func (s ListFoldersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFoldersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListGtagConfigResponse struct {
@@ -1783,9 +1745,9 @@ type ListGtagConfigResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGtagConfigResponse) MarshalJSON() ([]byte, error) {
+func (s ListGtagConfigResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGtagConfigResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTagsResponse: List Tags Response.
@@ -1810,9 +1772,9 @@ type ListTagsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTagsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTagsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTagsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListTemplatesResponse struct {
@@ -1836,9 +1798,9 @@ type ListTemplatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTemplatesResponse) MarshalJSON() ([]byte, error) {
+func (s ListTemplatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTemplatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListTransformationsResponse struct {
@@ -1862,9 +1824,9 @@ type ListTransformationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTransformationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTransformationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTransformationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTriggersResponse: List triggers response.
@@ -1889,9 +1851,9 @@ type ListTriggersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTriggersResponse) MarshalJSON() ([]byte, error) {
+func (s ListTriggersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTriggersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUserPermissionsResponse: List user permissions response.
@@ -1916,9 +1878,9 @@ type ListUserPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUserPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUserPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUserPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVariablesResponse: List Variables Response.
@@ -1943,9 +1905,9 @@ type ListVariablesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVariablesResponse) MarshalJSON() ([]byte, error) {
+func (s ListVariablesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVariablesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkspacesResponse: A list of workspaces in a container.
@@ -1970,9 +1932,9 @@ type ListWorkspacesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkspacesResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkspacesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkspacesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListZonesResponse struct {
@@ -1996,9 +1958,9 @@ type ListZonesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListZonesResponse) MarshalJSON() ([]byte, error) {
+func (s ListZonesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListZonesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MergeConflict: Represents a merge conflict.
@@ -2025,42 +1987,22 @@ type MergeConflict struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MergeConflict) MarshalJSON() ([]byte, error) {
+func (s MergeConflict) MarshalJSON() ([]byte, error) {
 	type NoMethod MergeConflict
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Parameter: Represents a Google Tag Manager Parameter.
 type Parameter struct {
 	// IsWeakReference: Whether or not a reference type parameter is strongly or
-	// weakly referenced. Only used by Transformations. @mutable
-	// tagmanager.accounts.containers.workspaces.transformations.create @mutable
-	// tagmanager.accounts.containers.workspaces.transformations.update
+	// weakly referenced. Only used by Transformations.
 	IsWeakReference bool `json:"isWeakReference,omitempty"`
 	// Key: The named key that uniquely identifies a parameter. Required for
 	// top-level parameters, as well as map values. Ignored for list values.
-	// @mutable tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
 	Key string `json:"key,omitempty"`
-	// List: This list parameter's parameters (keys will be ignored). @mutable
-	// tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// List: This list parameter's parameters (keys will be ignored).
 	List []*Parameter `json:"list,omitempty"`
 	// Map: This map parameter's parameters (must have keys; keys must be unique).
-	// @mutable tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
 	Map []*Parameter `json:"map,omitempty"`
 	// Type: The parameter type. Valid values are: - boolean: The value represents
 	// a boolean, represented as 'true' or 'false' - integer: The value represents
@@ -2070,16 +2012,11 @@ type Parameter struct {
 	// references (even variable references that might return non-string types) -
 	// trigger_reference: The value represents a trigger, represented as the
 	// trigger id - tag_reference: The value represents a tag, represented as the
-	// tag name @mutable tagmanager.accounts.containers.workspaces.variables.create
-	// @mutable tagmanager.accounts.containers.workspaces.variables.update @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// tag name
 	//
 	// Possible values:
 	//   "typeUnspecified"
-	//   "template" - May include variable references (such as "{{myVariable}}").
+	//   "template" - May include variable references.
 	//   "integer"
 	//   "boolean"
 	//   "list"
@@ -2087,14 +2024,8 @@ type Parameter struct {
 	//   "triggerReference"
 	//   "tagReference"
 	Type string `json:"type,omitempty"`
-	// Value: A parameter's value (may contain variable references such as
-	// "{{myVariable}}") as appropriate to the specified type. @mutable
-	// tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// Value: A parameter's value (may contain variable references). as appropriate
+	// to the specified type.
 	Value string `json:"value,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "IsWeakReference") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2109,9 +2040,9 @@ type Parameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Parameter) MarshalJSON() ([]byte, error) {
+func (s Parameter) MarshalJSON() ([]byte, error) {
 	type NoMethod Parameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PublishContainerVersionResponse: Publish container version response.
@@ -2136,9 +2067,9 @@ type PublishContainerVersionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublishContainerVersionResponse) MarshalJSON() ([]byte, error) {
+func (s PublishContainerVersionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PublishContainerVersionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QuickPreviewResponse: Response to quick previewing a workspace.
@@ -2166,9 +2097,9 @@ type QuickPreviewResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QuickPreviewResponse) MarshalJSON() ([]byte, error) {
+func (s QuickPreviewResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QuickPreviewResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertBuiltInVariableResponse: The result of reverting a built-in variable
@@ -2192,9 +2123,9 @@ type RevertBuiltInVariableResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertBuiltInVariableResponse) MarshalJSON() ([]byte, error) {
+func (s RevertBuiltInVariableResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertBuiltInVariableResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertClientResponse: The result of reverting a client in a workspace.
@@ -2219,9 +2150,9 @@ type RevertClientResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertClientResponse) MarshalJSON() ([]byte, error) {
+func (s RevertClientResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertClientResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertFolderResponse: The result of reverting folder changes in a workspace.
@@ -2246,9 +2177,9 @@ type RevertFolderResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertFolderResponse) MarshalJSON() ([]byte, error) {
+func (s RevertFolderResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertFolderResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertTagResponse: The result of reverting a tag in a workspace.
@@ -2273,9 +2204,9 @@ type RevertTagResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertTagResponse) MarshalJSON() ([]byte, error) {
+func (s RevertTagResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertTagResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertTemplateResponse: The result of reverting a template in a workspace.
@@ -2300,9 +2231,9 @@ type RevertTemplateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertTemplateResponse) MarshalJSON() ([]byte, error) {
+func (s RevertTemplateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertTemplateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertTransformationResponse: The result of reverting a transformation in a
@@ -2329,9 +2260,9 @@ type RevertTransformationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertTransformationResponse) MarshalJSON() ([]byte, error) {
+func (s RevertTransformationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertTransformationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertTriggerResponse: The result of reverting a trigger in a workspace.
@@ -2356,9 +2287,9 @@ type RevertTriggerResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertTriggerResponse) MarshalJSON() ([]byte, error) {
+func (s RevertTriggerResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertTriggerResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertVariableResponse: The result of reverting a variable in a workspace.
@@ -2383,9 +2314,9 @@ type RevertVariableResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertVariableResponse) MarshalJSON() ([]byte, error) {
+func (s RevertVariableResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertVariableResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevertZoneResponse: The result of reverting a zone in a workspace.
@@ -2410,9 +2341,9 @@ type RevertZoneResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevertZoneResponse) MarshalJSON() ([]byte, error) {
+func (s RevertZoneResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RevertZoneResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetupTag: Represents a reference to atag that fires before another tag in
@@ -2437,9 +2368,9 @@ type SetupTag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetupTag) MarshalJSON() ([]byte, error) {
+func (s SetupTag) MarshalJSON() ([]byte, error) {
 	type NoMethod SetupTag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SyncStatus: The status of a workspace after synchronization.
@@ -2461,9 +2392,9 @@ type SyncStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SyncStatus) MarshalJSON() ([]byte, error) {
+func (s SyncStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod SyncStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SyncWorkspaceResponse: A response after synchronizing the workspace to the
@@ -2492,9 +2423,9 @@ type SyncWorkspaceResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SyncWorkspaceResponse) MarshalJSON() ([]byte, error) {
+func (s SyncWorkspaceResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SyncWorkspaceResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Tag: Represents a Google Tag Manager Tag.
@@ -2502,18 +2433,12 @@ type Tag struct {
 	// AccountId: GTM Account ID.
 	AccountId string `json:"accountId,omitempty"`
 	// BlockingRuleId: Blocking rule IDs. If any of the listed rules evaluate to
-	// true, the tag will not fire. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// true, the tag will not fire.
 	BlockingRuleId []string `json:"blockingRuleId,omitempty"`
 	// BlockingTriggerId: Blocking trigger IDs. If any of the listed triggers
-	// evaluate to true, the tag will not fire. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// evaluate to true, the tag will not fire.
 	BlockingTriggerId []string `json:"blockingTriggerId,omitempty"`
-	// ConsentSettings: Consent settings of a tag. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// ConsentSettings: Consent settings of a tag.
 	ConsentSettings *TagConsentSetting `json:"consentSettings,omitempty"`
 	// ContainerId: GTM Container ID.
 	ContainerId string `json:"containerId,omitempty"`
@@ -2522,64 +2447,43 @@ type Tag struct {
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// FiringRuleId: Firing rule IDs. A tag will fire when any of the listed rules
 	// are true and all of its blockingRuleIds (if any specified) are false.
-	// @mutable tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
 	FiringRuleId []string `json:"firingRuleId,omitempty"`
 	// FiringTriggerId: Firing trigger IDs. A tag will fire when any of the listed
 	// triggers are true and all of its blockingTriggerIds (if any specified) are
-	// false. @mutable tagmanager.accounts.containers.workspaces.tags.create
-	// @mutable tagmanager.accounts.containers.workspaces.tags.update
+	// false.
 	FiringTriggerId []string `json:"firingTriggerId,omitempty"`
 	// LiveOnly: If set to true, this tag will only fire in the live environment
-	// (e.g. not in preview or debug mode). @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// (e.g. not in preview or debug mode).
 	LiveOnly bool `json:"liveOnly,omitempty"`
 	// MonitoringMetadata: A map of key-value pairs of tag metadata to be included
 	// in the event data for tag monitoring. Notes: - This parameter must be type
 	// MAP. - Each parameter in the map are type TEMPLATE, however cannot contain
-	// variable references. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// variable references.
 	MonitoringMetadata *Parameter `json:"monitoringMetadata,omitempty"`
 	// MonitoringMetadataTagNameKey: If non-empty, then the tag display name will
-	// be included in the monitoring metadata map using the key specified. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// be included in the monitoring metadata map using the key specified.
 	MonitoringMetadataTagNameKey string `json:"monitoringMetadataTagNameKey,omitempty"`
-	// Name: Tag display name. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// Name: Tag display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this tag in the container. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// Notes: User notes on how to apply this tag in the container.
 	Notes string `json:"notes,omitempty"`
-	// Parameter: The tag's parameters. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// Parameter: The tag's parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
 	// Path: GTM Tag's API relative path.
 	Path string `json:"path,omitempty"`
 	// Paused: Indicates whether the tag is paused, which prevents the tag from
-	// firing. @mutable tagmanager.accounts.containers.workspaces.tags.create
-	// @mutable tagmanager.accounts.containers.workspaces.tags.update
+	// firing.
 	Paused bool `json:"paused,omitempty"`
 	// Priority: User defined numeric priority of the tag. Tags are fired
 	// asynchronously in order of priority. Tags with higher numeric value fire
 	// first. A tag's priority can be a positive or negative value. The default
-	// value is 0. @mutable tagmanager.accounts.containers.workspaces.tags.create
-	// @mutable tagmanager.accounts.containers.workspaces.tags.update
+	// value is 0.
 	Priority *Parameter `json:"priority,omitempty"`
-	// ScheduleEndMs: The end timestamp in milliseconds to schedule a tag. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// ScheduleEndMs: The end timestamp in milliseconds to schedule a tag.
 	ScheduleEndMs int64 `json:"scheduleEndMs,omitempty,string"`
 	// ScheduleStartMs: The start timestamp in milliseconds to schedule a tag.
-	// @mutable tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
 	ScheduleStartMs int64 `json:"scheduleStartMs,omitempty,string"`
 	// SetupTag: The list of setup tags. Currently we only allow one.
 	SetupTag []*SetupTag `json:"setupTag,omitempty"`
@@ -2599,9 +2503,7 @@ type Tag struct {
 	TagManagerUrl string `json:"tagManagerUrl,omitempty"`
 	// TeardownTag: The list of teardown tags. Currently we only allow one.
 	TeardownTag []*TeardownTag `json:"teardownTag,omitempty"`
-	// Type: GTM Tag Type. @mutable
-	// tagmanager.accounts.containers.workspaces.tags.create @mutable
-	// tagmanager.accounts.containers.workspaces.tags.update
+	// Type: GTM Tag Type.
 	Type string `json:"type,omitempty"`
 	// WorkspaceId: GTM Workspace ID.
 	WorkspaceId string `json:"workspaceId,omitempty"`
@@ -2621,9 +2523,9 @@ type Tag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Tag) MarshalJSON() ([]byte, error) {
+func (s Tag) MarshalJSON() ([]byte, error) {
 	type NoMethod Tag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TagConsentSetting struct {
@@ -2653,9 +2555,9 @@ type TagConsentSetting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TagConsentSetting) MarshalJSON() ([]byte, error) {
+func (s TagConsentSetting) MarshalJSON() ([]byte, error) {
 	type NoMethod TagConsentSetting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TeardownTag: Represents a tag that fires after another tag in order to tear
@@ -2680,9 +2582,9 @@ type TeardownTag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TeardownTag) MarshalJSON() ([]byte, error) {
+func (s TeardownTag) MarshalJSON() ([]byte, error) {
 	type NoMethod TeardownTag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Transformation: Represents a Google Tag Manager Transformation.
@@ -2695,17 +2597,11 @@ type Transformation struct {
 	// storage time. This value is recomputed whenever the transformation is
 	// modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Transformation display name. @mutable
-	// tagmanager.accounts.containers.workspaces.transformations.create @mutable
-	// tagmanager.accounts.containers.workspaces.transformations.update
+	// Name: Transformation display name.
 	Name string `json:"name,omitempty"`
 	// Notes: User notes on how to apply this transformation in the container.
-	// @mutable tagmanager.accounts.containers.workspaces.transformations.create
-	// @mutable tagmanager.accounts.containers.workspaces.transformations.update
 	Notes string `json:"notes,omitempty"`
-	// Parameter: The transformation's parameters. @mutable
-	// tagmanager.accounts.containers.workspaces.transformations.create @mutable
-	// tagmanager.accounts.containers.workspaces.transformations.update
+	// Parameter: The transformation's parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
@@ -2716,9 +2612,7 @@ type Transformation struct {
 	// TransformationId: The Transformation ID uniquely identifies the GTM
 	// transformation.
 	TransformationId string `json:"transformationId,omitempty"`
-	// Type: Transformation type. @mutable
-	// tagmanager.accounts.containers.workspaces.transformations.create @mutable
-	// tagmanager.accounts.containers.workspaces.transformations.update
+	// Type: Transformation type.
 	Type string `json:"type,omitempty"`
 	// WorkspaceId: GTM Workspace ID.
 	WorkspaceId string `json:"workspaceId,omitempty"`
@@ -2738,108 +2632,76 @@ type Transformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Transformation) MarshalJSON() ([]byte, error) {
+func (s Transformation) MarshalJSON() ([]byte, error) {
 	type NoMethod Transformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Trigger: Represents a Google Tag Manager Trigger
 type Trigger struct {
 	// AccountId: GTM Account ID.
 	AccountId string `json:"accountId,omitempty"`
-	// AutoEventFilter: Used in the case of auto event tracking. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// AutoEventFilter: Used in the case of auto event tracking.
 	AutoEventFilter []*Condition `json:"autoEventFilter,omitempty"`
 	// CheckValidation: Whether or not we should only fire tags if the form submit
 	// or link click event is not cancelled by some other event handler (e.g.
 	// because of validation). Only valid for Form Submission and Link Click
-	// triggers. @mutable tagmanager.accounts.containers.workspaces.triggers.create
-	// @mutable tagmanager.accounts.containers.workspaces.triggers.update
+	// triggers.
 	CheckValidation *Parameter `json:"checkValidation,omitempty"`
 	// ContainerId: GTM Container ID.
 	ContainerId string `json:"containerId,omitempty"`
 	// ContinuousTimeMinMilliseconds: A visibility trigger minimum continuous
 	// visible time (in milliseconds). Only valid for AMP Visibility trigger.
-	// @mutable tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
 	ContinuousTimeMinMilliseconds *Parameter `json:"continuousTimeMinMilliseconds,omitempty"`
 	// CustomEventFilter: Used in the case of custom event, which is fired iff all
-	// Conditions are true. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Conditions are true.
 	CustomEventFilter []*Condition `json:"customEventFilter,omitempty"`
 	// EventName: Name of the GTM event that is fired. Only valid for Timer
-	// triggers. @mutable tagmanager.accounts.containers.workspaces.triggers.create
-	// @mutable tagmanager.accounts.containers.workspaces.triggers.update
+	// triggers.
 	EventName *Parameter `json:"eventName,omitempty"`
-	// Filter: The trigger will only fire iff all Conditions are true. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Filter: The trigger will only fire iff all Conditions are true.
 	Filter []*Condition `json:"filter,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Trigger as computed at storage time.
 	// This value is recomputed whenever the trigger is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// HorizontalScrollPercentageList: List of integer percentage values for scroll
 	// triggers. The trigger will fire when each percentage is reached when the
-	// view is scrolled horizontally. Only valid for AMP scroll triggers. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// view is scrolled horizontally. Only valid for AMP scroll triggers.
 	HorizontalScrollPercentageList *Parameter `json:"horizontalScrollPercentageList,omitempty"`
 	// Interval: Time between triggering recurring Timer Events (in milliseconds).
-	// Only valid for Timer triggers. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Only valid for Timer triggers.
 	Interval *Parameter `json:"interval,omitempty"`
 	// IntervalSeconds: Time between Timer Events to fire (in seconds). Only valid
-	// for AMP Timer trigger. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// for AMP Timer trigger.
 	IntervalSeconds *Parameter `json:"intervalSeconds,omitempty"`
 	// Limit: Limit of the number of GTM events this Timer Trigger will fire. If no
 	// limit is set, we will continue to fire GTM events until the user leaves the
-	// page. Only valid for Timer triggers. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// page. Only valid for Timer triggers.
 	Limit *Parameter `json:"limit,omitempty"`
 	// MaxTimerLengthSeconds: Max time to fire Timer Events (in seconds). Only
-	// valid for AMP Timer trigger. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// valid for AMP Timer trigger.
 	MaxTimerLengthSeconds *Parameter `json:"maxTimerLengthSeconds,omitempty"`
-	// Name: Trigger display name. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Name: Trigger display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this trigger in the container. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Notes: User notes on how to apply this trigger in the container.
 	Notes string `json:"notes,omitempty"`
-	// Parameter: Additional parameters. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Parameter: Additional parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
 	// Path: GTM Trigger's API relative path.
 	Path string `json:"path,omitempty"`
 	// Selector: A click trigger CSS selector (i.e. "a", "button" etc.). Only valid
-	// for AMP Click trigger. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// for AMP Click trigger.
 	Selector *Parameter `json:"selector,omitempty"`
 	// TagManagerUrl: Auto generated link to the tag manager UI
 	TagManagerUrl string `json:"tagManagerUrl,omitempty"`
 	// TotalTimeMinMilliseconds: A visibility trigger minimum total visible time
-	// (in milliseconds). Only valid for AMP Visibility trigger. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// (in milliseconds). Only valid for AMP Visibility trigger.
 	TotalTimeMinMilliseconds *Parameter `json:"totalTimeMinMilliseconds,omitempty"`
 	// TriggerId: The Trigger ID uniquely identifies the GTM Trigger.
 	TriggerId string `json:"triggerId,omitempty"`
-	// Type: Defines the data layer event that causes this trigger. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Type: Defines the data layer event that causes this trigger.
 	//
 	// Possible values:
 	//   "eventTypeUnspecified"
@@ -2883,43 +2745,29 @@ type Trigger struct {
 	// incompatible auto-events work together with trigger filtering based on
 	// trigger ids. This value is populated during output generation since the tags
 	// implied by triggers don't exist until then. Only valid for Form Submit, Link
-	// Click and Timer triggers. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Click and Timer triggers.
 	UniqueTriggerId *Parameter `json:"uniqueTriggerId,omitempty"`
 	// VerticalScrollPercentageList: List of integer percentage values for scroll
 	// triggers. The trigger will fire when each percentage is reached when the
-	// view is scrolled vertically. Only valid for AMP scroll triggers. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// view is scrolled vertically. Only valid for AMP scroll triggers.
 	VerticalScrollPercentageList *Parameter `json:"verticalScrollPercentageList,omitempty"`
 	// VisibilitySelector: A visibility trigger CSS selector (i.e. "#id"). Only
-	// valid for AMP Visibility trigger. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// valid for AMP Visibility trigger.
 	VisibilitySelector *Parameter `json:"visibilitySelector,omitempty"`
 	// VisiblePercentageMax: A visibility trigger maximum percent visibility. Only
-	// valid for AMP Visibility trigger. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// valid for AMP Visibility trigger.
 	VisiblePercentageMax *Parameter `json:"visiblePercentageMax,omitempty"`
 	// VisiblePercentageMin: A visibility trigger minimum percent visibility. Only
-	// valid for AMP Visibility trigger. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// valid for AMP Visibility trigger.
 	VisiblePercentageMin *Parameter `json:"visiblePercentageMin,omitempty"`
 	// WaitForTags: Whether or not we should delay the form submissions or link
 	// opening until all of the tags have fired (by preventing the default action
 	// and later simulating the default action). Only valid for Form Submission and
-	// Link Click triggers. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Link Click triggers.
 	WaitForTags *Parameter `json:"waitForTags,omitempty"`
 	// WaitForTagsTimeout: How long to wait (in milliseconds) for tags to fire when
 	// 'waits_for_tags' above evaluates to true. Only valid for Form Submission and
-	// Link Click triggers. @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.create @mutable
-	// tagmanager.accounts.containers.workspaces.triggers.update
+	// Link Click triggers.
 	WaitForTagsTimeout *Parameter `json:"waitForTagsTimeout,omitempty"`
 	// WorkspaceId: GTM Workspace ID.
 	WorkspaceId string `json:"workspaceId,omitempty"`
@@ -2939,26 +2787,21 @@ type Trigger struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Trigger) MarshalJSON() ([]byte, error) {
+func (s Trigger) MarshalJSON() ([]byte, error) {
 	type NoMethod Trigger
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserPermission: Represents a user's permissions to an account and its
 // container.
 type UserPermission struct {
-	// AccountAccess: GTM Account access permissions. @mutable
-	// tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// AccountAccess: GTM Account access permissions.
 	AccountAccess *AccountAccess `json:"accountAccess,omitempty"`
 	// AccountId: The Account ID uniquely identifies the GTM Account.
 	AccountId string `json:"accountId,omitempty"`
-	// ContainerAccess: GTM Container access permissions. @mutable
-	// tagmanager.accounts.permissions.create @mutable
-	// tagmanager.accounts.permissions.update
+	// ContainerAccess: GTM Container access permissions.
 	ContainerAccess []*ContainerAccess `json:"containerAccess,omitempty"`
-	// EmailAddress: User's email address. @mutable
-	// tagmanager.accounts.permissions.create
+	// EmailAddress: User's email address.
 	EmailAddress string `json:"emailAddress,omitempty"`
 	// Path: GTM UserPermission's API relative path.
 	Path string `json:"path,omitempty"`
@@ -2978,9 +2821,9 @@ type UserPermission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserPermission) MarshalJSON() ([]byte, error) {
+func (s UserPermission) MarshalJSON() ([]byte, error) {
 	type NoMethod UserPermission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Variable: Represents a Google Tag Manager Variable.
@@ -2992,51 +2835,35 @@ type Variable struct {
 	// DisablingTriggerId: For mobile containers only: A list of trigger IDs for
 	// disabling conditional variables; the variable is enabled if one of the
 	// enabling trigger is true while all the disabling trigger are false. Treated
-	// as an unordered set. @mutable
-	// tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update
+	// as an unordered set.
 	DisablingTriggerId []string `json:"disablingTriggerId,omitempty"`
 	// EnablingTriggerId: For mobile containers only: A list of trigger IDs for
 	// enabling conditional variables; the variable is enabled if one of the
 	// enabling triggers is true while all the disabling triggers are false.
-	// Treated as an unordered set. @mutable
-	// tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update
+	// Treated as an unordered set.
 	EnablingTriggerId []string `json:"enablingTriggerId,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Variable as computed at storage
 	// time. This value is recomputed whenever the variable is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// FormatValue: Option to convert a variable value to other value.
 	FormatValue *VariableFormatValue `json:"formatValue,omitempty"`
-	// Name: Variable display name. @mutable
-	// tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update
+	// Name: Variable display name.
 	Name string `json:"name,omitempty"`
-	// Notes: User notes on how to apply this variable in the container. @mutable
-	// tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update
+	// Notes: User notes on how to apply this variable in the container.
 	Notes string `json:"notes,omitempty"`
-	// Parameter: The variable's parameters. @mutable
-	// tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update
+	// Parameter: The variable's parameters.
 	Parameter []*Parameter `json:"parameter,omitempty"`
 	// ParentFolderId: Parent folder id.
 	ParentFolderId string `json:"parentFolderId,omitempty"`
 	// Path: GTM Variable's API relative path.
 	Path string `json:"path,omitempty"`
 	// ScheduleEndMs: The end timestamp in milliseconds to schedule a variable.
-	// @mutable tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update
 	ScheduleEndMs int64 `json:"scheduleEndMs,omitempty,string"`
 	// ScheduleStartMs: The start timestamp in milliseconds to schedule a variable.
-	// @mutable tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update
 	ScheduleStartMs int64 `json:"scheduleStartMs,omitempty,string"`
 	// TagManagerUrl: Auto generated link to the tag manager UI
 	TagManagerUrl string `json:"tagManagerUrl,omitempty"`
-	// Type: GTM Variable Type. @mutable
-	// tagmanager.accounts.containers.workspaces.variables.create @mutable
-	// tagmanager.accounts.containers.workspaces.variables.update
+	// Type: GTM Variable Type.
 	Type string `json:"type,omitempty"`
 	// VariableId: The Variable ID uniquely identifies the GTM Variable.
 	VariableId string `json:"variableId,omitempty"`
@@ -3058,9 +2885,9 @@ type Variable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Variable) MarshalJSON() ([]byte, error) {
+func (s Variable) MarshalJSON() ([]byte, error) {
 	type NoMethod Variable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type VariableFormatValue struct {
@@ -3094,9 +2921,9 @@ type VariableFormatValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VariableFormatValue) MarshalJSON() ([]byte, error) {
+func (s VariableFormatValue) MarshalJSON() ([]byte, error) {
 	type NoMethod VariableFormatValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Workspace: Represents a Google Tag Manager Container Workspace.
@@ -3105,16 +2932,12 @@ type Workspace struct {
 	AccountId string `json:"accountId,omitempty"`
 	// ContainerId: GTM Container ID.
 	ContainerId string `json:"containerId,omitempty"`
-	// Description: Workspace description. @mutable
-	// tagmanager.accounts.containers.workspaces.create @mutable
-	// tagmanager.accounts.containers.workspaces.update
+	// Description: Workspace description.
 	Description string `json:"description,omitempty"`
 	// Fingerprint: The fingerprint of the GTM Workspace as computed at storage
 	// time. This value is recomputed whenever the workspace is modified.
 	Fingerprint string `json:"fingerprint,omitempty"`
-	// Name: Workspace display name. @mutable
-	// tagmanager.accounts.containers.workspaces.create @mutable
-	// tagmanager.accounts.containers.workspaces.update
+	// Name: Workspace display name.
 	Name string `json:"name,omitempty"`
 	// Path: GTM Workspace's API relative path.
 	Path string `json:"path,omitempty"`
@@ -3138,9 +2961,9 @@ type Workspace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Workspace) MarshalJSON() ([]byte, error) {
+func (s Workspace) MarshalJSON() ([]byte, error) {
 	type NoMethod Workspace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Zone: Represents a Google Tag Manager Zone's contents.
@@ -3186,9 +3009,9 @@ type Zone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Zone) MarshalJSON() ([]byte, error) {
+func (s Zone) MarshalJSON() ([]byte, error) {
 	type NoMethod Zone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ZoneBoundary: Represents a Zone's boundaries.
@@ -3211,9 +3034,9 @@ type ZoneBoundary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ZoneBoundary) MarshalJSON() ([]byte, error) {
+func (s ZoneBoundary) MarshalJSON() ([]byte, error) {
 	type NoMethod ZoneBoundary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ZoneChildContainer: Represents a child container of a Zone.
@@ -3235,9 +3058,9 @@ type ZoneChildContainer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ZoneChildContainer) MarshalJSON() ([]byte, error) {
+func (s ZoneChildContainer) MarshalJSON() ([]byte, error) {
 	type NoMethod ZoneChildContainer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ZoneTypeRestriction: Represents a Zone's type restrictions.
@@ -3260,9 +3083,9 @@ type ZoneTypeRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ZoneTypeRestriction) MarshalJSON() ([]byte, error) {
+func (s ZoneTypeRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod ZoneTypeRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountsGetCall struct {
@@ -3276,7 +3099,7 @@ type AccountsGetCall struct {
 
 // Get: Gets a GTM Account.
 //
-// - path: GTM Account's API relative path. Example: accounts/{account_id}.
+// - path: GTM Account's API relative path.
 func (r *AccountsService) Get(path string) *AccountsGetCall {
 	c := &AccountsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -3319,12 +3142,11 @@ func (c *AccountsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3332,6 +3154,7 @@ func (c *AccountsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3366,9 +3189,11 @@ func (c *AccountsGetCall) Do(opts ...googleapi.CallOption) (*Account, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3436,16 +3261,16 @@ func (c *AccountsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/accounts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3481,9 +3306,11 @@ func (c *AccountsListCall) Do(opts ...googleapi.CallOption) (*ListAccountsRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3519,7 +3346,7 @@ type AccountsUpdateCall struct {
 
 // Update: Updates a GTM Account.
 //
-// - path: GTM Account's API relative path. Example: accounts/{account_id}.
+// - path: GTM Account's API relative path.
 func (r *AccountsService) Update(path string, account *Account) *AccountsUpdateCall {
 	c := &AccountsUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -3559,8 +3386,7 @@ func (c *AccountsUpdateCall) Header() http.Header {
 
 func (c *AccountsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.account)
 	if err != nil {
 		return nil, err
 	}
@@ -3576,6 +3402,7 @@ func (c *AccountsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3610,9 +3437,11 @@ func (c *AccountsUpdateCall) Do(opts ...googleapi.CallOption) (*Account, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3626,8 +3455,7 @@ type AccountsContainersCombineCall struct {
 
 // Combine: Combines Containers.
 //
-//   - path: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - path: GTM Container's API relative path.
 func (r *AccountsContainersService) Combine(path string) *AccountsContainersCombineCall {
 	c := &AccountsContainersCombineCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -3688,12 +3516,11 @@ func (c *AccountsContainersCombineCall) Header() http.Header {
 
 func (c *AccountsContainersCombineCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:combine")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3701,6 +3528,7 @@ func (c *AccountsContainersCombineCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.combine", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3735,9 +3563,11 @@ func (c *AccountsContainersCombineCall) Do(opts ...googleapi.CallOption) (*Conta
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.combine", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3752,7 +3582,7 @@ type AccountsContainersCreateCall struct {
 
 // Create: Creates a Container.
 //
-// - parent: GTM Account's API relative path. Example: accounts/{account_id}.
+// - parent: GTM Account's API relative path.
 func (r *AccountsContainersService) Create(parent string, container *Container) *AccountsContainersCreateCall {
 	c := &AccountsContainersCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -3785,8 +3615,7 @@ func (c *AccountsContainersCreateCall) Header() http.Header {
 
 func (c *AccountsContainersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.container)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.container)
 	if err != nil {
 		return nil, err
 	}
@@ -3802,6 +3631,7 @@ func (c *AccountsContainersCreateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3836,9 +3666,11 @@ func (c *AccountsContainersCreateCall) Do(opts ...googleapi.CallOption) (*Contai
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3852,8 +3684,7 @@ type AccountsContainersDeleteCall struct {
 
 // Delete: Deletes a Container.
 //
-//   - path: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - path: GTM Container's API relative path.
 func (r *AccountsContainersService) Delete(path string) *AccountsContainersDeleteCall {
 	c := &AccountsContainersDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -3885,12 +3716,11 @@ func (c *AccountsContainersDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3898,6 +3728,7 @@ func (c *AccountsContainersDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3912,6 +3743,7 @@ func (c *AccountsContainersDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -3926,8 +3758,7 @@ type AccountsContainersGetCall struct {
 
 // Get: Gets a Container.
 //
-//   - path: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - path: GTM Container's API relative path.
 func (r *AccountsContainersService) Get(path string) *AccountsContainersGetCall {
 	c := &AccountsContainersGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -3970,12 +3801,11 @@ func (c *AccountsContainersGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3983,6 +3813,7 @@ func (c *AccountsContainersGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4017,9 +3848,11 @@ func (c *AccountsContainersGetCall) Do(opts ...googleapi.CallOption) (*Container
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4034,7 +3867,7 @@ type AccountsContainersListCall struct {
 
 // List: Lists all Containers that belongs to a GTM Account.
 //
-// - parent: GTM Account's API relative path. Example: accounts/{account_id}.
+// - parent: GTM Account's API relative path.
 func (r *AccountsContainersService) List(parent string) *AccountsContainersListCall {
 	c := &AccountsContainersListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -4084,12 +3917,11 @@ func (c *AccountsContainersListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/containers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4097,6 +3929,7 @@ func (c *AccountsContainersListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4132,9 +3965,11 @@ func (c *AccountsContainersListCall) Do(opts ...googleapi.CallOption) (*ListCont
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4167,17 +4002,24 @@ type AccountsContainersLookupCall struct {
 	header_      http.Header
 }
 
-// Lookup: Looks up a Container by destination ID.
+// Lookup: Looks up a Container by destination ID or tag ID.
 func (r *AccountsContainersService) Lookup() *AccountsContainersLookupCall {
 	c := &AccountsContainersLookupCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	return c
 }
 
 // DestinationId sets the optional parameter "destinationId": Destination ID
-// linked to a GTM Container, e.g. AW-123456789. Example:
-// accounts/containers:lookup?destination_id={destination_id}.
+// linked to a GTM Container, e.g. AW-123456789. Only one of destination_id or
+// tag_id should be set.
 func (c *AccountsContainersLookupCall) DestinationId(destinationId string) *AccountsContainersLookupCall {
 	c.urlParams_.Set("destinationId", destinationId)
+	return c
+}
+
+// TagId sets the optional parameter "tagId": Tag ID for a GTM Container, e.g.
+// GTM-123456789. Only one of destination_id or tag_id should be set.
+func (c *AccountsContainersLookupCall) TagId(tagId string) *AccountsContainersLookupCall {
+	c.urlParams_.Set("tagId", tagId)
 	return c
 }
 
@@ -4217,16 +4059,16 @@ func (c *AccountsContainersLookupCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/accounts/containers:lookup")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.lookup", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4261,9 +4103,11 @@ func (c *AccountsContainersLookupCall) Do(opts ...googleapi.CallOption) (*Contai
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4277,8 +4121,7 @@ type AccountsContainersMoveTagIdCall struct {
 
 // MoveTagId: Move Tag ID out of a Container.
 //
-//   - path: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - path: GTM Container's API relative path.
 func (r *AccountsContainersService) MoveTagId(path string) *AccountsContainersMoveTagIdCall {
 	c := &AccountsContainersMoveTagIdCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -4356,12 +4199,11 @@ func (c *AccountsContainersMoveTagIdCall) Header() http.Header {
 
 func (c *AccountsContainersMoveTagIdCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:move_tag_id")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4369,6 +4211,7 @@ func (c *AccountsContainersMoveTagIdCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.move_tag_id", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4403,9 +4246,11 @@ func (c *AccountsContainersMoveTagIdCall) Do(opts ...googleapi.CallOption) (*Con
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.move_tag_id", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4420,8 +4265,7 @@ type AccountsContainersSnippetCall struct {
 
 // Snippet: Gets the tagging snippet for a Container.
 //
-//   - path: Container snippet's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}:snippet.
+// - path: Container snippet's API relative path.
 func (r *AccountsContainersService) Snippet(path string) *AccountsContainersSnippetCall {
 	c := &AccountsContainersSnippetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -4464,12 +4308,11 @@ func (c *AccountsContainersSnippetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:snippet")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4477,6 +4320,7 @@ func (c *AccountsContainersSnippetCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.snippet", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4512,9 +4356,11 @@ func (c *AccountsContainersSnippetCall) Do(opts ...googleapi.CallOption) (*GetCo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.snippet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4529,8 +4375,7 @@ type AccountsContainersUpdateCall struct {
 
 // Update: Updates a Container.
 //
-//   - path: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - path: GTM Container's API relative path.
 func (r *AccountsContainersService) Update(path string, container *Container) *AccountsContainersUpdateCall {
 	c := &AccountsContainersUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -4570,8 +4415,7 @@ func (c *AccountsContainersUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.container)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.container)
 	if err != nil {
 		return nil, err
 	}
@@ -4587,6 +4431,7 @@ func (c *AccountsContainersUpdateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4621,9 +4466,11 @@ func (c *AccountsContainersUpdateCall) Do(opts ...googleapi.CallOption) (*Contai
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4638,9 +4485,7 @@ type AccountsContainersDestinationsGetCall struct {
 
 // Get: Gets a Destination.
 //
-//   - path: Google Tag Destination's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/destinations/{destination_l
-//     ink_id}.
+// - path: Google Tag Destination's API relative path.
 func (r *AccountsContainersDestinationsService) Get(path string) *AccountsContainersDestinationsGetCall {
 	c := &AccountsContainersDestinationsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -4683,12 +4528,11 @@ func (c *AccountsContainersDestinationsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4696,6 +4540,7 @@ func (c *AccountsContainersDestinationsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.destinations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4730,9 +4575,11 @@ func (c *AccountsContainersDestinationsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.destinations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4747,8 +4594,7 @@ type AccountsContainersDestinationsLinkCall struct {
 // Link: Adds a Destination to this Container and removes it from the Container
 // to which it is currently linked.
 //
-//   - parent: GTM parent Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM parent Container's API relative path.
 func (r *AccountsContainersDestinationsService) Link(parent string) *AccountsContainersDestinationsLinkCall {
 	c := &AccountsContainersDestinationsLinkCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -4796,12 +4642,11 @@ func (c *AccountsContainersDestinationsLinkCall) Header() http.Header {
 
 func (c *AccountsContainersDestinationsLinkCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/destinations:link")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4809,6 +4654,7 @@ func (c *AccountsContainersDestinationsLinkCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.destinations.link", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4843,9 +4689,11 @@ func (c *AccountsContainersDestinationsLinkCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.destinations.link", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4860,8 +4708,7 @@ type AccountsContainersDestinationsListCall struct {
 
 // List: Lists all Destinations linked to a GTM Container.
 //
-//   - parent: GTM parent Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM parent Container's API relative path.
 func (r *AccountsContainersDestinationsService) List(parent string) *AccountsContainersDestinationsListCall {
 	c := &AccountsContainersDestinationsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -4904,12 +4751,11 @@ func (c *AccountsContainersDestinationsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/destinations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4917,6 +4763,7 @@ func (c *AccountsContainersDestinationsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.destinations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4952,9 +4799,11 @@ func (c *AccountsContainersDestinationsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.destinations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4969,8 +4818,7 @@ type AccountsContainersEnvironmentsCreateCall struct {
 
 // Create: Creates a GTM Environment.
 //
-//   - parent: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM Container's API relative path.
 func (r *AccountsContainersEnvironmentsService) Create(parent string, environment *Environment) *AccountsContainersEnvironmentsCreateCall {
 	c := &AccountsContainersEnvironmentsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -5003,8 +4851,7 @@ func (c *AccountsContainersEnvironmentsCreateCall) Header() http.Header {
 
 func (c *AccountsContainersEnvironmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.environment)
 	if err != nil {
 		return nil, err
 	}
@@ -5020,6 +4867,7 @@ func (c *AccountsContainersEnvironmentsCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5054,9 +4902,11 @@ func (c *AccountsContainersEnvironmentsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5070,9 +4920,7 @@ type AccountsContainersEnvironmentsDeleteCall struct {
 
 // Delete: Deletes a GTM Environment.
 //
-//   - path: GTM Environment's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/environments/{environment_i
-//     d}.
+// - path: GTM Environment's API relative path.
 func (r *AccountsContainersEnvironmentsService) Delete(path string) *AccountsContainersEnvironmentsDeleteCall {
 	c := &AccountsContainersEnvironmentsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -5104,12 +4952,11 @@ func (c *AccountsContainersEnvironmentsDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersEnvironmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5117,6 +4964,7 @@ func (c *AccountsContainersEnvironmentsDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5131,6 +4979,7 @@ func (c *AccountsContainersEnvironmentsDeleteCall) Do(opts ...googleapi.CallOpti
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -5145,9 +4994,7 @@ type AccountsContainersEnvironmentsGetCall struct {
 
 // Get: Gets a GTM Environment.
 //
-//   - path: GTM Environment's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/environments/{environment_i
-//     d}.
+// - path: GTM Environment's API relative path.
 func (r *AccountsContainersEnvironmentsService) Get(path string) *AccountsContainersEnvironmentsGetCall {
 	c := &AccountsContainersEnvironmentsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -5190,12 +5037,11 @@ func (c *AccountsContainersEnvironmentsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5203,6 +5049,7 @@ func (c *AccountsContainersEnvironmentsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5237,9 +5084,11 @@ func (c *AccountsContainersEnvironmentsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5254,8 +5103,7 @@ type AccountsContainersEnvironmentsListCall struct {
 
 // List: Lists all GTM Environments of a GTM Container.
 //
-//   - parent: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM Container's API relative path.
 func (r *AccountsContainersEnvironmentsService) List(parent string) *AccountsContainersEnvironmentsListCall {
 	c := &AccountsContainersEnvironmentsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -5305,12 +5153,11 @@ func (c *AccountsContainersEnvironmentsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/environments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5318,6 +5165,7 @@ func (c *AccountsContainersEnvironmentsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5353,9 +5201,11 @@ func (c *AccountsContainersEnvironmentsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5391,9 +5241,7 @@ type AccountsContainersEnvironmentsReauthorizeCall struct {
 
 // Reauthorize: Re-generates the authorization code for a GTM Environment.
 //
-//   - path: GTM Environment's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/environments/{environment_i
-//     d}.
+// - path: GTM Environment's API relative path.
 func (r *AccountsContainersEnvironmentsService) Reauthorize(path string, environment *Environment) *AccountsContainersEnvironmentsReauthorizeCall {
 	c := &AccountsContainersEnvironmentsReauthorizeCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -5426,8 +5274,7 @@ func (c *AccountsContainersEnvironmentsReauthorizeCall) Header() http.Header {
 
 func (c *AccountsContainersEnvironmentsReauthorizeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.environment)
 	if err != nil {
 		return nil, err
 	}
@@ -5443,6 +5290,7 @@ func (c *AccountsContainersEnvironmentsReauthorizeCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.reauthorize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5477,9 +5325,11 @@ func (c *AccountsContainersEnvironmentsReauthorizeCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.reauthorize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5494,9 +5344,7 @@ type AccountsContainersEnvironmentsUpdateCall struct {
 
 // Update: Updates a GTM Environment.
 //
-//   - path: GTM Environment's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/environments/{environment_i
-//     d}.
+// - path: GTM Environment's API relative path.
 func (r *AccountsContainersEnvironmentsService) Update(path string, environment *Environment) *AccountsContainersEnvironmentsUpdateCall {
 	c := &AccountsContainersEnvironmentsUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -5536,8 +5384,7 @@ func (c *AccountsContainersEnvironmentsUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersEnvironmentsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.environment)
 	if err != nil {
 		return nil, err
 	}
@@ -5553,6 +5400,7 @@ func (c *AccountsContainersEnvironmentsUpdateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5587,9 +5435,11 @@ func (c *AccountsContainersEnvironmentsUpdateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.environments.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5604,8 +5454,7 @@ type AccountsContainersVersionHeadersLatestCall struct {
 
 // Latest: Gets the latest container version header
 //
-//   - parent: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM Container's API relative path.
 func (r *AccountsContainersVersionHeadersService) Latest(parent string) *AccountsContainersVersionHeadersLatestCall {
 	c := &AccountsContainersVersionHeadersLatestCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -5648,12 +5497,11 @@ func (c *AccountsContainersVersionHeadersLatestCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/version_headers:latest")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5661,6 +5509,7 @@ func (c *AccountsContainersVersionHeadersLatestCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.version_headers.latest", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5696,9 +5545,11 @@ func (c *AccountsContainersVersionHeadersLatestCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.version_headers.latest", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5713,8 +5564,7 @@ type AccountsContainersVersionHeadersListCall struct {
 
 // List: Lists all Container Versions of a GTM Container.
 //
-//   - parent: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM Container's API relative path.
 func (r *AccountsContainersVersionHeadersService) List(parent string) *AccountsContainersVersionHeadersListCall {
 	c := &AccountsContainersVersionHeadersListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -5771,12 +5621,11 @@ func (c *AccountsContainersVersionHeadersListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/version_headers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5784,6 +5633,7 @@ func (c *AccountsContainersVersionHeadersListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.version_headers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5819,9 +5669,11 @@ func (c *AccountsContainersVersionHeadersListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.version_headers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5856,8 +5708,7 @@ type AccountsContainersVersionsDeleteCall struct {
 
 // Delete: Deletes a Container Version.
 //
-//   - path: GTM ContainerVersion's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/versions/{version_id}.
+// - path: GTM ContainerVersion's API relative path.
 func (r *AccountsContainersVersionsService) Delete(path string) *AccountsContainersVersionsDeleteCall {
 	c := &AccountsContainersVersionsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -5889,12 +5740,11 @@ func (c *AccountsContainersVersionsDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5902,6 +5752,7 @@ func (c *AccountsContainersVersionsDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5916,6 +5767,7 @@ func (c *AccountsContainersVersionsDeleteCall) Do(opts ...googleapi.CallOption) 
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -5930,8 +5782,7 @@ type AccountsContainersVersionsGetCall struct {
 
 // Get: Gets a Container Version.
 //
-//   - path: GTM ContainerVersion's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/versions/{version_id}.
+// - path: GTM ContainerVersion's API relative path.
 func (r *AccountsContainersVersionsService) Get(path string) *AccountsContainersVersionsGetCall {
 	c := &AccountsContainersVersionsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -5982,12 +5833,11 @@ func (c *AccountsContainersVersionsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5995,6 +5845,7 @@ func (c *AccountsContainersVersionsGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6030,9 +5881,11 @@ func (c *AccountsContainersVersionsGetCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6047,8 +5900,7 @@ type AccountsContainersVersionsLiveCall struct {
 
 // Live: Gets the live (i.e. published) container version
 //
-//   - parent: GTM Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM Container's API relative path.
 func (r *AccountsContainersVersionsService) Live(parent string) *AccountsContainersVersionsLiveCall {
 	c := &AccountsContainersVersionsLiveCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -6091,12 +5943,11 @@ func (c *AccountsContainersVersionsLiveCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/versions:live")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6104,6 +5955,7 @@ func (c *AccountsContainersVersionsLiveCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.live", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6139,9 +5991,11 @@ func (c *AccountsContainersVersionsLiveCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.live", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6155,8 +6009,7 @@ type AccountsContainersVersionsPublishCall struct {
 
 // Publish: Publishes a Container Version.
 //
-//   - path: GTM ContainerVersion's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/versions/{version_id}.
+// - path: GTM ContainerVersion's API relative path.
 func (r *AccountsContainersVersionsService) Publish(path string) *AccountsContainersVersionsPublishCall {
 	c := &AccountsContainersVersionsPublishCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -6195,12 +6048,11 @@ func (c *AccountsContainersVersionsPublishCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsPublishCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:publish")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6208,6 +6060,7 @@ func (c *AccountsContainersVersionsPublishCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.publish", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6243,9 +6096,11 @@ func (c *AccountsContainersVersionsPublishCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.publish", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6260,8 +6115,7 @@ type AccountsContainersVersionsSetLatestCall struct {
 // SetLatest: Sets the latest version used for synchronization of workspaces
 // when detecting conflicts and errors.
 //
-//   - path: GTM ContainerVersion's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/versions/{version_id}.
+// - path: GTM ContainerVersion's API relative path.
 func (r *AccountsContainersVersionsService) SetLatest(path string) *AccountsContainersVersionsSetLatestCall {
 	c := &AccountsContainersVersionsSetLatestCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -6293,12 +6147,11 @@ func (c *AccountsContainersVersionsSetLatestCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsSetLatestCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:set_latest")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6306,6 +6159,7 @@ func (c *AccountsContainersVersionsSetLatestCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.set_latest", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6341,9 +6195,11 @@ func (c *AccountsContainersVersionsSetLatestCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.set_latest", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6357,8 +6213,7 @@ type AccountsContainersVersionsUndeleteCall struct {
 
 // Undelete: Undeletes a Container Version.
 //
-//   - path: GTM ContainerVersion's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/versions/{version_id}.
+// - path: GTM ContainerVersion's API relative path.
 func (r *AccountsContainersVersionsService) Undelete(path string) *AccountsContainersVersionsUndeleteCall {
 	c := &AccountsContainersVersionsUndeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -6390,12 +6245,11 @@ func (c *AccountsContainersVersionsUndeleteCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:undelete")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6403,6 +6257,7 @@ func (c *AccountsContainersVersionsUndeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.undelete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6438,9 +6293,11 @@ func (c *AccountsContainersVersionsUndeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6455,8 +6312,7 @@ type AccountsContainersVersionsUpdateCall struct {
 
 // Update: Updates a Container Version.
 //
-//   - path: GTM ContainerVersion's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/versions/{version_id}.
+// - path: GTM ContainerVersion's API relative path.
 func (r *AccountsContainersVersionsService) Update(path string, containerversion *ContainerVersion) *AccountsContainersVersionsUpdateCall {
 	c := &AccountsContainersVersionsUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -6496,8 +6352,7 @@ func (c *AccountsContainersVersionsUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersVersionsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.containerversion)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.containerversion)
 	if err != nil {
 		return nil, err
 	}
@@ -6513,6 +6368,7 @@ func (c *AccountsContainersVersionsUpdateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6548,9 +6404,11 @@ func (c *AccountsContainersVersionsUpdateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.versions.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6565,8 +6423,7 @@ type AccountsContainersWorkspacesCreateCall struct {
 
 // Create: Creates a Workspace.
 //
-//   - parent: GTM parent Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM parent Container's API relative path.
 func (r *AccountsContainersWorkspacesService) Create(parent string, workspace *Workspace) *AccountsContainersWorkspacesCreateCall {
 	c := &AccountsContainersWorkspacesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -6599,8 +6456,7 @@ func (c *AccountsContainersWorkspacesCreateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workspace)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -6616,6 +6472,7 @@ func (c *AccountsContainersWorkspacesCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6650,9 +6507,11 @@ func (c *AccountsContainersWorkspacesCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6669,8 +6528,7 @@ type AccountsContainersWorkspacesCreateVersionCall struct {
 // workspace, deletes the workspace, and sets the base container version to the
 // newly created version.
 //
-//   - path: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - path: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesService) CreateVersion(path string, createcontainerversionrequestversionoptions *CreateContainerVersionRequestVersionOptions) *AccountsContainersWorkspacesCreateVersionCall {
 	c := &AccountsContainersWorkspacesCreateVersionCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -6703,8 +6561,7 @@ func (c *AccountsContainersWorkspacesCreateVersionCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesCreateVersionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createcontainerversionrequestversionoptions)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createcontainerversionrequestversionoptions)
 	if err != nil {
 		return nil, err
 	}
@@ -6720,6 +6577,7 @@ func (c *AccountsContainersWorkspacesCreateVersionCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.create_version", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6755,9 +6613,11 @@ func (c *AccountsContainersWorkspacesCreateVersionCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.create_version", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6771,8 +6631,7 @@ type AccountsContainersWorkspacesDeleteCall struct {
 
 // Delete: Deletes a Workspace.
 //
-//   - path: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - path: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesService) Delete(path string) *AccountsContainersWorkspacesDeleteCall {
 	c := &AccountsContainersWorkspacesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -6804,12 +6663,11 @@ func (c *AccountsContainersWorkspacesDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6817,6 +6675,7 @@ func (c *AccountsContainersWorkspacesDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6831,6 +6690,7 @@ func (c *AccountsContainersWorkspacesDeleteCall) Do(opts ...googleapi.CallOption
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -6845,8 +6705,7 @@ type AccountsContainersWorkspacesGetCall struct {
 
 // Get: Gets a Workspace.
 //
-//   - path: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - path: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesService) Get(path string) *AccountsContainersWorkspacesGetCall {
 	c := &AccountsContainersWorkspacesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -6889,12 +6748,11 @@ func (c *AccountsContainersWorkspacesGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6902,6 +6760,7 @@ func (c *AccountsContainersWorkspacesGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6936,9 +6795,11 @@ func (c *AccountsContainersWorkspacesGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6953,8 +6814,7 @@ type AccountsContainersWorkspacesGetStatusCall struct {
 
 // GetStatus: Finds conflicting and modified entities in the workspace.
 //
-//   - path: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - path: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesService) GetStatus(path string) *AccountsContainersWorkspacesGetStatusCall {
 	c := &AccountsContainersWorkspacesGetStatusCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -6997,12 +6857,11 @@ func (c *AccountsContainersWorkspacesGetStatusCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}/status")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7010,6 +6869,7 @@ func (c *AccountsContainersWorkspacesGetStatusCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.getStatus", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7045,9 +6905,11 @@ func (c *AccountsContainersWorkspacesGetStatusCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.getStatus", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7062,8 +6924,7 @@ type AccountsContainersWorkspacesListCall struct {
 
 // List: Lists all Workspaces that belong to a GTM Container.
 //
-//   - parent: GTM parent Container's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}.
+// - parent: GTM parent Container's API relative path.
 func (r *AccountsContainersWorkspacesService) List(parent string) *AccountsContainersWorkspacesListCall {
 	c := &AccountsContainersWorkspacesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -7113,12 +6974,11 @@ func (c *AccountsContainersWorkspacesListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/workspaces")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7126,6 +6986,7 @@ func (c *AccountsContainersWorkspacesListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7161,9 +7022,11 @@ func (c *AccountsContainersWorkspacesListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7199,8 +7062,7 @@ type AccountsContainersWorkspacesQuickPreviewCall struct {
 // QuickPreview: Quick previews a workspace by creating a fake container
 // version from all entities in the provided workspace.
 //
-//   - path: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - path: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesService) QuickPreview(path string) *AccountsContainersWorkspacesQuickPreviewCall {
 	c := &AccountsContainersWorkspacesQuickPreviewCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -7232,12 +7094,11 @@ func (c *AccountsContainersWorkspacesQuickPreviewCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesQuickPreviewCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:quick_preview")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7245,6 +7106,7 @@ func (c *AccountsContainersWorkspacesQuickPreviewCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.quick_preview", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7280,9 +7142,11 @@ func (c *AccountsContainersWorkspacesQuickPreviewCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.quick_preview", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7298,8 +7162,7 @@ type AccountsContainersWorkspacesResolveConflictCall struct {
 // ResolveConflict: Resolves a merge conflict for a workspace entity by
 // updating it to the resolved entity passed in the request.
 //
-//   - path: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - path: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesService) ResolveConflict(path string, entity *Entity) *AccountsContainersWorkspacesResolveConflictCall {
 	c := &AccountsContainersWorkspacesResolveConflictCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -7340,8 +7203,7 @@ func (c *AccountsContainersWorkspacesResolveConflictCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesResolveConflictCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entity)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entity)
 	if err != nil {
 		return nil, err
 	}
@@ -7357,6 +7219,7 @@ func (c *AccountsContainersWorkspacesResolveConflictCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.resolve_conflict", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7371,6 +7234,7 @@ func (c *AccountsContainersWorkspacesResolveConflictCall) Do(opts ...googleapi.C
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.resolve_conflict", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -7386,8 +7250,7 @@ type AccountsContainersWorkspacesSyncCall struct {
 // unmodified workspace entities and displaying conflicts for modified
 // entities.
 //
-//   - path: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - path: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesService) Sync(path string) *AccountsContainersWorkspacesSyncCall {
 	c := &AccountsContainersWorkspacesSyncCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -7419,12 +7282,11 @@ func (c *AccountsContainersWorkspacesSyncCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesSyncCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:sync")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7432,6 +7294,7 @@ func (c *AccountsContainersWorkspacesSyncCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.sync", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7467,9 +7330,11 @@ func (c *AccountsContainersWorkspacesSyncCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.sync", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7484,8 +7349,7 @@ type AccountsContainersWorkspacesUpdateCall struct {
 
 // Update: Updates a Workspace.
 //
-//   - path: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - path: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesService) Update(path string, workspace *Workspace) *AccountsContainersWorkspacesUpdateCall {
 	c := &AccountsContainersWorkspacesUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -7525,8 +7389,7 @@ func (c *AccountsContainersWorkspacesUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workspace)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -7542,6 +7405,7 @@ func (c *AccountsContainersWorkspacesUpdateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7576,9 +7440,11 @@ func (c *AccountsContainersWorkspacesUpdateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7592,8 +7458,7 @@ type AccountsContainersWorkspacesBuiltInVariablesCreateCall struct {
 
 // Create: Creates one or more GTM Built-In Variables.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesBuiltInVariablesService) Create(parent string) *AccountsContainersWorkspacesBuiltInVariablesCreateCall {
 	c := &AccountsContainersWorkspacesBuiltInVariablesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -7749,12 +7614,11 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesCreateCall) Header() http.H
 
 func (c *AccountsContainersWorkspacesBuiltInVariablesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/built_in_variables")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7762,6 +7626,7 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesCreateCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.built_in_variables.create", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7797,9 +7662,11 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesCreateCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.built_in_variables.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7813,9 +7680,7 @@ type AccountsContainersWorkspacesBuiltInVariablesDeleteCall struct {
 
 // Delete: Deletes one or more GTM Built-In Variables.
 //
-//   - path: GTM BuiltInVariable's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/b
-//     uilt_in_variables.
+// - path: GTM BuiltInVariable's API relative path.
 func (r *AccountsContainersWorkspacesBuiltInVariablesService) Delete(path string) *AccountsContainersWorkspacesBuiltInVariablesDeleteCall {
 	c := &AccountsContainersWorkspacesBuiltInVariablesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -7971,12 +7836,11 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesDeleteCall) Header() http.H
 
 func (c *AccountsContainersWorkspacesBuiltInVariablesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7984,6 +7848,7 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesDeleteCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.built_in_variables.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7998,6 +7863,7 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesDeleteCall) Do(opts ...goog
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.built_in_variables.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -8012,8 +7878,7 @@ type AccountsContainersWorkspacesBuiltInVariablesListCall struct {
 
 // List: Lists all the enabled Built-In Variables of a GTM Container.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesBuiltInVariablesService) List(parent string) *AccountsContainersWorkspacesBuiltInVariablesListCall {
 	c := &AccountsContainersWorkspacesBuiltInVariablesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -8063,12 +7928,11 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/built_in_variables")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8076,6 +7940,7 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesListCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.built_in_variables.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8111,9 +7976,11 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.built_in_variables.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8148,9 +8015,7 @@ type AccountsContainersWorkspacesBuiltInVariablesRevertCall struct {
 
 // Revert: Reverts changes to a GTM Built-In Variables in a GTM Workspace.
 //
-//   - path: GTM BuiltInVariable's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/b
-//     uilt_in_variables.
+// - path: GTM BuiltInVariable's API relative path.
 func (r *AccountsContainersWorkspacesBuiltInVariablesService) Revert(path string) *AccountsContainersWorkspacesBuiltInVariablesRevertCall {
 	c := &AccountsContainersWorkspacesBuiltInVariablesRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -8306,12 +8171,11 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesRevertCall) Header() http.H
 
 func (c *AccountsContainersWorkspacesBuiltInVariablesRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}/built_in_variables:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8319,6 +8183,7 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesRevertCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.built_in_variables.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8354,9 +8219,11 @@ func (c *AccountsContainersWorkspacesBuiltInVariablesRevertCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.built_in_variables.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8371,8 +8238,7 @@ type AccountsContainersWorkspacesClientsCreateCall struct {
 
 // Create: Creates a GTM Client.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesClientsService) Create(parent string, client *Client) *AccountsContainersWorkspacesClientsCreateCall {
 	c := &AccountsContainersWorkspacesClientsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -8405,8 +8271,7 @@ func (c *AccountsContainersWorkspacesClientsCreateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesClientsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.client)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.client)
 	if err != nil {
 		return nil, err
 	}
@@ -8422,6 +8287,7 @@ func (c *AccountsContainersWorkspacesClientsCreateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8456,9 +8322,11 @@ func (c *AccountsContainersWorkspacesClientsCreateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8472,9 +8340,7 @@ type AccountsContainersWorkspacesClientsDeleteCall struct {
 
 // Delete: Deletes a GTM Client.
 //
-//   - path: GTM Client's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/c
-//     lients/{client_id}.
+// - path: GTM Client's API relative path.
 func (r *AccountsContainersWorkspacesClientsService) Delete(path string) *AccountsContainersWorkspacesClientsDeleteCall {
 	c := &AccountsContainersWorkspacesClientsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -8506,12 +8372,11 @@ func (c *AccountsContainersWorkspacesClientsDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesClientsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8519,6 +8384,7 @@ func (c *AccountsContainersWorkspacesClientsDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8533,6 +8399,7 @@ func (c *AccountsContainersWorkspacesClientsDeleteCall) Do(opts ...googleapi.Cal
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -8547,9 +8414,7 @@ type AccountsContainersWorkspacesClientsGetCall struct {
 
 // Get: Gets a GTM Client.
 //
-//   - path: GTM Client's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/c
-//     lients/{client_id}.
+// - path: GTM Client's API relative path.
 func (r *AccountsContainersWorkspacesClientsService) Get(path string) *AccountsContainersWorkspacesClientsGetCall {
 	c := &AccountsContainersWorkspacesClientsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -8592,12 +8457,11 @@ func (c *AccountsContainersWorkspacesClientsGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8605,6 +8469,7 @@ func (c *AccountsContainersWorkspacesClientsGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8639,9 +8504,11 @@ func (c *AccountsContainersWorkspacesClientsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8656,8 +8523,7 @@ type AccountsContainersWorkspacesClientsListCall struct {
 
 // List: Lists all GTM Clients of a GTM container workspace.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesClientsService) List(parent string) *AccountsContainersWorkspacesClientsListCall {
 	c := &AccountsContainersWorkspacesClientsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -8707,12 +8573,11 @@ func (c *AccountsContainersWorkspacesClientsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/clients")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8720,6 +8585,7 @@ func (c *AccountsContainersWorkspacesClientsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8755,9 +8621,11 @@ func (c *AccountsContainersWorkspacesClientsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8792,9 +8660,7 @@ type AccountsContainersWorkspacesClientsRevertCall struct {
 
 // Revert: Reverts changes to a GTM Client in a GTM Workspace.
 //
-//   - path: GTM Client's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/c
-//     lients/{client_id}.
+// - path: GTM Client's API relative path.
 func (r *AccountsContainersWorkspacesClientsService) Revert(path string) *AccountsContainersWorkspacesClientsRevertCall {
 	c := &AccountsContainersWorkspacesClientsRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -8833,12 +8699,11 @@ func (c *AccountsContainersWorkspacesClientsRevertCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesClientsRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8846,6 +8711,7 @@ func (c *AccountsContainersWorkspacesClientsRevertCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8881,9 +8747,11 @@ func (c *AccountsContainersWorkspacesClientsRevertCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8898,9 +8766,7 @@ type AccountsContainersWorkspacesClientsUpdateCall struct {
 
 // Update: Updates a GTM Client.
 //
-//   - path: GTM Client's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/c
-//     lients/{client_id}.
+// - path: GTM Client's API relative path.
 func (r *AccountsContainersWorkspacesClientsService) Update(path string, client *Client) *AccountsContainersWorkspacesClientsUpdateCall {
 	c := &AccountsContainersWorkspacesClientsUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -8940,8 +8806,7 @@ func (c *AccountsContainersWorkspacesClientsUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesClientsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.client)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.client)
 	if err != nil {
 		return nil, err
 	}
@@ -8957,6 +8822,7 @@ func (c *AccountsContainersWorkspacesClientsUpdateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8991,9 +8857,11 @@ func (c *AccountsContainersWorkspacesClientsUpdateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.clients.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9008,8 +8876,7 @@ type AccountsContainersWorkspacesFoldersCreateCall struct {
 
 // Create: Creates a GTM Folder.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesFoldersService) Create(parent string, folder *Folder) *AccountsContainersWorkspacesFoldersCreateCall {
 	c := &AccountsContainersWorkspacesFoldersCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -9042,8 +8909,7 @@ func (c *AccountsContainersWorkspacesFoldersCreateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesFoldersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.folder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.folder)
 	if err != nil {
 		return nil, err
 	}
@@ -9059,6 +8925,7 @@ func (c *AccountsContainersWorkspacesFoldersCreateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9093,9 +8960,11 @@ func (c *AccountsContainersWorkspacesFoldersCreateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9109,9 +8978,7 @@ type AccountsContainersWorkspacesFoldersDeleteCall struct {
 
 // Delete: Deletes a GTM Folder.
 //
-//   - path: GTM Folder's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/f
-//     olders/{folder_id}.
+// - path: GTM Folder's API relative path.
 func (r *AccountsContainersWorkspacesFoldersService) Delete(path string) *AccountsContainersWorkspacesFoldersDeleteCall {
 	c := &AccountsContainersWorkspacesFoldersDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -9143,12 +9010,11 @@ func (c *AccountsContainersWorkspacesFoldersDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesFoldersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9156,6 +9022,7 @@ func (c *AccountsContainersWorkspacesFoldersDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9170,6 +9037,7 @@ func (c *AccountsContainersWorkspacesFoldersDeleteCall) Do(opts ...googleapi.Cal
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -9183,9 +9051,7 @@ type AccountsContainersWorkspacesFoldersEntitiesCall struct {
 
 // Entities: List all entities in a GTM Folder.
 //
-//   - path: GTM Folder's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/f
-//     olders/{folder_id}.
+// - path: GTM Folder's API relative path.
 func (r *AccountsContainersWorkspacesFoldersService) Entities(path string) *AccountsContainersWorkspacesFoldersEntitiesCall {
 	c := &AccountsContainersWorkspacesFoldersEntitiesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -9224,12 +9090,11 @@ func (c *AccountsContainersWorkspacesFoldersEntitiesCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesFoldersEntitiesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:entities")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9237,6 +9102,7 @@ func (c *AccountsContainersWorkspacesFoldersEntitiesCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.entities", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9271,9 +9137,11 @@ func (c *AccountsContainersWorkspacesFoldersEntitiesCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.entities", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9309,9 +9177,7 @@ type AccountsContainersWorkspacesFoldersGetCall struct {
 
 // Get: Gets a GTM Folder.
 //
-//   - path: GTM Folder's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/f
-//     olders/{folder_id}.
+// - path: GTM Folder's API relative path.
 func (r *AccountsContainersWorkspacesFoldersService) Get(path string) *AccountsContainersWorkspacesFoldersGetCall {
 	c := &AccountsContainersWorkspacesFoldersGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -9354,12 +9220,11 @@ func (c *AccountsContainersWorkspacesFoldersGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9367,6 +9232,7 @@ func (c *AccountsContainersWorkspacesFoldersGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9401,9 +9267,11 @@ func (c *AccountsContainersWorkspacesFoldersGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9418,8 +9286,7 @@ type AccountsContainersWorkspacesFoldersListCall struct {
 
 // List: Lists all GTM Folders of a Container.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesFoldersService) List(parent string) *AccountsContainersWorkspacesFoldersListCall {
 	c := &AccountsContainersWorkspacesFoldersListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -9469,12 +9336,11 @@ func (c *AccountsContainersWorkspacesFoldersListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/folders")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9482,6 +9348,7 @@ func (c *AccountsContainersWorkspacesFoldersListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9517,9 +9384,11 @@ func (c *AccountsContainersWorkspacesFoldersListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9557,9 +9426,7 @@ type AccountsContainersWorkspacesFoldersMoveEntitiesToFolderCall struct {
 // request path equals 0, this will instead move entities out of the folder
 // they currently belong to.
 //
-//   - path: GTM Folder's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/f
-//     olders/{folder_id}.
+// - path: GTM Folder's API relative path.
 func (r *AccountsContainersWorkspacesFoldersService) MoveEntitiesToFolder(path string, folder *Folder) *AccountsContainersWorkspacesFoldersMoveEntitiesToFolderCall {
 	c := &AccountsContainersWorkspacesFoldersMoveEntitiesToFolderCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -9613,8 +9480,7 @@ func (c *AccountsContainersWorkspacesFoldersMoveEntitiesToFolderCall) Header() h
 
 func (c *AccountsContainersWorkspacesFoldersMoveEntitiesToFolderCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.folder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.folder)
 	if err != nil {
 		return nil, err
 	}
@@ -9630,6 +9496,7 @@ func (c *AccountsContainersWorkspacesFoldersMoveEntitiesToFolderCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.move_entities_to_folder", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9644,6 +9511,7 @@ func (c *AccountsContainersWorkspacesFoldersMoveEntitiesToFolderCall) Do(opts ..
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.move_entities_to_folder", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -9657,9 +9525,7 @@ type AccountsContainersWorkspacesFoldersRevertCall struct {
 
 // Revert: Reverts changes to a GTM Folder in a GTM Workspace.
 //
-//   - path: GTM Folder's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/f
-//     olders/{folder_id}.
+// - path: GTM Folder's API relative path.
 func (r *AccountsContainersWorkspacesFoldersService) Revert(path string) *AccountsContainersWorkspacesFoldersRevertCall {
 	c := &AccountsContainersWorkspacesFoldersRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -9698,12 +9564,11 @@ func (c *AccountsContainersWorkspacesFoldersRevertCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesFoldersRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9711,6 +9576,7 @@ func (c *AccountsContainersWorkspacesFoldersRevertCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9746,9 +9612,11 @@ func (c *AccountsContainersWorkspacesFoldersRevertCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9763,9 +9631,7 @@ type AccountsContainersWorkspacesFoldersUpdateCall struct {
 
 // Update: Updates a GTM Folder.
 //
-//   - path: GTM Folder's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/f
-//     olders/{folder_id}.
+// - path: GTM Folder's API relative path.
 func (r *AccountsContainersWorkspacesFoldersService) Update(path string, folder *Folder) *AccountsContainersWorkspacesFoldersUpdateCall {
 	c := &AccountsContainersWorkspacesFoldersUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -9805,8 +9671,7 @@ func (c *AccountsContainersWorkspacesFoldersUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesFoldersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.folder)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.folder)
 	if err != nil {
 		return nil, err
 	}
@@ -9822,6 +9687,7 @@ func (c *AccountsContainersWorkspacesFoldersUpdateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9856,9 +9722,11 @@ func (c *AccountsContainersWorkspacesFoldersUpdateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.folders.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9873,8 +9741,7 @@ type AccountsContainersWorkspacesGtagConfigCreateCall struct {
 
 // Create: Creates a Google tag config.
 //
-//   - parent: Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: Workspace's API relative path.
 func (r *AccountsContainersWorkspacesGtagConfigService) Create(parent string, gtagconfig *GtagConfig) *AccountsContainersWorkspacesGtagConfigCreateCall {
 	c := &AccountsContainersWorkspacesGtagConfigCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -9907,8 +9774,7 @@ func (c *AccountsContainersWorkspacesGtagConfigCreateCall) Header() http.Header 
 
 func (c *AccountsContainersWorkspacesGtagConfigCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.gtagconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.gtagconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -9924,6 +9790,7 @@ func (c *AccountsContainersWorkspacesGtagConfigCreateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9958,9 +9825,11 @@ func (c *AccountsContainersWorkspacesGtagConfigCreateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9974,9 +9843,7 @@ type AccountsContainersWorkspacesGtagConfigDeleteCall struct {
 
 // Delete: Deletes a Google tag config.
 //
-//   - path: Google tag config's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/g
-//     tag_config/{gtag_config_id}.
+// - path: Google tag config's API relative path.
 func (r *AccountsContainersWorkspacesGtagConfigService) Delete(path string) *AccountsContainersWorkspacesGtagConfigDeleteCall {
 	c := &AccountsContainersWorkspacesGtagConfigDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -10008,12 +9875,11 @@ func (c *AccountsContainersWorkspacesGtagConfigDeleteCall) Header() http.Header 
 
 func (c *AccountsContainersWorkspacesGtagConfigDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10021,6 +9887,7 @@ func (c *AccountsContainersWorkspacesGtagConfigDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10035,6 +9902,7 @@ func (c *AccountsContainersWorkspacesGtagConfigDeleteCall) Do(opts ...googleapi.
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -10049,9 +9917,7 @@ type AccountsContainersWorkspacesGtagConfigGetCall struct {
 
 // Get: Gets a Google tag config.
 //
-//   - path: Google tag config's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/g
-//     tag_config/{gtag_config_id}.
+// - path: Google tag config's API relative path.
 func (r *AccountsContainersWorkspacesGtagConfigService) Get(path string) *AccountsContainersWorkspacesGtagConfigGetCall {
 	c := &AccountsContainersWorkspacesGtagConfigGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -10094,12 +9960,11 @@ func (c *AccountsContainersWorkspacesGtagConfigGetCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10107,6 +9972,7 @@ func (c *AccountsContainersWorkspacesGtagConfigGetCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10141,9 +10007,11 @@ func (c *AccountsContainersWorkspacesGtagConfigGetCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10158,8 +10026,7 @@ type AccountsContainersWorkspacesGtagConfigListCall struct {
 
 // List: Lists all Google tag configs in a Container.
 //
-//   - parent: Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: Workspace's API relative path.
 func (r *AccountsContainersWorkspacesGtagConfigService) List(parent string) *AccountsContainersWorkspacesGtagConfigListCall {
 	c := &AccountsContainersWorkspacesGtagConfigListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -10209,12 +10076,11 @@ func (c *AccountsContainersWorkspacesGtagConfigListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/gtag_config")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10222,6 +10088,7 @@ func (c *AccountsContainersWorkspacesGtagConfigListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10257,9 +10124,11 @@ func (c *AccountsContainersWorkspacesGtagConfigListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10295,9 +10164,7 @@ type AccountsContainersWorkspacesGtagConfigUpdateCall struct {
 
 // Update: Updates a Google tag config.
 //
-//   - path: Google tag config's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/g
-//     tag_config/{gtag_config_id}.
+// - path: Google tag config's API relative path.
 func (r *AccountsContainersWorkspacesGtagConfigService) Update(path string, gtagconfig *GtagConfig) *AccountsContainersWorkspacesGtagConfigUpdateCall {
 	c := &AccountsContainersWorkspacesGtagConfigUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -10337,8 +10204,7 @@ func (c *AccountsContainersWorkspacesGtagConfigUpdateCall) Header() http.Header 
 
 func (c *AccountsContainersWorkspacesGtagConfigUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.gtagconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.gtagconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -10354,6 +10220,7 @@ func (c *AccountsContainersWorkspacesGtagConfigUpdateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10388,9 +10255,11 @@ func (c *AccountsContainersWorkspacesGtagConfigUpdateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.gtag_config.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10405,8 +10274,7 @@ type AccountsContainersWorkspacesTagsCreateCall struct {
 
 // Create: Creates a GTM Tag.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesTagsService) Create(parent string, tag *Tag) *AccountsContainersWorkspacesTagsCreateCall {
 	c := &AccountsContainersWorkspacesTagsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -10439,8 +10307,7 @@ func (c *AccountsContainersWorkspacesTagsCreateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTagsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.tag)
 	if err != nil {
 		return nil, err
 	}
@@ -10456,6 +10323,7 @@ func (c *AccountsContainersWorkspacesTagsCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10490,9 +10358,11 @@ func (c *AccountsContainersWorkspacesTagsCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10506,9 +10376,7 @@ type AccountsContainersWorkspacesTagsDeleteCall struct {
 
 // Delete: Deletes a GTM Tag.
 //
-//   - path: GTM Tag's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     ags/{tag_id}.
+// - path: GTM Tag's API relative path.
 func (r *AccountsContainersWorkspacesTagsService) Delete(path string) *AccountsContainersWorkspacesTagsDeleteCall {
 	c := &AccountsContainersWorkspacesTagsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -10540,12 +10408,11 @@ func (c *AccountsContainersWorkspacesTagsDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTagsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10553,6 +10420,7 @@ func (c *AccountsContainersWorkspacesTagsDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10567,6 +10435,7 @@ func (c *AccountsContainersWorkspacesTagsDeleteCall) Do(opts ...googleapi.CallOp
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -10581,9 +10450,7 @@ type AccountsContainersWorkspacesTagsGetCall struct {
 
 // Get: Gets a GTM Tag.
 //
-//   - path: GTM Tag's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     ags/{tag_id}.
+// - path: GTM Tag's API relative path.
 func (r *AccountsContainersWorkspacesTagsService) Get(path string) *AccountsContainersWorkspacesTagsGetCall {
 	c := &AccountsContainersWorkspacesTagsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -10626,12 +10493,11 @@ func (c *AccountsContainersWorkspacesTagsGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10639,6 +10505,7 @@ func (c *AccountsContainersWorkspacesTagsGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10673,9 +10540,11 @@ func (c *AccountsContainersWorkspacesTagsGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10690,8 +10559,7 @@ type AccountsContainersWorkspacesTagsListCall struct {
 
 // List: Lists all GTM Tags of a Container.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesTagsService) List(parent string) *AccountsContainersWorkspacesTagsListCall {
 	c := &AccountsContainersWorkspacesTagsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -10741,12 +10609,11 @@ func (c *AccountsContainersWorkspacesTagsListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/tags")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10754,6 +10621,7 @@ func (c *AccountsContainersWorkspacesTagsListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10789,9 +10657,11 @@ func (c *AccountsContainersWorkspacesTagsListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10826,9 +10696,7 @@ type AccountsContainersWorkspacesTagsRevertCall struct {
 
 // Revert: Reverts changes to a GTM Tag in a GTM Workspace.
 //
-//   - path: GTM Tag's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     ags/{tag_id}.
+// - path: GTM Tag's API relative path.
 func (r *AccountsContainersWorkspacesTagsService) Revert(path string) *AccountsContainersWorkspacesTagsRevertCall {
 	c := &AccountsContainersWorkspacesTagsRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -10867,12 +10735,11 @@ func (c *AccountsContainersWorkspacesTagsRevertCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTagsRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10880,6 +10747,7 @@ func (c *AccountsContainersWorkspacesTagsRevertCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10915,9 +10783,11 @@ func (c *AccountsContainersWorkspacesTagsRevertCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10932,9 +10802,7 @@ type AccountsContainersWorkspacesTagsUpdateCall struct {
 
 // Update: Updates a GTM Tag.
 //
-//   - path: GTM Tag's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     ags/{tag_id}.
+// - path: GTM Tag's API relative path.
 func (r *AccountsContainersWorkspacesTagsService) Update(path string, tag *Tag) *AccountsContainersWorkspacesTagsUpdateCall {
 	c := &AccountsContainersWorkspacesTagsUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -10974,8 +10842,7 @@ func (c *AccountsContainersWorkspacesTagsUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTagsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.tag)
 	if err != nil {
 		return nil, err
 	}
@@ -10991,6 +10858,7 @@ func (c *AccountsContainersWorkspacesTagsUpdateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11025,9 +10893,11 @@ func (c *AccountsContainersWorkspacesTagsUpdateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.tags.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11042,8 +10912,7 @@ type AccountsContainersWorkspacesTemplatesCreateCall struct {
 
 // Create: Creates a GTM Custom Template.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesTemplatesService) Create(parent string, customtemplate *CustomTemplate) *AccountsContainersWorkspacesTemplatesCreateCall {
 	c := &AccountsContainersWorkspacesTemplatesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -11076,8 +10945,7 @@ func (c *AccountsContainersWorkspacesTemplatesCreateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -11093,6 +10961,7 @@ func (c *AccountsContainersWorkspacesTemplatesCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11127,9 +10996,11 @@ func (c *AccountsContainersWorkspacesTemplatesCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11143,9 +11014,7 @@ type AccountsContainersWorkspacesTemplatesDeleteCall struct {
 
 // Delete: Deletes a GTM Template.
 //
-//   - path: GTM Custom Template's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     emplates/{template_id}.
+// - path: GTM Custom Template's API relative path.
 func (r *AccountsContainersWorkspacesTemplatesService) Delete(path string) *AccountsContainersWorkspacesTemplatesDeleteCall {
 	c := &AccountsContainersWorkspacesTemplatesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -11177,12 +11046,11 @@ func (c *AccountsContainersWorkspacesTemplatesDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11190,6 +11058,7 @@ func (c *AccountsContainersWorkspacesTemplatesDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11204,6 +11073,7 @@ func (c *AccountsContainersWorkspacesTemplatesDeleteCall) Do(opts ...googleapi.C
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -11218,9 +11088,7 @@ type AccountsContainersWorkspacesTemplatesGetCall struct {
 
 // Get: Gets a GTM Template.
 //
-//   - path: GTM Custom Template's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     emplates/{template_id}.
+// - path: GTM Custom Template's API relative path.
 func (r *AccountsContainersWorkspacesTemplatesService) Get(path string) *AccountsContainersWorkspacesTemplatesGetCall {
 	c := &AccountsContainersWorkspacesTemplatesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -11263,12 +11131,11 @@ func (c *AccountsContainersWorkspacesTemplatesGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11276,6 +11143,7 @@ func (c *AccountsContainersWorkspacesTemplatesGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11310,9 +11178,138 @@ func (c *AccountsContainersWorkspacesTemplatesGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type AccountsContainersWorkspacesTemplatesImportFromGalleryCall struct {
+	s          *Service
+	parent     string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// ImportFromGallery: Imports a GTM Custom Template from Gallery.
+//
+// - parent: GTM Workspace's API relative path.
+func (r *AccountsContainersWorkspacesTemplatesService) ImportFromGallery(parent string) *AccountsContainersWorkspacesTemplatesImportFromGalleryCall {
+	c := &AccountsContainersWorkspacesTemplatesImportFromGalleryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// AcknowledgePermissions sets the optional parameter "acknowledgePermissions":
+// Must be set to true to allow Gallery template to be imported into the
+// workspace. If this bit is false, the import operation will fail.
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) AcknowledgePermissions(acknowledgePermissions bool) *AccountsContainersWorkspacesTemplatesImportFromGalleryCall {
+	c.urlParams_.Set("acknowledgePermissions", fmt.Sprint(acknowledgePermissions))
+	return c
+}
+
+// GalleryOwner sets the optional parameter "galleryOwner": Owner of the
+// Gallery template to import
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) GalleryOwner(galleryOwner string) *AccountsContainersWorkspacesTemplatesImportFromGalleryCall {
+	c.urlParams_.Set("galleryOwner", galleryOwner)
+	return c
+}
+
+// GalleryRepository sets the optional parameter "galleryRepository":
+// Repository of the Gallery template to import
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) GalleryRepository(galleryRepository string) *AccountsContainersWorkspacesTemplatesImportFromGalleryCall {
+	c.urlParams_.Set("galleryRepository", galleryRepository)
+	return c
+}
+
+// GallerySha sets the optional parameter "gallerySha": SHA version of the
+// Gallery template to import. Defaulted to the latest SHA version if not
+// provided.
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) GallerySha(gallerySha string) *AccountsContainersWorkspacesTemplatesImportFromGalleryCall {
+	c.urlParams_.Set("gallerySha", gallerySha)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) Fields(s ...googleapi.Field) *AccountsContainersWorkspacesTemplatesImportFromGalleryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) Context(ctx context.Context) *AccountsContainersWorkspacesTemplatesImportFromGalleryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/templates:import_from_gallery")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.import_from_gallery", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "tagmanager.accounts.containers.workspaces.templates.import_from_gallery" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *CustomTemplate.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *AccountsContainersWorkspacesTemplatesImportFromGalleryCall) Do(opts ...googleapi.CallOption) (*CustomTemplate, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &CustomTemplate{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.import_from_gallery", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11327,8 +11324,7 @@ type AccountsContainersWorkspacesTemplatesListCall struct {
 
 // List: Lists all GTM Templates of a GTM container workspace.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesTemplatesService) List(parent string) *AccountsContainersWorkspacesTemplatesListCall {
 	c := &AccountsContainersWorkspacesTemplatesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -11378,12 +11374,11 @@ func (c *AccountsContainersWorkspacesTemplatesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/templates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11391,6 +11386,7 @@ func (c *AccountsContainersWorkspacesTemplatesListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11426,9 +11422,11 @@ func (c *AccountsContainersWorkspacesTemplatesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11463,9 +11461,7 @@ type AccountsContainersWorkspacesTemplatesRevertCall struct {
 
 // Revert: Reverts changes to a GTM Template in a GTM Workspace.
 //
-//   - path: GTM Custom Template's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     emplates/{template_id}.
+// - path: GTM Custom Template's API relative path.
 func (r *AccountsContainersWorkspacesTemplatesService) Revert(path string) *AccountsContainersWorkspacesTemplatesRevertCall {
 	c := &AccountsContainersWorkspacesTemplatesRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -11504,12 +11500,11 @@ func (c *AccountsContainersWorkspacesTemplatesRevertCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTemplatesRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11517,6 +11512,7 @@ func (c *AccountsContainersWorkspacesTemplatesRevertCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11552,9 +11548,11 @@ func (c *AccountsContainersWorkspacesTemplatesRevertCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11569,9 +11567,7 @@ type AccountsContainersWorkspacesTemplatesUpdateCall struct {
 
 // Update: Updates a GTM Template.
 //
-//   - path: GTM Custom Template's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     emplates/{template_id}.
+// - path: GTM Custom Template's API relative path.
 func (r *AccountsContainersWorkspacesTemplatesService) Update(path string, customtemplate *CustomTemplate) *AccountsContainersWorkspacesTemplatesUpdateCall {
 	c := &AccountsContainersWorkspacesTemplatesUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -11611,8 +11607,7 @@ func (c *AccountsContainersWorkspacesTemplatesUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTemplatesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -11628,6 +11623,7 @@ func (c *AccountsContainersWorkspacesTemplatesUpdateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11662,9 +11658,11 @@ func (c *AccountsContainersWorkspacesTemplatesUpdateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.templates.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11679,8 +11677,7 @@ type AccountsContainersWorkspacesTransformationsCreateCall struct {
 
 // Create: Creates a GTM Transformation.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesTransformationsService) Create(parent string, transformation *Transformation) *AccountsContainersWorkspacesTransformationsCreateCall {
 	c := &AccountsContainersWorkspacesTransformationsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -11713,8 +11710,7 @@ func (c *AccountsContainersWorkspacesTransformationsCreateCall) Header() http.He
 
 func (c *AccountsContainersWorkspacesTransformationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transformation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transformation)
 	if err != nil {
 		return nil, err
 	}
@@ -11730,6 +11726,7 @@ func (c *AccountsContainersWorkspacesTransformationsCreateCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11764,9 +11761,11 @@ func (c *AccountsContainersWorkspacesTransformationsCreateCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11780,9 +11779,7 @@ type AccountsContainersWorkspacesTransformationsDeleteCall struct {
 
 // Delete: Deletes a GTM Transformation.
 //
-//   - path: GTM Transformation's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     ransformations/{transformation_id}.
+// - path: GTM Transformation's API relative path.
 func (r *AccountsContainersWorkspacesTransformationsService) Delete(path string) *AccountsContainersWorkspacesTransformationsDeleteCall {
 	c := &AccountsContainersWorkspacesTransformationsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -11814,12 +11811,11 @@ func (c *AccountsContainersWorkspacesTransformationsDeleteCall) Header() http.He
 
 func (c *AccountsContainersWorkspacesTransformationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11827,6 +11823,7 @@ func (c *AccountsContainersWorkspacesTransformationsDeleteCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11841,6 +11838,7 @@ func (c *AccountsContainersWorkspacesTransformationsDeleteCall) Do(opts ...googl
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -11855,9 +11853,7 @@ type AccountsContainersWorkspacesTransformationsGetCall struct {
 
 // Get: Gets a GTM Transformation.
 //
-//   - path: GTM Transformation's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     ransformations/{transformation_id}.
+// - path: GTM Transformation's API relative path.
 func (r *AccountsContainersWorkspacesTransformationsService) Get(path string) *AccountsContainersWorkspacesTransformationsGetCall {
 	c := &AccountsContainersWorkspacesTransformationsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -11900,12 +11896,11 @@ func (c *AccountsContainersWorkspacesTransformationsGetCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11913,6 +11908,7 @@ func (c *AccountsContainersWorkspacesTransformationsGetCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11947,9 +11943,11 @@ func (c *AccountsContainersWorkspacesTransformationsGetCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11964,8 +11962,7 @@ type AccountsContainersWorkspacesTransformationsListCall struct {
 
 // List: Lists all GTM Transformations of a GTM container workspace.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesTransformationsService) List(parent string) *AccountsContainersWorkspacesTransformationsListCall {
 	c := &AccountsContainersWorkspacesTransformationsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -12015,12 +12012,11 @@ func (c *AccountsContainersWorkspacesTransformationsListCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/transformations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12028,6 +12024,7 @@ func (c *AccountsContainersWorkspacesTransformationsListCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12063,9 +12060,11 @@ func (c *AccountsContainersWorkspacesTransformationsListCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12100,9 +12099,7 @@ type AccountsContainersWorkspacesTransformationsRevertCall struct {
 
 // Revert: Reverts changes to a GTM Transformation in a GTM Workspace.
 //
-//   - path: GTM Transformation's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     ransformations/{transformation_id}.
+// - path: GTM Transformation's API relative path.
 func (r *AccountsContainersWorkspacesTransformationsService) Revert(path string) *AccountsContainersWorkspacesTransformationsRevertCall {
 	c := &AccountsContainersWorkspacesTransformationsRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -12141,12 +12138,11 @@ func (c *AccountsContainersWorkspacesTransformationsRevertCall) Header() http.He
 
 func (c *AccountsContainersWorkspacesTransformationsRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12154,6 +12150,7 @@ func (c *AccountsContainersWorkspacesTransformationsRevertCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12189,9 +12186,11 @@ func (c *AccountsContainersWorkspacesTransformationsRevertCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12206,9 +12205,7 @@ type AccountsContainersWorkspacesTransformationsUpdateCall struct {
 
 // Update: Updates a GTM Transformation.
 //
-//   - path: GTM Transformation's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     ransformations/{transformation_id}.
+// - path: GTM Transformation's API relative path.
 func (r *AccountsContainersWorkspacesTransformationsService) Update(path string, transformation *Transformation) *AccountsContainersWorkspacesTransformationsUpdateCall {
 	c := &AccountsContainersWorkspacesTransformationsUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -12248,8 +12245,7 @@ func (c *AccountsContainersWorkspacesTransformationsUpdateCall) Header() http.He
 
 func (c *AccountsContainersWorkspacesTransformationsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transformation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transformation)
 	if err != nil {
 		return nil, err
 	}
@@ -12265,6 +12261,7 @@ func (c *AccountsContainersWorkspacesTransformationsUpdateCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12299,9 +12296,11 @@ func (c *AccountsContainersWorkspacesTransformationsUpdateCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.transformations.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12316,8 +12315,7 @@ type AccountsContainersWorkspacesTriggersCreateCall struct {
 
 // Create: Creates a GTM Trigger.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesTriggersService) Create(parent string, trigger *Trigger) *AccountsContainersWorkspacesTriggersCreateCall {
 	c := &AccountsContainersWorkspacesTriggersCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -12350,8 +12348,7 @@ func (c *AccountsContainersWorkspacesTriggersCreateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTriggersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.trigger)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.trigger)
 	if err != nil {
 		return nil, err
 	}
@@ -12367,6 +12364,7 @@ func (c *AccountsContainersWorkspacesTriggersCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12401,9 +12399,11 @@ func (c *AccountsContainersWorkspacesTriggersCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12417,9 +12417,7 @@ type AccountsContainersWorkspacesTriggersDeleteCall struct {
 
 // Delete: Deletes a GTM Trigger.
 //
-//   - path: GTM Trigger's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     riggers/{trigger_id}.
+// - path: GTM Trigger's API relative path.
 func (r *AccountsContainersWorkspacesTriggersService) Delete(path string) *AccountsContainersWorkspacesTriggersDeleteCall {
 	c := &AccountsContainersWorkspacesTriggersDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -12451,12 +12449,11 @@ func (c *AccountsContainersWorkspacesTriggersDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTriggersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12464,6 +12461,7 @@ func (c *AccountsContainersWorkspacesTriggersDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12478,6 +12476,7 @@ func (c *AccountsContainersWorkspacesTriggersDeleteCall) Do(opts ...googleapi.Ca
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -12492,9 +12491,7 @@ type AccountsContainersWorkspacesTriggersGetCall struct {
 
 // Get: Gets a GTM Trigger.
 //
-//   - path: GTM Trigger's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     riggers/{trigger_id}.
+// - path: GTM Trigger's API relative path.
 func (r *AccountsContainersWorkspacesTriggersService) Get(path string) *AccountsContainersWorkspacesTriggersGetCall {
 	c := &AccountsContainersWorkspacesTriggersGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -12537,12 +12534,11 @@ func (c *AccountsContainersWorkspacesTriggersGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12550,6 +12546,7 @@ func (c *AccountsContainersWorkspacesTriggersGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12584,9 +12581,11 @@ func (c *AccountsContainersWorkspacesTriggersGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12601,8 +12600,7 @@ type AccountsContainersWorkspacesTriggersListCall struct {
 
 // List: Lists all GTM Triggers of a Container.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesTriggersService) List(parent string) *AccountsContainersWorkspacesTriggersListCall {
 	c := &AccountsContainersWorkspacesTriggersListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -12652,12 +12650,11 @@ func (c *AccountsContainersWorkspacesTriggersListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/triggers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12665,6 +12662,7 @@ func (c *AccountsContainersWorkspacesTriggersListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12700,9 +12698,11 @@ func (c *AccountsContainersWorkspacesTriggersListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12737,9 +12737,7 @@ type AccountsContainersWorkspacesTriggersRevertCall struct {
 
 // Revert: Reverts changes to a GTM Trigger in a GTM Workspace.
 //
-//   - path: GTM Trigger's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     riggers/{trigger_id}.
+// - path: GTM Trigger's API relative path.
 func (r *AccountsContainersWorkspacesTriggersService) Revert(path string) *AccountsContainersWorkspacesTriggersRevertCall {
 	c := &AccountsContainersWorkspacesTriggersRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -12778,12 +12776,11 @@ func (c *AccountsContainersWorkspacesTriggersRevertCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTriggersRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12791,6 +12788,7 @@ func (c *AccountsContainersWorkspacesTriggersRevertCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12826,9 +12824,11 @@ func (c *AccountsContainersWorkspacesTriggersRevertCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12843,9 +12843,7 @@ type AccountsContainersWorkspacesTriggersUpdateCall struct {
 
 // Update: Updates a GTM Trigger.
 //
-//   - path: GTM Trigger's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/t
-//     riggers/{trigger_id}.
+// - path: GTM Trigger's API relative path.
 func (r *AccountsContainersWorkspacesTriggersService) Update(path string, trigger *Trigger) *AccountsContainersWorkspacesTriggersUpdateCall {
 	c := &AccountsContainersWorkspacesTriggersUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -12885,8 +12883,7 @@ func (c *AccountsContainersWorkspacesTriggersUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesTriggersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.trigger)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.trigger)
 	if err != nil {
 		return nil, err
 	}
@@ -12902,6 +12899,7 @@ func (c *AccountsContainersWorkspacesTriggersUpdateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12936,9 +12934,11 @@ func (c *AccountsContainersWorkspacesTriggersUpdateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.triggers.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12953,8 +12953,7 @@ type AccountsContainersWorkspacesVariablesCreateCall struct {
 
 // Create: Creates a GTM Variable.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesVariablesService) Create(parent string, variable *Variable) *AccountsContainersWorkspacesVariablesCreateCall {
 	c := &AccountsContainersWorkspacesVariablesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -12987,8 +12986,7 @@ func (c *AccountsContainersWorkspacesVariablesCreateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesVariablesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variable)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.variable)
 	if err != nil {
 		return nil, err
 	}
@@ -13004,6 +13002,7 @@ func (c *AccountsContainersWorkspacesVariablesCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13038,9 +13037,11 @@ func (c *AccountsContainersWorkspacesVariablesCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13054,9 +13055,7 @@ type AccountsContainersWorkspacesVariablesDeleteCall struct {
 
 // Delete: Deletes a GTM Variable.
 //
-//   - path: GTM Variable's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/v
-//     ariables/{variable_id}.
+// - path: GTM Variable's API relative path.
 func (r *AccountsContainersWorkspacesVariablesService) Delete(path string) *AccountsContainersWorkspacesVariablesDeleteCall {
 	c := &AccountsContainersWorkspacesVariablesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -13088,12 +13087,11 @@ func (c *AccountsContainersWorkspacesVariablesDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesVariablesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13101,6 +13099,7 @@ func (c *AccountsContainersWorkspacesVariablesDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13115,6 +13114,7 @@ func (c *AccountsContainersWorkspacesVariablesDeleteCall) Do(opts ...googleapi.C
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -13129,9 +13129,7 @@ type AccountsContainersWorkspacesVariablesGetCall struct {
 
 // Get: Gets a GTM Variable.
 //
-//   - path: GTM Variable's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/v
-//     ariables/{variable_id}.
+// - path: GTM Variable's API relative path.
 func (r *AccountsContainersWorkspacesVariablesService) Get(path string) *AccountsContainersWorkspacesVariablesGetCall {
 	c := &AccountsContainersWorkspacesVariablesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -13174,12 +13172,11 @@ func (c *AccountsContainersWorkspacesVariablesGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13187,6 +13184,7 @@ func (c *AccountsContainersWorkspacesVariablesGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13221,9 +13219,11 @@ func (c *AccountsContainersWorkspacesVariablesGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13238,8 +13238,7 @@ type AccountsContainersWorkspacesVariablesListCall struct {
 
 // List: Lists all GTM Variables of a Container.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesVariablesService) List(parent string) *AccountsContainersWorkspacesVariablesListCall {
 	c := &AccountsContainersWorkspacesVariablesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -13289,12 +13288,11 @@ func (c *AccountsContainersWorkspacesVariablesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/variables")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13302,6 +13300,7 @@ func (c *AccountsContainersWorkspacesVariablesListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13337,9 +13336,11 @@ func (c *AccountsContainersWorkspacesVariablesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13374,9 +13375,7 @@ type AccountsContainersWorkspacesVariablesRevertCall struct {
 
 // Revert: Reverts changes to a GTM Variable in a GTM Workspace.
 //
-//   - path: GTM Variable's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/v
-//     ariables/{variable_id}.
+// - path: GTM Variable's API relative path.
 func (r *AccountsContainersWorkspacesVariablesService) Revert(path string) *AccountsContainersWorkspacesVariablesRevertCall {
 	c := &AccountsContainersWorkspacesVariablesRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -13415,12 +13414,11 @@ func (c *AccountsContainersWorkspacesVariablesRevertCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesVariablesRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13428,6 +13426,7 @@ func (c *AccountsContainersWorkspacesVariablesRevertCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13463,9 +13462,11 @@ func (c *AccountsContainersWorkspacesVariablesRevertCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13480,9 +13481,7 @@ type AccountsContainersWorkspacesVariablesUpdateCall struct {
 
 // Update: Updates a GTM Variable.
 //
-//   - path: GTM Variable's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/v
-//     ariables/{variable_id}.
+// - path: GTM Variable's API relative path.
 func (r *AccountsContainersWorkspacesVariablesService) Update(path string, variable *Variable) *AccountsContainersWorkspacesVariablesUpdateCall {
 	c := &AccountsContainersWorkspacesVariablesUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -13522,8 +13521,7 @@ func (c *AccountsContainersWorkspacesVariablesUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesVariablesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.variable)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.variable)
 	if err != nil {
 		return nil, err
 	}
@@ -13539,6 +13537,7 @@ func (c *AccountsContainersWorkspacesVariablesUpdateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13573,9 +13572,11 @@ func (c *AccountsContainersWorkspacesVariablesUpdateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.variables.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13590,8 +13591,7 @@ type AccountsContainersWorkspacesZonesCreateCall struct {
 
 // Create: Creates a GTM Zone.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesZonesService) Create(parent string, zone *Zone) *AccountsContainersWorkspacesZonesCreateCall {
 	c := &AccountsContainersWorkspacesZonesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -13624,8 +13624,7 @@ func (c *AccountsContainersWorkspacesZonesCreateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesZonesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.zone)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.zone)
 	if err != nil {
 		return nil, err
 	}
@@ -13641,6 +13640,7 @@ func (c *AccountsContainersWorkspacesZonesCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13675,9 +13675,11 @@ func (c *AccountsContainersWorkspacesZonesCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13691,9 +13693,7 @@ type AccountsContainersWorkspacesZonesDeleteCall struct {
 
 // Delete: Deletes a GTM Zone.
 //
-//   - path: GTM Zone's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/z
-//     ones/{zone_id}.
+// - path: GTM Zone's API relative path.
 func (r *AccountsContainersWorkspacesZonesService) Delete(path string) *AccountsContainersWorkspacesZonesDeleteCall {
 	c := &AccountsContainersWorkspacesZonesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -13725,12 +13725,11 @@ func (c *AccountsContainersWorkspacesZonesDeleteCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesZonesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13738,6 +13737,7 @@ func (c *AccountsContainersWorkspacesZonesDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13752,6 +13752,7 @@ func (c *AccountsContainersWorkspacesZonesDeleteCall) Do(opts ...googleapi.CallO
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -13766,9 +13767,7 @@ type AccountsContainersWorkspacesZonesGetCall struct {
 
 // Get: Gets a GTM Zone.
 //
-//   - path: GTM Zone's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/z
-//     ones/{zone_id}.
+// - path: GTM Zone's API relative path.
 func (r *AccountsContainersWorkspacesZonesService) Get(path string) *AccountsContainersWorkspacesZonesGetCall {
 	c := &AccountsContainersWorkspacesZonesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -13811,12 +13810,11 @@ func (c *AccountsContainersWorkspacesZonesGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13824,6 +13822,7 @@ func (c *AccountsContainersWorkspacesZonesGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13858,9 +13857,11 @@ func (c *AccountsContainersWorkspacesZonesGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13875,8 +13876,7 @@ type AccountsContainersWorkspacesZonesListCall struct {
 
 // List: Lists all GTM Zones of a GTM container workspace.
 //
-//   - parent: GTM Workspace's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}.
+// - parent: GTM Workspace's API relative path.
 func (r *AccountsContainersWorkspacesZonesService) List(parent string) *AccountsContainersWorkspacesZonesListCall {
 	c := &AccountsContainersWorkspacesZonesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -13926,12 +13926,11 @@ func (c *AccountsContainersWorkspacesZonesListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/zones")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13939,6 +13938,7 @@ func (c *AccountsContainersWorkspacesZonesListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13974,9 +13974,11 @@ func (c *AccountsContainersWorkspacesZonesListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14011,9 +14013,7 @@ type AccountsContainersWorkspacesZonesRevertCall struct {
 
 // Revert: Reverts changes to a GTM Zone in a GTM Workspace.
 //
-//   - path: GTM Zone's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/z
-//     ones/{zone_id}.
+// - path: GTM Zone's API relative path.
 func (r *AccountsContainersWorkspacesZonesService) Revert(path string) *AccountsContainersWorkspacesZonesRevertCall {
 	c := &AccountsContainersWorkspacesZonesRevertCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -14052,12 +14052,11 @@ func (c *AccountsContainersWorkspacesZonesRevertCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesZonesRevertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}:revert")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14065,6 +14064,7 @@ func (c *AccountsContainersWorkspacesZonesRevertCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.revert", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14100,9 +14100,11 @@ func (c *AccountsContainersWorkspacesZonesRevertCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.revert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14117,9 +14119,7 @@ type AccountsContainersWorkspacesZonesUpdateCall struct {
 
 // Update: Updates a GTM Zone.
 //
-//   - path: GTM Zone's API relative path. Example:
-//     accounts/{account_id}/containers/{container_id}/workspaces/{workspace_id}/z
-//     ones/{zone_id}.
+// - path: GTM Zone's API relative path.
 func (r *AccountsContainersWorkspacesZonesService) Update(path string, zone *Zone) *AccountsContainersWorkspacesZonesUpdateCall {
 	c := &AccountsContainersWorkspacesZonesUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -14159,8 +14159,7 @@ func (c *AccountsContainersWorkspacesZonesUpdateCall) Header() http.Header {
 
 func (c *AccountsContainersWorkspacesZonesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.zone)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.zone)
 	if err != nil {
 		return nil, err
 	}
@@ -14176,6 +14175,7 @@ func (c *AccountsContainersWorkspacesZonesUpdateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14210,9 +14210,11 @@ func (c *AccountsContainersWorkspacesZonesUpdateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.containers.workspaces.zones.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14227,7 +14229,7 @@ type AccountsUserPermissionsCreateCall struct {
 
 // Create: Creates a user's Account & Container access.
 //
-// - parent: GTM Account's API relative path. Example: accounts/{account_id}.
+// - parent: GTM Account's API relative path.
 func (r *AccountsUserPermissionsService) Create(parent string, userpermission *UserPermission) *AccountsUserPermissionsCreateCall {
 	c := &AccountsUserPermissionsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -14260,8 +14262,7 @@ func (c *AccountsUserPermissionsCreateCall) Header() http.Header {
 
 func (c *AccountsUserPermissionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userpermission)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userpermission)
 	if err != nil {
 		return nil, err
 	}
@@ -14277,6 +14278,7 @@ func (c *AccountsUserPermissionsCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14311,9 +14313,11 @@ func (c *AccountsUserPermissionsCreateCall) Do(opts ...googleapi.CallOption) (*U
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14328,8 +14332,7 @@ type AccountsUserPermissionsDeleteCall struct {
 // Delete: Removes a user from the account, revoking access to it and all of
 // its containers.
 //
-//   - path: GTM UserPermission's API relative path. Example:
-//     accounts/{account_id}/user_permissions/{user_permission_id}.
+// - path: GTM UserPermission's API relative path.
 func (r *AccountsUserPermissionsService) Delete(path string) *AccountsUserPermissionsDeleteCall {
 	c := &AccountsUserPermissionsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -14361,12 +14364,11 @@ func (c *AccountsUserPermissionsDeleteCall) Header() http.Header {
 
 func (c *AccountsUserPermissionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14374,6 +14376,7 @@ func (c *AccountsUserPermissionsDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14388,6 +14391,7 @@ func (c *AccountsUserPermissionsDeleteCall) Do(opts ...googleapi.CallOption) err
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -14402,8 +14406,7 @@ type AccountsUserPermissionsGetCall struct {
 
 // Get: Gets a user's Account & Container access.
 //
-//   - path: GTM UserPermission's API relative path. Example:
-//     accounts/{account_id}/user_permissions/{user_permission_id}.
+// - path: GTM UserPermission's API relative path.
 func (r *AccountsUserPermissionsService) Get(path string) *AccountsUserPermissionsGetCall {
 	c := &AccountsUserPermissionsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -14446,12 +14449,11 @@ func (c *AccountsUserPermissionsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+path}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14459,6 +14461,7 @@ func (c *AccountsUserPermissionsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14493,9 +14496,11 @@ func (c *AccountsUserPermissionsGetCall) Do(opts ...googleapi.CallOption) (*User
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14511,7 +14516,7 @@ type AccountsUserPermissionsListCall struct {
 // List: List all users that have access to the account along with Account and
 // Container user access granted to each of them.
 //
-// - parent: GTM Account's API relative path. Example: accounts/{account_id}.
+// - parent: GTM Account's API relative path.
 func (r *AccountsUserPermissionsService) List(parent string) *AccountsUserPermissionsListCall {
 	c := &AccountsUserPermissionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -14561,12 +14566,11 @@ func (c *AccountsUserPermissionsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "tagmanager/v2/{+parent}/user_permissions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14574,6 +14578,7 @@ func (c *AccountsUserPermissionsListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14609,9 +14614,11 @@ func (c *AccountsUserPermissionsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14647,8 +14654,7 @@ type AccountsUserPermissionsUpdateCall struct {
 
 // Update: Updates a user's Account & Container access.
 //
-//   - path: GTM UserPermission's API relative path. Example:
-//     accounts/{account_id}/user_permissions/{user_permission_id}.
+// - path: GTM UserPermission's API relative path.
 func (r *AccountsUserPermissionsService) Update(path string, userpermission *UserPermission) *AccountsUserPermissionsUpdateCall {
 	c := &AccountsUserPermissionsUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.path = path
@@ -14681,8 +14687,7 @@ func (c *AccountsUserPermissionsUpdateCall) Header() http.Header {
 
 func (c *AccountsUserPermissionsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userpermission)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userpermission)
 	if err != nil {
 		return nil, err
 	}
@@ -14698,6 +14703,7 @@ func (c *AccountsUserPermissionsUpdateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"path": c.path,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14732,8 +14738,10 @@ func (c *AccountsUserPermissionsUpdateCall) Do(opts ...googleapi.CallOption) (*U
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "tagmanager.accounts.user_permissions.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

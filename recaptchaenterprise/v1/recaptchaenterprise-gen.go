@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "recaptchaenterprise:v1"
 const apiName = "recaptchaenterprise"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -266,9 +269,9 @@ type GoogleCloudRecaptchaenterpriseV1AccountDefenderAssessment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1AccountDefenderAssessment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1AccountDefenderAssessment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1AccountDefenderAssessment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo: Information about
@@ -321,9 +324,39 @@ type GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudRecaptchaenterpriseV1AddIpOverrideRequest: The AddIpOverride
+// request message.
+type GoogleCloudRecaptchaenterpriseV1AddIpOverrideRequest struct {
+	// IpOverrideData: Required. IP override added to the key.
+	IpOverrideData *GoogleCloudRecaptchaenterpriseV1IpOverrideData `json:"ipOverrideData,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "IpOverrideData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IpOverrideData") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudRecaptchaenterpriseV1AddIpOverrideRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudRecaptchaenterpriseV1AddIpOverrideRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudRecaptchaenterpriseV1AddIpOverrideResponse: Response for
+// AddIpOverride.
+type GoogleCloudRecaptchaenterpriseV1AddIpOverrideResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // GoogleCloudRecaptchaenterpriseV1AndroidKeySettings: Settings specific to
@@ -352,9 +385,9 @@ type GoogleCloudRecaptchaenterpriseV1AndroidKeySettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1AndroidKeySettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1AndroidKeySettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1AndroidKeySettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentRequest: The request
@@ -365,9 +398,9 @@ type GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentRequest struct {
 	// example when a stable account identifier is not yet known in the initial
 	// request.
 	AccountId string `json:"accountId,omitempty"`
-	// Annotation: Optional. The annotation that will be assigned to the Event.
-	// This field can be left empty to provide reasons that apply to an event
-	// without concluding whether the event is legitimate or fraudulent.
+	// Annotation: Optional. The annotation that is assigned to the Event. This
+	// field can be left empty to provide reasons that apply to an event without
+	// concluding whether the event is legitimate or fraudulent.
 	//
 	// Possible values:
 	//   "ANNOTATION_UNSPECIFIED" - Default unspecified type.
@@ -391,7 +424,7 @@ type GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentRequest struct {
 	// event.
 	//
 	// Possible values:
-	//   "REASON_UNSPECIFIED" - Default unspecified reason.
+	//   "REASON_UNSPECIFIED" - Unspecified reason. Do not use.
 	//   "CHARGEBACK" - Indicates that the transaction had a chargeback issued with
 	// no other details. When possible, specify the type by using CHARGEBACK_FRAUD
 	// or CHARGEBACK_DISPUTE instead.
@@ -443,9 +476,9 @@ type GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentResponse: Empty response
@@ -480,9 +513,9 @@ type GoogleCloudRecaptchaenterpriseV1AppleDeveloperId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1AppleDeveloperId) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1AppleDeveloperId) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1AppleDeveloperId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1Assessment: A reCAPTCHA Enterprise
@@ -495,6 +528,10 @@ type GoogleCloudRecaptchaenterpriseV1Assessment struct {
 	// verification. The assessment event must include a token and site key to use
 	// this feature.
 	AccountVerification *GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo `json:"accountVerification,omitempty"`
+	// AssessmentEnvironment: Optional. The environment creating the assessment.
+	// This describes your environment (the system invoking CreateAssessment), NOT
+	// the environment of your user.
+	AssessmentEnvironment *GoogleCloudRecaptchaenterpriseV1AssessmentEnvironment `json:"assessmentEnvironment,omitempty"`
 	// Event: Optional. The event being assessed.
 	Event *GoogleCloudRecaptchaenterpriseV1Event `json:"event,omitempty"`
 	// FirewallPolicyAssessment: Output only. Assessment returned when firewall
@@ -539,9 +576,41 @@ type GoogleCloudRecaptchaenterpriseV1Assessment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1Assessment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1Assessment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1Assessment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudRecaptchaenterpriseV1AssessmentEnvironment: The environment
+// creating the assessment. This describes your environment (the system
+// invoking CreateAssessment), NOT the environment of your user.
+type GoogleCloudRecaptchaenterpriseV1AssessmentEnvironment struct {
+	// Client: Optional. Identifies the client module initiating the
+	// CreateAssessment request. This can be the link to the client module's
+	// project. Examples include: -
+	// "github.com/GoogleCloudPlatform/recaptcha-enterprise-google-tag-manager" -
+	// "cloud.google.com/recaptcha/docs/implement-waf-akamai" -
+	// "cloud.google.com/recaptcha/docs/implement-waf-cloudflare" -
+	// "wordpress.org/plugins/recaptcha-something"
+	Client string `json:"client,omitempty"`
+	// Version: Optional. The version of the client module. For example, "1.0.0".
+	Version string `json:"version,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Client") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Client") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudRecaptchaenterpriseV1AssessmentEnvironment) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudRecaptchaenterpriseV1AssessmentEnvironment
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1ChallengeMetrics: Metrics related to
@@ -573,9 +642,9 @@ type GoogleCloudRecaptchaenterpriseV1ChallengeMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1ChallengeMetrics) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1ChallengeMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1ChallengeMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1EndpointVerificationInfo: Information about
@@ -605,9 +674,9 @@ type GoogleCloudRecaptchaenterpriseV1EndpointVerificationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1EndpointVerificationInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1EndpointVerificationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1EndpointVerificationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1Event: The event being assessed.
@@ -617,25 +686,22 @@ type GoogleCloudRecaptchaenterpriseV1Event struct {
 	// platforms already integrated with recaptcha enterprise.
 	ExpectedAction string `json:"expectedAction,omitempty"`
 	// Express: Optional. Flag for a reCAPTCHA express request for an assessment
-	// without a token. If enabled, `site_key` must reference a SCORE key with WAF
-	// feature set to EXPRESS.
+	// without a token. If enabled, `site_key` must reference an Express site key.
 	Express bool `json:"express,omitempty"`
 	// FirewallPolicyEvaluation: Optional. Flag for enabling firewall policy config
-	// assessment. If this flag is enabled, the firewall policy will be evaluated
-	// and a suggested firewall action will be returned in the response.
+	// assessment. If this flag is enabled, the firewall policy is evaluated and a
+	// suggested firewall action is returned in the response.
 	FirewallPolicyEvaluation bool `json:"firewallPolicyEvaluation,omitempty"`
 	// FraudPrevention: Optional. The Fraud Prevention setting for this assessment.
 	//
 	// Possible values:
-	//   "FRAUD_PREVENTION_UNSPECIFIED" - Default, unspecified setting. If opted in
-	// for automatic detection, `fraud_prevention_assessment` is returned based on
-	// the request. Otherwise, `fraud_prevention_assessment` is returned if
-	// `transaction_data` is present in the `Event` and Fraud Prevention is enabled
-	// in the Google Cloud console.
+	//   "FRAUD_PREVENTION_UNSPECIFIED" - Default, unspecified setting.
+	// `fraud_prevention_assessment` is returned if `transaction_data` is present
+	// in `Event` and Fraud Prevention is enabled in the Google Cloud console.
 	//   "ENABLED" - Enable Fraud Prevention for this assessment, if Fraud
 	// Prevention is enabled in the Google Cloud console.
 	//   "DISABLED" - Disable Fraud Prevention for this assessment, regardless of
-	// opt-in status or Google Cloud console settings.
+	// the Google Cloud console settings.
 	FraudPrevention string `json:"fraudPrevention,omitempty"`
 	// HashedAccountId: Optional. Deprecated: use `user_info.account_id` instead.
 	// Unique stable hashed user identifier for the request. The identifier must be
@@ -643,8 +709,12 @@ type GoogleCloudRecaptchaenterpriseV1Event struct {
 	HashedAccountId string `json:"hashedAccountId,omitempty"`
 	// Headers: Optional. HTTP header information about the request.
 	Headers []string `json:"headers,omitempty"`
-	// Ja3: Optional. JA3 fingerprint for SSL clients.
+	// Ja3: Optional. JA3 fingerprint for SSL clients. To learn how to compute this
+	// fingerprint, please refer to https://github.com/salesforce/ja3.
 	Ja3 string `json:"ja3,omitempty"`
+	// Ja4: Optional. JA4 fingerprint for SSL clients. To learn how to compute this
+	// fingerprint, please refer to https://github.com/FoxIO-LLC/ja4.
+	Ja4 string `json:"ja4,omitempty"`
 	// RequestedUri: Optional. The URI resource the user requested that triggered
 	// an assessment.
 	RequestedUri string `json:"requestedUri,omitempty"`
@@ -686,9 +756,14 @@ type GoogleCloudRecaptchaenterpriseV1Event struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1Event) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1Event) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1Event
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudRecaptchaenterpriseV1ExpressKeySettings: Settings specific to
+// keys that can be used for reCAPTCHA Express.
+type GoogleCloudRecaptchaenterpriseV1ExpressKeySettings struct {
 }
 
 // GoogleCloudRecaptchaenterpriseV1FirewallAction: An individual action. Each
@@ -697,19 +772,19 @@ type GoogleCloudRecaptchaenterpriseV1FirewallAction struct {
 	// Allow: The user request did not match any policy and should be allowed
 	// access to the requested resource.
 	Allow *GoogleCloudRecaptchaenterpriseV1FirewallActionAllowAction `json:"allow,omitempty"`
-	// Block: This action will deny access to a given page. The user will get an
-	// HTTP error code.
+	// Block: This action denies access to a given page. The user gets an HTTP
+	// error code.
 	Block *GoogleCloudRecaptchaenterpriseV1FirewallActionBlockAction `json:"block,omitempty"`
-	// IncludeRecaptchaScript: This action will inject reCAPTCHA JavaScript code
-	// into the HTML page returned by the site backend.
+	// IncludeRecaptchaScript: This action injects reCAPTCHA JavaScript code into
+	// the HTML page returned by the site backend.
 	IncludeRecaptchaScript *GoogleCloudRecaptchaenterpriseV1FirewallActionIncludeRecaptchaScriptAction `json:"includeRecaptchaScript,omitempty"`
-	// Redirect: This action will redirect the request to a ReCaptcha interstitial
-	// to attach a token.
+	// Redirect: This action redirects the request to a reCAPTCHA interstitial to
+	// attach a token.
 	Redirect *GoogleCloudRecaptchaenterpriseV1FirewallActionRedirectAction `json:"redirect,omitempty"`
-	// SetHeader: This action will set a custom header but allow the request to
+	// SetHeader: This action sets a custom header but allow the request to
 	// continue to the customer backend.
 	SetHeader *GoogleCloudRecaptchaenterpriseV1FirewallActionSetHeaderAction `json:"setHeader,omitempty"`
-	// Substitute: This action will transparently serve a different page to an
+	// Substitute: This action transparently serves a different page to an
 	// offending user.
 	Substitute *GoogleCloudRecaptchaenterpriseV1FirewallActionSubstituteAction `json:"substitute,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Allow") to unconditionally
@@ -725,9 +800,9 @@ type GoogleCloudRecaptchaenterpriseV1FirewallAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FirewallAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FirewallAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FirewallAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1FirewallActionAllowAction: An allow action
@@ -751,7 +826,7 @@ type GoogleCloudRecaptchaenterpriseV1FirewallActionIncludeRecaptchaScriptAction 
 
 // GoogleCloudRecaptchaenterpriseV1FirewallActionRedirectAction: A redirect
 // action returns a 307 (temporary redirect) response, pointing the user to a
-// ReCaptcha interstitial page to attach a token.
+// reCAPTCHA interstitial page to attach a token.
 type GoogleCloudRecaptchaenterpriseV1FirewallActionRedirectAction struct {
 }
 
@@ -777,9 +852,9 @@ type GoogleCloudRecaptchaenterpriseV1FirewallActionSetHeaderAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FirewallActionSetHeaderAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FirewallActionSetHeaderAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FirewallActionSetHeaderAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1FirewallActionSubstituteAction: A substitute
@@ -801,9 +876,9 @@ type GoogleCloudRecaptchaenterpriseV1FirewallActionSubstituteAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FirewallActionSubstituteAction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FirewallActionSubstituteAction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FirewallActionSubstituteAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1FirewallPolicy: A FirewallPolicy represents
@@ -853,20 +928,20 @@ type GoogleCloudRecaptchaenterpriseV1FirewallPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FirewallPolicy) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FirewallPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FirewallPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment: Policy config
 // assessment.
 type GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment struct {
-	// Error: Output only. If the processing of a policy config fails, an error
-	// will be populated and the firewall_policy will be left empty.
+	// Error: Output only. If the processing of a policy config fails, an error is
+	// populated and the firewall_policy is left empty.
 	Error *GoogleRpcStatus `json:"error,omitempty"`
 	// FirewallPolicy: Output only. The policy that matched the request. If more
 	// than one policy may match, this is the first match. If no policy matches the
-	// incoming request, the policy field will be left empty.
+	// incoming request, the policy field is left empty.
 	FirewallPolicy *GoogleCloudRecaptchaenterpriseV1FirewallPolicy `json:"firewallPolicy,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Error") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -881,9 +956,9 @@ type GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment: Assessment for
@@ -915,9 +990,9 @@ type GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment) UnmarshalJSON(data []byte) error {
@@ -954,9 +1029,9 @@ type GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentBehavioralTrustVer
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentBehavioralTrustVerdict) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentBehavioralTrustVerdict) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentBehavioralTrustVerdict
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentBehavioralTrustVerdict) UnmarshalJSON(data []byte) error {
@@ -993,9 +1068,9 @@ type GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentCardTestingVerdict
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentCardTestingVerdict) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentCardTestingVerdict) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentCardTestingVerdict
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentCardTestingVerdict) UnmarshalJSON(data []byte) error {
@@ -1032,9 +1107,9 @@ type GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentStolenInstrumentVe
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentStolenInstrumentVerdict) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentStolenInstrumentVerdict) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentStolenInstrumentVerdict
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessmentStolenInstrumentVerdict) UnmarshalJSON(data []byte) error {
@@ -1073,9 +1148,9 @@ type GoogleCloudRecaptchaenterpriseV1FraudSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FraudSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FraudSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FraudSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1FraudSignalsCardSignals: Signals describing
@@ -1105,9 +1180,9 @@ type GoogleCloudRecaptchaenterpriseV1FraudSignalsCardSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FraudSignalsCardSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FraudSignalsCardSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FraudSignalsCardSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1FraudSignalsUserSignals: Signals describing
@@ -1134,9 +1209,9 @@ type GoogleCloudRecaptchaenterpriseV1FraudSignalsUserSignals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1FraudSignalsUserSignals) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1FraudSignalsUserSignals) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1FraudSignalsUserSignals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1FraudSignalsUserSignals) UnmarshalJSON(data []byte) error {
@@ -1163,10 +1238,10 @@ type GoogleCloudRecaptchaenterpriseV1IOSKeySettings struct {
 	// Example: 'com.companyname.productname.appname'
 	AllowedBundleIds []string `json:"allowedBundleIds,omitempty"`
 	// AppleDeveloperId: Optional. Apple Developer account details for the app that
-	// is protected by the reCAPTCHA Key. reCAPTCHA Enterprise leverages
-	// platform-specific checks like Apple App Attest and Apple DeviceCheck to
-	// protect your app from abuse. Providing these fields allows reCAPTCHA
-	// Enterprise to get a better assessment of the integrity of your app.
+	// is protected by the reCAPTCHA Key. reCAPTCHA leverages platform-specific
+	// checks like Apple App Attest and Apple DeviceCheck to protect your app from
+	// abuse. Providing these fields allows reCAPTCHA to get a better assessment of
+	// the integrity of your app.
 	AppleDeveloperId *GoogleCloudRecaptchaenterpriseV1AppleDeveloperId `json:"appleDeveloperId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AllowAllBundleIds") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1181,9 +1256,44 @@ type GoogleCloudRecaptchaenterpriseV1IOSKeySettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1IOSKeySettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1IOSKeySettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1IOSKeySettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudRecaptchaenterpriseV1IpOverrideData: Information about the IP or
+// IP range override.
+type GoogleCloudRecaptchaenterpriseV1IpOverrideData struct {
+	// Ip: Required. The IP address to override (can be IPv4, IPv6 or CIDR). The IP
+	// override must be a valid IPv4 or IPv6 address, or a CIDR range. The IP
+	// override must be a public IP address. Example of IPv4: 168.192.5.6 Example
+	// of IPv6: 2001:0000:130F:0000:0000:09C0:876A:130B Example of IPv4 with CIDR:
+	// 168.192.5.0/24 Example of IPv6 with CIDR: 2001:0DB8:1234::/48
+	Ip string `json:"ip,omitempty"`
+	// OverrideType: Required. Describes the type of IP override.
+	//
+	// Possible values:
+	//   "OVERRIDE_TYPE_UNSPECIFIED" - Default override type that indicates this
+	// enum hasn't been specified.
+	//   "ALLOW" - Allowlist the IP address; i.e. give a `risk_analysis.score` of
+	// 0.9 for all valid assessments.
+	OverrideType string `json:"overrideType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Ip") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Ip") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudRecaptchaenterpriseV1IpOverrideData) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudRecaptchaenterpriseV1IpOverrideData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1Key: A key used to identify and configure
@@ -1197,10 +1307,12 @@ type GoogleCloudRecaptchaenterpriseV1Key struct {
 	// DisplayName: Required. Human-readable display name of this key. Modifiable
 	// by user.
 	DisplayName string `json:"displayName,omitempty"`
+	// ExpressSettings: Settings for keys that can be used by reCAPTCHA Express.
+	ExpressSettings *GoogleCloudRecaptchaenterpriseV1ExpressKeySettings `json:"expressSettings,omitempty"`
 	// IosSettings: Settings for keys that can be used by iOS apps.
 	IosSettings *GoogleCloudRecaptchaenterpriseV1IOSKeySettings `json:"iosSettings,omitempty"`
 	// Labels: Optional. See [Creating and managing labels]
-	// (https://cloud.google.com/recaptcha-enterprise/docs/labels).
+	// (https://cloud.google.com/recaptcha/docs/labels).
 	Labels map[string]string `json:"labels,omitempty"`
 	// Name: Identifier. The resource name for the Key in the format
 	// `projects/{project}/keys/{key}`.
@@ -1227,9 +1339,9 @@ type GoogleCloudRecaptchaenterpriseV1Key struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1Key) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1Key) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1Key
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1ListFirewallPoliciesResponse: Response to
@@ -1256,9 +1368,38 @@ type GoogleCloudRecaptchaenterpriseV1ListFirewallPoliciesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1ListFirewallPoliciesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1ListFirewallPoliciesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1ListFirewallPoliciesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse: Response for
+// ListIpOverrides.
+type GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse struct {
+	// IpOverrides: IP Overrides details.
+	IpOverrides []*GoogleCloudRecaptchaenterpriseV1IpOverrideData `json:"ipOverrides,omitempty"`
+	// NextPageToken: Token to retrieve the next page of results. If this field is
+	// empty, no keys remain in the results.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "IpOverrides") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IpOverrides") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1ListKeysResponse: Response to request to
@@ -1285,9 +1426,9 @@ type GoogleCloudRecaptchaenterpriseV1ListKeysResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1ListKeysResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1ListKeysResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1ListKeysResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupMembershipsResponse:
@@ -1314,9 +1455,9 @@ type GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupMembershipsResponse 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupMembershipsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupMembershipsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupMembershipsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupsResponse: The
@@ -1343,24 +1484,25 @@ type GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1ListRelatedAccountGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1Metrics: Metrics for a single Key.
 type GoogleCloudRecaptchaenterpriseV1Metrics struct {
-	// ChallengeMetrics: Metrics will be continuous and in order by dates, and in
-	// the granularity of day. Only challenge-based keys (CHECKBOX, INVISIBLE),
-	// will have challenge-based data.
+	// ChallengeMetrics: Metrics are continuous and in order by dates, and in the
+	// granularity of day. Only challenge-based keys (CHECKBOX, INVISIBLE) have
+	// challenge-based data.
 	ChallengeMetrics []*GoogleCloudRecaptchaenterpriseV1ChallengeMetrics `json:"challengeMetrics,omitempty"`
 	// Name: Output only. Identifier. The name of the metrics, in the format
 	// `projects/{project}/keys/{key}/metrics`.
 	Name string `json:"name,omitempty"`
-	// ScoreMetrics: Metrics will be continuous and in order by dates, and in the
+	// ScoreMetrics: Metrics are continuous and in order by dates, and in the
 	// granularity of day. All Key types should have score-based data.
 	ScoreMetrics []*GoogleCloudRecaptchaenterpriseV1ScoreMetrics `json:"scoreMetrics,omitempty"`
-	// StartTime: Inclusive start time aligned to a day (UTC).
+	// StartTime: Inclusive start time aligned to a day in the America/Los_Angeles
+	// (Pacific) timezone.
 	StartTime string `json:"startTime,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -1378,9 +1520,9 @@ type GoogleCloudRecaptchaenterpriseV1Metrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1Metrics) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1Metrics) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1Metrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1MigrateKeyRequest: The migrate key request
@@ -1389,11 +1531,11 @@ type GoogleCloudRecaptchaenterpriseV1MigrateKeyRequest struct {
 	// SkipBillingCheck: Optional. If true, skips the billing check. A reCAPTCHA
 	// Enterprise key or migrated key behaves differently than a reCAPTCHA
 	// (non-Enterprise version) key when you reach a quota limit (see
-	// https://cloud.google.com/recaptcha-enterprise/quotas#quota_limit). To avoid
-	// any disruption of your usage, we check that a billing account is present. If
+	// https://cloud.google.com/recaptcha/quotas#quota_limit). To avoid any
+	// disruption of your usage, we check that a billing account is present. If
 	// your usage of reCAPTCHA is under the free quota, you can safely skip the
 	// billing check and proceed with the migration. See
-	// https://cloud.google.com/recaptcha-enterprise/docs/billing-information.
+	// https://cloud.google.com/recaptcha/docs/billing-information.
 	SkipBillingCheck bool `json:"skipBillingCheck,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "SkipBillingCheck") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1408,9 +1550,9 @@ type GoogleCloudRecaptchaenterpriseV1MigrateKeyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1MigrateKeyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1MigrateKeyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1MigrateKeyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment: Assessment for Phone
@@ -1432,9 +1574,9 @@ type GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification: Private
@@ -1470,9 +1612,9 @@ type GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1RelatedAccountGroup: A group of related
@@ -1495,9 +1637,9 @@ type GoogleCloudRecaptchaenterpriseV1RelatedAccountGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1RelatedAccountGroup) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1RelatedAccountGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1RelatedAccountGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1RelatedAccountGroupMembership: A membership
@@ -1530,9 +1672,39 @@ type GoogleCloudRecaptchaenterpriseV1RelatedAccountGroupMembership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1RelatedAccountGroupMembership) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1RelatedAccountGroupMembership) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1RelatedAccountGroupMembership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideRequest: The
+// RemoveIpOverride request message.
+type GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideRequest struct {
+	// IpOverrideData: Required. IP override to be removed from the key.
+	IpOverrideData *GoogleCloudRecaptchaenterpriseV1IpOverrideData `json:"ipOverrideData,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "IpOverrideData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "IpOverrideData") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideResponse: Response for
+// RemoveIpOverride.
+type GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // GoogleCloudRecaptchaenterpriseV1ReorderFirewallPoliciesRequest: The reorder
@@ -1555,9 +1727,9 @@ type GoogleCloudRecaptchaenterpriseV1ReorderFirewallPoliciesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1ReorderFirewallPoliciesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1ReorderFirewallPoliciesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1ReorderFirewallPoliciesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1ReorderFirewallPoliciesResponse: The reorder
@@ -1592,14 +1764,24 @@ type GoogleCloudRecaptchaenterpriseV1RetrieveLegacySecretKeyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1RetrieveLegacySecretKeyResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1RetrieveLegacySecretKeyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1RetrieveLegacySecretKeyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1RiskAnalysis: Risk analysis result for an
 // event.
 type GoogleCloudRecaptchaenterpriseV1RiskAnalysis struct {
+	// Challenge: Output only. Challenge information for SCORE_AND_CHALLENGE and
+	// INVISIBLE keys
+	//
+	// Possible values:
+	//   "CHALLENGE_UNSPECIFIED" - Default unspecified type.
+	//   "NOCAPTCHA" - No challenge was presented for solving.
+	//   "PASSED" - A solution was submitted that was correct.
+	//   "FAILED" - A solution was submitted that was incorrect or otherwise deemed
+	// suspicious.
+	Challenge string `json:"challenge,omitempty"`
 	// ExtendedVerdictReasons: Output only. Extended verdict reasons to be used for
 	// experimentation only. The set of possible reasons is subject to change.
 	ExtendedVerdictReasons []string `json:"extendedVerdictReasons,omitempty"`
@@ -1625,22 +1807,22 @@ type GoogleCloudRecaptchaenterpriseV1RiskAnalysis struct {
 	// likely legitimate traffic while 0.0 means very likely non-legitimate
 	// traffic).
 	Score float64 `json:"score,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "ExtendedVerdictReasons") to
+	// ForceSendFields is a list of field names (e.g. "Challenge") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ExtendedVerdictReasons") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "Challenge") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1RiskAnalysis) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1RiskAnalysis) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1RiskAnalysis
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1RiskAnalysis) UnmarshalJSON(data []byte) error {
@@ -1676,9 +1858,9 @@ type GoogleCloudRecaptchaenterpriseV1ScoreDistribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1ScoreDistribution) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1ScoreDistribution) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1ScoreDistribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1ScoreMetrics: Metrics related to scoring.
@@ -1701,9 +1883,9 @@ type GoogleCloudRecaptchaenterpriseV1ScoreMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1ScoreMetrics) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1ScoreMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1ScoreMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsRequest:
@@ -1743,9 +1925,9 @@ type GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsRequest
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsResponse:
@@ -1773,9 +1955,9 @@ type GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsRespons
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1SearchRelatedAccountGroupMembershipsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1SmsTollFraudVerdict: Information about SMS
@@ -1803,9 +1985,9 @@ type GoogleCloudRecaptchaenterpriseV1SmsTollFraudVerdict struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1SmsTollFraudVerdict) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1SmsTollFraudVerdict) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1SmsTollFraudVerdict
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1SmsTollFraudVerdict) UnmarshalJSON(data []byte) error {
@@ -1826,7 +2008,7 @@ func (s *GoogleCloudRecaptchaenterpriseV1SmsTollFraudVerdict) UnmarshalJSON(data
 // testing.
 type GoogleCloudRecaptchaenterpriseV1TestingOptions struct {
 	// TestingChallenge: Optional. For challenge-based keys only (CHECKBOX,
-	// INVISIBLE), all challenge requests for this site will return nocaptcha if
+	// INVISIBLE), all challenge requests for this site return nocaptcha if
 	// NOCAPTCHA, or an unsolvable challenge if CHALLENGE.
 	//
 	// Possible values:
@@ -1837,9 +2019,8 @@ type GoogleCloudRecaptchaenterpriseV1TestingOptions struct {
 	//   "UNSOLVABLE_CHALLENGE" - Challenge requests for this key always return an
 	// unsolvable challenge.
 	TestingChallenge string `json:"testingChallenge,omitempty"`
-	// TestingScore: Optional. All assessments for this Key will return this score.
-	// Must be between 0 (likely not legitimate) and 1 (likely legitimate)
-	// inclusive.
+	// TestingScore: Optional. All assessments for this Key return this score. Must
+	// be between 0 (likely not legitimate) and 1 (likely legitimate) inclusive.
 	TestingScore float64 `json:"testingScore,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "TestingChallenge") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1854,9 +2035,9 @@ type GoogleCloudRecaptchaenterpriseV1TestingOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1TestingOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1TestingOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1TestingOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1TestingOptions) UnmarshalJSON(data []byte) error {
@@ -1922,9 +2103,9 @@ type GoogleCloudRecaptchaenterpriseV1TokenProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1TokenProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1TokenProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1TokenProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1TransactionData: Transaction data associated
@@ -1983,9 +2164,9 @@ type GoogleCloudRecaptchaenterpriseV1TransactionData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1TransactionData) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1TransactionData) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1TransactionData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1TransactionData) UnmarshalJSON(data []byte) error {
@@ -2036,9 +2217,9 @@ type GoogleCloudRecaptchaenterpriseV1TransactionDataAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1TransactionDataAddress) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1TransactionDataAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1TransactionDataAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1TransactionDataGatewayInfo: Details about
@@ -2069,9 +2250,9 @@ type GoogleCloudRecaptchaenterpriseV1TransactionDataGatewayInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1TransactionDataGatewayInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1TransactionDataGatewayInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1TransactionDataGatewayInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1TransactionDataItem: Line items being
@@ -2100,9 +2281,9 @@ type GoogleCloudRecaptchaenterpriseV1TransactionDataItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1TransactionDataItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1TransactionDataItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1TransactionDataItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1TransactionDataItem) UnmarshalJSON(data []byte) error {
@@ -2151,9 +2332,9 @@ type GoogleCloudRecaptchaenterpriseV1TransactionDataUser struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1TransactionDataUser) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1TransactionDataUser) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1TransactionDataUser
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1TransactionEvent: Describes an event in the
@@ -2248,9 +2429,9 @@ type GoogleCloudRecaptchaenterpriseV1TransactionEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1TransactionEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1TransactionEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1TransactionEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecaptchaenterpriseV1TransactionEvent) UnmarshalJSON(data []byte) error {
@@ -2291,9 +2472,9 @@ type GoogleCloudRecaptchaenterpriseV1UserId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1UserId) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1UserId) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1UserId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1UserInfo: User information associated with a
@@ -2324,9 +2505,9 @@ type GoogleCloudRecaptchaenterpriseV1UserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1UserInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1UserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1UserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1WafSettings: Settings specific to keys that
@@ -2350,6 +2531,7 @@ type GoogleCloudRecaptchaenterpriseV1WafSettings struct {
 	//   "CA" - Cloud Armor
 	//   "FASTLY" - Fastly
 	//   "CLOUDFLARE" - Cloudflare
+	//   "AKAMAI" - Akamai
 	WafService string `json:"wafService,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "WafFeature") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2364,16 +2546,16 @@ type GoogleCloudRecaptchaenterpriseV1WafSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1WafSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1WafSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1WafSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecaptchaenterpriseV1WebKeySettings: Settings specific to keys
 // that can be used by websites.
 type GoogleCloudRecaptchaenterpriseV1WebKeySettings struct {
-	// AllowAllDomains: Optional. If set to true, it means allowed_domains will not
-	// be enforced.
+	// AllowAllDomains: Optional. If set to true, it means allowed_domains are not
+	// enforced.
 	AllowAllDomains bool `json:"allowAllDomains,omitempty"`
 	// AllowAmpTraffic: Optional. If set to true, the key can be used on AMP
 	// (Accelerated Mobile Pages) websites. This is supported only for the SCORE
@@ -2386,7 +2568,8 @@ type GoogleCloudRecaptchaenterpriseV1WebKeySettings struct {
 	AllowedDomains []string `json:"allowedDomains,omitempty"`
 	// ChallengeSecurityPreference: Optional. Settings for the frequency and
 	// difficulty at which this key triggers captcha challenges. This should only
-	// be specified for IntegrationTypes CHECKBOX and INVISIBLE.
+	// be specified for IntegrationTypes CHECKBOX and INVISIBLE and
+	// SCORE_AND_CHALLENGE.
 	//
 	// Possible values:
 	//   "CHALLENGE_SECURITY_PREFERENCE_UNSPECIFIED" - Default type that indicates
@@ -2423,9 +2606,9 @@ type GoogleCloudRecaptchaenterpriseV1WebKeySettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecaptchaenterpriseV1WebKeySettings) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecaptchaenterpriseV1WebKeySettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecaptchaenterpriseV1WebKeySettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -2467,9 +2650,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsAssessmentsAnnotateCall struct {
@@ -2518,8 +2701,7 @@ func (c *ProjectsAssessmentsAnnotateCall) Header() http.Header {
 
 func (c *ProjectsAssessmentsAnnotateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1annotateassessmentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1annotateassessmentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2535,6 +2717,7 @@ func (c *ProjectsAssessmentsAnnotateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.assessments.annotate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2570,9 +2753,11 @@ func (c *ProjectsAssessmentsAnnotateCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.assessments.annotate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2587,8 +2772,8 @@ type ProjectsAssessmentsCreateCall struct {
 
 // Create: Creates an Assessment of the likelihood an event is legitimate.
 //
-//   - parent: The name of the project in which the assessment will be created,
-//     in the format `projects/{project}`.
+//   - parent: The name of the project in which the assessment is created, in the
+//     format `projects/{project}`.
 func (r *ProjectsAssessmentsService) Create(parent string, googlecloudrecaptchaenterprisev1assessment *GoogleCloudRecaptchaenterpriseV1Assessment) *ProjectsAssessmentsCreateCall {
 	c := &ProjectsAssessmentsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -2621,8 +2806,7 @@ func (c *ProjectsAssessmentsCreateCall) Header() http.Header {
 
 func (c *ProjectsAssessmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1assessment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1assessment)
 	if err != nil {
 		return nil, err
 	}
@@ -2638,6 +2822,7 @@ func (c *ProjectsAssessmentsCreateCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.assessments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2673,9 +2858,11 @@ func (c *ProjectsAssessmentsCreateCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.assessments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2692,7 +2879,7 @@ type ProjectsFirewallpoliciesCreateCall struct {
 // reCAPTCHA Enterprise actions can be executed. A project may have a maximum
 // of 1000 policies.
 //
-//   - parent: The name of the project this policy will apply to, in the format
+//   - parent: The name of the project this policy applies to, in the format
 //     `projects/{project}`.
 func (r *ProjectsFirewallpoliciesService) Create(parent string, googlecloudrecaptchaenterprisev1firewallpolicy *GoogleCloudRecaptchaenterpriseV1FirewallPolicy) *ProjectsFirewallpoliciesCreateCall {
 	c := &ProjectsFirewallpoliciesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -2726,8 +2913,7 @@ func (c *ProjectsFirewallpoliciesCreateCall) Header() http.Header {
 
 func (c *ProjectsFirewallpoliciesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1firewallpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1firewallpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -2743,6 +2929,7 @@ func (c *ProjectsFirewallpoliciesCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2778,9 +2965,11 @@ func (c *ProjectsFirewallpoliciesCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2827,12 +3016,11 @@ func (c *ProjectsFirewallpoliciesDeleteCall) Header() http.Header {
 
 func (c *ProjectsFirewallpoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2840,6 +3028,7 @@ func (c *ProjectsFirewallpoliciesDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2875,9 +3064,11 @@ func (c *ProjectsFirewallpoliciesDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2936,12 +3127,11 @@ func (c *ProjectsFirewallpoliciesGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2949,6 +3139,7 @@ func (c *ProjectsFirewallpoliciesGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2984,9 +3175,11 @@ func (c *ProjectsFirewallpoliciesGetCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3059,12 +3252,11 @@ func (c *ProjectsFirewallpoliciesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/firewallpolicies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3072,6 +3264,7 @@ func (c *ProjectsFirewallpoliciesListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3107,9 +3300,11 @@ func (c *ProjectsFirewallpoliciesListCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3156,7 +3351,7 @@ func (r *ProjectsFirewallpoliciesService) Patch(name string, googlecloudrecaptch
 
 // UpdateMask sets the optional parameter "updateMask": The mask to control
 // which fields of the policy get updated. If the mask is not present, all
-// fields will be updated.
+// fields are updated.
 func (c *ProjectsFirewallpoliciesPatchCall) UpdateMask(updateMask string) *ProjectsFirewallpoliciesPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
 	return c
@@ -3187,8 +3382,7 @@ func (c *ProjectsFirewallpoliciesPatchCall) Header() http.Header {
 
 func (c *ProjectsFirewallpoliciesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1firewallpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1firewallpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -3204,6 +3398,7 @@ func (c *ProjectsFirewallpoliciesPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3239,9 +3434,11 @@ func (c *ProjectsFirewallpoliciesPatchCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3290,8 +3487,7 @@ func (c *ProjectsFirewallpoliciesReorderCall) Header() http.Header {
 
 func (c *ProjectsFirewallpoliciesReorderCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1reorderfirewallpoliciesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1reorderfirewallpoliciesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3307,6 +3503,7 @@ func (c *ProjectsFirewallpoliciesReorderCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.reorder", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3342,9 +3539,119 @@ func (c *ProjectsFirewallpoliciesReorderCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.firewallpolicies.reorder", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsKeysAddIpOverrideCall struct {
+	s                                                    *Service
+	name                                                 string
+	googlecloudrecaptchaenterprisev1addipoverriderequest *GoogleCloudRecaptchaenterpriseV1AddIpOverrideRequest
+	urlParams_                                           gensupport.URLParams
+	ctx_                                                 context.Context
+	header_                                              http.Header
+}
+
+// AddIpOverride: Adds an IP override to a key. The following restrictions
+// hold: * The maximum number of IP overrides per key is 100. * For any
+// conflict (such as IP already exists or IP part of an existing IP range), an
+// error is returned.
+//
+//   - name: The name of the key to which the IP override is added, in the format
+//     `projects/{project}/keys/{key}`.
+func (r *ProjectsKeysService) AddIpOverride(name string, googlecloudrecaptchaenterprisev1addipoverriderequest *GoogleCloudRecaptchaenterpriseV1AddIpOverrideRequest) *ProjectsKeysAddIpOverrideCall {
+	c := &ProjectsKeysAddIpOverrideCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googlecloudrecaptchaenterprisev1addipoverriderequest = googlecloudrecaptchaenterprisev1addipoverriderequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsKeysAddIpOverrideCall) Fields(s ...googleapi.Field) *ProjectsKeysAddIpOverrideCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsKeysAddIpOverrideCall) Context(ctx context.Context) *ProjectsKeysAddIpOverrideCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsKeysAddIpOverrideCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsKeysAddIpOverrideCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1addipoverriderequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:addIpOverride")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.addIpOverride", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "recaptchaenterprise.projects.keys.addIpOverride" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudRecaptchaenterpriseV1AddIpOverrideResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsKeysAddIpOverrideCall) Do(opts ...googleapi.CallOption) (*GoogleCloudRecaptchaenterpriseV1AddIpOverrideResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudRecaptchaenterpriseV1AddIpOverrideResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.addIpOverride", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3359,8 +3666,8 @@ type ProjectsKeysCreateCall struct {
 
 // Create: Creates a new reCAPTCHA Enterprise key.
 //
-//   - parent: The name of the project in which the key will be created, in the
-//     format `projects/{project}`.
+//   - parent: The name of the project in which the key is created, in the format
+//     `projects/{project}`.
 func (r *ProjectsKeysService) Create(parent string, googlecloudrecaptchaenterprisev1key *GoogleCloudRecaptchaenterpriseV1Key) *ProjectsKeysCreateCall {
 	c := &ProjectsKeysCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -3393,8 +3700,7 @@ func (c *ProjectsKeysCreateCall) Header() http.Header {
 
 func (c *ProjectsKeysCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1key)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1key)
 	if err != nil {
 		return nil, err
 	}
@@ -3410,6 +3716,7 @@ func (c *ProjectsKeysCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3445,9 +3752,11 @@ func (c *ProjectsKeysCreateCall) Do(opts ...googleapi.CallOption) (*GoogleCloudR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3494,12 +3803,11 @@ func (c *ProjectsKeysDeleteCall) Header() http.Header {
 
 func (c *ProjectsKeysDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3507,6 +3815,7 @@ func (c *ProjectsKeysDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3542,9 +3851,11 @@ func (c *ProjectsKeysDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProtob
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3603,12 +3914,11 @@ func (c *ProjectsKeysGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3616,6 +3926,7 @@ func (c *ProjectsKeysGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3651,9 +3962,11 @@ func (c *ProjectsKeysGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloudReca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3713,12 +4026,11 @@ func (c *ProjectsKeysGetMetricsCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3726,6 +4038,7 @@ func (c *ProjectsKeysGetMetricsCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.getMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3761,9 +4074,11 @@ func (c *ProjectsKeysGetMetricsCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.getMetrics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3778,8 +4093,8 @@ type ProjectsKeysListCall struct {
 
 // List: Returns the list of all keys that belong to a project.
 //
-//   - parent: The name of the project that contains the keys that will be
-//     listed, in the format `projects/{project}`.
+//   - parent: The name of the project that contains the keys that is listed, in
+//     the format `projects/{project}`.
 func (r *ProjectsKeysService) List(parent string) *ProjectsKeysListCall {
 	c := &ProjectsKeysListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -3836,12 +4151,11 @@ func (c *ProjectsKeysListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/keys")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3849,6 +4163,7 @@ func (c *ProjectsKeysListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3884,9 +4199,11 @@ func (c *ProjectsKeysListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudRec
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3894,6 +4211,154 @@ func (c *ProjectsKeysListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudRec
 // A non-nil error returned from f will halt the iteration.
 // The provided context supersedes any context provided to the Context method.
 func (c *ProjectsKeysListCall) Pages(ctx context.Context, f func(*GoogleCloudRecaptchaenterpriseV1ListKeysResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsKeysListIpOverridesCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// ListIpOverrides: Lists all IP overrides for a key.
+//
+//   - parent: The parent key for which the IP overrides are listed, in the
+//     format `projects/{project}/keys/{key}`.
+func (r *ProjectsKeysService) ListIpOverrides(parent string) *ProjectsKeysListIpOverridesCall {
+	c := &ProjectsKeysListIpOverridesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// overrides to return. Default is 10. Max limit is 100. If the number of
+// overrides is less than the page_size, all overrides are returned. If the
+// page size is more than 100, it is coerced to 100.
+func (c *ProjectsKeysListIpOverridesCall) PageSize(pageSize int64) *ProjectsKeysListIpOverridesCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The next_page_token value
+// returned from a previous ListIpOverridesRequest, if any.
+func (c *ProjectsKeysListIpOverridesCall) PageToken(pageToken string) *ProjectsKeysListIpOverridesCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsKeysListIpOverridesCall) Fields(s ...googleapi.Field) *ProjectsKeysListIpOverridesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsKeysListIpOverridesCall) IfNoneMatch(entityTag string) *ProjectsKeysListIpOverridesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsKeysListIpOverridesCall) Context(ctx context.Context) *ProjectsKeysListIpOverridesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsKeysListIpOverridesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsKeysListIpOverridesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}:listIpOverrides")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.listIpOverrides", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "recaptchaenterprise.projects.keys.listIpOverrides" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse.ServerResponse.Heade
+// r or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsKeysListIpOverridesCall) Do(opts ...googleapi.CallOption) (*GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.listIpOverrides", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsKeysListIpOverridesCall) Pages(ctx context.Context, f func(*GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse) error) error {
 	c.ctx_ = ctx
 	defer c.PageToken(c.urlParams_.Get("pageToken"))
 	for {
@@ -3960,8 +4425,7 @@ func (c *ProjectsKeysMigrateCall) Header() http.Header {
 
 func (c *ProjectsKeysMigrateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1migratekeyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1migratekeyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3977,6 +4441,7 @@ func (c *ProjectsKeysMigrateCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.migrate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4012,9 +4477,11 @@ func (c *ProjectsKeysMigrateCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.migrate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4040,7 +4507,7 @@ func (r *ProjectsKeysService) Patch(name string, googlecloudrecaptchaenterprisev
 
 // UpdateMask sets the optional parameter "updateMask": The mask to control
 // which fields of the key get updated. If the mask is not present, all fields
-// will be updated.
+// are updated.
 func (c *ProjectsKeysPatchCall) UpdateMask(updateMask string) *ProjectsKeysPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
 	return c
@@ -4071,8 +4538,7 @@ func (c *ProjectsKeysPatchCall) Header() http.Header {
 
 func (c *ProjectsKeysPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1key)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1key)
 	if err != nil {
 		return nil, err
 	}
@@ -4088,6 +4554,7 @@ func (c *ProjectsKeysPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4123,9 +4590,120 @@ func (c *ProjectsKeysPatchCall) Do(opts ...googleapi.CallOption) (*GoogleCloudRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsKeysRemoveIpOverrideCall struct {
+	s                                                       *Service
+	name                                                    string
+	googlecloudrecaptchaenterprisev1removeipoverriderequest *GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideRequest
+	urlParams_                                              gensupport.URLParams
+	ctx_                                                    context.Context
+	header_                                                 http.Header
+}
+
+// RemoveIpOverride: Removes an IP override from a key. The following
+// restrictions hold: * If the IP isn't found in an existing IP override, a
+// `NOT_FOUND` error is returned. * If the IP is found in an existing IP
+// override, but the override type does not match, a `NOT_FOUND` error is
+// returned.
+//
+//   - name: The name of the key from which the IP override is removed, in the
+//     format `projects/{project}/keys/{key}`.
+func (r *ProjectsKeysService) RemoveIpOverride(name string, googlecloudrecaptchaenterprisev1removeipoverriderequest *GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideRequest) *ProjectsKeysRemoveIpOverrideCall {
+	c := &ProjectsKeysRemoveIpOverrideCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googlecloudrecaptchaenterprisev1removeipoverriderequest = googlecloudrecaptchaenterprisev1removeipoverriderequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsKeysRemoveIpOverrideCall) Fields(s ...googleapi.Field) *ProjectsKeysRemoveIpOverrideCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsKeysRemoveIpOverrideCall) Context(ctx context.Context) *ProjectsKeysRemoveIpOverrideCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsKeysRemoveIpOverrideCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsKeysRemoveIpOverrideCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1removeipoverriderequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:removeIpOverride")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.removeIpOverride", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "recaptchaenterprise.projects.keys.removeIpOverride" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideResponse.ServerResponse.Head
+// er or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsKeysRemoveIpOverrideCall) Do(opts ...googleapi.CallOption) (*GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.removeIpOverride", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4186,12 +4764,11 @@ func (c *ProjectsKeysRetrieveLegacySecretKeyCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+key}:retrieveLegacySecretKey")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4199,6 +4776,7 @@ func (c *ProjectsKeysRetrieveLegacySecretKeyCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"key": c.key,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.retrieveLegacySecretKey", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4234,9 +4812,11 @@ func (c *ProjectsKeysRetrieveLegacySecretKeyCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.keys.retrieveLegacySecretKey", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4286,8 +4866,7 @@ func (c *ProjectsRelatedaccountgroupmembershipsSearchCall) Header() http.Header 
 
 func (c *ProjectsRelatedaccountgroupmembershipsSearchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecaptchaenterprisev1searchrelatedaccountgroupmembershipsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecaptchaenterprisev1searchrelatedaccountgroupmembershipsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4303,6 +4882,7 @@ func (c *ProjectsRelatedaccountgroupmembershipsSearchCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"project": c.project,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.relatedaccountgroupmemberships.search", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4338,9 +4918,11 @@ func (c *ProjectsRelatedaccountgroupmembershipsSearchCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.relatedaccountgroupmemberships.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4440,12 +5022,11 @@ func (c *ProjectsRelatedaccountgroupsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/relatedaccountgroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4453,6 +5034,7 @@ func (c *ProjectsRelatedaccountgroupsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.relatedaccountgroups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4488,9 +5070,11 @@ func (c *ProjectsRelatedaccountgroupsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.relatedaccountgroups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4588,12 +5172,11 @@ func (c *ProjectsRelatedaccountgroupsMembershipsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/memberships")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4601,6 +5184,7 @@ func (c *ProjectsRelatedaccountgroupsMembershipsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.relatedaccountgroups.memberships.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4636,9 +5220,11 @@ func (c *ProjectsRelatedaccountgroupsMembershipsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recaptchaenterprise.projects.relatedaccountgroups.memberships.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

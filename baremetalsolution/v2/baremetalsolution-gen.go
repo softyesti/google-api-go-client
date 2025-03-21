@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "baremetalsolution:v2"
 const apiName = "baremetalsolution"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -350,9 +353,9 @@ type AllowedClient struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllowedClient) MarshalJSON() ([]byte, error) {
+func (s AllowedClient) MarshalJSON() ([]byte, error) {
 	type NoMethod AllowedClient
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetachLunRequest: Message for detach specific LUN from an Instance.
@@ -374,9 +377,9 @@ type DetachLunRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetachLunRequest) MarshalJSON() ([]byte, error) {
+func (s DetachLunRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DetachLunRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DisableHyperthreadingRequest: Message requesting to perform disable
@@ -455,9 +458,9 @@ type GoogleCloudBaremetalsolutionV2LogicalInterface struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBaremetalsolutionV2LogicalInterface) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBaremetalsolutionV2LogicalInterface) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBaremetalsolutionV2LogicalInterface
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudBaremetalsolutionV2ServerNetworkTemplateLogicalInterface: Logical
@@ -489,9 +492,9 @@ type GoogleCloudBaremetalsolutionV2ServerNetworkTemplateLogicalInterface struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBaremetalsolutionV2ServerNetworkTemplateLogicalInterface) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBaremetalsolutionV2ServerNetworkTemplateLogicalInterface) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBaremetalsolutionV2ServerNetworkTemplateLogicalInterface
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Instance: A server.
@@ -593,9 +596,9 @@ type Instance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Instance) MarshalJSON() ([]byte, error) {
+func (s Instance) MarshalJSON() ([]byte, error) {
 	type NoMethod Instance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceConfig: Configuration parameters for a new instance.
@@ -661,9 +664,9 @@ type InstanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceConfig) MarshalJSON() ([]byte, error) {
+func (s InstanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceQuota: A resource budget.
@@ -692,9 +695,9 @@ type InstanceQuota struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceQuota) MarshalJSON() ([]byte, error) {
+func (s InstanceQuota) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceQuota
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntakeVlanAttachment: A GCP vlan attachment.
@@ -716,9 +719,9 @@ type IntakeVlanAttachment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntakeVlanAttachment) MarshalJSON() ([]byte, error) {
+func (s IntakeVlanAttachment) MarshalJSON() ([]byte, error) {
 	type NoMethod IntakeVlanAttachment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInstancesResponse: Response message for the list of servers.
@@ -745,9 +748,9 @@ type ListInstancesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInstancesResponse) MarshalJSON() ([]byte, error) {
+func (s ListInstancesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInstancesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -773,9 +776,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLunsResponse: Response message containing the list of storage volume
@@ -803,9 +806,9 @@ type ListLunsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLunsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLunsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLunsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListNetworkUsageResponse: Response with Networks with IPs
@@ -828,9 +831,9 @@ type ListNetworkUsageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListNetworkUsageResponse) MarshalJSON() ([]byte, error) {
+func (s ListNetworkUsageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListNetworkUsageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListNetworksResponse: Response message containing the list of networks.
@@ -857,9 +860,9 @@ type ListNetworksResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListNetworksResponse) MarshalJSON() ([]byte, error) {
+func (s ListNetworksResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListNetworksResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListNfsSharesResponse: Response message containing the list of NFS shares.
@@ -886,9 +889,9 @@ type ListNfsSharesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListNfsSharesResponse) MarshalJSON() ([]byte, error) {
+func (s ListNfsSharesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListNfsSharesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOSImagesResponse: Request for getting all available OS images.
@@ -914,9 +917,9 @@ type ListOSImagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOSImagesResponse) MarshalJSON() ([]byte, error) {
+func (s ListOSImagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOSImagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListProvisioningQuotasResponse: Response message for the list of
@@ -943,9 +946,9 @@ type ListProvisioningQuotasResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListProvisioningQuotasResponse) MarshalJSON() ([]byte, error) {
+func (s ListProvisioningQuotasResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListProvisioningQuotasResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSSHKeysResponse: Message for response of ListSSHKeys.
@@ -971,9 +974,9 @@ type ListSSHKeysResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSSHKeysResponse) MarshalJSON() ([]byte, error) {
+func (s ListSSHKeysResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSSHKeysResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVolumeSnapshotsResponse: Response message containing the list of volume
@@ -1001,9 +1004,9 @@ type ListVolumeSnapshotsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVolumeSnapshotsResponse) MarshalJSON() ([]byte, error) {
+func (s ListVolumeSnapshotsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVolumeSnapshotsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVolumesResponse: Response message containing the list of storage
@@ -1031,9 +1034,9 @@ type ListVolumesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVolumesResponse) MarshalJSON() ([]byte, error) {
+func (s ListVolumesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVolumesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoadInstanceAuthInfoResponse: Response for LoadInstanceAuthInfo.
@@ -1058,9 +1061,9 @@ type LoadInstanceAuthInfoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoadInstanceAuthInfoResponse) MarshalJSON() ([]byte, error) {
+func (s LoadInstanceAuthInfoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LoadInstanceAuthInfoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -1096,9 +1099,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LogicalNetworkInterface: Each logical network interface is effectively a
@@ -1134,9 +1137,9 @@ type LogicalNetworkInterface struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LogicalNetworkInterface) MarshalJSON() ([]byte, error) {
+func (s LogicalNetworkInterface) MarshalJSON() ([]byte, error) {
 	type NoMethod LogicalNetworkInterface
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Lun: A storage volume logical unit number (LUN).
@@ -1202,9 +1205,9 @@ type Lun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Lun) MarshalJSON() ([]byte, error) {
+func (s Lun) MarshalJSON() ([]byte, error) {
 	type NoMethod Lun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LunRange: A LUN(Logical Unit Number) range.
@@ -1226,9 +1229,9 @@ type LunRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LunRange) MarshalJSON() ([]byte, error) {
+func (s LunRange) MarshalJSON() ([]byte, error) {
 	type NoMethod LunRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Network: A Network.
@@ -1305,9 +1308,9 @@ type Network struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Network) MarshalJSON() ([]byte, error) {
+func (s Network) MarshalJSON() ([]byte, error) {
 	type NoMethod Network
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkAddress: A network.
@@ -1332,9 +1335,9 @@ type NetworkAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkAddress) MarshalJSON() ([]byte, error) {
+func (s NetworkAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkAddressReservation: A reservation of one or more addresses in a
@@ -1363,9 +1366,9 @@ type NetworkAddressReservation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkAddressReservation) MarshalJSON() ([]byte, error) {
+func (s NetworkAddressReservation) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkAddressReservation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkConfig: Configuration parameters for a new network.
@@ -1411,11 +1414,16 @@ type NetworkConfig struct {
 	// information for the BMS Ops team .
 	UserNote string `json:"userNote,omitempty"`
 	// VlanAttachments: List of VLAN attachments. As of now there are always 2
-	// attachments, but it is going to change in the future (multi vlan).
+	// attachments, but it is going to change in the future (multi vlan). Use only
+	// one of vlan_attachments or vrf
 	VlanAttachments []*IntakeVlanAttachment `json:"vlanAttachments,omitempty"`
 	// VlanSameProject: Whether the VLAN attachment pair is located in the same
 	// project.
 	VlanSameProject bool `json:"vlanSameProject,omitempty"`
+	// Vrf: Optional. The name of a pre-existing Vrf that the network should be
+	// attached to. Format is `vrfs/{vrf}`. If vrf is specified, vlan_attachments
+	// must be empty.
+	Vrf string `json:"vrf,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Bandwidth") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1429,9 +1437,9 @@ type NetworkConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkConfig) MarshalJSON() ([]byte, error) {
+func (s NetworkConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkMountPoint: Mount point for a network.
@@ -1457,9 +1465,9 @@ type NetworkMountPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkMountPoint) MarshalJSON() ([]byte, error) {
+func (s NetworkMountPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkMountPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkUsage: Network with all used IP addresses.
@@ -1481,9 +1489,9 @@ type NetworkUsage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkUsage) MarshalJSON() ([]byte, error) {
+func (s NetworkUsage) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkUsage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NfsExport: A NFS export entry.
@@ -1523,9 +1531,9 @@ type NfsExport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NfsExport) MarshalJSON() ([]byte, error) {
+func (s NfsExport) MarshalJSON() ([]byte, error) {
 	type NoMethod NfsExport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NfsShare: An NFS share.
@@ -1583,9 +1591,9 @@ type NfsShare struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NfsShare) MarshalJSON() ([]byte, error) {
+func (s NfsShare) MarshalJSON() ([]byte, error) {
 	type NoMethod NfsShare
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OSImage: Operation System image.
@@ -1619,9 +1627,9 @@ type OSImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OSImage) MarshalJSON() ([]byte, error) {
+func (s OSImage) MarshalJSON() ([]byte, error) {
 	type NoMethod OSImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1666,9 +1674,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProvisioningConfig: A provisioning configuration.
@@ -1741,9 +1749,9 @@ type ProvisioningConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProvisioningConfig) MarshalJSON() ([]byte, error) {
+func (s ProvisioningConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ProvisioningConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProvisioningQuota: A provisioning quota for a given project.
@@ -1785,9 +1793,9 @@ type ProvisioningQuota struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProvisioningQuota) MarshalJSON() ([]byte, error) {
+func (s ProvisioningQuota) MarshalJSON() ([]byte, error) {
 	type NoMethod ProvisioningQuota
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QosPolicy: QOS policy parameters.
@@ -1807,9 +1815,9 @@ type QosPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QosPolicy) MarshalJSON() ([]byte, error) {
+func (s QosPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod QosPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *QosPolicy) UnmarshalJSON(data []byte) error {
@@ -1853,9 +1861,9 @@ type ReimageInstanceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReimageInstanceRequest) MarshalJSON() ([]byte, error) {
+func (s ReimageInstanceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReimageInstanceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RenameInstanceRequest: Message requesting rename of a server.
@@ -1875,9 +1883,9 @@ type RenameInstanceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RenameInstanceRequest) MarshalJSON() ([]byte, error) {
+func (s RenameInstanceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RenameInstanceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RenameNetworkRequest: Message requesting rename of a server.
@@ -1897,9 +1905,9 @@ type RenameNetworkRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RenameNetworkRequest) MarshalJSON() ([]byte, error) {
+func (s RenameNetworkRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RenameNetworkRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RenameNfsShareRequest: Message requesting rename of a server.
@@ -1919,9 +1927,9 @@ type RenameNfsShareRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RenameNfsShareRequest) MarshalJSON() ([]byte, error) {
+func (s RenameNfsShareRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RenameNfsShareRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RenameVolumeRequest: Message requesting rename of a server.
@@ -1941,9 +1949,9 @@ type RenameVolumeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RenameVolumeRequest) MarshalJSON() ([]byte, error) {
+func (s RenameVolumeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RenameVolumeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResetInstanceRequest: Message requesting to reset a server.
@@ -1971,9 +1979,9 @@ type ResizeVolumeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResizeVolumeRequest) MarshalJSON() ([]byte, error) {
+func (s ResizeVolumeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ResizeVolumeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RestoreVolumeSnapshotRequest: Message for restoring a volume snapshot.
@@ -2005,9 +2013,9 @@ type SSHKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SSHKey) MarshalJSON() ([]byte, error) {
+func (s SSHKey) MarshalJSON() ([]byte, error) {
 	type NoMethod SSHKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServerNetworkTemplate: Network template.
@@ -2035,9 +2043,9 @@ type ServerNetworkTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServerNetworkTemplate) MarshalJSON() ([]byte, error) {
+func (s ServerNetworkTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod ServerNetworkTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SnapshotReservationDetail: Details about snapshot space reservation and
@@ -2072,9 +2080,9 @@ type SnapshotReservationDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SnapshotReservationDetail) MarshalJSON() ([]byte, error) {
+func (s SnapshotReservationDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod SnapshotReservationDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartInstanceRequest: Message requesting to start a server.
@@ -2114,9 +2122,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopInstanceRequest: Message requesting to stop a server.
@@ -2147,9 +2155,9 @@ type SubmitProvisioningConfigRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubmitProvisioningConfigRequest) MarshalJSON() ([]byte, error) {
+func (s SubmitProvisioningConfigRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SubmitProvisioningConfigRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubmitProvisioningConfigResponse: Response for SubmitProvisioningConfig.
@@ -2172,9 +2180,9 @@ type SubmitProvisioningConfigResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubmitProvisioningConfigResponse) MarshalJSON() ([]byte, error) {
+func (s SubmitProvisioningConfigResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SubmitProvisioningConfigResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserAccount: User account provisioned for the customer.
@@ -2196,9 +2204,9 @@ type UserAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserAccount) MarshalJSON() ([]byte, error) {
+func (s UserAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod UserAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VRF: A network VRF.
@@ -2232,9 +2240,9 @@ type VRF struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VRF) MarshalJSON() ([]byte, error) {
+func (s VRF) MarshalJSON() ([]byte, error) {
 	type NoMethod VRF
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VlanAttachment: VLAN attachment details.
@@ -2270,9 +2278,9 @@ type VlanAttachment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VlanAttachment) MarshalJSON() ([]byte, error) {
+func (s VlanAttachment) MarshalJSON() ([]byte, error) {
 	type NoMethod VlanAttachment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Volume: A storage volume.
@@ -2403,9 +2411,9 @@ type Volume struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Volume) MarshalJSON() ([]byte, error) {
+func (s Volume) MarshalJSON() ([]byte, error) {
 	type NoMethod Volume
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeConfig: Configuration parameters for a new volume.
@@ -2470,9 +2478,9 @@ type VolumeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeConfig) MarshalJSON() ([]byte, error) {
+func (s VolumeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeSnapshot: A snapshot of a volume. Only boot volumes can have
@@ -2514,9 +2522,9 @@ type VolumeSnapshot struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSnapshot) MarshalJSON() ([]byte, error) {
+func (s VolumeSnapshot) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSnapshot
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -2573,12 +2581,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2586,6 +2593,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2620,9 +2628,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2704,12 +2714,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2717,6 +2726,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2752,9 +2762,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2823,8 +2835,7 @@ func (c *ProjectsLocationsInstancesDetachLunCall) Header() http.Header {
 
 func (c *ProjectsLocationsInstancesDetachLunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.detachlunrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.detachlunrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2840,6 +2851,7 @@ func (c *ProjectsLocationsInstancesDetachLunCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"instance": c.instance,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.detachLun", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2874,9 +2886,11 @@ func (c *ProjectsLocationsInstancesDetachLunCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.detachLun", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2926,8 +2940,7 @@ func (c *ProjectsLocationsInstancesDisableHyperthreadingCall) Header() http.Head
 
 func (c *ProjectsLocationsInstancesDisableHyperthreadingCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.disablehyperthreadingrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.disablehyperthreadingrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2943,6 +2956,7 @@ func (c *ProjectsLocationsInstancesDisableHyperthreadingCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.disableHyperthreading", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2977,9 +2991,11 @@ func (c *ProjectsLocationsInstancesDisableHyperthreadingCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.disableHyperthreading", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3028,8 +3044,7 @@ func (c *ProjectsLocationsInstancesDisableInteractiveSerialConsoleCall) Header()
 
 func (c *ProjectsLocationsInstancesDisableInteractiveSerialConsoleCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.disableinteractiveserialconsolerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.disableinteractiveserialconsolerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3045,6 +3060,7 @@ func (c *ProjectsLocationsInstancesDisableInteractiveSerialConsoleCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.disableInteractiveSerialConsole", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3079,9 +3095,11 @@ func (c *ProjectsLocationsInstancesDisableInteractiveSerialConsoleCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.disableInteractiveSerialConsole", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3131,8 +3149,7 @@ func (c *ProjectsLocationsInstancesEnableHyperthreadingCall) Header() http.Heade
 
 func (c *ProjectsLocationsInstancesEnableHyperthreadingCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enablehyperthreadingrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.enablehyperthreadingrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3148,6 +3165,7 @@ func (c *ProjectsLocationsInstancesEnableHyperthreadingCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.enableHyperthreading", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3182,9 +3200,11 @@ func (c *ProjectsLocationsInstancesEnableHyperthreadingCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.enableHyperthreading", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3233,8 +3253,7 @@ func (c *ProjectsLocationsInstancesEnableInteractiveSerialConsoleCall) Header() 
 
 func (c *ProjectsLocationsInstancesEnableInteractiveSerialConsoleCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enableinteractiveserialconsolerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.enableinteractiveserialconsolerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3250,6 +3269,7 @@ func (c *ProjectsLocationsInstancesEnableInteractiveSerialConsoleCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.enableInteractiveSerialConsole", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3284,9 +3304,11 @@ func (c *ProjectsLocationsInstancesEnableInteractiveSerialConsoleCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.enableInteractiveSerialConsole", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3344,12 +3366,11 @@ func (c *ProjectsLocationsInstancesGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3357,6 +3378,7 @@ func (c *ProjectsLocationsInstancesGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3391,9 +3413,11 @@ func (c *ProjectsLocationsInstancesGetCall) Do(opts ...googleapi.CallOption) (*I
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3472,12 +3496,11 @@ func (c *ProjectsLocationsInstancesListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/instances")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3485,6 +3508,7 @@ func (c *ProjectsLocationsInstancesListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3520,9 +3544,11 @@ func (c *ProjectsLocationsInstancesListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3601,12 +3627,11 @@ func (c *ProjectsLocationsInstancesLoadAuthInfoCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}:loadAuthInfo")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3614,6 +3639,7 @@ func (c *ProjectsLocationsInstancesLoadAuthInfoCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.loadAuthInfo", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3649,9 +3675,11 @@ func (c *ProjectsLocationsInstancesLoadAuthInfoCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.loadAuthInfo", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3710,8 +3738,7 @@ func (c *ProjectsLocationsInstancesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsInstancesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instance)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.instance)
 	if err != nil {
 		return nil, err
 	}
@@ -3727,6 +3754,7 @@ func (c *ProjectsLocationsInstancesPatchCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3761,9 +3789,11 @@ func (c *ProjectsLocationsInstancesPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3812,8 +3842,7 @@ func (c *ProjectsLocationsInstancesReimageCall) Header() http.Header {
 
 func (c *ProjectsLocationsInstancesReimageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reimageinstancerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reimageinstancerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3829,6 +3858,7 @@ func (c *ProjectsLocationsInstancesReimageCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.reimage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3863,9 +3893,11 @@ func (c *ProjectsLocationsInstancesReimageCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.reimage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3915,8 +3947,7 @@ func (c *ProjectsLocationsInstancesRenameCall) Header() http.Header {
 
 func (c *ProjectsLocationsInstancesRenameCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.renameinstancerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.renameinstancerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3932,6 +3963,7 @@ func (c *ProjectsLocationsInstancesRenameCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.rename", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3966,9 +3998,11 @@ func (c *ProjectsLocationsInstancesRenameCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.rename", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4017,8 +4051,7 @@ func (c *ProjectsLocationsInstancesResetCall) Header() http.Header {
 
 func (c *ProjectsLocationsInstancesResetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resetinstancerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resetinstancerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4034,6 +4067,7 @@ func (c *ProjectsLocationsInstancesResetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.reset", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4068,9 +4102,11 @@ func (c *ProjectsLocationsInstancesResetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.reset", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4118,8 +4154,7 @@ func (c *ProjectsLocationsInstancesStartCall) Header() http.Header {
 
 func (c *ProjectsLocationsInstancesStartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.startinstancerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.startinstancerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4135,6 +4170,7 @@ func (c *ProjectsLocationsInstancesStartCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.start", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4169,9 +4205,11 @@ func (c *ProjectsLocationsInstancesStartCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.start", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4219,8 +4257,7 @@ func (c *ProjectsLocationsInstancesStopCall) Header() http.Header {
 
 func (c *ProjectsLocationsInstancesStopCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.stopinstancerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.stopinstancerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4236,6 +4273,7 @@ func (c *ProjectsLocationsInstancesStopCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.stop", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4270,9 +4308,11 @@ func (c *ProjectsLocationsInstancesStopCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.instances.stop", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4330,12 +4370,11 @@ func (c *ProjectsLocationsNetworksGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4343,6 +4382,7 @@ func (c *ProjectsLocationsNetworksGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4377,9 +4417,11 @@ func (c *ProjectsLocationsNetworksGetCall) Do(opts ...googleapi.CallOption) (*Ne
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4458,12 +4500,11 @@ func (c *ProjectsLocationsNetworksListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/networks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4471,6 +4512,7 @@ func (c *ProjectsLocationsNetworksListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4506,9 +4548,11 @@ func (c *ProjectsLocationsNetworksListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4588,12 +4632,11 @@ func (c *ProjectsLocationsNetworksListNetworkUsageCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+location}/networks:listNetworkUsage")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4601,6 +4644,7 @@ func (c *ProjectsLocationsNetworksListNetworkUsageCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"location": c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.listNetworkUsage", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4636,9 +4680,11 @@ func (c *ProjectsLocationsNetworksListNetworkUsageCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.listNetworkUsage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4697,8 +4743,7 @@ func (c *ProjectsLocationsNetworksPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsNetworksPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.network)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.network)
 	if err != nil {
 		return nil, err
 	}
@@ -4714,6 +4759,7 @@ func (c *ProjectsLocationsNetworksPatchCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4748,9 +4794,11 @@ func (c *ProjectsLocationsNetworksPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4800,8 +4848,7 @@ func (c *ProjectsLocationsNetworksRenameCall) Header() http.Header {
 
 func (c *ProjectsLocationsNetworksRenameCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.renamenetworkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.renamenetworkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4817,6 +4864,7 @@ func (c *ProjectsLocationsNetworksRenameCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.rename", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4851,9 +4899,11 @@ func (c *ProjectsLocationsNetworksRenameCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.networks.rename", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4901,8 +4951,7 @@ func (c *ProjectsLocationsNfsSharesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsNfsSharesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.nfsshare)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.nfsshare)
 	if err != nil {
 		return nil, err
 	}
@@ -4918,6 +4967,7 @@ func (c *ProjectsLocationsNfsSharesCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4952,9 +5002,11 @@ func (c *ProjectsLocationsNfsSharesCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5000,12 +5052,11 @@ func (c *ProjectsLocationsNfsSharesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsNfsSharesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5013,6 +5064,7 @@ func (c *ProjectsLocationsNfsSharesDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5047,9 +5099,11 @@ func (c *ProjectsLocationsNfsSharesDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5107,12 +5161,11 @@ func (c *ProjectsLocationsNfsSharesGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5120,6 +5173,7 @@ func (c *ProjectsLocationsNfsSharesGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5154,9 +5208,11 @@ func (c *ProjectsLocationsNfsSharesGetCall) Do(opts ...googleapi.CallOption) (*N
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5235,12 +5291,11 @@ func (c *ProjectsLocationsNfsSharesListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/nfsShares")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5248,6 +5303,7 @@ func (c *ProjectsLocationsNfsSharesListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5283,9 +5339,11 @@ func (c *ProjectsLocationsNfsSharesListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5361,8 +5419,7 @@ func (c *ProjectsLocationsNfsSharesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsNfsSharesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.nfsshare)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.nfsshare)
 	if err != nil {
 		return nil, err
 	}
@@ -5378,6 +5435,7 @@ func (c *ProjectsLocationsNfsSharesPatchCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5412,9 +5470,11 @@ func (c *ProjectsLocationsNfsSharesPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5464,8 +5524,7 @@ func (c *ProjectsLocationsNfsSharesRenameCall) Header() http.Header {
 
 func (c *ProjectsLocationsNfsSharesRenameCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.renamenfssharerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.renamenfssharerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5481,6 +5540,7 @@ func (c *ProjectsLocationsNfsSharesRenameCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.rename", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5515,9 +5575,11 @@ func (c *ProjectsLocationsNfsSharesRenameCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.nfsShares.rename", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5575,12 +5637,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5588,6 +5649,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5622,9 +5684,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5682,12 +5746,11 @@ func (c *ProjectsLocationsOsImagesGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5695,6 +5758,7 @@ func (c *ProjectsLocationsOsImagesGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.osImages.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5729,9 +5793,11 @@ func (c *ProjectsLocationsOsImagesGetCall) Do(opts ...googleapi.CallOption) (*OS
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.osImages.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5806,12 +5872,11 @@ func (c *ProjectsLocationsOsImagesListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/osImages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5819,6 +5884,7 @@ func (c *ProjectsLocationsOsImagesListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.osImages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5854,9 +5920,11 @@ func (c *ProjectsLocationsOsImagesListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.osImages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5932,8 +6000,7 @@ func (c *ProjectsLocationsProvisioningConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsProvisioningConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.provisioningconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.provisioningconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -5949,6 +6016,7 @@ func (c *ProjectsLocationsProvisioningConfigsCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5984,9 +6052,11 @@ func (c *ProjectsLocationsProvisioningConfigsCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6044,12 +6114,11 @@ func (c *ProjectsLocationsProvisioningConfigsGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6057,6 +6126,7 @@ func (c *ProjectsLocationsProvisioningConfigsGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6092,9 +6162,11 @@ func (c *ProjectsLocationsProvisioningConfigsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6157,8 +6229,7 @@ func (c *ProjectsLocationsProvisioningConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsProvisioningConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.provisioningconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.provisioningconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -6174,6 +6245,7 @@ func (c *ProjectsLocationsProvisioningConfigsPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6209,9 +6281,11 @@ func (c *ProjectsLocationsProvisioningConfigsPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6259,8 +6333,7 @@ func (c *ProjectsLocationsProvisioningConfigsSubmitCall) Header() http.Header {
 
 func (c *ProjectsLocationsProvisioningConfigsSubmitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.submitprovisioningconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.submitprovisioningconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6276,6 +6349,7 @@ func (c *ProjectsLocationsProvisioningConfigsSubmitCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningConfigs.submit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6311,9 +6385,11 @@ func (c *ProjectsLocationsProvisioningConfigsSubmitCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningConfigs.submit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6388,12 +6464,11 @@ func (c *ProjectsLocationsProvisioningQuotasListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/provisioningQuotas")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6401,6 +6476,7 @@ func (c *ProjectsLocationsProvisioningQuotasListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningQuotas.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6436,9 +6512,11 @@ func (c *ProjectsLocationsProvisioningQuotasListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.provisioningQuotas.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6516,8 +6594,7 @@ func (c *ProjectsLocationsSshKeysCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsSshKeysCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sshkey)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sshkey)
 	if err != nil {
 		return nil, err
 	}
@@ -6533,6 +6610,7 @@ func (c *ProjectsLocationsSshKeysCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.sshKeys.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6567,9 +6645,11 @@ func (c *ProjectsLocationsSshKeysCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.sshKeys.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6616,12 +6696,11 @@ func (c *ProjectsLocationsSshKeysDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsSshKeysDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6629,6 +6708,7 @@ func (c *ProjectsLocationsSshKeysDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.sshKeys.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6663,9 +6743,11 @@ func (c *ProjectsLocationsSshKeysDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.sshKeys.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6739,12 +6821,11 @@ func (c *ProjectsLocationsSshKeysListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/sshKeys")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6752,6 +6833,7 @@ func (c *ProjectsLocationsSshKeysListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.sshKeys.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6787,9 +6869,11 @@ func (c *ProjectsLocationsSshKeysListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.sshKeys.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6859,8 +6943,7 @@ func (c *ProjectsLocationsVolumesEvictCall) Header() http.Header {
 
 func (c *ProjectsLocationsVolumesEvictCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.evictvolumerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.evictvolumerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6876,6 +6959,7 @@ func (c *ProjectsLocationsVolumesEvictCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.evict", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6910,9 +6994,11 @@ func (c *ProjectsLocationsVolumesEvictCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.evict", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6970,12 +7056,11 @@ func (c *ProjectsLocationsVolumesGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6983,6 +7068,7 @@ func (c *ProjectsLocationsVolumesGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7017,9 +7103,11 @@ func (c *ProjectsLocationsVolumesGetCall) Do(opts ...googleapi.CallOption) (*Vol
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7098,12 +7186,11 @@ func (c *ProjectsLocationsVolumesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/volumes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7111,6 +7198,7 @@ func (c *ProjectsLocationsVolumesListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7146,9 +7234,11 @@ func (c *ProjectsLocationsVolumesListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7227,8 +7317,7 @@ func (c *ProjectsLocationsVolumesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsVolumesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.volume)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.volume)
 	if err != nil {
 		return nil, err
 	}
@@ -7244,6 +7333,7 @@ func (c *ProjectsLocationsVolumesPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7278,9 +7368,11 @@ func (c *ProjectsLocationsVolumesPatchCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7330,8 +7422,7 @@ func (c *ProjectsLocationsVolumesRenameCall) Header() http.Header {
 
 func (c *ProjectsLocationsVolumesRenameCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.renamevolumerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.renamevolumerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7347,6 +7438,7 @@ func (c *ProjectsLocationsVolumesRenameCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.rename", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7381,9 +7473,11 @@ func (c *ProjectsLocationsVolumesRenameCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.rename", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7431,8 +7525,7 @@ func (c *ProjectsLocationsVolumesResizeCall) Header() http.Header {
 
 func (c *ProjectsLocationsVolumesResizeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resizevolumerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resizevolumerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7448,6 +7541,7 @@ func (c *ProjectsLocationsVolumesResizeCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"volume": c.volume,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.resize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7482,9 +7576,11 @@ func (c *ProjectsLocationsVolumesResizeCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.resize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7532,8 +7628,7 @@ func (c *ProjectsLocationsVolumesLunsEvictCall) Header() http.Header {
 
 func (c *ProjectsLocationsVolumesLunsEvictCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.evictlunrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.evictlunrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7549,6 +7644,7 @@ func (c *ProjectsLocationsVolumesLunsEvictCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.luns.evict", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7583,9 +7679,11 @@ func (c *ProjectsLocationsVolumesLunsEvictCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.luns.evict", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7643,12 +7741,11 @@ func (c *ProjectsLocationsVolumesLunsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7656,6 +7753,7 @@ func (c *ProjectsLocationsVolumesLunsGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.luns.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7690,9 +7788,11 @@ func (c *ProjectsLocationsVolumesLunsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.luns.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7765,12 +7865,11 @@ func (c *ProjectsLocationsVolumesLunsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/luns")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7778,6 +7877,7 @@ func (c *ProjectsLocationsVolumesLunsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.luns.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7813,9 +7913,11 @@ func (c *ProjectsLocationsVolumesLunsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.luns.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7885,8 +7987,7 @@ func (c *ProjectsLocationsVolumesSnapshotsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsVolumesSnapshotsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.volumesnapshot)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.volumesnapshot)
 	if err != nil {
 		return nil, err
 	}
@@ -7902,6 +8003,7 @@ func (c *ProjectsLocationsVolumesSnapshotsCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7936,9 +8038,11 @@ func (c *ProjectsLocationsVolumesSnapshotsCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7985,12 +8089,11 @@ func (c *ProjectsLocationsVolumesSnapshotsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsVolumesSnapshotsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7998,6 +8101,7 @@ func (c *ProjectsLocationsVolumesSnapshotsDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8032,9 +8136,11 @@ func (c *ProjectsLocationsVolumesSnapshotsDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8093,12 +8199,11 @@ func (c *ProjectsLocationsVolumesSnapshotsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8106,6 +8211,7 @@ func (c *ProjectsLocationsVolumesSnapshotsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8140,9 +8246,11 @@ func (c *ProjectsLocationsVolumesSnapshotsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8216,12 +8324,11 @@ func (c *ProjectsLocationsVolumesSnapshotsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/snapshots")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8229,6 +8336,7 @@ func (c *ProjectsLocationsVolumesSnapshotsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8264,9 +8372,11 @@ func (c *ProjectsLocationsVolumesSnapshotsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8337,8 +8447,7 @@ func (c *ProjectsLocationsVolumesSnapshotsRestoreVolumeSnapshotCall) Header() ht
 
 func (c *ProjectsLocationsVolumesSnapshotsRestoreVolumeSnapshotCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.restorevolumesnapshotrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.restorevolumesnapshotrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8354,6 +8463,7 @@ func (c *ProjectsLocationsVolumesSnapshotsRestoreVolumeSnapshotCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"volumeSnapshot": c.volumeSnapshot,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.restoreVolumeSnapshot", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8388,8 +8498,10 @@ func (c *ProjectsLocationsVolumesSnapshotsRestoreVolumeSnapshotCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "baremetalsolution.projects.locations.volumes.snapshots.restoreVolumeSnapshot", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "mybusinessaccountmanagement:v1"
 const apiName = "mybusinessaccountmanagement"
@@ -103,7 +106,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
+	s.Locations = NewLocationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,14 +127,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	s.Locations = NewLocationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -296,9 +299,9 @@ type Account struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Account) MarshalJSON() ([]byte, error) {
+func (s Account) MarshalJSON() ([]byte, error) {
 	type NoMethod Account
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Admin: An administrator of an Account or a location.
@@ -352,9 +355,9 @@ type Admin struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Admin) MarshalJSON() ([]byte, error) {
+func (s Admin) MarshalJSON() ([]byte, error) {
 	type NoMethod Admin
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeclineInvitationRequest: Request message for
@@ -413,9 +416,9 @@ type Invitation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Invitation) MarshalJSON() ([]byte, error) {
+func (s Invitation) MarshalJSON() ([]byte, error) {
 	type NoMethod Invitation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccountAdminsResponse: Response message for
@@ -439,9 +442,9 @@ type ListAccountAdminsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccountAdminsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccountAdminsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccountAdminsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccountsResponse: Response message for Accounts.ListAccounts.
@@ -471,9 +474,9 @@ type ListAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInvitationsResponse: Response message for AccessControl.ListInvitations.
@@ -497,9 +500,9 @@ type ListInvitationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInvitationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListInvitationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInvitationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationAdminsResponse: Response message for
@@ -523,9 +526,9 @@ type ListLocationAdminsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationAdminsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationAdminsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationAdminsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OrganizationInfo: Additional information stored for an organization.
@@ -549,47 +552,48 @@ type OrganizationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OrganizationInfo) MarshalJSON() ([]byte, error) {
+func (s OrganizationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod OrganizationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// PostalAddress: Represents a postal address, e.g. for postal delivery or
-// payments addresses. Given a postal address, a postal service can deliver
+// PostalAddress: Represents a postal address. For example for postal delivery
+// or payments addresses. Given a postal address, a postal service can deliver
 // items to a premise, P.O. Box or similar. It is not intended to model
 // geographical locations (roads, towns, mountains). In typical usage an
-// address would be created via user input or from importing existing data,
+// address would be created by user input or from importing existing data,
 // depending on the type of process. Advice on address input / editing: - Use
 // an internationalization-ready address widget such as
 // https://github.com/google/libaddressinput) - Users should not be presented
 // with UI elements for input or editing of fields outside countries where that
-// field is used. For more guidance on how to use this schema, please see:
+// field is used. For more guidance on how to use this schema, see:
 // https://support.google.com/business/answer/6397478
 type PostalAddress struct {
 	// AddressLines: Unstructured address lines describing the lower levels of an
 	// address. Because values in address_lines do not have type information and
-	// may sometimes contain multiple values in a single field (e.g. "Austin, TX"),
-	// it is important that the line order is clear. The order of address lines
-	// should be "envelope order" for the country/region of the address. In places
-	// where this can vary (e.g. Japan), address_language is used to make it
-	// explicit (e.g. "ja" for large-to-small ordering and "ja-Latn" or "en" for
-	// small-to-large). This way, the most specific line of an address can be
-	// selected based on the language. The minimum permitted structural
-	// representation of an address consists of a region_code with all remaining
-	// information placed in the address_lines. It would be possible to format such
-	// an address very approximately without geocoding, but no semantic reasoning
-	// could be made about any of the address components until it was at least
-	// partially resolved. Creating an address only containing a region_code and
-	// address_lines, and then geocoding is the recommended way to handle
+	// may sometimes contain multiple values in a single field (For example
+	// "Austin, TX"), it is important that the line order is clear. The order of
+	// address lines should be "envelope order" for the country/region of the
+	// address. In places where this can vary (For example Japan), address_language
+	// is used to make it explicit (For example "ja" for large-to-small ordering
+	// and "ja-Latn" or "en" for small-to-large). This way, the most specific line
+	// of an address can be selected based on the language. The minimum permitted
+	// structural representation of an address consists of a region_code with all
+	// remaining information placed in the address_lines. It would be possible to
+	// format such an address very approximately without geocoding, but no semantic
+	// reasoning could be made about any of the address components until it was at
+	// least partially resolved. Creating an address only containing a region_code
+	// and address_lines, and then geocoding is the recommended way to handle
 	// completely unstructured addresses (as opposed to guessing which parts of the
 	// address should be localities or administrative areas).
 	AddressLines []string `json:"addressLines,omitempty"`
 	// AdministrativeArea: Optional. Highest administrative subdivision which is
 	// used for postal addresses of a country or region. For example, this can be a
 	// state, a province, an oblast, or a prefecture. Specifically, for Spain this
-	// is the province and not the autonomous community (e.g. "Barcelona" and not
-	// "Catalonia"). Many countries don't use an administrative area in postal
-	// addresses. E.g. in Switzerland this should be left unpopulated.
+	// is the province and not the autonomous community (For example "Barcelona"
+	// and not "Catalonia"). Many countries don't use an administrative area in
+	// postal addresses. For example in Switzerland this should be left
+	// unpopulated.
 	AdministrativeArea string `json:"administrativeArea,omitempty"`
 	// LanguageCode: Optional. BCP-47 language code of the contents of this address
 	// (if known). This is often the UI language of the input form or is expected
@@ -609,7 +613,7 @@ type PostalAddress struct {
 	Organization string `json:"organization,omitempty"`
 	// PostalCode: Optional. Postal code of the address. Not all countries use or
 	// require postal codes to be present, but where they are used, they may
-	// trigger additional validation with other parts of the address (e.g.
+	// trigger additional validation with other parts of the address (For example
 	// state/zip validation in the U.S.A.).
 	PostalCode string `json:"postalCode,omitempty"`
 	// Recipients: Optional. The recipient at the address. This field may, under
@@ -628,9 +632,10 @@ type PostalAddress struct {
 	Revision int64 `json:"revision,omitempty"`
 	// SortingCode: Optional. Additional, country-specific, sorting code. This is
 	// not used in most regions. Where it is used, the value is either a string
-	// like "CEDEX", optionally followed by a number (e.g. "CEDEX 7"), or just a
-	// number alone, representing the "sector code" (Jamaica), "delivery area
-	// indicator" (Malawi) or "post office indicator" (e.g. Côte d'Ivoire).
+	// like "CEDEX", optionally followed by a number (For example "CEDEX 7"), or
+	// just a number alone, representing the "sector code" (Jamaica), "delivery
+	// area indicator" (Malawi) or "post office indicator" (For example Côte
+	// d'Ivoire).
 	SortingCode string `json:"sortingCode,omitempty"`
 	// Sublocality: Optional. Sublocality of the address. For example, this can be
 	// neighborhoods, boroughs, districts.
@@ -648,9 +653,9 @@ type PostalAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostalAddress) MarshalJSON() ([]byte, error) {
+func (s PostalAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod PostalAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetLocation: Represents a target location for a pending invitation.
@@ -672,9 +677,9 @@ type TargetLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetLocation) MarshalJSON() ([]byte, error) {
+func (s TargetLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferLocationRequest: Request message for AccessControl.TransferLocation.
@@ -695,9 +700,9 @@ type TransferLocationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferLocationRequest) MarshalJSON() ([]byte, error) {
+func (s TransferLocationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferLocationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountsCreateCall struct {
@@ -745,8 +750,7 @@ func (c *AccountsCreateCall) Header() http.Header {
 
 func (c *AccountsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.account)
 	if err != nil {
 		return nil, err
 	}
@@ -759,6 +763,7 @@ func (c *AccountsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -793,9 +798,11 @@ func (c *AccountsCreateCall) Do(opts ...googleapi.CallOption) (*Account, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -854,12 +861,11 @@ func (c *AccountsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -867,6 +873,7 @@ func (c *AccountsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -901,9 +908,11 @@ func (c *AccountsGetCall) Do(opts ...googleapi.CallOption) (*Account, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -996,16 +1005,16 @@ func (c *AccountsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/accounts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1041,9 +1050,11 @@ func (c *AccountsListCall) Do(opts ...googleapi.CallOption) (*ListAccountsRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1127,8 +1138,7 @@ func (c *AccountsPatchCall) Header() http.Header {
 
 func (c *AccountsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.account)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.account)
 	if err != nil {
 		return nil, err
 	}
@@ -1144,6 +1154,7 @@ func (c *AccountsPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1178,9 +1189,11 @@ func (c *AccountsPatchCall) Do(opts ...googleapi.CallOption) (*Account, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1232,8 +1245,7 @@ func (c *AccountsAdminsCreateCall) Header() http.Header {
 
 func (c *AccountsAdminsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.admin)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.admin)
 	if err != nil {
 		return nil, err
 	}
@@ -1249,6 +1261,7 @@ func (c *AccountsAdminsCreateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.admins.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1283,9 +1296,11 @@ func (c *AccountsAdminsCreateCall) Do(opts ...googleapi.CallOption) (*Admin, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.admins.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1332,12 +1347,11 @@ func (c *AccountsAdminsDeleteCall) Header() http.Header {
 
 func (c *AccountsAdminsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1345,6 +1359,7 @@ func (c *AccountsAdminsDeleteCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.admins.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1379,9 +1394,11 @@ func (c *AccountsAdminsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.admins.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1440,12 +1457,11 @@ func (c *AccountsAdminsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/admins")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1453,6 +1469,7 @@ func (c *AccountsAdminsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.admins.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1488,9 +1505,11 @@ func (c *AccountsAdminsListCall) Do(opts ...googleapi.CallOption) (*ListAccountA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.admins.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1548,8 +1567,7 @@ func (c *AccountsAdminsPatchCall) Header() http.Header {
 
 func (c *AccountsAdminsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.admin)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.admin)
 	if err != nil {
 		return nil, err
 	}
@@ -1565,6 +1583,7 @@ func (c *AccountsAdminsPatchCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.admins.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1599,9 +1618,11 @@ func (c *AccountsAdminsPatchCall) Do(opts ...googleapi.CallOption) (*Admin, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.admins.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1650,8 +1671,7 @@ func (c *AccountsInvitationsAcceptCall) Header() http.Header {
 
 func (c *AccountsInvitationsAcceptCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.acceptinvitationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.acceptinvitationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1667,6 +1687,7 @@ func (c *AccountsInvitationsAcceptCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.invitations.accept", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1701,9 +1722,11 @@ func (c *AccountsInvitationsAcceptCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.invitations.accept", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1752,8 +1775,7 @@ func (c *AccountsInvitationsDeclineCall) Header() http.Header {
 
 func (c *AccountsInvitationsDeclineCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.declineinvitationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.declineinvitationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1769,6 +1791,7 @@ func (c *AccountsInvitationsDeclineCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.invitations.decline", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1803,9 +1826,11 @@ func (c *AccountsInvitationsDeclineCall) Do(opts ...googleapi.CallOption) (*Empt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.invitations.decline", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1871,12 +1896,11 @@ func (c *AccountsInvitationsListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/invitations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1884,6 +1908,7 @@ func (c *AccountsInvitationsListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.invitations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1919,9 +1944,11 @@ func (c *AccountsInvitationsListCall) Do(opts ...googleapi.CallOption) (*ListInv
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.accounts.invitations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1972,8 +1999,7 @@ func (c *LocationsTransferCall) Header() http.Header {
 
 func (c *LocationsTransferCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transferlocationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transferlocationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1989,6 +2015,7 @@ func (c *LocationsTransferCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.transfer", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2023,9 +2050,11 @@ func (c *LocationsTransferCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.transfer", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2077,8 +2106,7 @@ func (c *LocationsAdminsCreateCall) Header() http.Header {
 
 func (c *LocationsAdminsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.admin)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.admin)
 	if err != nil {
 		return nil, err
 	}
@@ -2094,6 +2122,7 @@ func (c *LocationsAdminsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.admins.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2128,9 +2157,11 @@ func (c *LocationsAdminsCreateCall) Do(opts ...googleapi.CallOption) (*Admin, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.admins.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2176,12 +2207,11 @@ func (c *LocationsAdminsDeleteCall) Header() http.Header {
 
 func (c *LocationsAdminsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2189,6 +2219,7 @@ func (c *LocationsAdminsDeleteCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.admins.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2223,9 +2254,11 @@ func (c *LocationsAdminsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.admins.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2284,12 +2317,11 @@ func (c *LocationsAdminsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/admins")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2297,6 +2329,7 @@ func (c *LocationsAdminsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.admins.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2332,9 +2365,11 @@ func (c *LocationsAdminsListCall) Do(opts ...googleapi.CallOption) (*ListLocatio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.admins.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2393,8 +2428,7 @@ func (c *LocationsAdminsPatchCall) Header() http.Header {
 
 func (c *LocationsAdminsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.admin)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.admin)
 	if err != nil {
 		return nil, err
 	}
@@ -2410,6 +2444,7 @@ func (c *LocationsAdminsPatchCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.admins.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2444,8 +2479,10 @@ func (c *LocationsAdminsPatchCall) Do(opts ...googleapi.CallOption) (*Admin, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessaccountmanagement.locations.admins.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

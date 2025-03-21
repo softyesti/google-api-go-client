@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "developerconnect:v1"
 const apiName = "developerconnect"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -211,6 +214,94 @@ type ProjectsLocationsOperationsService struct {
 	s *Service
 }
 
+// BitbucketCloudConfig: Configuration for connections to an instance of
+// Bitbucket Cloud.
+type BitbucketCloudConfig struct {
+	// AuthorizerCredential: Required. An access token with the minimum
+	// `repository`, `pullrequest` and `webhook` scope access. It can either be a
+	// workspace, project or repository access token. This is needed to create
+	// webhooks. It's recommended to use a system account to generate these
+	// credentials.
+	AuthorizerCredential *UserCredential `json:"authorizerCredential,omitempty"`
+	// ReadAuthorizerCredential: Required. An access token with the minimum
+	// `repository` access. It can either be a workspace, project or repository
+	// access token. It's recommended to use a system account to generate the
+	// credentials.
+	ReadAuthorizerCredential *UserCredential `json:"readAuthorizerCredential,omitempty"`
+	// WebhookSecretSecretVersion: Required. Immutable. SecretManager resource
+	// containing the webhook secret used to verify webhook events, formatted as
+	// `projects/*/secrets/*/versions/*`. This is used to validate and create
+	// webhooks.
+	WebhookSecretSecretVersion string `json:"webhookSecretSecretVersion,omitempty"`
+	// Workspace: Required. The Bitbucket Cloud Workspace ID to be connected to
+	// Google Cloud Platform.
+	Workspace string `json:"workspace,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AuthorizerCredential") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AuthorizerCredential") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BitbucketCloudConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod BitbucketCloudConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BitbucketDataCenterConfig: Configuration for connections to an instance of
+// Bitbucket Data Center.
+type BitbucketDataCenterConfig struct {
+	// AuthorizerCredential: Required. An http access token with the minimum
+	// `Repository admin` scope access. This is needed to create webhooks. It's
+	// recommended to use a system account to generate these credentials.
+	AuthorizerCredential *UserCredential `json:"authorizerCredential,omitempty"`
+	// HostUri: Required. The URI of the Bitbucket Data Center host this connection
+	// is for.
+	HostUri string `json:"hostUri,omitempty"`
+	// ReadAuthorizerCredential: Required. An http access token with the minimum
+	// `Repository read` access. It's recommended to use a system account to
+	// generate the credentials.
+	ReadAuthorizerCredential *UserCredential `json:"readAuthorizerCredential,omitempty"`
+	// ServerVersion: Output only. Version of the Bitbucket Data Center server
+	// running on the `host_uri`.
+	ServerVersion string `json:"serverVersion,omitempty"`
+	// ServiceDirectoryConfig: Optional. Configuration for using Service Directory
+	// to privately connect to a Bitbucket Data Center instance. This should only
+	// be set if the Bitbucket Data Center is hosted on-premises and not reachable
+	// by public internet. If this field is left empty, calls to the Bitbucket Data
+	// Center will be made over the public internet.
+	ServiceDirectoryConfig *ServiceDirectoryConfig `json:"serviceDirectoryConfig,omitempty"`
+	// SslCaCertificate: Optional. SSL certificate authority to trust when making
+	// requests to Bitbucket Data Center.
+	SslCaCertificate string `json:"sslCaCertificate,omitempty"`
+	// WebhookSecretSecretVersion: Required. Immutable. SecretManager resource
+	// containing the webhook secret used to verify webhook events, formatted as
+	// `projects/*/secrets/*/versions/*`. This is used to validate webhooks.
+	WebhookSecretSecretVersion string `json:"webhookSecretSecretVersion,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AuthorizerCredential") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AuthorizerCredential") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BitbucketDataCenterConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod BitbucketDataCenterConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // CancelOperationRequest: The request message for Operations.CancelOperation.
 type CancelOperationRequest struct {
 }
@@ -220,8 +311,17 @@ type Connection struct {
 	// Annotations: Optional. Allows clients to store small amounts of arbitrary
 	// data.
 	Annotations map[string]string `json:"annotations,omitempty"`
+	// BitbucketCloudConfig: Configuration for connections to an instance of
+	// Bitbucket Clouds.
+	BitbucketCloudConfig *BitbucketCloudConfig `json:"bitbucketCloudConfig,omitempty"`
+	// BitbucketDataCenterConfig: Configuration for connections to an instance of
+	// Bitbucket Data Center.
+	BitbucketDataCenterConfig *BitbucketDataCenterConfig `json:"bitbucketDataCenterConfig,omitempty"`
 	// CreateTime: Output only. [Output only] Create timestamp
 	CreateTime string `json:"createTime,omitempty"`
+	// CryptoKeyConfig: Optional. The crypto key configuration. This field is used
+	// by the Customer-Managed Encryption Keys (CMEK) feature.
+	CryptoKeyConfig *CryptoKeyConfig `json:"cryptoKeyConfig,omitempty"`
 	// DeleteTime: Output only. [Output only] Delete timestamp
 	DeleteTime string `json:"deleteTime,omitempty"`
 	// Disabled: Optional. If disabled is set to true, functionality is disabled
@@ -232,8 +332,20 @@ type Connection struct {
 	// of other fields, and may be sent on update and delete requests to ensure the
 	// client has an up-to-date value before proceeding.
 	Etag string `json:"etag,omitempty"`
+	// GitProxyConfig: Optional. Configuration for the git proxy feature. Enabling
+	// the git proxy allows clients to perform git operations on the repositories
+	// linked in the connection.
+	GitProxyConfig *GitProxyConfig `json:"gitProxyConfig,omitempty"`
 	// GithubConfig: Configuration for connections to github.com.
 	GithubConfig *GitHubConfig `json:"githubConfig,omitempty"`
+	// GithubEnterpriseConfig: Configuration for connections to an instance of
+	// GitHub Enterprise.
+	GithubEnterpriseConfig *GitHubEnterpriseConfig `json:"githubEnterpriseConfig,omitempty"`
+	// GitlabConfig: Configuration for connections to gitlab.com.
+	GitlabConfig *GitLabConfig `json:"gitlabConfig,omitempty"`
+	// GitlabEnterpriseConfig: Configuration for connections to an instance of
+	// GitLab Enterprise.
+	GitlabEnterpriseConfig *GitLabEnterpriseConfig `json:"gitlabEnterpriseConfig,omitempty"`
 	// InstallationState: Output only. Installation state of the Connection.
 	InstallationState *InstallationState `json:"installationState,omitempty"`
 	// Labels: Optional. Labels as key value pairs
@@ -244,8 +356,7 @@ type Connection struct {
 	// Reconciling: Output only. Set to true when the connection is being set up or
 	// updated in the background.
 	Reconciling bool `json:"reconciling,omitempty"`
-	// Uid: Output only. A system-assigned unique identifier for a the
-	// GitRepositoryLink.
+	// Uid: Output only. A system-assigned unique identifier for the Connection.
 	Uid string `json:"uid,omitempty"`
 	// UpdateTime: Output only. [Output only] Update timestamp
 	UpdateTime string `json:"updateTime,omitempty"`
@@ -265,9 +376,34 @@ type Connection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Connection) MarshalJSON() ([]byte, error) {
+func (s Connection) MarshalJSON() ([]byte, error) {
 	type NoMethod Connection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CryptoKeyConfig: The crypto key configuration. This field is used by the
+// Customer-managed encryption keys (CMEK) feature.
+type CryptoKeyConfig struct {
+	// KeyReference: Required. The name of the key which is used to encrypt/decrypt
+	// customer data. For key in Cloud KMS, the key should be in the format of
+	// `projects/*/locations/*/keyRings/*/cryptoKeys/*`.
+	KeyReference string `json:"keyReference,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "KeyReference") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "KeyReference") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CryptoKeyConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod CryptoKeyConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -300,9 +436,9 @@ type FetchGitHubInstallationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchGitHubInstallationsResponse) MarshalJSON() ([]byte, error) {
+func (s FetchGitHubInstallationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchGitHubInstallationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchGitRefsResponse: Response for fetching git refs.
@@ -328,9 +464,9 @@ type FetchGitRefsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchGitRefsResponse) MarshalJSON() ([]byte, error) {
+func (s FetchGitRefsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchGitRefsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchLinkableGitRepositoriesResponse: Response message for
@@ -358,9 +494,9 @@ type FetchLinkableGitRepositoriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchLinkableGitRepositoriesResponse) MarshalJSON() ([]byte, error) {
+func (s FetchLinkableGitRepositoriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchLinkableGitRepositoriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchReadTokenRequest: Message for fetching SCM read token.
@@ -394,9 +530,9 @@ type FetchReadTokenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchReadTokenResponse) MarshalJSON() ([]byte, error) {
+func (s FetchReadTokenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchReadTokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchReadWriteTokenRequest: Message for fetching SCM read/write token.
@@ -430,9 +566,9 @@ type FetchReadWriteTokenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchReadWriteTokenResponse) MarshalJSON() ([]byte, error) {
+func (s FetchReadWriteTokenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchReadWriteTokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GitHubConfig: Configuration for connections to github.com.
@@ -468,9 +604,169 @@ type GitHubConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GitHubConfig) MarshalJSON() ([]byte, error) {
+func (s GitHubConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GitHubConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GitHubEnterpriseConfig: Configuration for connections to an instance of
+// GitHub Enterprise.
+type GitHubEnterpriseConfig struct {
+	// AppId: Optional. ID of the GitHub App created from the manifest.
+	AppId int64 `json:"appId,omitempty,string"`
+	// AppInstallationId: Optional. ID of the installation of the GitHub App.
+	AppInstallationId int64 `json:"appInstallationId,omitempty,string"`
+	// AppSlug: Output only. The URL-friendly name of the GitHub App.
+	AppSlug string `json:"appSlug,omitempty"`
+	// HostUri: Required. The URI of the GitHub Enterprise host this connection is
+	// for.
+	HostUri string `json:"hostUri,omitempty"`
+	// InstallationUri: Output only. The URI to navigate to in order to manage the
+	// installation associated with this GitHubEnterpriseConfig.
+	InstallationUri string `json:"installationUri,omitempty"`
+	// PrivateKeySecretVersion: Optional. SecretManager resource containing the
+	// private key of the GitHub App, formatted as
+	// `projects/*/secrets/*/versions/*`.
+	PrivateKeySecretVersion string `json:"privateKeySecretVersion,omitempty"`
+	// ServerVersion: Output only. GitHub Enterprise version installed at the
+	// host_uri.
+	ServerVersion string `json:"serverVersion,omitempty"`
+	// ServiceDirectoryConfig: Optional. Configuration for using Service Directory
+	// to privately connect to a GitHub Enterprise server. This should only be set
+	// if the GitHub Enterprise server is hosted on-premises and not reachable by
+	// public internet. If this field is left empty, calls to the GitHub Enterprise
+	// server will be made over the public internet.
+	ServiceDirectoryConfig *ServiceDirectoryConfig `json:"serviceDirectoryConfig,omitempty"`
+	// SslCaCertificate: Optional. SSL certificate to use for requests to GitHub
+	// Enterprise.
+	SslCaCertificate string `json:"sslCaCertificate,omitempty"`
+	// WebhookSecretSecretVersion: Optional. SecretManager resource containing the
+	// webhook secret of the GitHub App, formatted as
+	// `projects/*/secrets/*/versions/*`.
+	WebhookSecretSecretVersion string `json:"webhookSecretSecretVersion,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AppId") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AppId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GitHubEnterpriseConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GitHubEnterpriseConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GitLabConfig: Configuration for connections to gitlab.com.
+type GitLabConfig struct {
+	// AuthorizerCredential: Required. A GitLab personal access token with the
+	// minimum `api` scope access and a minimum role of `maintainer`. The GitLab
+	// Projects visible to this Personal Access Token will control which Projects
+	// Developer Connect has access to.
+	AuthorizerCredential *UserCredential `json:"authorizerCredential,omitempty"`
+	// ReadAuthorizerCredential: Required. A GitLab personal access token with the
+	// minimum `read_api` scope access and a minimum role of `reporter`. The GitLab
+	// Projects visible to this Personal Access Token will control which Projects
+	// Developer Connect has access to.
+	ReadAuthorizerCredential *UserCredential `json:"readAuthorizerCredential,omitempty"`
+	// WebhookSecretSecretVersion: Required. Immutable. SecretManager resource
+	// containing the webhook secret of a GitLab project, formatted as
+	// `projects/*/secrets/*/versions/*`. This is used to validate webhooks.
+	WebhookSecretSecretVersion string `json:"webhookSecretSecretVersion,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AuthorizerCredential") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AuthorizerCredential") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GitLabConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GitLabConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GitLabEnterpriseConfig: Configuration for connections to an instance of
+// GitLab Enterprise.
+type GitLabEnterpriseConfig struct {
+	// AuthorizerCredential: Required. A GitLab personal access token with the
+	// minimum `api` scope access and a minimum role of `maintainer`. The GitLab
+	// Projects visible to this Personal Access Token will control which Projects
+	// Developer Connect has access to.
+	AuthorizerCredential *UserCredential `json:"authorizerCredential,omitempty"`
+	// HostUri: Required. The URI of the GitLab Enterprise host this connection is
+	// for.
+	HostUri string `json:"hostUri,omitempty"`
+	// ReadAuthorizerCredential: Required. A GitLab personal access token with the
+	// minimum `read_api` scope access and a minimum role of `reporter`. The GitLab
+	// Projects visible to this Personal Access Token will control which Projects
+	// Developer Connect has access to.
+	ReadAuthorizerCredential *UserCredential `json:"readAuthorizerCredential,omitempty"`
+	// ServerVersion: Output only. Version of the GitLab Enterprise server running
+	// on the `host_uri`.
+	ServerVersion string `json:"serverVersion,omitempty"`
+	// ServiceDirectoryConfig: Optional. Configuration for using Service Directory
+	// to privately connect to a GitLab Enterprise instance. This should only be
+	// set if the GitLab Enterprise server is hosted on-premises and not reachable
+	// by public internet. If this field is left empty, calls to the GitLab
+	// Enterprise server will be made over the public internet.
+	ServiceDirectoryConfig *ServiceDirectoryConfig `json:"serviceDirectoryConfig,omitempty"`
+	// SslCaCertificate: Optional. SSL Certificate Authority certificate to use for
+	// requests to GitLab Enterprise instance.
+	SslCaCertificate string `json:"sslCaCertificate,omitempty"`
+	// WebhookSecretSecretVersion: Required. Immutable. SecretManager resource
+	// containing the webhook secret of a GitLab project, formatted as
+	// `projects/*/secrets/*/versions/*`. This is used to validate webhooks.
+	WebhookSecretSecretVersion string `json:"webhookSecretSecretVersion,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AuthorizerCredential") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AuthorizerCredential") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GitLabEnterpriseConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GitLabEnterpriseConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GitProxyConfig: The git proxy configuration.
+type GitProxyConfig struct {
+	// Enabled: Optional. Setting this to true allows the git proxy to be used for
+	// performing git operations on the repositories linked in the connection.
+	Enabled bool `json:"enabled,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Enabled") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Enabled") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GitProxyConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GitProxyConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GitRepositoryLink: Message describing the GitRepositoryLink object
@@ -488,6 +784,10 @@ type GitRepositoryLink struct {
 	// of other fields, and may be sent on update and delete requests to ensure the
 	// client has an up-to-date value before proceeding.
 	Etag string `json:"etag,omitempty"`
+	// GitProxyUri: Output only. URI to access the linked repository through the
+	// Git Proxy. This field is only populated if the git proxy is enabled for the
+	// connection.
+	GitProxyUri string `json:"gitProxyUri,omitempty"`
 	// Labels: Optional. Labels as key value pairs
 	Labels map[string]string `json:"labels,omitempty"`
 	// Name: Identifier. Resource name of the repository, in the format
@@ -496,11 +796,14 @@ type GitRepositoryLink struct {
 	// Reconciling: Output only. Set to true when the connection is being set up or
 	// updated in the background.
 	Reconciling bool `json:"reconciling,omitempty"`
-	// Uid: Output only. A system-assigned unique identifier for a the
+	// Uid: Output only. A system-assigned unique identifier for the
 	// GitRepositoryLink.
 	Uid string `json:"uid,omitempty"`
 	// UpdateTime: Output only. [Output only] Update timestamp
 	UpdateTime string `json:"updateTime,omitempty"`
+	// WebhookId: Output only. External ID of the webhook created for the
+	// repository.
+	WebhookId string `json:"webhookId,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -517,9 +820,53 @@ type GitRepositoryLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GitRepositoryLink) MarshalJSON() ([]byte, error) {
+func (s GitRepositoryLink) MarshalJSON() ([]byte, error) {
 	type NoMethod GitRepositoryLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// HttpBody: Message that represents an arbitrary HTTP body. It should only be
+// used for payload formats that can't be represented as JSON, such as raw
+// binary or an HTML page. This message can be used both in streaming and
+// non-streaming API methods in the request as well as the response. It can be
+// used as a top-level request field, which is convenient if one wants to
+// extract parameters from either the URL or HTTP template into the request
+// fields and also want access to the raw HTTP body. Example: message
+// GetResourceRequest { // A unique request id. string request_id = 1; // The
+// raw HTTP body is bound to this field. google.api.HttpBody http_body = 2; }
+// service ResourceService { rpc GetResource(GetResourceRequest) returns
+// (google.api.HttpBody); rpc UpdateResource(google.api.HttpBody) returns
+// (google.protobuf.Empty); } Example with streaming methods: service
+// CaldavService { rpc GetCalendar(stream google.api.HttpBody) returns (stream
+// google.api.HttpBody); rpc UpdateCalendar(stream google.api.HttpBody) returns
+// (stream google.api.HttpBody); } Use of this type only changes how the
+// request and response bodies are handled, all other features will continue to
+// work unchanged.
+type HttpBody struct {
+	// ContentType: The HTTP Content-Type header value specifying the content type
+	// of the body.
+	ContentType string `json:"contentType,omitempty"`
+	// Data: The HTTP request/response body as raw binary.
+	Data string `json:"data,omitempty"`
+	// Extensions: Application specific response metadata. Must be set in the first
+	// response for streaming APIs.
+	Extensions []googleapi.RawMessage `json:"extensions,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ContentType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ContentType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s HttpBody) MarshalJSON() ([]byte, error) {
+	type NoMethod HttpBody
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Installation: Represents an installation of the GitHub App.
@@ -543,9 +890,9 @@ type Installation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Installation) MarshalJSON() ([]byte, error) {
+func (s Installation) MarshalJSON() ([]byte, error) {
 	type NoMethod Installation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstallationState: Describes stage and necessary actions to be taken by the
@@ -584,9 +931,9 @@ type InstallationState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstallationState) MarshalJSON() ([]byte, error) {
+func (s InstallationState) MarshalJSON() ([]byte, error) {
 	type NoMethod InstallationState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LinkableGitRepository: LinkableGitRepository represents a git repository
@@ -607,9 +954,9 @@ type LinkableGitRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LinkableGitRepository) MarshalJSON() ([]byte, error) {
+func (s LinkableGitRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod LinkableGitRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListConnectionsResponse: Message for response to listing Connections
@@ -637,9 +984,9 @@ type ListConnectionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConnectionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListConnectionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConnectionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGitRepositoryLinksResponse: Message for response to listing
@@ -668,9 +1015,9 @@ type ListGitRepositoryLinksResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGitRepositoryLinksResponse) MarshalJSON() ([]byte, error) {
+func (s ListGitRepositoryLinksResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGitRepositoryLinksResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -696,9 +1043,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -724,9 +1071,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -762,9 +1109,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OAuthCredential: Represents an OAuth token of the account that authorized
@@ -789,9 +1136,9 @@ type OAuthCredential struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OAuthCredential) MarshalJSON() ([]byte, error) {
+func (s OAuthCredential) MarshalJSON() ([]byte, error) {
 	type NoMethod OAuthCredential
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -836,9 +1183,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of the long-running operation.
@@ -851,8 +1198,8 @@ type OperationMetadata struct {
 	EndTime string `json:"endTime,omitempty"`
 	// RequestedCancellation: Output only. Identifies whether the user has
 	// requested cancellation of the operation. Operations that have been cancelled
-	// successfully have Operation.error value with a google.rpc.Status.code of 1,
-	// corresponding to `Code.CANCELLED`.
+	// successfully have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
 	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
 	// StatusMessage: Output only. Human-readable status of the operation, if any.
 	StatusMessage string `json:"statusMessage,omitempty"`
@@ -874,9 +1221,149 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ProcessBitbucketCloudWebhookRequest: RPC request object accepted by the
+// ProcessBitbucketCloudWebhook RPC method.
+type ProcessBitbucketCloudWebhookRequest struct {
+	// Body: Required. HTTP request body.
+	Body *HttpBody `json:"body,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Body") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Body") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ProcessBitbucketCloudWebhookRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ProcessBitbucketCloudWebhookRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ProcessBitbucketDataCenterWebhookRequest: RPC request object accepted by the
+// ProcessBitbucketDataCenterWebhook RPC method.
+type ProcessBitbucketDataCenterWebhookRequest struct {
+	// Body: Required. HTTP request body.
+	Body *HttpBody `json:"body,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Body") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Body") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ProcessBitbucketDataCenterWebhookRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ProcessBitbucketDataCenterWebhookRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ProcessGitHubEnterpriseWebhookRequest: RPC request object accepted by the
+// ProcessGitHubEnterpriseWebhook RPC method.
+type ProcessGitHubEnterpriseWebhookRequest struct {
+	// Body: Required. HTTP request body.
+	Body *HttpBody `json:"body,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Body") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Body") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ProcessGitHubEnterpriseWebhookRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ProcessGitHubEnterpriseWebhookRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ProcessGitLabEnterpriseWebhookRequest: RPC request object accepted by the
+// ProcessGitLabEnterpriseWebhook RPC method.
+type ProcessGitLabEnterpriseWebhookRequest struct {
+	// Body: Required. HTTP request body.
+	Body *HttpBody `json:"body,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Body") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Body") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ProcessGitLabEnterpriseWebhookRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ProcessGitLabEnterpriseWebhookRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ProcessGitLabWebhookRequest: RPC request object accepted by the
+// ProcessGitLabWebhook RPC method.
+type ProcessGitLabWebhookRequest struct {
+	// Body: Required. HTTP request body.
+	Body *HttpBody `json:"body,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Body") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Body") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ProcessGitLabWebhookRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ProcessGitLabWebhookRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ServiceDirectoryConfig: ServiceDirectoryConfig represents Service Directory
+// configuration for a connection.
+type ServiceDirectoryConfig struct {
+	// Service: Required. The Service Directory service name. Format:
+	// projects/{project}/locations/{location}/namespaces/{namespace}/services/{serv
+	// ice}.
+	Service string `json:"service,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Service") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Service") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ServiceDirectoryConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod ServiceDirectoryConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -908,9 +1395,36 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UserCredential: Represents a personal access token that authorized the
+// Connection, and associated metadata.
+type UserCredential struct {
+	// UserTokenSecretVersion: Required. A SecretManager resource containing the
+	// user token that authorizes the Developer Connect connection. Format:
+	// `projects/*/secrets/*/versions/*`.
+	UserTokenSecretVersion string `json:"userTokenSecretVersion,omitempty"`
+	// Username: Output only. The username associated with this token.
+	Username string `json:"username,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "UserTokenSecretVersion") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "UserTokenSecretVersion") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UserCredential) MarshalJSON() ([]byte, error) {
+	type NoMethod UserCredential
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -967,12 +1481,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -980,6 +1493,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1014,9 +1528,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1098,12 +1614,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1111,6 +1626,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1146,9 +1662,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1248,8 +1766,7 @@ func (c *ProjectsLocationsConnectionsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.connection)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.connection)
 	if err != nil {
 		return nil, err
 	}
@@ -1265,6 +1782,7 @@ func (c *ProjectsLocationsConnectionsCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1299,9 +1817,11 @@ func (c *ProjectsLocationsConnectionsCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1378,12 +1898,11 @@ func (c *ProjectsLocationsConnectionsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1391,6 +1910,7 @@ func (c *ProjectsLocationsConnectionsDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1425,9 +1945,11 @@ func (c *ProjectsLocationsConnectionsDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1489,12 +2011,11 @@ func (c *ProjectsLocationsConnectionsFetchGitHubInstallationsCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+connection}:fetchGitHubInstallations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1502,6 +2023,7 @@ func (c *ProjectsLocationsConnectionsFetchGitHubInstallationsCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"connection": c.connection,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.fetchGitHubInstallations", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1537,9 +2059,11 @@ func (c *ProjectsLocationsConnectionsFetchGitHubInstallationsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.fetchGitHubInstallations", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1612,12 +2136,11 @@ func (c *ProjectsLocationsConnectionsFetchLinkableGitRepositoriesCall) doRequest
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+connection}:fetchLinkableGitRepositories")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1625,6 +2148,7 @@ func (c *ProjectsLocationsConnectionsFetchLinkableGitRepositoriesCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"connection": c.connection,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.fetchLinkableGitRepositories", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1660,9 +2184,11 @@ func (c *ProjectsLocationsConnectionsFetchLinkableGitRepositoriesCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.fetchLinkableGitRepositories", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1741,12 +2267,11 @@ func (c *ProjectsLocationsConnectionsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1754,6 +2279,7 @@ func (c *ProjectsLocationsConnectionsGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1788,9 +2314,11 @@ func (c *ProjectsLocationsConnectionsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1876,12 +2404,11 @@ func (c *ProjectsLocationsConnectionsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/connections")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1889,6 +2416,7 @@ func (c *ProjectsLocationsConnectionsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1924,9 +2452,11 @@ func (c *ProjectsLocationsConnectionsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2040,8 +2570,7 @@ func (c *ProjectsLocationsConnectionsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.connection)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.connection)
 	if err != nil {
 		return nil, err
 	}
@@ -2057,6 +2586,7 @@ func (c *ProjectsLocationsConnectionsPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2091,9 +2621,116 @@ func (c *ProjectsLocationsConnectionsPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall struct {
+	s                                     *Service
+	parent                                string
+	processgithubenterprisewebhookrequest *ProcessGitHubEnterpriseWebhookRequest
+	urlParams_                            gensupport.URLParams
+	ctx_                                  context.Context
+	header_                               http.Header
+}
+
+// ProcessGitHubEnterpriseWebhook: ProcessGitHubEnterpriseWebhook is called by
+// the external GitHub Enterprise instances for notifying events.
+//
+//   - parent: Project and location where the webhook will be received. Format:
+//     `projects/*/locations/*`.
+func (r *ProjectsLocationsConnectionsService) ProcessGitHubEnterpriseWebhook(parent string, processgithubenterprisewebhookrequest *ProcessGitHubEnterpriseWebhookRequest) *ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall {
+	c := &ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.processgithubenterprisewebhookrequest = processgithubenterprisewebhookrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall) Fields(s ...googleapi.Field) *ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall) Context(ctx context.Context) *ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.processgithubenterprisewebhookrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/connections:processGitHubEnterpriseWebhook")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.processGitHubEnterpriseWebhook", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "developerconnect.projects.locations.connections.processGitHubEnterpriseWebhook" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsConnectionsProcessGitHubEnterpriseWebhookCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.processGitHubEnterpriseWebhook", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2177,8 +2814,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksCreateCall) Header() http
 
 func (c *ProjectsLocationsConnectionsGitRepositoryLinksCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.gitrepositorylink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.gitrepositorylink)
 	if err != nil {
 		return nil, err
 	}
@@ -2194,6 +2830,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksCreateCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2228,9 +2865,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksCreateCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2308,12 +2947,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksDeleteCall) Header() http
 
 func (c *ProjectsLocationsConnectionsGitRepositoryLinksDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2321,6 +2959,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksDeleteCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2355,9 +2994,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksDeleteCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2442,12 +3083,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchGitRefsCall) doReque
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+gitRepositoryLink}:fetchGitRefs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2455,6 +3095,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchGitRefsCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"gitRepositoryLink": c.gitRepositoryLink,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.fetchGitRefs", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2490,9 +3131,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchGitRefsCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.fetchGitRefs", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2562,8 +3205,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchReadTokenCall) Heade
 
 func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchReadTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.fetchreadtokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.fetchreadtokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2579,6 +3221,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchReadTokenCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"gitRepositoryLink": c.gitRepositoryLink,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.fetchReadToken", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2614,9 +3257,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchReadTokenCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.fetchReadToken", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2665,8 +3310,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchReadWriteTokenCall) 
 
 func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchReadWriteTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.fetchreadwritetokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.fetchreadwritetokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2682,6 +3326,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchReadWriteTokenCall) 
 	googleapi.Expand(req.URL, map[string]string{
 		"gitRepositoryLink": c.gitRepositoryLink,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.fetchReadWriteToken", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2717,9 +3362,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksFetchReadWriteTokenCall) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.fetchReadWriteToken", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2777,12 +3424,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2790,6 +3436,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksGetCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2825,9 +3472,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2913,12 +3562,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/gitRepositoryLinks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2926,6 +3574,7 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksListCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2961,9 +3610,11 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2988,6 +3639,426 @@ func (c *ProjectsLocationsConnectionsGitRepositoryLinksListCall) Pages(ctx conte
 	}
 }
 
+type ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall struct {
+	s                                   *Service
+	name                                string
+	processbitbucketcloudwebhookrequest *ProcessBitbucketCloudWebhookRequest
+	urlParams_                          gensupport.URLParams
+	ctx_                                context.Context
+	header_                             http.Header
+}
+
+// ProcessBitbucketCloudWebhook: ProcessBitbucketCloudWebhook is called by the
+// external Bitbucket Cloud instances for notifying events.
+//
+//   - name: The GitRepositoryLink where the webhook will be received. Format:
+//     `projects/*/locations/*/connections/*/gitRepositoryLinks/*`.
+func (r *ProjectsLocationsConnectionsGitRepositoryLinksService) ProcessBitbucketCloudWebhook(name string, processbitbucketcloudwebhookrequest *ProcessBitbucketCloudWebhookRequest) *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall {
+	c := &ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.processbitbucketcloudwebhookrequest = processbitbucketcloudwebhookrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall) Fields(s ...googleapi.Field) *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall) Context(ctx context.Context) *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.processbitbucketcloudwebhookrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:processBitbucketCloudWebhook")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.processBitbucketCloudWebhook", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "developerconnect.projects.locations.connections.gitRepositoryLinks.processBitbucketCloudWebhook" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.processBitbucketCloudWebhook", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall struct {
+	s                                        *Service
+	name                                     string
+	processbitbucketdatacenterwebhookrequest *ProcessBitbucketDataCenterWebhookRequest
+	urlParams_                               gensupport.URLParams
+	ctx_                                     context.Context
+	header_                                  http.Header
+}
+
+// ProcessBitbucketDataCenterWebhook: ProcessBitbucketDataCenterWebhook is
+// called by the external Bitbucket Data Center instances for notifying events.
+//
+//   - name: The GitRepositoryLink where the webhook will be received. Format:
+//     `projects/*/locations/*/connections/*/gitRepositoryLinks/*`.
+func (r *ProjectsLocationsConnectionsGitRepositoryLinksService) ProcessBitbucketDataCenterWebhook(name string, processbitbucketdatacenterwebhookrequest *ProcessBitbucketDataCenterWebhookRequest) *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall {
+	c := &ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.processbitbucketdatacenterwebhookrequest = processbitbucketdatacenterwebhookrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall) Fields(s ...googleapi.Field) *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall) Context(ctx context.Context) *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.processbitbucketdatacenterwebhookrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:processBitbucketDataCenterWebhook")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.processBitbucketDataCenterWebhook", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "developerconnect.projects.locations.connections.gitRepositoryLinks.processBitbucketDataCenterWebhook" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.processBitbucketDataCenterWebhook", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall struct {
+	s                                     *Service
+	name                                  string
+	processgitlabenterprisewebhookrequest *ProcessGitLabEnterpriseWebhookRequest
+	urlParams_                            gensupport.URLParams
+	ctx_                                  context.Context
+	header_                               http.Header
+}
+
+// ProcessGitLabEnterpriseWebhook: ProcessGitLabEnterpriseWebhook is called by
+// the external GitLab Enterprise instances for notifying events.
+//
+//   - name: The GitRepositoryLink resource where the webhook will be received.
+//     Format: `projects/*/locations/*/connections/*/gitRepositoryLinks/*`.
+func (r *ProjectsLocationsConnectionsGitRepositoryLinksService) ProcessGitLabEnterpriseWebhook(name string, processgitlabenterprisewebhookrequest *ProcessGitLabEnterpriseWebhookRequest) *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall {
+	c := &ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.processgitlabenterprisewebhookrequest = processgitlabenterprisewebhookrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall) Fields(s ...googleapi.Field) *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall) Context(ctx context.Context) *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.processgitlabenterprisewebhookrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:processGitLabEnterpriseWebhook")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.processGitLabEnterpriseWebhook", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "developerconnect.projects.locations.connections.gitRepositoryLinks.processGitLabEnterpriseWebhook" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.processGitLabEnterpriseWebhook", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall struct {
+	s                           *Service
+	name                        string
+	processgitlabwebhookrequest *ProcessGitLabWebhookRequest
+	urlParams_                  gensupport.URLParams
+	ctx_                        context.Context
+	header_                     http.Header
+}
+
+// ProcessGitLabWebhook: ProcessGitLabWebhook is called by the GitLab.com for
+// notifying events.
+//
+//   - name: The GitRepositoryLink resource where the webhook will be received.
+//     Format: `projects/*/locations/*/connections/*/gitRepositoryLinks/*`.
+func (r *ProjectsLocationsConnectionsGitRepositoryLinksService) ProcessGitLabWebhook(name string, processgitlabwebhookrequest *ProcessGitLabWebhookRequest) *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall {
+	c := &ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.processgitlabwebhookrequest = processgitlabwebhookrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall) Fields(s ...googleapi.Field) *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall) Context(ctx context.Context) *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.processgitlabwebhookrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:processGitLabWebhook")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.processGitLabWebhook", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "developerconnect.projects.locations.connections.gitRepositoryLinks.processGitLabWebhook" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.connections.gitRepositoryLinks.processGitLabWebhook", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
 type ProjectsLocationsOperationsCancelCall struct {
 	s                      *Service
 	name                   string
@@ -3004,7 +4075,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -3040,8 +4111,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3057,6 +4127,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3091,9 +4162,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3142,12 +4215,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3155,6 +4227,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3189,9 +4262,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3251,12 +4326,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3264,6 +4338,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3298,9 +4373,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3379,12 +4456,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3392,6 +4468,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3427,9 +4504,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "developerconnect.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

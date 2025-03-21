@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "places:v1"
 const apiName = "places"
@@ -116,6 +119,10 @@ const (
 	MapsPlatformPlacesDetailsScope = "https://www.googleapis.com/auth/maps-platform.places.details"
 
 	// Private Service:
+	// https://www.googleapis.com/auth/maps-platform.places.getphotomedia
+	MapsPlatformPlacesGetphotomediaScope = "https://www.googleapis.com/auth/maps-platform.places.getphotomedia"
+
+	// Private Service:
 	// https://www.googleapis.com/auth/maps-platform.places.nearbysearch
 	MapsPlatformPlacesNearbysearchScope = "https://www.googleapis.com/auth/maps-platform.places.nearbysearch"
 
@@ -131,6 +138,7 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 		"https://www.googleapis.com/auth/maps-platform.places",
 		"https://www.googleapis.com/auth/maps-platform.places.autocomplete",
 		"https://www.googleapis.com/auth/maps-platform.places.details",
+		"https://www.googleapis.com/auth/maps-platform.places.getphotomedia",
 		"https://www.googleapis.com/auth/maps-platform.places.nearbysearch",
 		"https://www.googleapis.com/auth/maps-platform.places.textsearch",
 	)
@@ -144,7 +152,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Places = NewPlacesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -163,13 +172,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Places = NewPlacesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -238,9 +246,151 @@ type GoogleGeoTypeViewport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleGeoTypeViewport) MarshalJSON() ([]byte, error) {
+func (s GoogleGeoTypeViewport) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleGeoTypeViewport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1AddressDescriptor: A relational description of a location.
+// Includes a ranked set of nearby landmarks and precise containing areas and
+// their relationship to the target location.
+type GoogleMapsPlacesV1AddressDescriptor struct {
+	// Areas: A ranked list of containing or adjacent areas. The most recognizable
+	// and precise areas are ranked first.
+	Areas []*GoogleMapsPlacesV1AddressDescriptorArea `json:"areas,omitempty"`
+	// Landmarks: A ranked list of nearby landmarks. The most recognizable and
+	// nearby landmarks are ranked first.
+	Landmarks []*GoogleMapsPlacesV1AddressDescriptorLandmark `json:"landmarks,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Areas") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Areas") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1AddressDescriptor) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1AddressDescriptor
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1AddressDescriptorArea: Area information and the area's
+// relationship with the target location. Areas includes precise sublocality,
+// neighborhoods, and large compounds that are useful for describing a
+// location.
+type GoogleMapsPlacesV1AddressDescriptorArea struct {
+	// Containment: Defines the spatial relationship between the target location
+	// and the area.
+	//
+	// Possible values:
+	//   "CONTAINMENT_UNSPECIFIED" - The containment is unspecified.
+	//   "WITHIN" - The target location is within the area region, close to the
+	// center.
+	//   "OUTSKIRTS" - The target location is within the area region, close to the
+	// edge.
+	//   "NEAR" - The target location is outside the area region, but close by.
+	Containment string `json:"containment,omitempty"`
+	// DisplayName: The area's display name.
+	DisplayName *GoogleTypeLocalizedText `json:"displayName,omitempty"`
+	// Name: The area's resource name.
+	Name string `json:"name,omitempty"`
+	// PlaceId: The area's place id.
+	PlaceId string `json:"placeId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Containment") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Containment") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1AddressDescriptorArea) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1AddressDescriptorArea
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1AddressDescriptorLandmark: Basic landmark information and
+// the landmark's relationship with the target location. Landmarks are
+// prominent places that can be used to describe a location.
+type GoogleMapsPlacesV1AddressDescriptorLandmark struct {
+	// DisplayName: The landmark's display name.
+	DisplayName *GoogleTypeLocalizedText `json:"displayName,omitempty"`
+	// Name: The landmark's resource name.
+	Name string `json:"name,omitempty"`
+	// PlaceId: The landmark's place id.
+	PlaceId string `json:"placeId,omitempty"`
+	// SpatialRelationship: Defines the spatial relationship between the target
+	// location and the landmark.
+	//
+	// Possible values:
+	//   "NEAR" - This is the default relationship when nothing more specific below
+	// applies.
+	//   "WITHIN" - The landmark has a spatial geometry and the target is within
+	// its bounds.
+	//   "BESIDE" - The target is directly adjacent to the landmark.
+	//   "ACROSS_THE_ROAD" - The target is directly opposite the landmark on the
+	// other side of the road.
+	//   "DOWN_THE_ROAD" - On the same route as the landmark but not besides or
+	// across.
+	//   "AROUND_THE_CORNER" - Not on the same route as the landmark but a single
+	// turn away.
+	//   "BEHIND" - Close to the landmark's structure but further away from its
+	// street entrances.
+	SpatialRelationship string `json:"spatialRelationship,omitempty"`
+	// StraightLineDistanceMeters: The straight line distance, in meters, between
+	// the center point of the target and the center point of the landmark. In some
+	// situations, this value can be longer than `travel_distance_meters`.
+	StraightLineDistanceMeters float64 `json:"straightLineDistanceMeters,omitempty"`
+	// TravelDistanceMeters: The travel distance, in meters, along the road network
+	// from the target to the landmark, if known. This value does not take into
+	// account the mode of transportation, such as walking, driving, or biking.
+	TravelDistanceMeters float64 `json:"travelDistanceMeters,omitempty"`
+	// Types: A set of type tags for this landmark. For a complete list of possible
+	// values, see
+	// https://developers.google.com/maps/documentation/places/web-service/place-types.
+	Types []string `json:"types,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DisplayName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DisplayName") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1AddressDescriptorLandmark) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1AddressDescriptorLandmark
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GoogleMapsPlacesV1AddressDescriptorLandmark) UnmarshalJSON(data []byte) error {
+	type NoMethod GoogleMapsPlacesV1AddressDescriptorLandmark
+	var s1 struct {
+		StraightLineDistanceMeters gensupport.JSONFloat64 `json:"straightLineDistanceMeters"`
+		TravelDistanceMeters       gensupport.JSONFloat64 `json:"travelDistanceMeters"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.StraightLineDistanceMeters = float64(s1.StraightLineDistanceMeters)
+	s.TravelDistanceMeters = float64(s1.TravelDistanceMeters)
+	return nil
 }
 
 // GoogleMapsPlacesV1AuthorAttribution: Information about the author of the UGC
@@ -265,14 +415,22 @@ type GoogleMapsPlacesV1AuthorAttribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AuthorAttribution) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AuthorAttribution) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AuthorAttribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesRequest: Request proto for
 // AutocompletePlaces.
 type GoogleMapsPlacesV1AutocompletePlacesRequest struct {
+	// IncludePureServiceAreaBusinesses: Optional. Include pure service area
+	// businesses if the field is set to true. Pure service area business is a
+	// business that visits or delivers to customers directly but does not serve
+	// customers at their business address. For example, businesses like cleaning
+	// services or plumbers. Those businesses do not have a physical address or
+	// location on Google Maps. Places will not return fields including `location`,
+	// `plus_code`, and other location related fields for these businesses.
+	IncludePureServiceAreaBusinesses bool `json:"includePureServiceAreaBusinesses,omitempty"`
 	// IncludeQueryPredictions: Optional. If true, the response will include both
 	// Place and query predictions. Otherwise the response will only return Place
 	// predictions.
@@ -342,22 +500,24 @@ type GoogleMapsPlacesV1AutocompletePlacesRequest struct {
 	// a unique session token for each new session. Using the same token for more
 	// than one session will result in each request being billed individually.
 	SessionToken string `json:"sessionToken,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "IncludeQueryPredictions") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g.
+	// "IncludePureServiceAreaBusinesses") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "IncludeQueryPredictions") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	// NullFields is a list of field names (e.g.
+	// "IncludePureServiceAreaBusinesses") to include in API requests with the JSON
+	// null value. By default, fields with empty values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-NullFields for
+	// more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesRequestLocationBias: The region to
@@ -380,9 +540,9 @@ type GoogleMapsPlacesV1AutocompletePlacesRequestLocationBias struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesRequestLocationBias) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesRequestLocationBias) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesRequestLocationBias
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesRequestLocationRestriction: The region
@@ -405,9 +565,9 @@ type GoogleMapsPlacesV1AutocompletePlacesRequestLocationRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesRequestLocationRestriction) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesRequestLocationRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesRequestLocationRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesResponse: Response proto for
@@ -432,9 +592,9 @@ type GoogleMapsPlacesV1AutocompletePlacesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesResponseSuggestion: An Autocomplete
@@ -457,9 +617,9 @@ type GoogleMapsPlacesV1AutocompletePlacesResponseSuggestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesResponseSuggestion) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesResponseSuggestion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesResponseSuggestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionFormattableText: Text
@@ -489,9 +649,9 @@ type GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionFormattableText struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionFormattableText) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionFormattableText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionFormattableText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionPlacePrediction:
@@ -544,9 +704,9 @@ type GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionPlacePrediction struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionPlacePrediction) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionPlacePrediction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionPlacePrediction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionQueryPrediction:
@@ -584,9 +744,9 @@ type GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionQueryPrediction struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionQueryPrediction) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionQueryPrediction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionQueryPrediction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStringRange:
@@ -610,9 +770,9 @@ type GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStringRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStringRange) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStringRange) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStringRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStructuredFormat:
@@ -640,9 +800,9 @@ type GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStructuredFormat stru
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStructuredFormat) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStructuredFormat) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1AutocompletePlacesResponseSuggestionStructuredFormat
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1Circle: Circle with a LatLng as center and radius.
@@ -667,9 +827,9 @@ type GoogleMapsPlacesV1Circle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1Circle) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1Circle) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1Circle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleMapsPlacesV1Circle) UnmarshalJSON(data []byte) error {
@@ -710,9 +870,9 @@ type GoogleMapsPlacesV1ContentBlock struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1ContentBlock) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1ContentBlock) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1ContentBlock
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1ContextualContent: Experimental: See
@@ -741,9 +901,9 @@ type GoogleMapsPlacesV1ContextualContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1ContextualContent) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1ContextualContent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1ContextualContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1ContextualContentJustification: Experimental: See
@@ -774,9 +934,9 @@ type GoogleMapsPlacesV1ContextualContentJustification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1ContextualContentJustification) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1ContextualContentJustification) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1ContextualContentJustification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1ContextualContentJustificationBusinessAvailabilityAttribute
@@ -804,9 +964,9 @@ type GoogleMapsPlacesV1ContextualContentJustificationBusinessAvailabilityAttribu
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1ContextualContentJustificationBusinessAvailabilityAttributesJustification) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1ContextualContentJustificationBusinessAvailabilityAttributesJustification) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1ContextualContentJustificationBusinessAvailabilityAttributesJustification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1ContextualContentJustificationReviewJustification:
@@ -833,9 +993,9 @@ type GoogleMapsPlacesV1ContextualContentJustificationReviewJustification struct 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1ContextualContentJustificationReviewJustification) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1ContextualContentJustificationReviewJustification) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1ContextualContentJustificationReviewJustification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighlighte
@@ -860,9 +1020,9 @@ type GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighligh
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighlightedText) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighlightedText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighlightedText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighlighte
@@ -883,9 +1043,9 @@ type GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighligh
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighlightedTextHighlightedTextRange) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighlightedTextHighlightedTextRange) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1ContextualContentJustificationReviewJustificationHighlightedTextHighlightedTextRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1EVChargeOptions: Information about the EV Charge Station
@@ -915,9 +1075,9 @@ type GoogleMapsPlacesV1EVChargeOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1EVChargeOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1EVChargeOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1EVChargeOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1EVChargeOptionsConnectorAggregation: EV charging
@@ -959,6 +1119,8 @@ type GoogleMapsPlacesV1EVChargeOptionsConnectorAggregation struct {
 	//   "EV_CONNECTOR_TYPE_UNSPECIFIED_GB_T" - GB/T type corresponds to the GB/T
 	// standard in China. This type covers all GB_T types.
 	//   "EV_CONNECTOR_TYPE_UNSPECIFIED_WALL_OUTLET" - Unspecified wall outlet.
+	//   "EV_CONNECTOR_TYPE_NACS" - The North American Charging System (NACS),
+	// standardized as SAE J3400.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AvailabilityLastUpdateTime")
 	// to unconditionally include in API requests. By default, fields with empty or
@@ -973,9 +1135,9 @@ type GoogleMapsPlacesV1EVChargeOptionsConnectorAggregation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1EVChargeOptionsConnectorAggregation) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1EVChargeOptionsConnectorAggregation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1EVChargeOptionsConnectorAggregation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleMapsPlacesV1EVChargeOptionsConnectorAggregation) UnmarshalJSON(data []byte) error {
@@ -1012,9 +1174,9 @@ type GoogleMapsPlacesV1FuelOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1FuelOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1FuelOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1FuelOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1FuelOptionsFuelPrice: Fuel price information for a given
@@ -1027,6 +1189,7 @@ type GoogleMapsPlacesV1FuelOptionsFuelPrice struct {
 	// Possible values:
 	//   "FUEL_TYPE_UNSPECIFIED" - Unspecified fuel type.
 	//   "DIESEL" - Diesel fuel.
+	//   "DIESEL_PLUS" - Diesel plus fuel.
 	//   "REGULAR_UNLEADED" - Regular unleaded.
 	//   "MIDGRADE" - Midgrade.
 	//   "PREMIUM" - Premium.
@@ -1038,9 +1201,10 @@ type GoogleMapsPlacesV1FuelOptionsFuelPrice struct {
 	//   "SP98" - SP 98.
 	//   "SP99" - SP 99.
 	//   "SP100" - SP 100.
-	//   "LPG" - LPG.
+	//   "LPG" - Liquefied Petroleum Gas.
 	//   "E80" - E 80.
 	//   "E85" - E 85.
+	//   "E100" - E 100.
 	//   "METHANE" - Methane.
 	//   "BIO_DIESEL" - Bio-diesel.
 	//   "TRUCK_DIESEL" - Truck diesel.
@@ -1060,15 +1224,19 @@ type GoogleMapsPlacesV1FuelOptionsFuelPrice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1FuelOptionsFuelPrice) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1FuelOptionsFuelPrice) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1FuelOptionsFuelPrice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1Photo: Information about a photo of a place.
 type GoogleMapsPlacesV1Photo struct {
 	// AuthorAttributions: This photo's authors.
 	AuthorAttributions []*GoogleMapsPlacesV1AuthorAttribution `json:"authorAttributions,omitempty"`
+	// FlagContentUri: A link where users can flag a problem with the photo.
+	FlagContentUri string `json:"flagContentUri,omitempty"`
+	// GoogleMapsUri: A link to show the photo on Google Maps.
+	GoogleMapsUri string `json:"googleMapsUri,omitempty"`
 	// HeightPx: The maximum available height, in pixels.
 	HeightPx int64 `json:"heightPx,omitempty"`
 	// Name: Identifier. A reference representing this place photo which may be
@@ -1090,9 +1258,9 @@ type GoogleMapsPlacesV1Photo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1Photo) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1Photo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1Photo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PhotoMedia: A photo media from Places API.
@@ -1118,9 +1286,9 @@ type GoogleMapsPlacesV1PhotoMedia struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PhotoMedia) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PhotoMedia) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PhotoMedia
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1Place: All the information representing a Place.
@@ -1142,6 +1310,11 @@ type GoogleMapsPlacesV1Place struct {
 	// type of the component can change. A particular component may be missing in a
 	// later response.
 	AddressComponents []*GoogleMapsPlacesV1PlaceAddressComponent `json:"addressComponents,omitempty"`
+	// AddressDescriptor: The address descriptor of the place. Address descriptors
+	// include additional information that help describe a location using landmarks
+	// and areas. See address descriptor regional coverage in
+	// https://developers.google.com/maps/documentation/geocoding/address-descriptors/coverage.
+	AddressDescriptor *GoogleMapsPlacesV1AddressDescriptor `json:"addressDescriptor,omitempty"`
 	// AdrFormatAddress: The place's address in adr microformat:
 	// http://microformats.org/wiki/adr.
 	AdrFormatAddress string `json:"adrFormatAddress,omitempty"`
@@ -1162,6 +1335,8 @@ type GoogleMapsPlacesV1Place struct {
 	//   "CLOSED_TEMPORARILY" - The establishment is temporarily closed.
 	//   "CLOSED_PERMANENTLY" - The establishment is permanently closed.
 	BusinessStatus string `json:"businessStatus,omitempty"`
+	// ContainingPlaces: List of places in which the current place is located.
+	ContainingPlaces []*GoogleMapsPlacesV1PlaceContainingPlace `json:"containingPlaces,omitempty"`
 	// CurbsidePickup: Specifies if the business supports curbside pickup.
 	CurbsidePickup bool `json:"curbsidePickup,omitempty"`
 	// CurrentOpeningHours: The hours of operation for the next seven days
@@ -1211,6 +1386,8 @@ type GoogleMapsPlacesV1Place struct {
 	GoodForGroups bool `json:"goodForGroups,omitempty"`
 	// GoodForWatchingSports: Place is suitable for watching sports.
 	GoodForWatchingSports bool `json:"goodForWatchingSports,omitempty"`
+	// GoogleMapsLinks: Links to trigger different Google Maps actions.
+	GoogleMapsLinks *GoogleMapsPlacesV1PlaceGoogleMapsLinks `json:"googleMapsLinks,omitempty"`
 	// GoogleMapsUri: A URL providing more information about this place.
 	GoogleMapsUri string `json:"googleMapsUri,omitempty"`
 	// IconBackgroundColor: Background color for icon_mask in hex format, e.g.
@@ -1248,6 +1425,8 @@ type GoogleMapsPlacesV1Place struct {
 	Photos []*GoogleMapsPlacesV1Photo `json:"photos,omitempty"`
 	// PlusCode: Plus code of the place location lat/long.
 	PlusCode *GoogleMapsPlacesV1PlacePlusCode `json:"plusCode,omitempty"`
+	// PostalAddress: The address in postal address format.
+	PostalAddress *GoogleTypePostalAddress `json:"postalAddress,omitempty"`
 	// PriceLevel: Price level of the place.
 	//
 	// Possible values:
@@ -1258,6 +1437,8 @@ type GoogleMapsPlacesV1Place struct {
 	//   "PRICE_LEVEL_EXPENSIVE" - Place provides expensive services.
 	//   "PRICE_LEVEL_VERY_EXPENSIVE" - Place provides very expensive services.
 	PriceLevel string `json:"priceLevel,omitempty"`
+	// PriceRange: The price range associated with a Place.
+	PriceRange *GoogleMapsPlacesV1PriceRange `json:"priceRange,omitempty"`
 	// PrimaryType: The primary type of the given result. This type must one of the
 	// Places API supported types. For example, "restaurant", "cafe", "airport",
 	// etc. A place can only have a single primary type. For the complete list of
@@ -1269,9 +1450,25 @@ type GoogleMapsPlacesV1Place struct {
 	// values, see Table A and Table B at
 	// https://developers.google.com/maps/documentation/places/web-service/place-types
 	PrimaryTypeDisplayName *GoogleTypeLocalizedText `json:"primaryTypeDisplayName,omitempty"`
+	// PureServiceAreaBusiness: Indicates whether the place is a pure service area
+	// business. Pure service area business is a business that visits or delivers
+	// to customers directly but does not serve customers at their business
+	// address. For example, businesses like cleaning services or plumbers. Those
+	// businesses may not have a physical address or location on Google Maps.
+	PureServiceAreaBusiness bool `json:"pureServiceAreaBusiness,omitempty"`
 	// Rating: A rating between 1.0 and 5.0, based on user reviews of this place.
 	Rating float64 `json:"rating,omitempty"`
-	// RegularOpeningHours: The regular hours of operation.
+	// RegularOpeningHours: The regular hours of operation. Note that if a place is
+	// always open (24 hours), the `close` field will not be set. Clients can rely
+	// on always open (24 hours) being represented as an `open`
+	// (https://developers.google.com/maps/documentation/places/web-service/reference/rest/v1/places#Period)
+	// period containing `day`
+	// (https://developers.google.com/maps/documentation/places/web-service/reference/rest/v1/places#Point)
+	// with value `0`, `hour`
+	// (https://developers.google.com/maps/documentation/places/web-service/reference/rest/v1/places#Point)
+	// with value `0`, and `minute`
+	// (https://developers.google.com/maps/documentation/places/web-service/reference/rest/v1/places#Point)
+	// with value `0`.
 	RegularOpeningHours *GoogleMapsPlacesV1PlaceOpeningHours `json:"regularOpeningHours,omitempty"`
 	// RegularSecondaryOpeningHours: Contains an array of entries for information
 	// about regular secondary hours of a business. Secondary hours are different
@@ -1309,10 +1506,12 @@ type GoogleMapsPlacesV1Place struct {
 	ServesWine bool `json:"servesWine,omitempty"`
 	// ShortFormattedAddress: A short, human-readable address for this place.
 	ShortFormattedAddress string `json:"shortFormattedAddress,omitempty"`
-	// SubDestinations: A list of sub destinations related to the place.
+	// SubDestinations: A list of sub-destinations related to the place.
 	SubDestinations []*GoogleMapsPlacesV1PlaceSubDestination `json:"subDestinations,omitempty"`
 	// Takeout: Specifies if the business supports takeout.
 	Takeout bool `json:"takeout,omitempty"`
+	// TimeZone: IANA Time Zone Database time zone. For example "America/New_York".
+	TimeZone *GoogleTypeTimeZone `json:"timeZone,omitempty"`
 	// Types: A set of type tags for this result. For example, "political" and
 	// "locality". For the complete list of possible values, see Table A and Table
 	// B at
@@ -1326,7 +1525,8 @@ type GoogleMapsPlacesV1Place struct {
 	// offset by fractions of an hour, e.g. X hours and 15 minutes.
 	UtcOffsetMinutes int64 `json:"utcOffsetMinutes,omitempty"`
 	// Viewport: A viewport suitable for displaying the place on an average-sized
-	// map.
+	// map. This viewport should not be used as the physical boundary or the
+	// service area of the business.
 	Viewport *GoogleGeoTypeViewport `json:"viewport,omitempty"`
 	// WebsiteUri: The authoritative website for this place, e.g. a business'
 	// homepage. Note that for places that are part of a chain (e.g. an IKEA
@@ -1349,9 +1549,9 @@ type GoogleMapsPlacesV1Place struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1Place) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1Place) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1Place
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleMapsPlacesV1Place) UnmarshalJSON(data []byte) error {
@@ -1392,9 +1592,9 @@ type GoogleMapsPlacesV1PlaceAccessibilityOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceAccessibilityOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceAccessibilityOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceAccessibilityOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceAddressComponent: The structured components that form
@@ -1425,9 +1625,9 @@ type GoogleMapsPlacesV1PlaceAddressComponent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceAddressComponent) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceAddressComponent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceAddressComponent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceAreaSummary: Experimental: See
@@ -1437,6 +1637,8 @@ type GoogleMapsPlacesV1PlaceAreaSummary struct {
 	// ContentBlocks: Content blocks that compose the area summary. Each block has
 	// a separate topic about the area.
 	ContentBlocks []*GoogleMapsPlacesV1ContentBlock `json:"contentBlocks,omitempty"`
+	// FlagContentUri: A link where users can flag a problem with the summary.
+	FlagContentUri string `json:"flagContentUri,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ContentBlocks") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1450,9 +1652,9 @@ type GoogleMapsPlacesV1PlaceAreaSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceAreaSummary) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceAreaSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceAreaSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceAttribution: Information about data providers of this
@@ -1475,9 +1677,34 @@ type GoogleMapsPlacesV1PlaceAttribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceAttribution) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceAttribution) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceAttribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1PlaceContainingPlace: Info about the place in which this
+// place is located.
+type GoogleMapsPlacesV1PlaceContainingPlace struct {
+	// Id: The place id of the place in which this place is located.
+	Id string `json:"id,omitempty"`
+	// Name: The resource name of the place in which this place is located.
+	Name string `json:"name,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Id") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1PlaceContainingPlace) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1PlaceContainingPlace
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceGenerativeSummary: Experimental: See
@@ -1486,8 +1713,14 @@ func (s *GoogleMapsPlacesV1PlaceAttribution) MarshalJSON() ([]byte, error) {
 type GoogleMapsPlacesV1PlaceGenerativeSummary struct {
 	// Description: The detailed description of the place.
 	Description *GoogleTypeLocalizedText `json:"description,omitempty"`
+	// DescriptionFlagContentUri: A link where users can flag a problem with the
+	// description summary.
+	DescriptionFlagContentUri string `json:"descriptionFlagContentUri,omitempty"`
 	// Overview: The overview of the place.
 	Overview *GoogleTypeLocalizedText `json:"overview,omitempty"`
+	// OverviewFlagContentUri: A link where users can flag a problem with the
+	// overview summary.
+	OverviewFlagContentUri string `json:"overviewFlagContentUri,omitempty"`
 	// References: References that are used to generate the summary description.
 	References *GoogleMapsPlacesV1References `json:"references,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Description") to
@@ -1503,16 +1736,64 @@ type GoogleMapsPlacesV1PlaceGenerativeSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceGenerativeSummary) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceGenerativeSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceGenerativeSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1PlaceGoogleMapsLinks: Links to trigger different Google
+// Maps actions.
+type GoogleMapsPlacesV1PlaceGoogleMapsLinks struct {
+	// DirectionsUri: A link to show the directions to the place. The link only
+	// populates the destination location and uses the default travel mode `DRIVE`.
+	DirectionsUri string `json:"directionsUri,omitempty"`
+	// PhotosUri: A link to show photos of this place. This link is currently not
+	// supported on Google Maps Mobile and only works on the web version of Google
+	// Maps.
+	PhotosUri string `json:"photosUri,omitempty"`
+	// PlaceUri: A link to show this place.
+	PlaceUri string `json:"placeUri,omitempty"`
+	// ReviewsUri: A link to show reviews of this place. This link is currently not
+	// supported on Google Maps Mobile and only works on the web version of Google
+	// Maps.
+	ReviewsUri string `json:"reviewsUri,omitempty"`
+	// WriteAReviewUri: A link to write a review for this place. This link is
+	// currently not supported on Google Maps Mobile and only works on the web
+	// version of Google Maps.
+	WriteAReviewUri string `json:"writeAReviewUri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DirectionsUri") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DirectionsUri") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1PlaceGoogleMapsLinks) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1PlaceGoogleMapsLinks
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceOpeningHours: Information about business hour of the
 // place.
 type GoogleMapsPlacesV1PlaceOpeningHours struct {
-	// OpenNow: Is this place open right now? Always present unless we lack
-	// time-of-day or timezone data for these opening hours.
+	// NextCloseTime: The next time the current opening hours period ends up to 7
+	// days in the future. This field is only populated if the opening hours period
+	// is active at the time of serving the request.
+	NextCloseTime string `json:"nextCloseTime,omitempty"`
+	// NextOpenTime: The next time the current opening hours period starts up to 7
+	// days in the future. This field is only populated if the opening hours period
+	// is not active at the time of serving the request.
+	NextOpenTime string `json:"nextOpenTime,omitempty"`
+	// OpenNow: Whether the opening hours period is currently active. For regular
+	// opening hours and current opening hours, this field means whether the place
+	// is open. For secondary opening hours and current secondary opening hours,
+	// this field means whether the secondary hours of this place is active.
 	OpenNow bool `json:"openNow,omitempty"`
 	// Periods: The periods that this place is open during the week. The periods
 	// are in chronological order, starting with Sunday in the place-local
@@ -1551,22 +1832,22 @@ type GoogleMapsPlacesV1PlaceOpeningHours struct {
 	// unknown or could not be converted to localized text. Example: "Sun:
 	// 18:00–06:00"
 	WeekdayDescriptions []string `json:"weekdayDescriptions,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "OpenNow") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "NextCloseTime") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "OpenNow") to include in API
+	// NullFields is a list of field names (e.g. "NextCloseTime") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceOpeningHours) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceOpeningHours) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceOpeningHours
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceOpeningHoursPeriod: A period the place remains in
@@ -1589,9 +1870,9 @@ type GoogleMapsPlacesV1PlaceOpeningHoursPeriod struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceOpeningHoursPeriod) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceOpeningHoursPeriod) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceOpeningHoursPeriod
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceOpeningHoursPeriodPoint: Status changing points.
@@ -1601,9 +1882,9 @@ type GoogleMapsPlacesV1PlaceOpeningHoursPeriodPoint struct {
 	// Day: A day of the week, as an integer in the range 0-6. 0 is Sunday, 1 is
 	// Monday, etc.
 	Day int64 `json:"day,omitempty"`
-	// Hour: The hour in 2 digits. Ranges from 00 to 23.
+	// Hour: The hour in 24 hour format. Ranges from 0 to 23.
 	Hour int64 `json:"hour,omitempty"`
-	// Minute: The minute in 2 digits. Ranges from 00 to 59.
+	// Minute: The minute. Ranges from 0 to 59.
 	Minute int64 `json:"minute,omitempty"`
 	// Truncated: Whether or not this endpoint was truncated. Truncation occurs
 	// when the real hours are outside the times we are willing to return hours
@@ -1624,9 +1905,9 @@ type GoogleMapsPlacesV1PlaceOpeningHoursPeriodPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceOpeningHoursPeriodPoint) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceOpeningHoursPeriodPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceOpeningHoursPeriodPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceOpeningHoursSpecialDay: Structured information for
@@ -1649,9 +1930,9 @@ type GoogleMapsPlacesV1PlaceOpeningHoursSpecialDay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceOpeningHoursSpecialDay) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceOpeningHoursSpecialDay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceOpeningHoursSpecialDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlaceParkingOptions: Information about parking options for
@@ -1685,9 +1966,9 @@ type GoogleMapsPlacesV1PlaceParkingOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceParkingOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceParkingOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceParkingOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlacePaymentOptions: Payment options the place accepts.
@@ -1714,9 +1995,9 @@ type GoogleMapsPlacesV1PlacePaymentOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlacePaymentOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlacePaymentOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlacePaymentOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1PlacePlusCode: Plus code (http://plus.codes) is a location
@@ -1744,18 +2025,23 @@ type GoogleMapsPlacesV1PlacePlusCode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlacePlusCode) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlacePlusCode) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlacePlusCode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GoogleMapsPlacesV1PlaceSubDestination: Place resource name and id of sub
-// destinations that relate to the place. For example, different terminals are
-// different destinations of an airport.
+// GoogleMapsPlacesV1PlaceSubDestination: Sub-destinations are specific places
+// associated with a main place. These provide more specific destinations for
+// users who are searching within a large or complex place, like an airport,
+// national park, university, or stadium. For example, sub-destinations at an
+// airport might include associated terminals and parking lots.
+// Sub-destinations return the place ID and place resource name, which can be
+// used in subsequent Place Details (New) requests to fetch richer details,
+// including the sub-destination's display name and location.
 type GoogleMapsPlacesV1PlaceSubDestination struct {
-	// Id: The place id of the sub destination.
+	// Id: The place id of the sub-destination.
 	Id string `json:"id,omitempty"`
-	// Name: The resource name of the sub destination.
+	// Name: The resource name of the sub-destination.
 	Name string `json:"name,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1770,9 +2056,71 @@ type GoogleMapsPlacesV1PlaceSubDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1PlaceSubDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1PlaceSubDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1PlaceSubDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1Polyline: A route polyline. Only supports an encoded
+// polyline
+// (https://developers.google.com/maps/documentation/utilities/polylinealgorithm),
+// which can be passed as a string and includes compression with minimal
+// lossiness. This is the Routes API default output.
+type GoogleMapsPlacesV1Polyline struct {
+	// EncodedPolyline: An encoded polyline
+	// (https://developers.google.com/maps/documentation/utilities/polylinealgorithm),
+	// as returned by the Routes API by default
+	// (https://developers.google.com/maps/documentation/routes/reference/rest/v2/TopLevel/computeRoutes#polylineencoding).
+	// See the encoder
+	// (https://developers.google.com/maps/documentation/utilities/polylineutility)
+	// and decoder
+	// (https://developers.google.com/maps/documentation/routes/polylinedecoder)
+	// tools.
+	EncodedPolyline string `json:"encodedPolyline,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EncodedPolyline") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EncodedPolyline") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1Polyline) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1Polyline
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1PriceRange: The price range associated with a Place.
+// `end_price` could be unset, which indicates a range without upper bound
+// (e.g. "More than $100").
+type GoogleMapsPlacesV1PriceRange struct {
+	// EndPrice: The high end of the price range (exclusive). Price should be lower
+	// than this amount.
+	EndPrice *GoogleTypeMoney `json:"endPrice,omitempty"`
+	// StartPrice: The low end of the price range (inclusive). Price should be at
+	// or above this amount.
+	StartPrice *GoogleTypeMoney `json:"startPrice,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndPrice") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndPrice") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1PriceRange) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1PriceRange
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1References: Experimental: See
@@ -1797,15 +2145,19 @@ type GoogleMapsPlacesV1References struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1References) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1References) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1References
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1Review: Information about a review of a place.
 type GoogleMapsPlacesV1Review struct {
 	// AuthorAttribution: This review's author.
 	AuthorAttribution *GoogleMapsPlacesV1AuthorAttribution `json:"authorAttribution,omitempty"`
+	// FlagContentUri: A link where users can flag a problem with the review.
+	FlagContentUri string `json:"flagContentUri,omitempty"`
+	// GoogleMapsUri: A link to show the review on Google Maps.
+	GoogleMapsUri string `json:"googleMapsUri,omitempty"`
 	// Name: A reference representing this place review which may be used to look
 	// up this place review again (also called the API "resource" name:
 	// `places/{place_id}/reviews/{review}`).
@@ -1835,9 +2187,9 @@ type GoogleMapsPlacesV1Review struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1Review) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1Review) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1Review
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleMapsPlacesV1Review) UnmarshalJSON(data []byte) error {
@@ -1852,6 +2204,175 @@ func (s *GoogleMapsPlacesV1Review) UnmarshalJSON(data []byte) error {
 	}
 	s.Rating = float64(s1.Rating)
 	return nil
+}
+
+// GoogleMapsPlacesV1RouteModifiers: Encapsulates a set of optional conditions
+// to satisfy when calculating the routes.
+type GoogleMapsPlacesV1RouteModifiers struct {
+	// AvoidFerries: Optional. When set to true, avoids ferries where reasonable,
+	// giving preference to routes not containing ferries. Applies only to the
+	// `DRIVE` and `TWO_WHEELER` `TravelMode`.
+	AvoidFerries bool `json:"avoidFerries,omitempty"`
+	// AvoidHighways: Optional. When set to true, avoids highways where reasonable,
+	// giving preference to routes not containing highways. Applies only to the
+	// `DRIVE` and `TWO_WHEELER` `TravelMode`.
+	AvoidHighways bool `json:"avoidHighways,omitempty"`
+	// AvoidIndoor: Optional. When set to true, avoids navigating indoors where
+	// reasonable, giving preference to routes not containing indoor navigation.
+	// Applies only to the `WALK` `TravelMode`.
+	AvoidIndoor bool `json:"avoidIndoor,omitempty"`
+	// AvoidTolls: Optional. When set to true, avoids toll roads where reasonable,
+	// giving preference to routes not containing toll roads. Applies only to the
+	// `DRIVE` and `TWO_WHEELER` `TravelMode`.
+	AvoidTolls bool `json:"avoidTolls,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AvoidFerries") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AvoidFerries") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1RouteModifiers) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1RouteModifiers
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1RoutingParameters: Parameters to configure the routing
+// calculations to the places in the response, both along a route (where result
+// ranking will be influenced) and for calculating travel times on results.
+type GoogleMapsPlacesV1RoutingParameters struct {
+	// Origin: Optional. An explicit routing origin that overrides the origin
+	// defined in the polyline. By default, the polyline origin is used.
+	Origin *GoogleTypeLatLng `json:"origin,omitempty"`
+	// RouteModifiers: Optional. The route modifiers.
+	RouteModifiers *GoogleMapsPlacesV1RouteModifiers `json:"routeModifiers,omitempty"`
+	// RoutingPreference: Optional. Specifies how to compute the routing summaries.
+	// The server attempts to use the selected routing preference to compute the
+	// route. The traffic aware routing preference is only available for the
+	// `DRIVE` or `TWO_WHEELER` `travelMode`.
+	//
+	// Possible values:
+	//   "ROUTING_PREFERENCE_UNSPECIFIED" - No routing preference specified.
+	// Default to `TRAFFIC_UNAWARE`.
+	//   "TRAFFIC_UNAWARE" - Computes routes without taking live traffic conditions
+	// into consideration. Suitable when traffic conditions don't matter or are not
+	// applicable. Using this value produces the lowest latency. Note: For
+	// `TravelMode` `DRIVE` and `TWO_WHEELER`, the route and duration chosen are
+	// based on road network and average time-independent traffic conditions, not
+	// current road conditions. Consequently, routes may include roads that are
+	// temporarily closed. Results for a given request may vary over time due to
+	// changes in the road network, updated average traffic conditions, and the
+	// distributed nature of the service. Results may also vary between
+	// nearly-equivalent routes at any time or frequency.
+	//   "TRAFFIC_AWARE" - Calculates routes taking live traffic conditions into
+	// consideration. In contrast to `TRAFFIC_AWARE_OPTIMAL`, some optimizations
+	// are applied to significantly reduce latency.
+	//   "TRAFFIC_AWARE_OPTIMAL" - Calculates the routes taking live traffic
+	// conditions into consideration, without applying most performance
+	// optimizations. Using this value produces the highest latency.
+	RoutingPreference string `json:"routingPreference,omitempty"`
+	// TravelMode: Optional. The travel mode.
+	//
+	// Possible values:
+	//   "TRAVEL_MODE_UNSPECIFIED" - No travel mode specified. Defaults to `DRIVE`.
+	//   "DRIVE" - Travel by passenger car.
+	//   "BICYCLE" - Travel by bicycle. Not supported with
+	// `search_along_route_parameters`.
+	//   "WALK" - Travel by walking. Not supported with
+	// `search_along_route_parameters`.
+	//   "TWO_WHEELER" - Motorized two wheeled vehicles of all kinds such as
+	// scooters and motorcycles. Note that this is distinct from the `BICYCLE`
+	// travel mode which covers human-powered transport. Not supported with
+	// `search_along_route_parameters`. Only supported in those countries listed at
+	// [Countries and regions supported for two-wheeled
+	// vehicles](https://developers.google.com/maps/documentation/routes/coverage-tw
+	// o-wheeled).
+	TravelMode string `json:"travelMode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Origin") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Origin") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1RoutingParameters) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1RoutingParameters
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1RoutingSummary: The duration and distance from the routing
+// origin to a place in the response, and a second leg from that place to the
+// destination, if requested. **Note:** Adding `routingSummaries` in the field
+// mask without also including either the `routingParameters.origin` parameter
+// or the `searchAlongRouteParameters.polyline.encodedPolyline` parameter in
+// the request causes an error.
+type GoogleMapsPlacesV1RoutingSummary struct {
+	// DirectionsUri: A link to show directions on Google Maps using the waypoints
+	// from the given routing summary. The route generated by this link is not
+	// guaranteed to be the same as the route used to generate the routing summary.
+	// The link uses information provided in the request, from fields including
+	// `routingParameters` and `searchAlongRouteParameters` when applicable, to
+	// generate the directions link.
+	DirectionsUri string `json:"directionsUri,omitempty"`
+	// Legs: The legs of the trip. When you calculate travel duration and distance
+	// from a set origin, `legs` contains a single leg containing the duration and
+	// distance from the origin to the destination. When you do a search along
+	// route, `legs` contains two legs: one from the origin to place, and one from
+	// the place to the destination.
+	Legs []*GoogleMapsPlacesV1RoutingSummaryLeg `json:"legs,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DirectionsUri") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DirectionsUri") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1RoutingSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1RoutingSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1RoutingSummaryLeg: A leg is a single portion of a journey
+// from one location to another.
+type GoogleMapsPlacesV1RoutingSummaryLeg struct {
+	// DistanceMeters: The distance of this leg of the trip.
+	DistanceMeters int64 `json:"distanceMeters,omitempty"`
+	// Duration: The time it takes to complete this leg of the trip.
+	Duration string `json:"duration,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DistanceMeters") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DistanceMeters") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1RoutingSummaryLeg) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1RoutingSummaryLeg
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1SearchNearbyRequest: Request proto for Search Nearby.
@@ -1939,6 +2460,9 @@ type GoogleMapsPlacesV1SearchNearbyRequest struct {
 	// https://www.unicode.org/cldr/charts/latest/supplemental/territory_language_information.html.
 	// Note that 3-digit region codes are not currently supported.
 	RegionCode string `json:"regionCode,omitempty"`
+	// RoutingParameters: Optional. Parameters that affect the routing to the
+	// search results.
+	RoutingParameters *GoogleMapsPlacesV1RoutingParameters `json:"routingParameters,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExcludedPrimaryTypes") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1952,9 +2476,9 @@ type GoogleMapsPlacesV1SearchNearbyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1SearchNearbyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1SearchNearbyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1SearchNearbyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1SearchNearbyRequestLocationRestriction: The region to
@@ -1975,9 +2499,9 @@ type GoogleMapsPlacesV1SearchNearbyRequestLocationRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1SearchNearbyRequestLocationRestriction) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1SearchNearbyRequestLocationRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1SearchNearbyRequestLocationRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1SearchNearbyResponse: Response proto for Search Nearby.
@@ -1985,6 +2509,12 @@ type GoogleMapsPlacesV1SearchNearbyResponse struct {
 	// Places: A list of places that meets user's requirements like places types,
 	// number of places and specific location restriction.
 	Places []*GoogleMapsPlacesV1Place `json:"places,omitempty"`
+	// RoutingSummaries: A list of routing summaries where each entry associates to
+	// the corresponding place in the same index in the `places` field. If the
+	// routing summary is not available for one of the places, it will contain an
+	// empty entry. This list should have as many entries as the list of places if
+	// requested.
+	RoutingSummaries []*GoogleMapsPlacesV1RoutingSummary `json:"routingSummaries,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -2001,9 +2531,9 @@ type GoogleMapsPlacesV1SearchNearbyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1SearchNearbyResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1SearchNearbyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1SearchNearbyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1SearchTextRequest: Request proto for SearchText.
@@ -2011,6 +2541,14 @@ type GoogleMapsPlacesV1SearchTextRequest struct {
 	// EvOptions: Optional. Set the searchable EV options of a place search
 	// request.
 	EvOptions *GoogleMapsPlacesV1SearchTextRequestEVOptions `json:"evOptions,omitempty"`
+	// IncludePureServiceAreaBusinesses: Optional. Include pure service area
+	// businesses if the field is set to true. Pure service area business is a
+	// business that visits or delivers to customers directly but does not serve
+	// customers at their business address. For example, businesses like cleaning
+	// services or plumbers. Those businesses do not have a physical address or
+	// location on Google Maps. Places will not return fields including `location`,
+	// `plus_code`, and other location related fields for these businesses.
+	IncludePureServiceAreaBusinesses bool `json:"includePureServiceAreaBusinesses,omitempty"`
 	// IncludedType: The requested place type. Full list of types supported:
 	// https://developers.google.com/maps/documentation/places/web-service/place-types.
 	// Only support one included type.
@@ -2092,6 +2630,11 @@ type GoogleMapsPlacesV1SearchTextRequest struct {
 	// https://www.unicode.org/cldr/charts/latest/supplemental/territory_language_information.html.
 	// Note that 3-digit region codes are not currently supported.
 	RegionCode string `json:"regionCode,omitempty"`
+	// RoutingParameters: Optional. Additional parameters for routing to results.
+	RoutingParameters *GoogleMapsPlacesV1RoutingParameters `json:"routingParameters,omitempty"`
+	// SearchAlongRouteParameters: Optional. Additional parameters proto for
+	// searching along a route.
+	SearchAlongRouteParameters *GoogleMapsPlacesV1SearchTextRequestSearchAlongRouteParameters `json:"searchAlongRouteParameters,omitempty"`
 	// StrictTypeFiltering: Used to set strict type filtering for included_type. If
 	// set to true, only results of the same type will be returned. Default to
 	// false.
@@ -2111,9 +2654,9 @@ type GoogleMapsPlacesV1SearchTextRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1SearchTextRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1SearchTextRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1SearchTextRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleMapsPlacesV1SearchTextRequest) UnmarshalJSON(data []byte) error {
@@ -2155,6 +2698,8 @@ type GoogleMapsPlacesV1SearchTextRequestEVOptions struct {
 	//   "EV_CONNECTOR_TYPE_UNSPECIFIED_GB_T" - GB/T type corresponds to the GB/T
 	// standard in China. This type covers all GB_T types.
 	//   "EV_CONNECTOR_TYPE_UNSPECIFIED_WALL_OUTLET" - Unspecified wall outlet.
+	//   "EV_CONNECTOR_TYPE_NACS" - The North American Charging System (NACS),
+	// standardized as SAE J3400.
 	ConnectorTypes []string `json:"connectorTypes,omitempty"`
 	// MinimumChargingRateKw: Optional. Minimum required charging rate in
 	// kilowatts. A place with a charging rate less than the specified rate is
@@ -2173,9 +2718,9 @@ type GoogleMapsPlacesV1SearchTextRequestEVOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1SearchTextRequestEVOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1SearchTextRequestEVOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1SearchTextRequestEVOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleMapsPlacesV1SearchTextRequestEVOptions) UnmarshalJSON(data []byte) error {
@@ -2218,9 +2763,9 @@ type GoogleMapsPlacesV1SearchTextRequestLocationBias struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1SearchTextRequestLocationBias) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1SearchTextRequestLocationBias) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1SearchTextRequestLocationBias
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1SearchTextRequestLocationRestriction: The region to
@@ -2247,9 +2792,43 @@ type GoogleMapsPlacesV1SearchTextRequestLocationRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1SearchTextRequestLocationRestriction) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1SearchTextRequestLocationRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1SearchTextRequestLocationRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleMapsPlacesV1SearchTextRequestSearchAlongRouteParameters: Specifies a
+// precalculated polyline from the Routes API
+// (https://developers.google.com/maps/documentation/routes) defining the route
+// to search. Searching along a route is similar to using the `locationBias` or
+// `locationRestriction` request option to bias the search results. However,
+// while the `locationBias` and `locationRestriction` options let you specify a
+// region to bias the search results, this option lets you bias the results
+// along a trip route. Results are not guaranteed to be along the route
+// provided, but rather are ranked within the search area defined by the
+// polyline and, optionally, by the `locationBias` or `locationRestriction`
+// based on minimal detour times from origin to destination. The results might
+// be along an alternate route, especially if the provided polyline does not
+// define an optimal route from origin to destination.
+type GoogleMapsPlacesV1SearchTextRequestSearchAlongRouteParameters struct {
+	// Polyline: Required. The route polyline.
+	Polyline *GoogleMapsPlacesV1Polyline `json:"polyline,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Polyline") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Polyline") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleMapsPlacesV1SearchTextRequestSearchAlongRouteParameters) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleMapsPlacesV1SearchTextRequestSearchAlongRouteParameters
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsPlacesV1SearchTextResponse: Response proto for SearchText.
@@ -2261,14 +2840,23 @@ type GoogleMapsPlacesV1SearchTextResponse struct {
 	// contents that are relevant to the `text_query` in the request are preferred.
 	// If the contextual content is not available for one of the places, it will
 	// return non-contextual content. It will be empty only when the content is
-	// unavailable for this place. This list should have as many entries as the
-	// list of places if requested.
+	// unavailable for this place. This list will have as many entries as the list
+	// of places if requested.
 	ContextualContents []*GoogleMapsPlacesV1ContextualContent `json:"contextualContents,omitempty"`
 	// NextPageToken: A token that can be sent as `page_token` to retrieve the next
 	// page. If this field is omitted or empty, there are no subsequent pages.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 	// Places: A list of places that meet the user's text search criteria.
 	Places []*GoogleMapsPlacesV1Place `json:"places,omitempty"`
+	// RoutingSummaries: A list of routing summaries where each entry associates to
+	// the corresponding place in the same index in the `places` field. If the
+	// routing summary is not available for one of the places, it will contain an
+	// empty entry. This list will have as many entries as the list of places if
+	// requested.
+	RoutingSummaries []*GoogleMapsPlacesV1RoutingSummary `json:"routingSummaries,omitempty"`
+	// SearchUri: A link allows the user to search with the same text query as
+	// specified in the request on Google Maps.
+	SearchUri string `json:"searchUri,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -2285,9 +2873,9 @@ type GoogleMapsPlacesV1SearchTextResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsPlacesV1SearchTextResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsPlacesV1SearchTextResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsPlacesV1SearchTextResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDate: Represents a whole or partial calendar date, such as a
@@ -2323,9 +2911,9 @@ type GoogleTypeDate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeLatLng: An object that represents a latitude/longitude pair. This
@@ -2351,9 +2939,9 @@ type GoogleTypeLatLng struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeLatLng) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeLatLng) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeLatLng
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleTypeLatLng) UnmarshalJSON(data []byte) error {
@@ -2394,9 +2982,9 @@ type GoogleTypeLocalizedText struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeLocalizedText) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeLocalizedText) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeLocalizedText
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeMoney: Represents an amount of money with its currency type.
@@ -2425,9 +3013,135 @@ type GoogleTypeMoney struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeMoney) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeMoney) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeMoney
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleTypePostalAddress: Represents a postal address (for example, for
+// postal delivery or payments addresses). Given a postal address, a postal
+// service can deliver items to a premise, P.O. box or similar. It is not
+// intended to model geographical locations (roads, towns, mountains). In
+// typical usage, an address would be created by user input or from importing
+// existing data, depending on the type of process. Advice on address input or
+// editing: - Use an internationalization-ready address widget such as
+// https://github.com/google/libaddressinput. - Users should not be presented
+// with UI elements for input or editing of fields outside countries where that
+// field is used. For more guidance on how to use this schema, see:
+// https://support.google.com/business/answer/6397478.
+type GoogleTypePostalAddress struct {
+	// AddressLines: Unstructured address lines describing the lower levels of an
+	// address. Because values in `address_lines` do not have type information and
+	// may sometimes contain multiple values in a single field (for example,
+	// "Austin, TX"), it is important that the line order is clear. The order of
+	// address lines should be "envelope order" for the country or region of the
+	// address. In places where this can vary (for example, Japan),
+	// `address_language` is used to make it explicit (for example, "ja" for
+	// large-to-small ordering and "ja-Latn" or "en" for small-to-large). In this
+	// way, the most specific line of an address can be selected based on the
+	// language. The minimum permitted structural representation of an address
+	// consists of a `region_code` with all remaining information placed in the
+	// `address_lines`. It would be possible to format such an address very
+	// approximately without geocoding, but no semantic reasoning could be made
+	// about any of the address components until it was at least partially
+	// resolved. Creating an address only containing a `region_code` and
+	// `address_lines` and then geocoding is the recommended way to handle
+	// completely unstructured addresses (as opposed to guessing which parts of the
+	// address should be localities or administrative areas).
+	AddressLines []string `json:"addressLines,omitempty"`
+	// AdministrativeArea: Optional. Highest administrative subdivision which is
+	// used for postal addresses of a country or region. For example, this can be a
+	// state, a province, an oblast, or a prefecture. For Spain, this is the
+	// province and not the autonomous community (for example, "Barcelona" and not
+	// "Catalonia"). Many countries don't use an administrative area in postal
+	// addresses. For example, in Switzerland, this should be left unpopulated.
+	AdministrativeArea string `json:"administrativeArea,omitempty"`
+	// LanguageCode: Optional. BCP-47 language code of the contents of this address
+	// (if known). This is often the UI language of the input form or is expected
+	// to match one of the languages used in the address' country/region, or their
+	// transliterated equivalents. This can affect formatting in certain countries,
+	// but is not critical to the correctness of the data and will never affect any
+	// validation or other non-formatting related operations. If this value is not
+	// known, it should be omitted (rather than specifying a possibly incorrect
+	// default). Examples: "zh-Hant", "ja", "ja-Latn", "en".
+	LanguageCode string `json:"languageCode,omitempty"`
+	// Locality: Optional. Generally refers to the city or town portion of the
+	// address. Examples: US city, IT comune, UK post town. In regions of the world
+	// where localities are not well defined or do not fit into this structure
+	// well, leave `locality` empty and use `address_lines`.
+	Locality string `json:"locality,omitempty"`
+	// Organization: Optional. The name of the organization at the address.
+	Organization string `json:"organization,omitempty"`
+	// PostalCode: Optional. Postal code of the address. Not all countries use or
+	// require postal codes to be present, but where they are used, they may
+	// trigger additional validation with other parts of the address (for example,
+	// state or zip code validation in the United States).
+	PostalCode string `json:"postalCode,omitempty"`
+	// Recipients: Optional. The recipient at the address. This field may, under
+	// certain circumstances, contain multiline information. For example, it might
+	// contain "care of" information.
+	Recipients []string `json:"recipients,omitempty"`
+	// RegionCode: Required. CLDR region code of the country/region of the address.
+	// This is never inferred and it is up to the user to ensure the value is
+	// correct. See https://cldr.unicode.org/ and
+	// https://www.unicode.org/cldr/charts/30/supplemental/territory_information.html
+	// for details. Example: "CH" for Switzerland.
+	RegionCode string `json:"regionCode,omitempty"`
+	// Revision: The schema revision of the `PostalAddress`. This must be set to 0,
+	// which is the latest revision. All new revisions **must** be backward
+	// compatible with old revisions.
+	Revision int64 `json:"revision,omitempty"`
+	// SortingCode: Optional. Additional, country-specific, sorting code. This is
+	// not used in most regions. Where it is used, the value is either a string
+	// like "CEDEX", optionally followed by a number (for example, "CEDEX 7"), or
+	// just a number alone, representing the "sector code" (Jamaica), "delivery
+	// area indicator" (Malawi) or "post office indicator" (Côte d'Ivoire).
+	SortingCode string `json:"sortingCode,omitempty"`
+	// Sublocality: Optional. Sublocality of the address. For example, this can be
+	// a neighborhood, borough, or district.
+	Sublocality string `json:"sublocality,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AddressLines") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AddressLines") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleTypePostalAddress) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleTypePostalAddress
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleTypeTimeZone: Represents a time zone from the IANA Time Zone Database
+// (https://www.iana.org/time-zones).
+type GoogleTypeTimeZone struct {
+	// Id: IANA Time Zone Database time zone. For example "America/New_York".
+	Id string `json:"id,omitempty"`
+	// Version: Optional. IANA Time Zone Database version number. For example
+	// "2019a".
+	Version string `json:"version,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Id") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleTypeTimeZone
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type PlacesAutocompleteCall struct {
@@ -2470,8 +3184,7 @@ func (c *PlacesAutocompleteCall) Header() http.Header {
 
 func (c *PlacesAutocompleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlemapsplacesv1autocompleteplacesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlemapsplacesv1autocompleteplacesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2484,6 +3197,7 @@ func (c *PlacesAutocompleteCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "places.places.autocomplete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2519,9 +3233,11 @@ func (c *PlacesAutocompleteCall) Do(opts ...googleapi.CallOption) (*GoogleMapsPl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "places.places.autocomplete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2625,12 +3341,11 @@ func (c *PlacesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2638,6 +3353,7 @@ func (c *PlacesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "places.places.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2673,9 +3389,11 @@ func (c *PlacesGetCall) Do(opts ...googleapi.CallOption) (*GoogleMapsPlacesV1Pla
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "places.places.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2719,8 +3437,7 @@ func (c *PlacesSearchNearbyCall) Header() http.Header {
 
 func (c *PlacesSearchNearbyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlemapsplacesv1searchnearbyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlemapsplacesv1searchnearbyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2733,6 +3450,7 @@ func (c *PlacesSearchNearbyCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "places.places.searchNearby", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2768,9 +3486,11 @@ func (c *PlacesSearchNearbyCall) Do(opts ...googleapi.CallOption) (*GoogleMapsPl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "places.places.searchNearby", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2814,8 +3534,7 @@ func (c *PlacesSearchTextCall) Header() http.Header {
 
 func (c *PlacesSearchTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlemapsplacesv1searchtextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlemapsplacesv1searchtextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2828,6 +3547,7 @@ func (c *PlacesSearchTextCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "places.places.searchText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2863,9 +3583,11 @@ func (c *PlacesSearchTextCall) Do(opts ...googleapi.CallOption) (*GoogleMapsPlac
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "places.places.searchText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2989,12 +3711,11 @@ func (c *PlacesPhotosGetMediaCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3002,6 +3723,7 @@ func (c *PlacesPhotosGetMediaCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "places.places.photos.getMedia", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3037,8 +3759,10 @@ func (c *PlacesPhotosGetMediaCall) Do(opts ...googleapi.CallOption) (*GoogleMaps
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "places.places.photos.getMedia", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

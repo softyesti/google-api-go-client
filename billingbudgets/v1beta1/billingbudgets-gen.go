@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "billingbudgets:v1beta1"
 const apiName = "billingbudgets"
@@ -124,7 +127,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.BillingAccounts = NewBillingAccountsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -143,13 +147,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.BillingAccounts = NewBillingAccountsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -237,9 +240,9 @@ type GoogleCloudBillingBudgetsV1beta1AllUpdatesRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1AllUpdatesRule) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1AllUpdatesRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1AllUpdatesRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudBillingBudgetsV1beta1Budget: A budget is a plan that describes
@@ -297,9 +300,9 @@ type GoogleCloudBillingBudgetsV1beta1Budget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1Budget) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1Budget) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1Budget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudBillingBudgetsV1beta1BudgetAmount: The budgeted amount for each
@@ -329,9 +332,9 @@ type GoogleCloudBillingBudgetsV1beta1BudgetAmount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1BudgetAmount) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1BudgetAmount) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1BudgetAmount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudBillingBudgetsV1beta1CreateBudgetRequest: Request for
@@ -352,9 +355,9 @@ type GoogleCloudBillingBudgetsV1beta1CreateBudgetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1CreateBudgetRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1CreateBudgetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1CreateBudgetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudBillingBudgetsV1beta1CustomPeriod: All date times begin at 12 AM
@@ -379,9 +382,9 @@ type GoogleCloudBillingBudgetsV1beta1CustomPeriod struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1CustomPeriod) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1CustomPeriod) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1CustomPeriod
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudBillingBudgetsV1beta1Filter: A filter for a budget, limiting the
@@ -473,9 +476,9 @@ type GoogleCloudBillingBudgetsV1beta1Filter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1Filter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1Filter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1Filter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudBillingBudgetsV1beta1LastPeriodAmount: Describes a budget amount
@@ -513,9 +516,9 @@ type GoogleCloudBillingBudgetsV1beta1ListBudgetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1ListBudgetsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1ListBudgetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1ListBudgetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudBillingBudgetsV1beta1ThresholdRule: ThresholdRule contains the
@@ -562,9 +565,9 @@ type GoogleCloudBillingBudgetsV1beta1ThresholdRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1ThresholdRule) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1ThresholdRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1ThresholdRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudBillingBudgetsV1beta1ThresholdRule) UnmarshalJSON(data []byte) error {
@@ -607,9 +610,9 @@ type GoogleCloudBillingBudgetsV1beta1UpdateBudgetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudBillingBudgetsV1beta1UpdateBudgetRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudBillingBudgetsV1beta1UpdateBudgetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudBillingBudgetsV1beta1UpdateBudgetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -655,9 +658,9 @@ type GoogleTypeDate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeMoney: Represents an amount of money with its currency type.
@@ -686,9 +689,9 @@ type GoogleTypeMoney struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeMoney) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeMoney) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeMoney
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BillingAccountsBudgetsCreateCall struct {
@@ -738,8 +741,7 @@ func (c *BillingAccountsBudgetsCreateCall) Header() http.Header {
 
 func (c *BillingAccountsBudgetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudbillingbudgetsv1beta1createbudgetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudbillingbudgetsv1beta1createbudgetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -755,6 +757,7 @@ func (c *BillingAccountsBudgetsCreateCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -790,9 +793,11 @@ func (c *BillingAccountsBudgetsCreateCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -839,12 +844,11 @@ func (c *BillingAccountsBudgetsDeleteCall) Header() http.Header {
 
 func (c *BillingAccountsBudgetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -852,6 +856,7 @@ func (c *BillingAccountsBudgetsDeleteCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -887,9 +892,11 @@ func (c *BillingAccountsBudgetsDeleteCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -951,12 +958,11 @@ func (c *BillingAccountsBudgetsGetCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -964,6 +970,7 @@ func (c *BillingAccountsBudgetsGetCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -999,9 +1006,11 @@ func (c *BillingAccountsBudgetsGetCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1091,12 +1100,11 @@ func (c *BillingAccountsBudgetsListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/budgets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1104,6 +1112,7 @@ func (c *BillingAccountsBudgetsListCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1139,9 +1148,11 @@ func (c *BillingAccountsBudgetsListCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1215,8 +1226,7 @@ func (c *BillingAccountsBudgetsPatchCall) Header() http.Header {
 
 func (c *BillingAccountsBudgetsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudbillingbudgetsv1beta1updatebudgetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudbillingbudgetsv1beta1updatebudgetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1232,6 +1242,7 @@ func (c *BillingAccountsBudgetsPatchCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1267,8 +1278,10 @@ func (c *BillingAccountsBudgetsPatchCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "billingbudgets.billingAccounts.budgets.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -59,11 +59,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -87,6 +89,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "speech:v1"
 const apiName = "speech"
@@ -117,7 +120,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Operations = NewOperationsService(s)
+	s.Projects = NewProjectsService(s)
+	s.Speech = NewSpeechService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -136,15 +142,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Operations = NewOperationsService(s)
-	s.Projects = NewProjectsService(s)
-	s.Speech = NewSpeechService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -242,9 +245,9 @@ type ABNFGrammar struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ABNFGrammar) MarshalJSON() ([]byte, error) {
+func (s ABNFGrammar) MarshalJSON() ([]byte, error) {
 	type NoMethod ABNFGrammar
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClassItem: An item of the class.
@@ -264,9 +267,9 @@ type ClassItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClassItem) MarshalJSON() ([]byte, error) {
+func (s ClassItem) MarshalJSON() ([]byte, error) {
 	type NoMethod ClassItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateCustomClassRequest: Message sent by the client for the
@@ -292,9 +295,9 @@ type CreateCustomClassRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateCustomClassRequest) MarshalJSON() ([]byte, error) {
+func (s CreateCustomClassRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateCustomClassRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreatePhraseSetRequest: Message sent by the client for the `CreatePhraseSet`
@@ -320,9 +323,9 @@ type CreatePhraseSetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreatePhraseSetRequest) MarshalJSON() ([]byte, error) {
+func (s CreatePhraseSetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreatePhraseSetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomClass: A set of words or phrases that represents a common concept
@@ -397,9 +400,9 @@ type CustomClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomClass) MarshalJSON() ([]byte, error) {
+func (s CustomClass) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -432,9 +435,9 @@ type Entry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Entry) MarshalJSON() ([]byte, error) {
+func (s Entry) MarshalJSON() ([]byte, error) {
 	type NoMethod Entry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCustomClassesResponse: Message returned to the client by the
@@ -461,9 +464,9 @@ type ListCustomClassesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCustomClassesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCustomClassesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCustomClassesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -489,9 +492,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPhraseSetResponse: Message returned to the client by the `ListPhraseSet`
@@ -518,9 +521,9 @@ type ListPhraseSetResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPhraseSetResponse) MarshalJSON() ([]byte, error) {
+func (s ListPhraseSetResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPhraseSetResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LongRunningRecognizeMetadata: Describes the progress of a long-running
@@ -552,9 +555,9 @@ type LongRunningRecognizeMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LongRunningRecognizeMetadata) MarshalJSON() ([]byte, error) {
+func (s LongRunningRecognizeMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod LongRunningRecognizeMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LongRunningRecognizeRequest: The top-level message sent by the client for
@@ -581,9 +584,9 @@ type LongRunningRecognizeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LongRunningRecognizeRequest) MarshalJSON() ([]byte, error) {
+func (s LongRunningRecognizeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LongRunningRecognizeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LongRunningRecognizeResponse: The only message returned to the client by the
@@ -622,9 +625,9 @@ type LongRunningRecognizeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LongRunningRecognizeResponse) MarshalJSON() ([]byte, error) {
+func (s LongRunningRecognizeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LongRunningRecognizeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -669,9 +672,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Phrase: A phrases containing words and phrase "hints" so that the speech
@@ -722,9 +725,9 @@ type Phrase struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Phrase) MarshalJSON() ([]byte, error) {
+func (s Phrase) MarshalJSON() ([]byte, error) {
 	type NoMethod Phrase
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Phrase) UnmarshalJSON(data []byte) error {
@@ -818,9 +821,9 @@ type PhraseSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PhraseSet) MarshalJSON() ([]byte, error) {
+func (s PhraseSet) MarshalJSON() ([]byte, error) {
 	type NoMethod PhraseSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *PhraseSet) UnmarshalJSON(data []byte) error {
@@ -866,9 +869,9 @@ type RecognitionAudio struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecognitionAudio) MarshalJSON() ([]byte, error) {
+func (s RecognitionAudio) MarshalJSON() ([]byte, error) {
 	type NoMethod RecognitionAudio
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RecognitionConfig: Provides information to the recognizer that specifies how
@@ -983,6 +986,8 @@ type RecognitionConfig struct {
 	//   "WEBM_OPUS" - Opus encoded audio frames in WebM container
 	// ([WebM](https://www.webmproject.org/docs/container/)). `sample_rate_hertz`
 	// must be one of 8000, 12000, 16000, 24000, or 48000.
+	//   "ALAW" - 8-bit samples that compand 13-bit audio samples using G.711
+	// PCMU/a-law.
 	Encoding string `json:"encoding,omitempty"`
 	// LanguageCode: Required. The language of the supplied audio as a BCP-47
 	// (https://www.rfc-editor.org/rfc/bcp/bcp47.txt) language tag. Example:
@@ -1057,9 +1062,9 @@ type RecognitionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecognitionConfig) MarshalJSON() ([]byte, error) {
+func (s RecognitionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RecognitionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RecognitionMetadata: Description of audio data to be recognized.
@@ -1146,9 +1151,9 @@ type RecognitionMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecognitionMetadata) MarshalJSON() ([]byte, error) {
+func (s RecognitionMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod RecognitionMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RecognizeRequest: The top-level message sent by the client for the
@@ -1172,9 +1177,9 @@ type RecognizeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecognizeRequest) MarshalJSON() ([]byte, error) {
+func (s RecognizeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RecognizeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RecognizeResponse: The only message returned to the client by the
@@ -1212,9 +1217,9 @@ type RecognizeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecognizeResponse) MarshalJSON() ([]byte, error) {
+func (s RecognizeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RecognizeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SpeakerDiarizationConfig: Config to enable speaker diarization.
@@ -1246,9 +1251,9 @@ type SpeakerDiarizationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpeakerDiarizationConfig) MarshalJSON() ([]byte, error) {
+func (s SpeakerDiarizationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SpeakerDiarizationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SpeechAdaptation: Speech adaptation configuration.
@@ -1281,9 +1286,9 @@ type SpeechAdaptation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpeechAdaptation) MarshalJSON() ([]byte, error) {
+func (s SpeechAdaptation) MarshalJSON() ([]byte, error) {
 	type NoMethod SpeechAdaptation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SpeechAdaptationInfo: Information on speech adaptation use in results
@@ -1307,9 +1312,9 @@ type SpeechAdaptationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpeechAdaptationInfo) MarshalJSON() ([]byte, error) {
+func (s SpeechAdaptationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SpeechAdaptationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SpeechContext: Provides "hints" to the speech recognizer to favor specific
@@ -1348,9 +1353,9 @@ type SpeechContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpeechContext) MarshalJSON() ([]byte, error) {
+func (s SpeechContext) MarshalJSON() ([]byte, error) {
 	type NoMethod SpeechContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *SpeechContext) UnmarshalJSON(data []byte) error {
@@ -1399,9 +1404,9 @@ type SpeechRecognitionAlternative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
+func (s SpeechRecognitionAlternative) MarshalJSON() ([]byte, error) {
 	type NoMethod SpeechRecognitionAlternative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *SpeechRecognitionAlternative) UnmarshalJSON(data []byte) error {
@@ -1451,9 +1456,9 @@ type SpeechRecognitionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpeechRecognitionResult) MarshalJSON() ([]byte, error) {
+func (s SpeechRecognitionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod SpeechRecognitionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -1485,9 +1490,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TranscriptNormalization: Transcription normalization configuration. Use
@@ -1514,9 +1519,9 @@ type TranscriptNormalization struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranscriptNormalization) MarshalJSON() ([]byte, error) {
+func (s TranscriptNormalization) MarshalJSON() ([]byte, error) {
 	type NoMethod TranscriptNormalization
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TranscriptOutputConfig: Specifies an optional destination for the
@@ -1539,9 +1544,9 @@ type TranscriptOutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranscriptOutputConfig) MarshalJSON() ([]byte, error) {
+func (s TranscriptOutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TranscriptOutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WordInfo: Word-specific information for recognized words.
@@ -1592,9 +1597,9 @@ type WordInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WordInfo) MarshalJSON() ([]byte, error) {
+func (s WordInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod WordInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *WordInfo) UnmarshalJSON(data []byte) error {
@@ -1667,12 +1672,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/operations/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1680,6 +1684,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1714,9 +1719,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1798,16 +1805,16 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1843,9 +1850,11 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*ListOperationsRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1921,8 +1930,7 @@ func (c *ProjectsLocationsCustomClassesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsCustomClassesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createcustomclassrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createcustomclassrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1938,6 +1946,7 @@ func (c *ProjectsLocationsCustomClassesCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1972,9 +1981,11 @@ func (c *ProjectsLocationsCustomClassesCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2027,12 +2038,11 @@ func (c *ProjectsLocationsCustomClassesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsCustomClassesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2040,6 +2050,7 @@ func (c *ProjectsLocationsCustomClassesDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2074,9 +2085,11 @@ func (c *ProjectsLocationsCustomClassesDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2135,12 +2148,11 @@ func (c *ProjectsLocationsCustomClassesGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2148,6 +2160,7 @@ func (c *ProjectsLocationsCustomClassesGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2182,9 +2195,11 @@ func (c *ProjectsLocationsCustomClassesGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2266,12 +2281,11 @@ func (c *ProjectsLocationsCustomClassesListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/customClasses")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2279,6 +2293,7 @@ func (c *ProjectsLocationsCustomClassesListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2314,9 +2329,11 @@ func (c *ProjectsLocationsCustomClassesListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2392,8 +2409,7 @@ func (c *ProjectsLocationsCustomClassesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsCustomClassesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customclass)
 	if err != nil {
 		return nil, err
 	}
@@ -2409,6 +2425,7 @@ func (c *ProjectsLocationsCustomClassesPatchCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2443,9 +2460,11 @@ func (c *ProjectsLocationsCustomClassesPatchCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.customClasses.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2501,8 +2520,7 @@ func (c *ProjectsLocationsPhraseSetsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsPhraseSetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createphrasesetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createphrasesetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2518,6 +2536,7 @@ func (c *ProjectsLocationsPhraseSetsCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2552,9 +2571,11 @@ func (c *ProjectsLocationsPhraseSetsCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2601,12 +2622,11 @@ func (c *ProjectsLocationsPhraseSetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsPhraseSetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2614,6 +2634,7 @@ func (c *ProjectsLocationsPhraseSetsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2648,9 +2669,11 @@ func (c *ProjectsLocationsPhraseSetsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2715,12 +2738,11 @@ func (c *ProjectsLocationsPhraseSetsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2728,6 +2750,7 @@ func (c *ProjectsLocationsPhraseSetsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2762,9 +2785,11 @@ func (c *ProjectsLocationsPhraseSetsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2846,12 +2871,11 @@ func (c *ProjectsLocationsPhraseSetsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/phraseSets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2859,6 +2883,7 @@ func (c *ProjectsLocationsPhraseSetsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2894,9 +2919,11 @@ func (c *ProjectsLocationsPhraseSetsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2972,8 +2999,7 @@ func (c *ProjectsLocationsPhraseSetsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsPhraseSetsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.phraseset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.phraseset)
 	if err != nil {
 		return nil, err
 	}
@@ -2989,6 +3015,7 @@ func (c *ProjectsLocationsPhraseSetsPatchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3023,9 +3050,11 @@ func (c *ProjectsLocationsPhraseSetsPatchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.projects.locations.phraseSets.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3074,8 +3103,7 @@ func (c *SpeechLongrunningrecognizeCall) Header() http.Header {
 
 func (c *SpeechLongrunningrecognizeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.longrunningrecognizerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.longrunningrecognizerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3088,6 +3116,7 @@ func (c *SpeechLongrunningrecognizeCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.speech.longrunningrecognize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3122,9 +3151,11 @@ func (c *SpeechLongrunningrecognizeCall) Do(opts ...googleapi.CallOption) (*Oper
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.speech.longrunningrecognize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3169,8 +3200,7 @@ func (c *SpeechRecognizeCall) Header() http.Header {
 
 func (c *SpeechRecognizeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.recognizerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.recognizerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3183,6 +3213,7 @@ func (c *SpeechRecognizeCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "speech.speech.recognize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3218,8 +3249,10 @@ func (c *SpeechRecognizeCall) Do(opts ...googleapi.CallOption) (*RecognizeRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "speech.speech.recognize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "bigtableadmin:v2"
 const apiName = "bigtableadmin"
@@ -153,7 +156,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Operations = NewOperationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -172,14 +177,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Operations = NewOperationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -247,6 +250,8 @@ func NewProjectsInstancesService(s *Service) *ProjectsInstancesService {
 	rs := &ProjectsInstancesService{s: s}
 	rs.AppProfiles = NewProjectsInstancesAppProfilesService(s)
 	rs.Clusters = NewProjectsInstancesClustersService(s)
+	rs.LogicalViews = NewProjectsInstancesLogicalViewsService(s)
+	rs.MaterializedViews = NewProjectsInstancesMaterializedViewsService(s)
 	rs.Tables = NewProjectsInstancesTablesService(s)
 	return rs
 }
@@ -257,6 +262,10 @@ type ProjectsInstancesService struct {
 	AppProfiles *ProjectsInstancesAppProfilesService
 
 	Clusters *ProjectsInstancesClustersService
+
+	LogicalViews *ProjectsInstancesLogicalViewsService
+
+	MaterializedViews *ProjectsInstancesMaterializedViewsService
 
 	Tables *ProjectsInstancesTablesService
 }
@@ -300,6 +309,24 @@ func NewProjectsInstancesClustersHotTabletsService(s *Service) *ProjectsInstance
 }
 
 type ProjectsInstancesClustersHotTabletsService struct {
+	s *Service
+}
+
+func NewProjectsInstancesLogicalViewsService(s *Service) *ProjectsInstancesLogicalViewsService {
+	rs := &ProjectsInstancesLogicalViewsService{s: s}
+	return rs
+}
+
+type ProjectsInstancesLogicalViewsService struct {
+	s *Service
+}
+
+func NewProjectsInstancesMaterializedViewsService(s *Service) *ProjectsInstancesMaterializedViewsService {
+	rs := &ProjectsInstancesMaterializedViewsService{s: s}
+	return rs
+}
+
+type ProjectsInstancesMaterializedViewsService struct {
 	s *Service
 }
 
@@ -386,9 +413,9 @@ type AppProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppProfile) MarshalJSON() ([]byte, error) {
+func (s AppProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod AppProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -427,9 +454,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -462,9 +489,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuthorizedView: An Authorized View of a Cloud Bigtable Table.
@@ -500,18 +527,19 @@ type AuthorizedView struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuthorizedView) MarshalJSON() ([]byte, error) {
+func (s AuthorizedView) MarshalJSON() ([]byte, error) {
 	type NoMethod AuthorizedView
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomatedBackupPolicy: Defines an automated backup policy for a table
 type AutomatedBackupPolicy struct {
-	// Frequency: Required. How frequently automated backups should occur. The only
-	// supported value at this time is 24 hours.
+	// Frequency: How frequently automated backups should occur. The only supported
+	// value at this time is 24 hours. An undefined frequency is treated as 24
+	// hours.
 	Frequency string `json:"frequency,omitempty"`
 	// RetentionPeriod: Required. How long the automated backups should be
-	// retained. The only supported value at this time is 3 days.
+	// retained. Values must be at least 3 days and at most 90 days.
 	RetentionPeriod string `json:"retentionPeriod,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Frequency") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -526,9 +554,9 @@ type AutomatedBackupPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomatedBackupPolicy) MarshalJSON() ([]byte, error) {
+func (s AutomatedBackupPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomatedBackupPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutoscalingLimits: Limits for the number of nodes a Cluster can autoscale
@@ -551,9 +579,9 @@ type AutoscalingLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoscalingLimits) MarshalJSON() ([]byte, error) {
+func (s AutoscalingLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoscalingLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutoscalingTargets: The Autoscaling targets for a Cluster. These determine
@@ -584,23 +612,42 @@ type AutoscalingTargets struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoscalingTargets) MarshalJSON() ([]byte, error) {
+func (s AutoscalingTargets) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoscalingTargets
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Backup: A backup of a Cloud Bigtable table.
 type Backup struct {
+	// BackupType: Indicates the backup type of the backup.
+	//
+	// Possible values:
+	//   "BACKUP_TYPE_UNSPECIFIED" - Not specified.
+	//   "STANDARD" - The default type for Cloud Bigtable managed backups.
+	// Supported for backups created in both HDD and SSD instances. Requires
+	// optimization when restored to a table in an SSD instance.
+	//   "HOT" - A backup type with faster restore to SSD performance. Only
+	// supported for backups created in SSD instances. A new SSD table restored
+	// from a hot backup reaches production performance more quickly than a
+	// standard backup.
+	BackupType string `json:"backupType,omitempty"`
 	// EncryptionInfo: Output only. The encryption information for the backup.
 	EncryptionInfo *EncryptionInfo `json:"encryptionInfo,omitempty"`
 	// EndTime: Output only. `end_time` is the time that the backup was finished.
 	// The row data in the backup will be no newer than this timestamp.
 	EndTime string `json:"endTime,omitempty"`
-	// ExpireTime: Required. The expiration time of the backup, with microseconds
-	// granularity that must be at least 6 hours and at most 90 days from the time
-	// the request is received. Once the `expire_time` has passed, Cloud Bigtable
-	// will delete the backup and free the resources used by the backup.
+	// ExpireTime: Required. The expiration time of the backup. When creating a
+	// backup or updating its `expire_time`, the value must be greater than the
+	// backup creation time by: - At least 6 hours - At most 90 days Once the
+	// `expire_time` has passed, Cloud Bigtable will delete the backup.
 	ExpireTime string `json:"expireTime,omitempty"`
+	// HotToStandardTime: The time at which the hot backup will be converted to a
+	// standard backup. Once the `hot_to_standard_time` has passed, Cloud Bigtable
+	// will convert the hot backup to a standard backup. This value must be greater
+	// than the backup creation time by: - At least 24 hours This field only
+	// applies for hot backups. When creating or updating a standard backup,
+	// attempting to set this field will fail the request.
+	HotToStandardTime string `json:"hotToStandardTime,omitempty"`
 	// Name: A globally unique identifier for the backup which cannot be changed.
 	// Values are of the form
 	// `projects/{project}/instances/{instance}/clusters/{cluster}/
@@ -634,22 +681,22 @@ type Backup struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "EncryptionInfo") to
+	// ForceSendFields is a list of field names (e.g. "BackupType") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "EncryptionInfo") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "BackupType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *Backup) MarshalJSON() ([]byte, error) {
+func (s Backup) MarshalJSON() ([]byte, error) {
 	type NoMethod Backup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BackupInfo: Information about a backup.
@@ -681,9 +728,9 @@ type BackupInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BackupInfo) MarshalJSON() ([]byte, error) {
+func (s BackupInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod BackupInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -780,9 +827,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ChangeStreamConfig: Change stream configuration.
@@ -805,9 +852,9 @@ type ChangeStreamConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ChangeStreamConfig) MarshalJSON() ([]byte, error) {
+func (s ChangeStreamConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ChangeStreamConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckConsistencyRequest: Request message for
@@ -837,9 +884,9 @@ type CheckConsistencyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckConsistencyRequest) MarshalJSON() ([]byte, error) {
+func (s CheckConsistencyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckConsistencyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckConsistencyResponse: Response message for
@@ -864,9 +911,9 @@ type CheckConsistencyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckConsistencyResponse) MarshalJSON() ([]byte, error) {
+func (s CheckConsistencyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckConsistencyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Cluster: A resizable group of nodes in a particular cloud location, capable
@@ -893,6 +940,17 @@ type Cluster struct {
 	// Name: The unique name of the cluster. Values are of the form
 	// `projects/{project}/instances/{instance}/clusters/a-z*`.
 	Name string `json:"name,omitempty"`
+	// NodeScalingFactor: Immutable. The node scaling factor of this cluster.
+	//
+	// Possible values:
+	//   "NODE_SCALING_FACTOR_UNSPECIFIED" - No node scaling specified. Defaults to
+	// NODE_SCALING_FACTOR_1X.
+	//   "NODE_SCALING_FACTOR_1X" - The cluster is running with a scaling factor of
+	// 1.
+	//   "NODE_SCALING_FACTOR_2X" - The cluster is running with a scaling factor of
+	// 2. All node count values must be in increments of 2 with this scaling factor
+	// enabled, otherwise an INVALID_ARGUMENT error will be returned.
+	NodeScalingFactor string `json:"nodeScalingFactor,omitempty"`
 	// ServeNodes: The number of nodes in the cluster. If no value is set, Cloud
 	// Bigtable automatically allocates nodes based on your data footprint and
 	// optimized for 50% storage utilization.
@@ -930,9 +988,9 @@ type Cluster struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Cluster) MarshalJSON() ([]byte, error) {
+func (s Cluster) MarshalJSON() ([]byte, error) {
 	type NoMethod Cluster
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterAutoscalingConfig: Autoscaling config for a cluster.
@@ -954,9 +1012,9 @@ type ClusterAutoscalingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterAutoscalingConfig) MarshalJSON() ([]byte, error) {
+func (s ClusterAutoscalingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterAutoscalingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterConfig: Configuration for a cluster.
@@ -976,9 +1034,9 @@ type ClusterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterConfig) MarshalJSON() ([]byte, error) {
+func (s ClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterState: The state of a table's data in a particular cluster.
@@ -1022,9 +1080,9 @@ type ClusterState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterState) MarshalJSON() ([]byte, error) {
+func (s ClusterState) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ColumnFamily: A set of columns within a table which share a common
@@ -1059,9 +1117,9 @@ type ColumnFamily struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ColumnFamily) MarshalJSON() ([]byte, error) {
+func (s ColumnFamily) MarshalJSON() ([]byte, error) {
 	type NoMethod ColumnFamily
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ColumnFamilyStats: Approximate statistics related to a single column family
@@ -1104,9 +1162,9 @@ type ColumnFamilyStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ColumnFamilyStats) MarshalJSON() ([]byte, error) {
+func (s ColumnFamilyStats) MarshalJSON() ([]byte, error) {
 	type NoMethod ColumnFamilyStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ColumnFamilyStats) UnmarshalJSON(data []byte) error {
@@ -1149,9 +1207,9 @@ type CopyBackupMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CopyBackupMetadata) MarshalJSON() ([]byte, error) {
+func (s CopyBackupMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CopyBackupMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CopyBackupRequest: The request for CopyBackup.
@@ -1188,9 +1246,9 @@ type CopyBackupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CopyBackupRequest) MarshalJSON() ([]byte, error) {
+func (s CopyBackupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CopyBackupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateAuthorizedViewMetadata: The metadata for the Operation returned by
@@ -1217,9 +1275,9 @@ type CreateAuthorizedViewMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateAuthorizedViewMetadata) MarshalJSON() ([]byte, error) {
+func (s CreateAuthorizedViewMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateAuthorizedViewMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateAuthorizedViewRequest: The request for CreateAuthorizedView
@@ -1249,9 +1307,9 @@ type CreateAuthorizedViewRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateAuthorizedViewRequest) MarshalJSON() ([]byte, error) {
+func (s CreateAuthorizedViewRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateAuthorizedViewRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateBackupMetadata: Metadata type for the operation returned by
@@ -1278,9 +1336,9 @@ type CreateBackupMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateBackupMetadata) MarshalJSON() ([]byte, error) {
+func (s CreateBackupMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateBackupMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateClusterMetadata: The metadata for the Operation returned by
@@ -1313,9 +1371,9 @@ type CreateClusterMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateClusterMetadata) MarshalJSON() ([]byte, error) {
+func (s CreateClusterMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateClusterMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateClusterRequest: Request message for
@@ -1344,9 +1402,9 @@ type CreateClusterRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateClusterRequest) MarshalJSON() ([]byte, error) {
+func (s CreateClusterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateClusterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateInstanceMetadata: The metadata for the Operation returned by
@@ -1373,9 +1431,9 @@ type CreateInstanceMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateInstanceMetadata) MarshalJSON() ([]byte, error) {
+func (s CreateInstanceMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateInstanceMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateInstanceRequest: Request message for
@@ -1409,9 +1467,123 @@ type CreateInstanceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateInstanceRequest) MarshalJSON() ([]byte, error) {
+func (s CreateInstanceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateInstanceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CreateLogicalViewMetadata: The metadata for the Operation returned by
+// CreateLogicalView.
+type CreateLogicalViewMetadata struct {
+	// EndTime: If set, the time at which this operation finished or was canceled.
+	EndTime string `json:"endTime,omitempty"`
+	// OriginalRequest: The request that prompted the initiation of this
+	// CreateLogicalView operation.
+	OriginalRequest *CreateLogicalViewRequest `json:"originalRequest,omitempty"`
+	// StartTime: The time at which this operation started.
+	StartTime string `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndTime") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CreateLogicalViewMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod CreateLogicalViewMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CreateLogicalViewRequest: Request message for
+// BigtableInstanceAdmin.CreateLogicalView.
+type CreateLogicalViewRequest struct {
+	// LogicalView: Required. The logical view to create.
+	LogicalView *LogicalView `json:"logicalView,omitempty"`
+	// LogicalViewId: Required. The ID to use for the logical view, which will
+	// become the final component of the logical view's resource name.
+	LogicalViewId string `json:"logicalViewId,omitempty"`
+	// Parent: Required. The parent instance where this logical view will be
+	// created. Format: `projects/{project}/instances/{instance}`.
+	Parent string `json:"parent,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "LogicalView") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "LogicalView") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CreateLogicalViewRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod CreateLogicalViewRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CreateMaterializedViewMetadata: The metadata for the Operation returned by
+// CreateMaterializedView.
+type CreateMaterializedViewMetadata struct {
+	// EndTime: If set, the time at which this operation finished or was canceled.
+	EndTime string `json:"endTime,omitempty"`
+	// OriginalRequest: The request that prompted the initiation of this
+	// CreateMaterializedView operation.
+	OriginalRequest *CreateMaterializedViewRequest `json:"originalRequest,omitempty"`
+	// StartTime: The time at which this operation started.
+	StartTime string `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndTime") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CreateMaterializedViewMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod CreateMaterializedViewMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CreateMaterializedViewRequest: Request message for
+// BigtableInstanceAdmin.CreateMaterializedView.
+type CreateMaterializedViewRequest struct {
+	// MaterializedView: Required. The materialized view to create.
+	MaterializedView *MaterializedView `json:"materializedView,omitempty"`
+	// MaterializedViewId: Required. The ID to use for the materialized view, which
+	// will become the final component of the materialized view's resource name.
+	MaterializedViewId string `json:"materializedViewId,omitempty"`
+	// Parent: Required. The parent instance where this materialized view will be
+	// created. Format: `projects/{project}/instances/{instance}`.
+	Parent string `json:"parent,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "MaterializedView") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "MaterializedView") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CreateMaterializedViewRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod CreateMaterializedViewRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateTableRequest: Request message for
@@ -1447,9 +1619,9 @@ type CreateTableRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateTableRequest) MarshalJSON() ([]byte, error) {
+func (s CreateTableRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateTableRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataBoostIsolationReadOnly: Data Boost is a serverless compute capability
@@ -1479,9 +1651,9 @@ type DataBoostIsolationReadOnly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataBoostIsolationReadOnly) MarshalJSON() ([]byte, error) {
+func (s DataBoostIsolationReadOnly) MarshalJSON() ([]byte, error) {
 	type NoMethod DataBoostIsolationReadOnly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataBoostReadLocalWrites: Checks that all writes before the consistency
@@ -1511,9 +1683,9 @@ type DropRowRangeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DropRowRangeRequest) MarshalJSON() ([]byte, error) {
+func (s DropRowRangeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DropRowRangeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1550,9 +1722,9 @@ type EncryptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionConfig) MarshalJSON() ([]byte, error) {
+func (s EncryptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EncryptionInfo: Encryption information for a given resource. If this
@@ -1596,9 +1768,9 @@ type EncryptionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionInfo) MarshalJSON() ([]byte, error) {
+func (s EncryptionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -1644,9 +1816,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcRule: Rule for determining which cells to delete during garbage
@@ -1674,9 +1846,9 @@ type GcRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcRule) MarshalJSON() ([]byte, error) {
+func (s GcRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GcRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenerateConsistencyTokenRequest: Request message for
@@ -1705,9 +1877,9 @@ type GenerateConsistencyTokenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenerateConsistencyTokenResponse) MarshalJSON() ([]byte, error) {
+func (s GenerateConsistencyTokenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GenerateConsistencyTokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIamPolicyRequest: Request message for `GetIamPolicy` method.
@@ -1728,9 +1900,9 @@ type GetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetPolicyOptions: Encapsulates settings provided to GetIamPolicy.
@@ -1760,9 +1932,9 @@ type GetPolicyOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetPolicyOptions) MarshalJSON() ([]byte, error) {
+func (s GetPolicyOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GetPolicyOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleBigtableAdminV2AuthorizedViewFamilySubsets: Subsets of a column family
@@ -1789,9 +1961,9 @@ type GoogleBigtableAdminV2AuthorizedViewFamilySubsets struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBigtableAdminV2AuthorizedViewFamilySubsets) MarshalJSON() ([]byte, error) {
+func (s GoogleBigtableAdminV2AuthorizedViewFamilySubsets) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBigtableAdminV2AuthorizedViewFamilySubsets
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleBigtableAdminV2AuthorizedViewSubsetView: Defines a simple
@@ -1816,42 +1988,66 @@ type GoogleBigtableAdminV2AuthorizedViewSubsetView struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBigtableAdminV2AuthorizedViewSubsetView) MarshalJSON() ([]byte, error) {
+func (s GoogleBigtableAdminV2AuthorizedViewSubsetView) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBigtableAdminV2AuthorizedViewSubsetView
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleBigtableAdminV2TypeAggregate: A value that combines incremental
 // updates into a summarized value. Data is never directly written or read
-// using type `Aggregate`. Writes will provide either the `input_type` or
-// `state_type`, and reads will always return the `state_type` .
+// using type `Aggregate`. Writes provide either the `input_type` or
+// `state_type`, and reads always return the `state_type` .
 type GoogleBigtableAdminV2TypeAggregate struct {
-	// InputType: Type of the inputs that are accumulated by this `Aggregate`,
-	// which must specify a full encoding. Use `AddInput` mutations to accumulate
-	// new inputs.
+	// HllppUniqueCount: HyperLogLogPlusPlusUniqueCount aggregator.
+	HllppUniqueCount *GoogleBigtableAdminV2TypeAggregateHyperLogLogPlusPlusUniqueCount `json:"hllppUniqueCount,omitempty"`
+	// InputType: Type of the inputs that are accumulated by this `Aggregate`. Use
+	// `AddInput` mutations to accumulate new inputs.
 	InputType *Type `json:"inputType,omitempty"`
+	// Max: Max aggregator.
+	Max *GoogleBigtableAdminV2TypeAggregateMax `json:"max,omitempty"`
+	// Min: Min aggregator.
+	Min *GoogleBigtableAdminV2TypeAggregateMin `json:"min,omitempty"`
 	// StateType: Output only. Type that holds the internal accumulator state for
 	// the `Aggregate`. This is a function of the `input_type` and `aggregator`
-	// chosen, and will always specify a full encoding.
+	// chosen.
 	StateType *Type `json:"stateType,omitempty"`
 	// Sum: Sum aggregator.
 	Sum *GoogleBigtableAdminV2TypeAggregateSum `json:"sum,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "InputType") to
+	// ForceSendFields is a list of field names (e.g. "HllppUniqueCount") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "InputType") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "HllppUniqueCount") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBigtableAdminV2TypeAggregate) MarshalJSON() ([]byte, error) {
+func (s GoogleBigtableAdminV2TypeAggregate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBigtableAdminV2TypeAggregate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeAggregateHyperLogLogPlusPlusUniqueCount: Computes
+// an approximate unique count over the input values. When using raw data as
+// input, be careful to use a consistent encoding. Otherwise the same value
+// encoded differently could count more than once, or two distinct values could
+// count as identical. Input: Any, or omit for Raw State: TBD Special state
+// conversions: `Int64` (the unique count estimate)
+type GoogleBigtableAdminV2TypeAggregateHyperLogLogPlusPlusUniqueCount struct {
+}
+
+// GoogleBigtableAdminV2TypeAggregateMax: Computes the max of the input values.
+// Allowed input: `Int64` State: same as input
+type GoogleBigtableAdminV2TypeAggregateMax struct {
+}
+
+// GoogleBigtableAdminV2TypeAggregateMin: Computes the min of the input values.
+// Allowed input: `Int64` State: same as input
+type GoogleBigtableAdminV2TypeAggregateMin struct {
 }
 
 // GoogleBigtableAdminV2TypeAggregateSum: Computes the sum of the input values.
@@ -1859,10 +2055,39 @@ func (s *GoogleBigtableAdminV2TypeAggregate) MarshalJSON() ([]byte, error) {
 type GoogleBigtableAdminV2TypeAggregateSum struct {
 }
 
+// GoogleBigtableAdminV2TypeArray: An ordered list of elements of a given type.
+// Values of type `Array` are stored in `Value.array_value`.
+type GoogleBigtableAdminV2TypeArray struct {
+	// ElementType: The type of the elements in the array. This must not be
+	// `Array`.
+	ElementType *Type `json:"elementType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ElementType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ElementType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeArray) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeArray
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeBool: bool Values of type `Bool` are stored in
+// `Value.bool_value`.
+type GoogleBigtableAdminV2TypeBool struct {
+}
+
 // GoogleBigtableAdminV2TypeBytes: Bytes Values of type `Bytes` are stored in
 // `Value.bytes_value`.
 type GoogleBigtableAdminV2TypeBytes struct {
-	// Encoding: The encoding to use when converting to/from lower level types.
+	// Encoding: The encoding to use when converting to or from lower level types.
 	Encoding *GoogleBigtableAdminV2TypeBytesEncoding `json:"encoding,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Encoding") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1877,13 +2102,13 @@ type GoogleBigtableAdminV2TypeBytes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBigtableAdminV2TypeBytes) MarshalJSON() ([]byte, error) {
+func (s GoogleBigtableAdminV2TypeBytes) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBigtableAdminV2TypeBytes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GoogleBigtableAdminV2TypeBytesEncoding: Rules used to convert to/from lower
-// level types.
+// GoogleBigtableAdminV2TypeBytesEncoding: Rules used to convert to or from
+// lower level types.
 type GoogleBigtableAdminV2TypeBytesEncoding struct {
 	// Raw: Use `Raw` encoding.
 	Raw *GoogleBigtableAdminV2TypeBytesEncodingRaw `json:"raw,omitempty"`
@@ -1900,20 +2125,55 @@ type GoogleBigtableAdminV2TypeBytesEncoding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBigtableAdminV2TypeBytesEncoding) MarshalJSON() ([]byte, error) {
+func (s GoogleBigtableAdminV2TypeBytesEncoding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBigtableAdminV2TypeBytesEncoding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GoogleBigtableAdminV2TypeBytesEncodingRaw: Leaves the value "as-is" *
-// Natural sort? Yes * Self-delimiting? No * Compatibility? N/A
+// GoogleBigtableAdminV2TypeBytesEncodingRaw: Leaves the value as-is. Sorted
+// mode: all values are supported. Distinct mode: all values are supported.
 type GoogleBigtableAdminV2TypeBytesEncodingRaw struct {
+	// EscapeNulls: If set, allows NULL values to be encoded as the empty string
+	// "". The actual empty string, or any value which only contains the null byte
+	// 0x00, has one more null byte appended.
+	EscapeNulls bool `json:"escapeNulls,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EscapeNulls") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EscapeNulls") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeBytesEncodingRaw) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeBytesEncodingRaw
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeDate: Date Values of type `Date` are stored in
+// `Value.date_value`.
+type GoogleBigtableAdminV2TypeDate struct {
+}
+
+// GoogleBigtableAdminV2TypeFloat32: Float32 Values of type `Float32` are
+// stored in `Value.float_value`.
+type GoogleBigtableAdminV2TypeFloat32 struct {
+}
+
+// GoogleBigtableAdminV2TypeFloat64: Float64 Values of type `Float64` are
+// stored in `Value.float_value`.
+type GoogleBigtableAdminV2TypeFloat64 struct {
 }
 
 // GoogleBigtableAdminV2TypeInt64: Int64 Values of type `Int64` are stored in
 // `Value.int_value`.
 type GoogleBigtableAdminV2TypeInt64 struct {
-	// Encoding: The encoding to use when converting to/from lower level types.
+	// Encoding: The encoding to use when converting to or from lower level types.
 	Encoding *GoogleBigtableAdminV2TypeInt64Encoding `json:"encoding,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Encoding") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1928,16 +2188,18 @@ type GoogleBigtableAdminV2TypeInt64 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBigtableAdminV2TypeInt64) MarshalJSON() ([]byte, error) {
+func (s GoogleBigtableAdminV2TypeInt64) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBigtableAdminV2TypeInt64
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GoogleBigtableAdminV2TypeInt64Encoding: Rules used to convert to/from lower
-// level types.
+// GoogleBigtableAdminV2TypeInt64Encoding: Rules used to convert to or from
+// lower level types.
 type GoogleBigtableAdminV2TypeInt64Encoding struct {
 	// BigEndianBytes: Use `BigEndianBytes` encoding.
 	BigEndianBytes *GoogleBigtableAdminV2TypeInt64EncodingBigEndianBytes `json:"bigEndianBytes,omitempty"`
+	// OrderedCodeBytes: Use `OrderedCodeBytes` encoding.
+	OrderedCodeBytes *GoogleBigtableAdminV2TypeInt64EncodingOrderedCodeBytes `json:"orderedCodeBytes,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "BigEndianBytes") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1951,18 +2213,18 @@ type GoogleBigtableAdminV2TypeInt64Encoding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBigtableAdminV2TypeInt64Encoding) MarshalJSON() ([]byte, error) {
+func (s GoogleBigtableAdminV2TypeInt64Encoding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBigtableAdminV2TypeInt64Encoding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleBigtableAdminV2TypeInt64EncodingBigEndianBytes: Encodes the value as
-// an 8-byte big endian twos complement `Bytes` value. * Natural sort? No
-// (positive values only) * Self-delimiting? Yes * Compatibility? - BigQuery
-// Federation `BINARY` encoding - HBase `Bytes.toBytes` - Java
+// an 8-byte big-endian two's complement value. Sorted mode: non-negative
+// values are supported. Distinct mode: all values are supported. Compatible
+// with: - BigQuery `BINARY` encoding - HBase `Bytes.toBytes` - Java
 // `ByteBuffer.putLong()` with `ByteOrder.BIG_ENDIAN`
 type GoogleBigtableAdminV2TypeInt64EncodingBigEndianBytes struct {
-	// BytesType: The underlying `Bytes` type, which may be able to encode further.
+	// BytesType: Deprecated: ignored if set.
 	BytesType *GoogleBigtableAdminV2TypeBytes `json:"bytesType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "BytesType") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1977,9 +2239,314 @@ type GoogleBigtableAdminV2TypeInt64EncodingBigEndianBytes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleBigtableAdminV2TypeInt64EncodingBigEndianBytes) MarshalJSON() ([]byte, error) {
+func (s GoogleBigtableAdminV2TypeInt64EncodingBigEndianBytes) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleBigtableAdminV2TypeInt64EncodingBigEndianBytes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeInt64EncodingOrderedCodeBytes: Encodes the value in
+// a variable length binary format of up to 10 bytes. Values that are closer to
+// zero use fewer bytes. Sorted mode: all values are supported. Distinct mode:
+// all values are supported.
+type GoogleBigtableAdminV2TypeInt64EncodingOrderedCodeBytes struct {
+}
+
+// GoogleBigtableAdminV2TypeMap: A mapping of keys to values of a given type.
+// Values of type `Map` are stored in a `Value.array_value` where each entry is
+// another `Value.array_value` with two elements (the key and the value, in
+// that order). Normally encoded Map values won't have repeated keys, however,
+// clients are expected to handle the case in which they do. If the same key
+// appears multiple times, the _last_ value takes precedence.
+type GoogleBigtableAdminV2TypeMap struct {
+	// KeyType: The type of a map key. Only `Bytes`, `String`, and `Int64` are
+	// allowed as key types.
+	KeyType *Type `json:"keyType,omitempty"`
+	// ValueType: The type of the values in a map.
+	ValueType *Type `json:"valueType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "KeyType") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "KeyType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeMap) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeMap
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeString: String Values of type `String` are stored
+// in `Value.string_value`.
+type GoogleBigtableAdminV2TypeString struct {
+	// Encoding: The encoding to use when converting to or from lower level types.
+	Encoding *GoogleBigtableAdminV2TypeStringEncoding `json:"encoding,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Encoding") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Encoding") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeString) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeString
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeStringEncoding: Rules used to convert to or from
+// lower level types.
+type GoogleBigtableAdminV2TypeStringEncoding struct {
+	// Utf8Bytes: Use `Utf8Bytes` encoding.
+	Utf8Bytes *GoogleBigtableAdminV2TypeStringEncodingUtf8Bytes `json:"utf8Bytes,omitempty"`
+	// Utf8Raw: Deprecated: if set, converts to an empty `utf8_bytes`.
+	Utf8Raw *GoogleBigtableAdminV2TypeStringEncodingUtf8Raw `json:"utf8Raw,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Utf8Bytes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Utf8Bytes") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeStringEncoding) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeStringEncoding
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeStringEncodingUtf8Bytes: UTF-8 encoding. Sorted
+// mode: - All values are supported. - Code point order is preserved. Distinct
+// mode: all values are supported. Compatible with: - BigQuery `TEXT` encoding
+// - HBase `Bytes.toBytes` - Java `String#getBytes(StandardCharsets.UTF_8)`
+type GoogleBigtableAdminV2TypeStringEncodingUtf8Bytes struct {
+	// NullEscapeChar: Single-character escape sequence used to support NULL
+	// values. If set, allows NULL values to be encoded as the empty string "". The
+	// actual empty string, or any value where every character equals
+	// `null_escape_char`, has one more `null_escape_char` appended. If
+	// `null_escape_char` is set and does not equal the ASCII null character 0x00,
+	// then the encoding will not support sorted mode. .
+	NullEscapeChar string `json:"nullEscapeChar,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "NullEscapeChar") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NullEscapeChar") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeStringEncodingUtf8Bytes) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeStringEncodingUtf8Bytes
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeStringEncodingUtf8Raw: Deprecated: prefer the
+// equivalent `Utf8Bytes`.
+type GoogleBigtableAdminV2TypeStringEncodingUtf8Raw struct {
+}
+
+// GoogleBigtableAdminV2TypeStruct: A structured data value, consisting of
+// fields which map to dynamically typed values. Values of type `Struct` are
+// stored in `Value.array_value` where entries are in the same order and number
+// as `field_types`.
+type GoogleBigtableAdminV2TypeStruct struct {
+	// Encoding: The encoding to use when converting to or from lower level types.
+	Encoding *GoogleBigtableAdminV2TypeStructEncoding `json:"encoding,omitempty"`
+	// Fields: The names and types of the fields in this struct.
+	Fields []*GoogleBigtableAdminV2TypeStructField `json:"fields,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Encoding") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Encoding") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeStruct) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeStruct
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeStructEncoding: Rules used to convert to or from
+// lower level types.
+type GoogleBigtableAdminV2TypeStructEncoding struct {
+	// DelimitedBytes: Use `DelimitedBytes` encoding.
+	DelimitedBytes *GoogleBigtableAdminV2TypeStructEncodingDelimitedBytes `json:"delimitedBytes,omitempty"`
+	// OrderedCodeBytes: User `OrderedCodeBytes` encoding.
+	OrderedCodeBytes *GoogleBigtableAdminV2TypeStructEncodingOrderedCodeBytes `json:"orderedCodeBytes,omitempty"`
+	// Singleton: Use `Singleton` encoding.
+	Singleton *GoogleBigtableAdminV2TypeStructEncodingSingleton `json:"singleton,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DelimitedBytes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DelimitedBytes") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeStructEncoding) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeStructEncoding
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeStructEncodingDelimitedBytes: Fields are encoded
+// independently and concatenated with a configurable `delimiter` in between. A
+// struct with no fields defined is encoded as a single `delimiter`. Sorted
+// mode: - Fields are encoded in sorted mode. - Encoded field values must not
+// contain any bytes <= `delimiter[0]` - Element-wise order is preserved: `A <
+// B` if `A[0] < B[0]`, or if `A[0] == B[0] && A[1] < B[1]`, etc. Strict
+// prefixes sort first. Distinct mode: - Fields are encoded in distinct mode. -
+// Encoded field values must not contain `delimiter[0]`.
+type GoogleBigtableAdminV2TypeStructEncodingDelimitedBytes struct {
+	// Delimiter: Byte sequence used to delimit concatenated fields. The delimiter
+	// must contain at least 1 character and at most 50 characters.
+	Delimiter string `json:"delimiter,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Delimiter") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Delimiter") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeStructEncodingDelimitedBytes) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeStructEncodingDelimitedBytes
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeStructEncodingOrderedCodeBytes: Fields are encoded
+// independently and concatenated with the fixed byte pair {0x00, 0x01} in
+// between. Any null (0x00) byte in an encoded field is replaced by the fixed
+// byte pair {0x00, 0xFF}. Fields that encode to the empty string "" have
+// special handling: - If *every* field encodes to "", or if the STRUCT has no
+// fields defined, then the STRUCT is encoded as the fixed byte pair {0x00,
+// 0x00}. - Otherwise, the STRUCT only encodes until the last non-empty field,
+// omitting any trailing empty fields. Any empty fields that aren't omitted are
+// replaced with the fixed byte pair {0x00, 0x00}. Examples: - STRUCT() ->
+// "\00\00" - STRUCT("") -> "\00\00" - STRUCT("", "") -> "\00\00" - STRUCT("",
+// "B") -> "\00\00" + "\00\01" + "B" - STRUCT("A", "") -> "A" - STRUCT("", "B",
+// "") -> "\00\00" + "\00\01" + "B" - STRUCT("A", "", "C") -> "A" + "\00\01" +
+// "\00\00" + "\00\01" + "C" Since null bytes are always escaped, this encoding
+// can cause size blowup for encodings like `Int64.BigEndianBytes` that are
+// likely to produce many such bytes. Sorted mode: - Fields are encoded in
+// sorted mode. - All values supported by the field encodings are allowed -
+// Element-wise order is preserved: `A < B` if `A[0] < B[0]`, or if `A[0] ==
+// B[0] && A[1] < B[1]`, etc. Strict prefixes sort first. Distinct mode: -
+// Fields are encoded in distinct mode. - All values supported by the field
+// encodings are allowed.
+type GoogleBigtableAdminV2TypeStructEncodingOrderedCodeBytes struct {
+}
+
+// GoogleBigtableAdminV2TypeStructEncodingSingleton: Uses the encoding of
+// `fields[0].type` as-is. Only valid if `fields.size == 1`.
+type GoogleBigtableAdminV2TypeStructEncodingSingleton struct {
+}
+
+// GoogleBigtableAdminV2TypeStructField: A struct field and its type.
+type GoogleBigtableAdminV2TypeStructField struct {
+	// FieldName: The field name (optional). Fields without a `field_name` are
+	// considered anonymous and cannot be referenced by name.
+	FieldName string `json:"fieldName,omitempty"`
+	// Type: The type of values in this field.
+	Type *Type `json:"type,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FieldName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FieldName") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeStructField) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeStructField
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeTimestamp: Timestamp Values of type `Timestamp` are
+// stored in `Value.timestamp_value`.
+type GoogleBigtableAdminV2TypeTimestamp struct {
+	// Encoding: The encoding to use when converting to or from lower level types.
+	Encoding *GoogleBigtableAdminV2TypeTimestampEncoding `json:"encoding,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Encoding") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Encoding") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeTimestamp) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeTimestamp
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleBigtableAdminV2TypeTimestampEncoding: Rules used to convert to or from
+// lower level types.
+type GoogleBigtableAdminV2TypeTimestampEncoding struct {
+	// UnixMicrosInt64: Encodes the number of microseconds since the Unix epoch
+	// using the given `Int64` encoding. Values must be microsecond-aligned.
+	// Compatible with: - Java `Instant.truncatedTo()` with `ChronoUnit.MICROS`
+	UnixMicrosInt64 *GoogleBigtableAdminV2TypeInt64Encoding `json:"unixMicrosInt64,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "UnixMicrosInt64") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "UnixMicrosInt64") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleBigtableAdminV2TypeTimestampEncoding) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleBigtableAdminV2TypeTimestampEncoding
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HotTablet: A tablet is a defined by a start and end key and is explained in
@@ -2022,9 +2589,9 @@ type HotTablet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HotTablet) MarshalJSON() ([]byte, error) {
+func (s HotTablet) MarshalJSON() ([]byte, error) {
 	type NoMethod HotTablet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *HotTablet) UnmarshalJSON(data []byte) error {
@@ -2105,9 +2672,9 @@ type Instance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Instance) MarshalJSON() ([]byte, error) {
+func (s Instance) MarshalJSON() ([]byte, error) {
 	type NoMethod Instance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Intersection: A GcRule which deletes cells matching all of the given rules.
@@ -2127,9 +2694,9 @@ type Intersection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Intersection) MarshalJSON() ([]byte, error) {
+func (s Intersection) MarshalJSON() ([]byte, error) {
 	type NoMethod Intersection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAppProfilesResponse: Response message for
@@ -2162,9 +2729,9 @@ type ListAppProfilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAppProfilesResponse) MarshalJSON() ([]byte, error) {
+func (s ListAppProfilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAppProfilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAuthorizedViewsResponse: Response message for
@@ -2192,9 +2759,9 @@ type ListAuthorizedViewsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAuthorizedViewsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAuthorizedViewsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAuthorizedViewsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBackupsResponse: The response for ListBackups.
@@ -2220,9 +2787,9 @@ type ListBackupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBackupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListBackupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBackupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListClustersResponse: Response message for
@@ -2253,9 +2820,9 @@ type ListClustersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListClustersResponse) MarshalJSON() ([]byte, error) {
+func (s ListClustersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListClustersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListHotTabletsResponse: Response message for
@@ -2287,9 +2854,9 @@ type ListHotTabletsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListHotTabletsResponse) MarshalJSON() ([]byte, error) {
+func (s ListHotTabletsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListHotTabletsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInstancesResponse: Response message for
@@ -2322,9 +2889,9 @@ type ListInstancesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInstancesResponse) MarshalJSON() ([]byte, error) {
+func (s ListInstancesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInstancesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -2350,9 +2917,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -2378,9 +2945,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTablesResponse: Response message for
@@ -2408,9 +2975,9 @@ type ListTablesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTablesResponse) MarshalJSON() ([]byte, error) {
+func (s ListTablesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTablesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -2443,9 +3010,73 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// LogicalView: A SQL logical view object that can be referenced in SQL
+// queries.
+type LogicalView struct {
+	// Etag: Optional. The etag for this logical view. This may be sent on update
+	// requests to ensure that the client has an up-to-date value before
+	// proceeding. The server returns an ABORTED error on a mismatched etag.
+	Etag string `json:"etag,omitempty"`
+	// Name: Identifier. The unique name of the logical view. Format:
+	// `projects/{project}/instances/{instance}/logicalViews/{logical_view}`
+	Name string `json:"name,omitempty"`
+	// Query: Required. The logical view's select query.
+	Query string `json:"query,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Etag") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Etag") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s LogicalView) MarshalJSON() ([]byte, error) {
+	type NoMethod LogicalView
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MaterializedView: A materialized view object that can be referenced in SQL
+// queries.
+type MaterializedView struct {
+	// DeletionProtection: Set to true to make the MaterializedView protected
+	// against deletion.
+	DeletionProtection bool `json:"deletionProtection,omitempty"`
+	// Etag: Optional. The etag for this materialized view. This may be sent on
+	// update requests to ensure that the client has an up-to-date value before
+	// proceeding. The server returns an ABORTED error on a mismatched etag.
+	Etag string `json:"etag,omitempty"`
+	// Name: Identifier. The unique name of the materialized view. Format:
+	// `projects/{project}/instances/{instance}/materializedViews/{materialized_view
+	// }`
+	Name string `json:"name,omitempty"`
+	// Query: Required. Immutable. The materialized view's select query.
+	Query string `json:"query,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DeletionProtection") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DeletionProtection") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MaterializedView) MarshalJSON() ([]byte, error) {
+	type NoMethod MaterializedView
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Modification: A create, update, or delete of a particular column family.
@@ -2478,9 +3109,9 @@ type Modification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Modification) MarshalJSON() ([]byte, error) {
+func (s Modification) MarshalJSON() ([]byte, error) {
 	type NoMethod Modification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyColumnFamiliesRequest: Request message for
@@ -2507,9 +3138,9 @@ type ModifyColumnFamiliesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyColumnFamiliesRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyColumnFamiliesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyColumnFamiliesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultiClusterRoutingUseAny: Read/write requests are routed to the nearest
@@ -2522,6 +3153,9 @@ type MultiClusterRoutingUseAny struct {
 	// will be tried in order of distance. If left empty, all clusters are
 	// eligible.
 	ClusterIds []string `json:"clusterIds,omitempty"`
+	// RowAffinity: Row affinity sticky routing based on the row key of the
+	// request. Requests that span multiple rows are routed non-deterministically.
+	RowAffinity *RowAffinity `json:"rowAffinity,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ClusterIds") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -2535,9 +3169,9 @@ type MultiClusterRoutingUseAny struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiClusterRoutingUseAny) MarshalJSON() ([]byte, error) {
+func (s MultiClusterRoutingUseAny) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiClusterRoutingUseAny
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -2582,9 +3216,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationProgress: Encapsulates progress related information for a Cloud
@@ -2611,9 +3245,9 @@ type OperationProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationProgress) MarshalJSON() ([]byte, error) {
+func (s OperationProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OptimizeRestoredTableMetadata: Metadata type for the long-running operation
@@ -2638,9 +3272,9 @@ type OptimizeRestoredTableMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OptimizeRestoredTableMetadata) MarshalJSON() ([]byte, error) {
+func (s OptimizeRestoredTableMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OptimizeRestoredTableMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartialUpdateClusterMetadata: The metadata for the Operation returned by
@@ -2666,9 +3300,9 @@ type PartialUpdateClusterMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartialUpdateClusterMetadata) MarshalJSON() ([]byte, error) {
+func (s PartialUpdateClusterMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod PartialUpdateClusterMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartialUpdateClusterRequest: Request message for
@@ -2692,9 +3326,9 @@ type PartialUpdateClusterRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartialUpdateClusterRequest) MarshalJSON() ([]byte, error) {
+func (s PartialUpdateClusterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PartialUpdateClusterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PartialUpdateInstanceRequest: Request message for
@@ -2719,9 +3353,9 @@ type PartialUpdateInstanceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PartialUpdateInstanceRequest) MarshalJSON() ([]byte, error) {
+func (s PartialUpdateInstanceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PartialUpdateInstanceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -2811,9 +3445,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RestoreInfo: Information about a table restore.
@@ -2840,9 +3474,9 @@ type RestoreInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestoreInfo) MarshalJSON() ([]byte, error) {
+func (s RestoreInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RestoreInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RestoreTableMetadata: Metadata type for the long-running operation returned
@@ -2854,8 +3488,8 @@ type RestoreTableMetadata struct {
 	// OptimizeTableOperationName: If exists, the name of the long-running
 	// operation that will be used to track the post-restore optimization process
 	// to optimize the performance of the restored table. The metadata type of the
-	// long-running operation is OptimizeRestoreTableMetadata. The response type is
-	// Empty. This long-running operation may be automatically created by the
+	// long-running operation is OptimizeRestoredTableMetadata. The response type
+	// is Empty. This long-running operation may be automatically created by the
 	// system if applicable after the RestoreTable long-running operation completes
 	// successfully. This operation may not be created if the table is already
 	// optimized or the restore was not successful.
@@ -2881,9 +3515,9 @@ type RestoreTableMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestoreTableMetadata) MarshalJSON() ([]byte, error) {
+func (s RestoreTableMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod RestoreTableMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RestoreTableRequest: The request for RestoreTable.
@@ -2908,9 +3542,21 @@ type RestoreTableRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestoreTableRequest) MarshalJSON() ([]byte, error) {
+func (s RestoreTableRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RestoreTableRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RowAffinity: If enabled, Bigtable will route the request based on the row
+// key of the request, rather than randomly. Instead, each row key will be
+// assigned to a cluster, and will stick to that cluster. If clusters are added
+// or removed, then this may affect which row keys stick to which clusters. To
+// avoid this, users can use a cluster group to specify which clusters are to
+// be used. In this case, new clusters that are not a part of the cluster group
+// will not be routed to, and routing will be unaffected by the new cluster.
+// Moreover, clusters specified in the cluster group cannot be deleted unless
+// removed from the cluster group.
+type RowAffinity struct {
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -2937,9 +3583,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SingleClusterRouting: Unconditionally routes all read/write requests to a
@@ -2965,9 +3611,9 @@ type SingleClusterRouting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SingleClusterRouting) MarshalJSON() ([]byte, error) {
+func (s SingleClusterRouting) MarshalJSON() ([]byte, error) {
 	type NoMethod SingleClusterRouting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Split: An initial split point for a newly created table.
@@ -2987,9 +3633,9 @@ type Split struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Split) MarshalJSON() ([]byte, error) {
+func (s Split) MarshalJSON() ([]byte, error) {
 	type NoMethod Split
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StandardIsolation: Standard options for isolating this app profile's traffic
@@ -3017,9 +3663,9 @@ type StandardIsolation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StandardIsolation) MarshalJSON() ([]byte, error) {
+func (s StandardIsolation) MarshalJSON() ([]byte, error) {
 	type NoMethod StandardIsolation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StandardReadRemoteWrites: Checks that all writes before the consistency
@@ -3056,9 +3702,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Table: A collection of user data indexed by row, column, and timestamp. Each
@@ -3126,9 +3772,9 @@ type Table struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Table) MarshalJSON() ([]byte, error) {
+func (s Table) MarshalJSON() ([]byte, error) {
 	type NoMethod Table
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TableProgress: Progress info for copying a table's data to the new cluster.
@@ -3161,9 +3807,9 @@ type TableProgress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TableProgress) MarshalJSON() ([]byte, error) {
+func (s TableProgress) MarshalJSON() ([]byte, error) {
 	type NoMethod TableProgress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TableStats: Approximate statistics related to a table. These statistics are
@@ -3205,9 +3851,9 @@ type TableStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TableStats) MarshalJSON() ([]byte, error) {
+func (s TableStats) MarshalJSON() ([]byte, error) {
 	type NoMethod TableStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *TableStats) UnmarshalJSON(data []byte) error {
@@ -3246,9 +3892,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -3273,43 +3919,52 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Type: `Type` represents the type of data that is written to, read from, or
 // stored in Bigtable. It is heavily based on the GoogleSQL standard to help
 // maintain familiarity and consistency across products and features. For
 // compatibility with Bigtable's existing untyped APIs, each `Type` includes an
-// `Encoding` which describes how to convert to/from the underlying data. This
-// might involve composing a series of steps into an "encoding chain," for
-// example to convert from INT64 -> STRING -> raw bytes. In most cases, a
-// "link" in the encoding chain will be based an on existing GoogleSQL
-// conversion function like `CAST`. Each link in the encoding chain also
-// defines the following properties: * Natural sort: Does the encoded value
-// sort consistently with the original typed value? Note that Bigtable will
-// always sort data based on the raw encoded value, *not* the decoded type. -
-// Example: STRING values sort in the same order as their UTF-8 encodings. -
-// Counterexample: Encoding INT64 to a fixed-width STRING does *not* preserve
-// sort order when dealing with negative numbers. INT64(1) > INT64(-1), but
-// STRING("-00001") > STRING("00001). - The overall encoding chain sorts
-// naturally if *every* link does. * Self-delimiting: If we concatenate two
-// encoded values, can we always tell where the first one ends and the second
-// one begins? - Example: If we encode INT64s to fixed-width STRINGs, the first
-// value will always contain exactly N digits, possibly preceded by a sign. -
-// Counterexample: If we concatenate two UTF-8 encoded STRINGs, we have no way
-// to tell where the first one ends. - The overall encoding chain is
-// self-delimiting if *any* link is. * Compatibility: Which other systems have
-// matching encoding schemes? For example, does this encoding have a GoogleSQL
-// equivalent? HBase? Java?
+// `Encoding` which describes how to convert to or from the underlying data.
+// Each encoding can operate in one of two modes: - Sorted: In this mode,
+// Bigtable guarantees that `Encode(X) <= Encode(Y)` if and only if `X <= Y`.
+// This is useful anywhere sort order is important, for example when encoding
+// keys. - Distinct: In this mode, Bigtable guarantees that if `X != Y` then
+// `Encode(X) != Encode(Y)`. However, the converse is not guaranteed. For
+// example, both "{'foo': '1', 'bar': '2'}" and "{'bar': '2', 'foo': '1'}" are
+// valid encodings of the same JSON value. The API clearly documents which mode
+// is used wherever an encoding can be configured. Each encoding also documents
+// which values are supported in which modes. For example, when encoding INT64
+// as a numeric STRING, negative numbers cannot be encoded in sorted mode. This
+// is because `INT64(1) > INT64(-1)`, but `STRING("-00001") > STRING("00001")`.
 type Type struct {
 	// AggregateType: Aggregate
 	AggregateType *GoogleBigtableAdminV2TypeAggregate `json:"aggregateType,omitempty"`
+	// ArrayType: Array
+	ArrayType *GoogleBigtableAdminV2TypeArray `json:"arrayType,omitempty"`
+	// BoolType: Bool
+	BoolType *GoogleBigtableAdminV2TypeBool `json:"boolType,omitempty"`
 	// BytesType: Bytes
 	BytesType *GoogleBigtableAdminV2TypeBytes `json:"bytesType,omitempty"`
+	// DateType: Date
+	DateType *GoogleBigtableAdminV2TypeDate `json:"dateType,omitempty"`
+	// Float32Type: Float32
+	Float32Type *GoogleBigtableAdminV2TypeFloat32 `json:"float32Type,omitempty"`
+	// Float64Type: Float64
+	Float64Type *GoogleBigtableAdminV2TypeFloat64 `json:"float64Type,omitempty"`
 	// Int64Type: Int64
 	Int64Type *GoogleBigtableAdminV2TypeInt64 `json:"int64Type,omitempty"`
+	// MapType: Map
+	MapType *GoogleBigtableAdminV2TypeMap `json:"mapType,omitempty"`
+	// StringType: String
+	StringType *GoogleBigtableAdminV2TypeString `json:"stringType,omitempty"`
+	// StructType: Struct
+	StructType *GoogleBigtableAdminV2TypeStruct `json:"structType,omitempty"`
+	// TimestampType: Timestamp
+	TimestampType *GoogleBigtableAdminV2TypeTimestamp `json:"timestampType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AggregateType") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -3323,9 +3978,9 @@ type Type struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Type) MarshalJSON() ([]byte, error) {
+func (s Type) MarshalJSON() ([]byte, error) {
 	type NoMethod Type
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UndeleteTableMetadata: Metadata type for the operation returned by
@@ -3350,9 +4005,9 @@ type UndeleteTableMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UndeleteTableMetadata) MarshalJSON() ([]byte, error) {
+func (s UndeleteTableMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod UndeleteTableMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UndeleteTableRequest: Request message for
@@ -3377,9 +4032,9 @@ type Union struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Union) MarshalJSON() ([]byte, error) {
+func (s Union) MarshalJSON() ([]byte, error) {
 	type NoMethod Union
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateAppProfileMetadata: The metadata for the Operation returned by
@@ -3411,9 +4066,9 @@ type UpdateAuthorizedViewMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateAuthorizedViewMetadata) MarshalJSON() ([]byte, error) {
+func (s UpdateAuthorizedViewMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateAuthorizedViewMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateAuthorizedViewRequest: The request for UpdateAuthorizedView.
@@ -3447,9 +4102,9 @@ type UpdateAuthorizedViewRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateAuthorizedViewRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateAuthorizedViewRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateAuthorizedViewRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateClusterMetadata: The metadata for the Operation returned by
@@ -3476,9 +4131,9 @@ type UpdateClusterMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateClusterMetadata) MarshalJSON() ([]byte, error) {
+func (s UpdateClusterMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateClusterMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateInstanceMetadata: The metadata for the Operation returned by
@@ -3505,9 +4160,64 @@ type UpdateInstanceMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateInstanceMetadata) MarshalJSON() ([]byte, error) {
+func (s UpdateInstanceMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateInstanceMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UpdateLogicalViewMetadata: The metadata for the Operation returned by
+// UpdateLogicalView.
+type UpdateLogicalViewMetadata struct {
+	// EndTime: If set, the time at which this operation finished or was canceled.
+	EndTime string `json:"endTime,omitempty"`
+	// OriginalRequest: The request that prompted the initiation of this
+	// UpdateLogicalView operation.
+	OriginalRequest *UpdateLogicalViewRequest `json:"originalRequest,omitempty"`
+	// StartTime: The time at which this operation was started.
+	StartTime string `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndTime") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UpdateLogicalViewMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdateLogicalViewMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UpdateLogicalViewRequest: Request message for
+// BigtableInstanceAdmin.UpdateLogicalView.
+type UpdateLogicalViewRequest struct {
+	// LogicalView: Required. The logical view to update. The logical view's `name`
+	// field is used to identify the view to update. Format:
+	// `projects/{project}/instances/{instance}/logicalViews/{logical_view}`.
+	LogicalView *LogicalView `json:"logicalView,omitempty"`
+	// UpdateMask: Optional. The list of fields to update.
+	UpdateMask string `json:"updateMask,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "LogicalView") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "LogicalView") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UpdateLogicalViewRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdateLogicalViewRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateTableMetadata: Metadata type for the operation returned by
@@ -3532,9 +4242,9 @@ type UpdateTableMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateTableMetadata) MarshalJSON() ([]byte, error) {
+func (s UpdateTableMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateTableMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OperationsGetCall struct {
@@ -3593,12 +4303,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3606,6 +4315,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3640,9 +4350,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3721,12 +4433,11 @@ func (c *OperationsProjectsOperationsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3734,6 +4445,7 @@ func (c *OperationsProjectsOperationsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.operations.projects.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3769,9 +4481,11 @@ func (c *OperationsProjectsOperationsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.operations.projects.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3845,8 +4559,7 @@ func (c *ProjectsInstancesCreateCall) Header() http.Header {
 
 func (c *ProjectsInstancesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createinstancerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createinstancerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3862,6 +4575,7 @@ func (c *ProjectsInstancesCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3896,9 +4610,11 @@ func (c *ProjectsInstancesCreateCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3945,12 +4661,11 @@ func (c *ProjectsInstancesDeleteCall) Header() http.Header {
 
 func (c *ProjectsInstancesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3958,6 +4673,7 @@ func (c *ProjectsInstancesDeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3992,9 +4708,11 @@ func (c *ProjectsInstancesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4053,12 +4771,11 @@ func (c *ProjectsInstancesGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4066,6 +4783,7 @@ func (c *ProjectsInstancesGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4100,9 +4818,11 @@ func (c *ProjectsInstancesGetCall) Do(opts ...googleapi.CallOption) (*Instance, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4154,8 +4874,7 @@ func (c *ProjectsInstancesGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsInstancesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4171,6 +4890,7 @@ func (c *ProjectsInstancesGetIamPolicyCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4205,9 +4925,11 @@ func (c *ProjectsInstancesGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4273,12 +4995,11 @@ func (c *ProjectsInstancesListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/instances")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4286,6 +5007,7 @@ func (c *ProjectsInstancesListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4321,9 +5043,11 @@ func (c *ProjectsInstancesListCall) Do(opts ...googleapi.CallOption) (*ListInsta
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4402,8 +5126,7 @@ func (c *ProjectsInstancesPartialUpdateInstanceCall) Header() http.Header {
 
 func (c *ProjectsInstancesPartialUpdateInstanceCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instance)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.instance)
 	if err != nil {
 		return nil, err
 	}
@@ -4419,6 +5142,7 @@ func (c *ProjectsInstancesPartialUpdateInstanceCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.partialUpdateInstance", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4453,9 +5177,11 @@ func (c *ProjectsInstancesPartialUpdateInstanceCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.partialUpdateInstance", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4506,8 +5232,7 @@ func (c *ProjectsInstancesSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsInstancesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4523,6 +5248,7 @@ func (c *ProjectsInstancesSetIamPolicyCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4557,9 +5283,11 @@ func (c *ProjectsInstancesSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4611,8 +5339,7 @@ func (c *ProjectsInstancesTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsInstancesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4628,6 +5355,7 @@ func (c *ProjectsInstancesTestIamPermissionsCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4663,9 +5391,11 @@ func (c *ProjectsInstancesTestIamPermissionsCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4716,8 +5446,7 @@ func (c *ProjectsInstancesUpdateCall) Header() http.Header {
 
 func (c *ProjectsInstancesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instance)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.instance)
 	if err != nil {
 		return nil, err
 	}
@@ -4733,6 +5462,7 @@ func (c *ProjectsInstancesUpdateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4767,9 +5497,11 @@ func (c *ProjectsInstancesUpdateCall) Do(opts ...googleapi.CallOption) (*Instanc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4834,8 +5566,7 @@ func (c *ProjectsInstancesAppProfilesCreateCall) Header() http.Header {
 
 func (c *ProjectsInstancesAppProfilesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.appprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.appprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -4851,6 +5582,7 @@ func (c *ProjectsInstancesAppProfilesCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4885,9 +5617,11 @@ func (c *ProjectsInstancesAppProfilesCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4941,12 +5675,11 @@ func (c *ProjectsInstancesAppProfilesDeleteCall) Header() http.Header {
 
 func (c *ProjectsInstancesAppProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4954,6 +5687,7 @@ func (c *ProjectsInstancesAppProfilesDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4988,9 +5722,11 @@ func (c *ProjectsInstancesAppProfilesDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5049,12 +5785,11 @@ func (c *ProjectsInstancesAppProfilesGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5062,6 +5797,7 @@ func (c *ProjectsInstancesAppProfilesGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5096,9 +5832,11 @@ func (c *ProjectsInstancesAppProfilesGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5179,12 +5917,11 @@ func (c *ProjectsInstancesAppProfilesListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/appProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5192,6 +5929,7 @@ func (c *ProjectsInstancesAppProfilesListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5227,9 +5965,11 @@ func (c *ProjectsInstancesAppProfilesListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5314,8 +6054,7 @@ func (c *ProjectsInstancesAppProfilesPatchCall) Header() http.Header {
 
 func (c *ProjectsInstancesAppProfilesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.appprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.appprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -5331,6 +6070,7 @@ func (c *ProjectsInstancesAppProfilesPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5365,9 +6105,11 @@ func (c *ProjectsInstancesAppProfilesPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.appProfiles.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5429,8 +6171,7 @@ func (c *ProjectsInstancesClustersCreateCall) Header() http.Header {
 
 func (c *ProjectsInstancesClustersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -5446,6 +6187,7 @@ func (c *ProjectsInstancesClustersCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5480,9 +6222,11 @@ func (c *ProjectsInstancesClustersCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5529,12 +6273,11 @@ func (c *ProjectsInstancesClustersDeleteCall) Header() http.Header {
 
 func (c *ProjectsInstancesClustersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5542,6 +6285,7 @@ func (c *ProjectsInstancesClustersDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5576,9 +6320,11 @@ func (c *ProjectsInstancesClustersDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5637,12 +6383,11 @@ func (c *ProjectsInstancesClustersGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5650,6 +6395,7 @@ func (c *ProjectsInstancesClustersGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5684,9 +6430,11 @@ func (c *ProjectsInstancesClustersGetCall) Do(opts ...googleapi.CallOption) (*Cl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5755,12 +6503,11 @@ func (c *ProjectsInstancesClustersListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/clusters")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5768,6 +6515,7 @@ func (c *ProjectsInstancesClustersListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5803,9 +6551,11 @@ func (c *ProjectsInstancesClustersListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5890,8 +6640,7 @@ func (c *ProjectsInstancesClustersPartialUpdateClusterCall) Header() http.Header
 
 func (c *ProjectsInstancesClustersPartialUpdateClusterCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -5907,6 +6656,7 @@ func (c *ProjectsInstancesClustersPartialUpdateClusterCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.partialUpdateCluster", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5941,9 +6691,11 @@ func (c *ProjectsInstancesClustersPartialUpdateClusterCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.partialUpdateCluster", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5994,8 +6746,7 @@ func (c *ProjectsInstancesClustersUpdateCall) Header() http.Header {
 
 func (c *ProjectsInstancesClustersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -6011,6 +6762,7 @@ func (c *ProjectsInstancesClustersUpdateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6045,9 +6797,11 @@ func (c *ProjectsInstancesClustersUpdateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6064,7 +6818,7 @@ type ProjectsInstancesClustersBackupsCopyCall struct {
 // cluster located in the destination instance and project.
 //
 //   - parent: The name of the destination cluster that will contain the backup
-//     copy. The cluster must already exists. Values are of the form:
+//     copy. The cluster must already exist. Values are of the form:
 //     `projects/{project}/instances/{instance}/clusters/{cluster}`.
 func (r *ProjectsInstancesClustersBackupsService) Copy(parent string, copybackuprequest *CopyBackupRequest) *ProjectsInstancesClustersBackupsCopyCall {
 	c := &ProjectsInstancesClustersBackupsCopyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -6098,8 +6852,7 @@ func (c *ProjectsInstancesClustersBackupsCopyCall) Header() http.Header {
 
 func (c *ProjectsInstancesClustersBackupsCopyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.copybackuprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.copybackuprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6115,6 +6868,7 @@ func (c *ProjectsInstancesClustersBackupsCopyCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.copy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6149,9 +6903,11 @@ func (c *ProjectsInstancesClustersBackupsCopyCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.copy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6217,8 +6973,7 @@ func (c *ProjectsInstancesClustersBackupsCreateCall) Header() http.Header {
 
 func (c *ProjectsInstancesClustersBackupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.backup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.backup)
 	if err != nil {
 		return nil, err
 	}
@@ -6234,6 +6989,7 @@ func (c *ProjectsInstancesClustersBackupsCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6268,9 +7024,11 @@ func (c *ProjectsInstancesClustersBackupsCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6318,12 +7076,11 @@ func (c *ProjectsInstancesClustersBackupsDeleteCall) Header() http.Header {
 
 func (c *ProjectsInstancesClustersBackupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6331,6 +7088,7 @@ func (c *ProjectsInstancesClustersBackupsDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6365,9 +7123,11 @@ func (c *ProjectsInstancesClustersBackupsDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6427,12 +7187,11 @@ func (c *ProjectsInstancesClustersBackupsGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6440,6 +7199,7 @@ func (c *ProjectsInstancesClustersBackupsGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6474,9 +7234,11 @@ func (c *ProjectsInstancesClustersBackupsGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6528,8 +7290,7 @@ func (c *ProjectsInstancesClustersBackupsGetIamPolicyCall) Header() http.Header 
 
 func (c *ProjectsInstancesClustersBackupsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6545,6 +7306,7 @@ func (c *ProjectsInstancesClustersBackupsGetIamPolicyCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6579,9 +7341,11 @@ func (c *ProjectsInstancesClustersBackupsGetIamPolicyCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6701,12 +7465,11 @@ func (c *ProjectsInstancesClustersBackupsListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/backups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6714,6 +7477,7 @@ func (c *ProjectsInstancesClustersBackupsListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6749,9 +7513,11 @@ func (c *ProjectsInstancesClustersBackupsListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6837,8 +7603,7 @@ func (c *ProjectsInstancesClustersBackupsPatchCall) Header() http.Header {
 
 func (c *ProjectsInstancesClustersBackupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.backup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.backup)
 	if err != nil {
 		return nil, err
 	}
@@ -6854,6 +7619,7 @@ func (c *ProjectsInstancesClustersBackupsPatchCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6888,9 +7654,11 @@ func (c *ProjectsInstancesClustersBackupsPatchCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6941,8 +7709,7 @@ func (c *ProjectsInstancesClustersBackupsSetIamPolicyCall) Header() http.Header 
 
 func (c *ProjectsInstancesClustersBackupsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6958,6 +7725,7 @@ func (c *ProjectsInstancesClustersBackupsSetIamPolicyCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6992,9 +7760,11 @@ func (c *ProjectsInstancesClustersBackupsSetIamPolicyCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7046,8 +7816,7 @@ func (c *ProjectsInstancesClustersBackupsTestIamPermissionsCall) Header() http.H
 
 func (c *ProjectsInstancesClustersBackupsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7063,6 +7832,7 @@ func (c *ProjectsInstancesClustersBackupsTestIamPermissionsCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7098,9 +7868,11 @@ func (c *ProjectsInstancesClustersBackupsTestIamPermissionsCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.backups.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7198,12 +7970,11 @@ func (c *ProjectsInstancesClustersHotTabletsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/hotTablets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7211,6 +7982,7 @@ func (c *ProjectsInstancesClustersHotTabletsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.hotTablets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7246,9 +8018,11 @@ func (c *ProjectsInstancesClustersHotTabletsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.clusters.hotTablets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7271,6 +8045,648 @@ func (c *ProjectsInstancesClustersHotTabletsListCall) Pages(ctx context.Context,
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsInstancesLogicalViewsGetIamPolicyCall struct {
+	s                   *Service
+	resource            string
+	getiampolicyrequest *GetIamPolicyRequest
+	urlParams_          gensupport.URLParams
+	ctx_                context.Context
+	header_             http.Header
+}
+
+// GetIamPolicy: Gets the access control policy for an instance resource.
+// Returns an empty policy if an instance exists but does not have a policy
+// set.
+//
+//   - resource: REQUIRED: The resource for which the policy is being requested.
+//     See Resource names (https://cloud.google.com/apis/design/resource_names)
+//     for the appropriate value for this field.
+func (r *ProjectsInstancesLogicalViewsService) GetIamPolicy(resource string, getiampolicyrequest *GetIamPolicyRequest) *ProjectsInstancesLogicalViewsGetIamPolicyCall {
+	c := &ProjectsInstancesLogicalViewsGetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.getiampolicyrequest = getiampolicyrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsInstancesLogicalViewsGetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsInstancesLogicalViewsGetIamPolicyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsInstancesLogicalViewsGetIamPolicyCall) Context(ctx context.Context) *ProjectsInstancesLogicalViewsGetIamPolicyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsInstancesLogicalViewsGetIamPolicyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesLogicalViewsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+resource}:getIamPolicy")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.logicalViews.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "bigtableadmin.projects.instances.logicalViews.getIamPolicy" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsInstancesLogicalViewsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.logicalViews.getIamPolicy", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsInstancesLogicalViewsSetIamPolicyCall struct {
+	s                   *Service
+	resource            string
+	setiampolicyrequest *SetIamPolicyRequest
+	urlParams_          gensupport.URLParams
+	ctx_                context.Context
+	header_             http.Header
+}
+
+// SetIamPolicy: Sets the access control policy on an instance resource.
+// Replaces any existing policy.
+//
+//   - resource: REQUIRED: The resource for which the policy is being specified.
+//     See Resource names (https://cloud.google.com/apis/design/resource_names)
+//     for the appropriate value for this field.
+func (r *ProjectsInstancesLogicalViewsService) SetIamPolicy(resource string, setiampolicyrequest *SetIamPolicyRequest) *ProjectsInstancesLogicalViewsSetIamPolicyCall {
+	c := &ProjectsInstancesLogicalViewsSetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.setiampolicyrequest = setiampolicyrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsInstancesLogicalViewsSetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsInstancesLogicalViewsSetIamPolicyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsInstancesLogicalViewsSetIamPolicyCall) Context(ctx context.Context) *ProjectsInstancesLogicalViewsSetIamPolicyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsInstancesLogicalViewsSetIamPolicyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesLogicalViewsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+resource}:setIamPolicy")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.logicalViews.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "bigtableadmin.projects.instances.logicalViews.setIamPolicy" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsInstancesLogicalViewsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.logicalViews.setIamPolicy", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsInstancesLogicalViewsTestIamPermissionsCall struct {
+	s                         *Service
+	resource                  string
+	testiampermissionsrequest *TestIamPermissionsRequest
+	urlParams_                gensupport.URLParams
+	ctx_                      context.Context
+	header_                   http.Header
+}
+
+// TestIamPermissions: Returns permissions that the caller has on the specified
+// instance resource.
+//
+//   - resource: REQUIRED: The resource for which the policy detail is being
+//     requested. See Resource names
+//     (https://cloud.google.com/apis/design/resource_names) for the appropriate
+//     value for this field.
+func (r *ProjectsInstancesLogicalViewsService) TestIamPermissions(resource string, testiampermissionsrequest *TestIamPermissionsRequest) *ProjectsInstancesLogicalViewsTestIamPermissionsCall {
+	c := &ProjectsInstancesLogicalViewsTestIamPermissionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.testiampermissionsrequest = testiampermissionsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsInstancesLogicalViewsTestIamPermissionsCall) Fields(s ...googleapi.Field) *ProjectsInstancesLogicalViewsTestIamPermissionsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsInstancesLogicalViewsTestIamPermissionsCall) Context(ctx context.Context) *ProjectsInstancesLogicalViewsTestIamPermissionsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsInstancesLogicalViewsTestIamPermissionsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesLogicalViewsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+resource}:testIamPermissions")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.logicalViews.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "bigtableadmin.projects.instances.logicalViews.testIamPermissions" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *TestIamPermissionsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsInstancesLogicalViewsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*TestIamPermissionsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &TestIamPermissionsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.logicalViews.testIamPermissions", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsInstancesMaterializedViewsGetIamPolicyCall struct {
+	s                   *Service
+	resource            string
+	getiampolicyrequest *GetIamPolicyRequest
+	urlParams_          gensupport.URLParams
+	ctx_                context.Context
+	header_             http.Header
+}
+
+// GetIamPolicy: Gets the access control policy for an instance resource.
+// Returns an empty policy if an instance exists but does not have a policy
+// set.
+//
+//   - resource: REQUIRED: The resource for which the policy is being requested.
+//     See Resource names (https://cloud.google.com/apis/design/resource_names)
+//     for the appropriate value for this field.
+func (r *ProjectsInstancesMaterializedViewsService) GetIamPolicy(resource string, getiampolicyrequest *GetIamPolicyRequest) *ProjectsInstancesMaterializedViewsGetIamPolicyCall {
+	c := &ProjectsInstancesMaterializedViewsGetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.getiampolicyrequest = getiampolicyrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsInstancesMaterializedViewsGetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsInstancesMaterializedViewsGetIamPolicyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsInstancesMaterializedViewsGetIamPolicyCall) Context(ctx context.Context) *ProjectsInstancesMaterializedViewsGetIamPolicyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsInstancesMaterializedViewsGetIamPolicyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesMaterializedViewsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+resource}:getIamPolicy")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.materializedViews.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "bigtableadmin.projects.instances.materializedViews.getIamPolicy" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsInstancesMaterializedViewsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.materializedViews.getIamPolicy", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsInstancesMaterializedViewsSetIamPolicyCall struct {
+	s                   *Service
+	resource            string
+	setiampolicyrequest *SetIamPolicyRequest
+	urlParams_          gensupport.URLParams
+	ctx_                context.Context
+	header_             http.Header
+}
+
+// SetIamPolicy: Sets the access control policy on an instance resource.
+// Replaces any existing policy.
+//
+//   - resource: REQUIRED: The resource for which the policy is being specified.
+//     See Resource names (https://cloud.google.com/apis/design/resource_names)
+//     for the appropriate value for this field.
+func (r *ProjectsInstancesMaterializedViewsService) SetIamPolicy(resource string, setiampolicyrequest *SetIamPolicyRequest) *ProjectsInstancesMaterializedViewsSetIamPolicyCall {
+	c := &ProjectsInstancesMaterializedViewsSetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.setiampolicyrequest = setiampolicyrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsInstancesMaterializedViewsSetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsInstancesMaterializedViewsSetIamPolicyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsInstancesMaterializedViewsSetIamPolicyCall) Context(ctx context.Context) *ProjectsInstancesMaterializedViewsSetIamPolicyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsInstancesMaterializedViewsSetIamPolicyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesMaterializedViewsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+resource}:setIamPolicy")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.materializedViews.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "bigtableadmin.projects.instances.materializedViews.setIamPolicy" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsInstancesMaterializedViewsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.materializedViews.setIamPolicy", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsInstancesMaterializedViewsTestIamPermissionsCall struct {
+	s                         *Service
+	resource                  string
+	testiampermissionsrequest *TestIamPermissionsRequest
+	urlParams_                gensupport.URLParams
+	ctx_                      context.Context
+	header_                   http.Header
+}
+
+// TestIamPermissions: Returns permissions that the caller has on the specified
+// instance resource.
+//
+//   - resource: REQUIRED: The resource for which the policy detail is being
+//     requested. See Resource names
+//     (https://cloud.google.com/apis/design/resource_names) for the appropriate
+//     value for this field.
+func (r *ProjectsInstancesMaterializedViewsService) TestIamPermissions(resource string, testiampermissionsrequest *TestIamPermissionsRequest) *ProjectsInstancesMaterializedViewsTestIamPermissionsCall {
+	c := &ProjectsInstancesMaterializedViewsTestIamPermissionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.testiampermissionsrequest = testiampermissionsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsInstancesMaterializedViewsTestIamPermissionsCall) Fields(s ...googleapi.Field) *ProjectsInstancesMaterializedViewsTestIamPermissionsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsInstancesMaterializedViewsTestIamPermissionsCall) Context(ctx context.Context) *ProjectsInstancesMaterializedViewsTestIamPermissionsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsInstancesMaterializedViewsTestIamPermissionsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesMaterializedViewsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+resource}:testIamPermissions")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.materializedViews.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "bigtableadmin.projects.instances.materializedViews.testIamPermissions" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *TestIamPermissionsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsInstancesMaterializedViewsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*TestIamPermissionsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &TestIamPermissionsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.materializedViews.testIamPermissions", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsInstancesTablesCheckConsistencyCall struct {
@@ -7321,8 +8737,7 @@ func (c *ProjectsInstancesTablesCheckConsistencyCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesCheckConsistencyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.checkconsistencyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.checkconsistencyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7338,6 +8753,7 @@ func (c *ProjectsInstancesTablesCheckConsistencyCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.checkConsistency", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7373,9 +8789,11 @@ func (c *ProjectsInstancesTablesCheckConsistencyCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.checkConsistency", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7426,8 +8844,7 @@ func (c *ProjectsInstancesTablesCreateCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createtablerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createtablerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7443,6 +8860,7 @@ func (c *ProjectsInstancesTablesCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7477,9 +8895,11 @@ func (c *ProjectsInstancesTablesCreateCall) Do(opts ...googleapi.CallOption) (*T
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7526,12 +8946,11 @@ func (c *ProjectsInstancesTablesDeleteCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7539,6 +8958,7 @@ func (c *ProjectsInstancesTablesDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7573,9 +8993,11 @@ func (c *ProjectsInstancesTablesDeleteCall) Do(opts ...googleapi.CallOption) (*E
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7630,8 +9052,7 @@ func (c *ProjectsInstancesTablesDropRowRangeCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesDropRowRangeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.droprowrangerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.droprowrangerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7647,6 +9068,7 @@ func (c *ProjectsInstancesTablesDropRowRangeCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.dropRowRange", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7681,9 +9103,11 @@ func (c *ProjectsInstancesTablesDropRowRangeCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.dropRowRange", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7736,8 +9160,7 @@ func (c *ProjectsInstancesTablesGenerateConsistencyTokenCall) Header() http.Head
 
 func (c *ProjectsInstancesTablesGenerateConsistencyTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.generateconsistencytokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.generateconsistencytokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7753,6 +9176,7 @@ func (c *ProjectsInstancesTablesGenerateConsistencyTokenCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.generateConsistencyToken", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7788,9 +9212,11 @@ func (c *ProjectsInstancesTablesGenerateConsistencyTokenCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.generateConsistencyToken", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7883,12 +9309,11 @@ func (c *ProjectsInstancesTablesGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7896,6 +9321,7 @@ func (c *ProjectsInstancesTablesGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7930,9 +9356,11 @@ func (c *ProjectsInstancesTablesGetCall) Do(opts ...googleapi.CallOption) (*Tabl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7984,8 +9412,7 @@ func (c *ProjectsInstancesTablesGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8001,6 +9428,7 @@ func (c *ProjectsInstancesTablesGetIamPolicyCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8035,9 +9463,11 @@ func (c *ProjectsInstancesTablesGetIamPolicyCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8150,12 +9580,11 @@ func (c *ProjectsInstancesTablesListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/tables")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8163,6 +9592,7 @@ func (c *ProjectsInstancesTablesListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8198,9 +9628,11 @@ func (c *ProjectsInstancesTablesListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8274,8 +9706,7 @@ func (c *ProjectsInstancesTablesModifyColumnFamiliesCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesModifyColumnFamiliesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifycolumnfamiliesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifycolumnfamiliesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8291,6 +9722,7 @@ func (c *ProjectsInstancesTablesModifyColumnFamiliesCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.modifyColumnFamilies", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8325,9 +9757,11 @@ func (c *ProjectsInstancesTablesModifyColumnFamiliesCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.modifyColumnFamilies", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8358,9 +9792,10 @@ func (r *ProjectsInstancesTablesService) Patch(name string, table *Table) *Proje
 // relative to the `table` field, not to the request message. The wildcard (*)
 // path is currently not supported. Currently UpdateTable is only supported for
 // the following fields: * `change_stream_config` *
-// `change_stream_config.retention_period` * `deletion_protection` If
-// `column_families` is set in `update_mask`, it will return an UNIMPLEMENTED
-// error.
+// `change_stream_config.retention_period` * `deletion_protection` *
+// `automated_backup_policy` * `automated_backup_policy.retention_period` *
+// `automated_backup_policy.frequency` * `row_key_schema` If `column_families`
+// is set in `update_mask`, it will return an UNIMPLEMENTED error.
 func (c *ProjectsInstancesTablesPatchCall) UpdateMask(updateMask string) *ProjectsInstancesTablesPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
 	return c
@@ -8391,8 +9826,7 @@ func (c *ProjectsInstancesTablesPatchCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.table)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.table)
 	if err != nil {
 		return nil, err
 	}
@@ -8408,6 +9842,7 @@ func (c *ProjectsInstancesTablesPatchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8442,9 +9877,11 @@ func (c *ProjectsInstancesTablesPatchCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8496,8 +9933,7 @@ func (c *ProjectsInstancesTablesRestoreCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesRestoreCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.restoretablerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.restoretablerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8513,6 +9949,7 @@ func (c *ProjectsInstancesTablesRestoreCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.restore", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8547,9 +9984,11 @@ func (c *ProjectsInstancesTablesRestoreCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.restore", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8600,8 +10039,7 @@ func (c *ProjectsInstancesTablesSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8617,6 +10055,7 @@ func (c *ProjectsInstancesTablesSetIamPolicyCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8651,9 +10090,11 @@ func (c *ProjectsInstancesTablesSetIamPolicyCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8705,8 +10146,7 @@ func (c *ProjectsInstancesTablesTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8722,6 +10162,7 @@ func (c *ProjectsInstancesTablesTestIamPermissionsCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8757,9 +10198,11 @@ func (c *ProjectsInstancesTablesTestIamPermissionsCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8808,8 +10251,7 @@ func (c *ProjectsInstancesTablesUndeleteCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.undeletetablerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.undeletetablerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8825,6 +10267,7 @@ func (c *ProjectsInstancesTablesUndeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8859,9 +10302,11 @@ func (c *ProjectsInstancesTablesUndeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8922,8 +10367,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsCreateCall) Header() http.Header 
 
 func (c *ProjectsInstancesTablesAuthorizedViewsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.authorizedview)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.authorizedview)
 	if err != nil {
 		return nil, err
 	}
@@ -8939,6 +10383,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsCreateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8973,9 +10418,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsCreateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9033,12 +10480,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsDeleteCall) Header() http.Header 
 
 func (c *ProjectsInstancesTablesAuthorizedViewsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9046,6 +10492,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9080,9 +10527,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsDeleteCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9163,12 +10612,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsGetCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9176,6 +10624,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsGetCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9210,9 +10659,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsGetCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9264,8 +10715,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsGetIamPolicyCall) Header() http.H
 
 func (c *ProjectsInstancesTablesAuthorizedViewsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9281,6 +10731,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsGetIamPolicyCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9315,9 +10766,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsGetIamPolicyCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9416,12 +10869,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/authorizedViews")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9429,6 +10881,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9464,9 +10917,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9555,8 +11010,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsPatchCall) Header() http.Header {
 
 func (c *ProjectsInstancesTablesAuthorizedViewsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.authorizedview)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.authorizedview)
 	if err != nil {
 		return nil, err
 	}
@@ -9572,6 +11026,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsPatchCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9606,9 +11061,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsPatchCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9659,8 +11116,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsSetIamPolicyCall) Header() http.H
 
 func (c *ProjectsInstancesTablesAuthorizedViewsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9676,6 +11132,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsSetIamPolicyCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9710,9 +11167,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsSetIamPolicyCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9764,8 +11223,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsTestIamPermissionsCall) Header() 
 
 func (c *ProjectsInstancesTablesAuthorizedViewsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9781,6 +11239,7 @@ func (c *ProjectsInstancesTablesAuthorizedViewsTestIamPermissionsCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9816,9 +11275,11 @@ func (c *ProjectsInstancesTablesAuthorizedViewsTestIamPermissionsCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.instances.tables.authorizedViews.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9900,12 +11361,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9913,6 +11373,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigtableadmin.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9948,9 +11409,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigtableadmin.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

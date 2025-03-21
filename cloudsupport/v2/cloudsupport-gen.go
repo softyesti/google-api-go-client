@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "cloudsupport:v2"
 const apiName = "cloudsupport"
@@ -115,7 +118,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.CaseClassifications = NewCaseClassificationsService(s)
+	s.Cases = NewCasesService(s)
+	s.Media = NewMediaService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,15 +140,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.CaseClassifications = NewCaseClassificationsService(s)
-	s.Cases = NewCasesService(s)
-	s.Media = NewMediaService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -246,9 +249,9 @@ type Actor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Actor) MarshalJSON() ([]byte, error) {
+func (s Actor) MarshalJSON() ([]byte, error) {
 	type NoMethod Actor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Attachment: An Attachment contains metadata about a file that was uploaded
@@ -288,9 +291,9 @@ type Attachment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Attachment) MarshalJSON() ([]byte, error) {
+func (s Attachment) MarshalJSON() ([]byte, error) {
 	type NoMethod Attachment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Blobstore2Info: # gdata.* are outside protos with mising documentation
@@ -319,9 +322,9 @@ type Blobstore2Info struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Blobstore2Info) MarshalJSON() ([]byte, error) {
+func (s Blobstore2Info) MarshalJSON() ([]byte, error) {
 	type NoMethod Blobstore2Info
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Case: A Case is an object that contains the details of a support case. It
@@ -418,9 +421,9 @@ type Case struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Case) MarshalJSON() ([]byte, error) {
+func (s Case) MarshalJSON() ([]byte, error) {
 	type NoMethod Case
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CaseClassification: A Case Classification represents the topic that a case
@@ -454,9 +457,9 @@ type CaseClassification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CaseClassification) MarshalJSON() ([]byte, error) {
+func (s CaseClassification) MarshalJSON() ([]byte, error) {
 	type NoMethod CaseClassification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloseCaseRequest: The request message for the CloseCase endpoint.
@@ -496,9 +499,9 @@ type Comment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Comment) MarshalJSON() ([]byte, error) {
+func (s Comment) MarshalJSON() ([]byte, error) {
 	type NoMethod Comment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompositeMedia: # gdata.* are outside protos with mising documentation
@@ -546,9 +549,9 @@ type CompositeMedia struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompositeMedia) MarshalJSON() ([]byte, error) {
+func (s CompositeMedia) MarshalJSON() ([]byte, error) {
 	type NoMethod CompositeMedia
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentTypeInfo: # gdata.* are outside protos with mising documentation
@@ -576,9 +579,9 @@ type ContentTypeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentTypeInfo) MarshalJSON() ([]byte, error) {
+func (s ContentTypeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentTypeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateAttachmentRequest: The request message for the CreateAttachment
@@ -599,9 +602,9 @@ type CreateAttachmentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateAttachmentRequest) MarshalJSON() ([]byte, error) {
+func (s CreateAttachmentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateAttachmentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffChecksumsResponse: # gdata.* are outside protos with mising
@@ -630,9 +633,9 @@ type DiffChecksumsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffChecksumsResponse) MarshalJSON() ([]byte, error) {
+func (s DiffChecksumsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffChecksumsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffDownloadResponse: # gdata.* are outside protos with mising documentation
@@ -652,9 +655,9 @@ type DiffDownloadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffDownloadResponse) MarshalJSON() ([]byte, error) {
+func (s DiffDownloadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffDownloadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffUploadRequest: # gdata.* are outside protos with mising documentation
@@ -678,9 +681,9 @@ type DiffUploadRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffUploadRequest) MarshalJSON() ([]byte, error) {
+func (s DiffUploadRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffUploadRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffUploadResponse: # gdata.* are outside protos with mising documentation
@@ -702,9 +705,9 @@ type DiffUploadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffUploadResponse) MarshalJSON() ([]byte, error) {
+func (s DiffUploadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffUploadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffVersionResponse: # gdata.* are outside protos with mising documentation
@@ -726,9 +729,9 @@ type DiffVersionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffVersionResponse) MarshalJSON() ([]byte, error) {
+func (s DiffVersionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffVersionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DownloadParameters: # gdata.* are outside protos with mising documentation
@@ -750,9 +753,9 @@ type DownloadParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DownloadParameters) MarshalJSON() ([]byte, error) {
+func (s DownloadParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod DownloadParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EscalateCaseRequest: The request message for the EscalateCase endpoint.
@@ -773,9 +776,9 @@ type EscalateCaseRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EscalateCaseRequest) MarshalJSON() ([]byte, error) {
+func (s EscalateCaseRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EscalateCaseRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Escalation: An escalation of a support case.
@@ -806,9 +809,9 @@ type Escalation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Escalation) MarshalJSON() ([]byte, error) {
+func (s Escalation) MarshalJSON() ([]byte, error) {
 	type NoMethod Escalation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAttachmentsResponse: The response message for the ListAttachments
@@ -836,9 +839,9 @@ type ListAttachmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAttachmentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAttachmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAttachmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCasesResponse: The response message for the ListCases endpoint.
@@ -866,9 +869,9 @@ type ListCasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCasesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCommentsResponse: The response message for the ListComments endpoint.
@@ -895,9 +898,9 @@ type ListCommentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCommentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCommentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCommentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Media: # gdata.* are outside protos with mising documentation
@@ -1000,9 +1003,9 @@ type Media struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Media) MarshalJSON() ([]byte, error) {
+func (s Media) MarshalJSON() ([]byte, error) {
 	type NoMethod Media
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectId: # gdata.* are outside protos with mising documentation
@@ -1026,9 +1029,9 @@ type ObjectId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectId) MarshalJSON() ([]byte, error) {
+func (s ObjectId) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchCaseClassificationsResponse: The response message for
@@ -1056,9 +1059,9 @@ type SearchCaseClassificationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchCaseClassificationsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchCaseClassificationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchCaseClassificationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchCasesResponse: The response message for the SearchCases endpoint.
@@ -1086,9 +1089,9 @@ type SearchCasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchCasesResponse) MarshalJSON() ([]byte, error) {
+func (s SearchCasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchCasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowOperationMetadata: Metadata about the operation. Used to lookup the
@@ -1129,9 +1132,9 @@ type WorkflowOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s WorkflowOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CaseClassificationsSearchCall struct {
@@ -1221,16 +1224,16 @@ func (c *CaseClassificationsSearchCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/caseClassifications:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.caseClassifications.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1266,9 +1269,11 @@ func (c *CaseClassificationsSearchCall) Do(opts ...googleapi.CallOption) (*Searc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.caseClassifications.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1346,8 +1351,7 @@ func (c *CasesCloseCall) Header() http.Header {
 
 func (c *CasesCloseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.closecaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.closecaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1363,6 +1367,7 @@ func (c *CasesCloseCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.close", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1397,9 +1402,11 @@ func (c *CasesCloseCall) Do(opts ...googleapi.CallOption) (*Case, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.close", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1471,8 +1478,7 @@ func (c *CasesCreateCall) Header() http.Header {
 
 func (c *CasesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.case_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.case_)
 	if err != nil {
 		return nil, err
 	}
@@ -1488,6 +1494,7 @@ func (c *CasesCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1522,9 +1529,11 @@ func (c *CasesCreateCall) Do(opts ...googleapi.CallOption) (*Case, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1589,8 +1598,7 @@ func (c *CasesEscalateCall) Header() http.Header {
 
 func (c *CasesEscalateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.escalatecaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.escalatecaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1606,6 +1614,7 @@ func (c *CasesEscalateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.escalate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1640,9 +1649,11 @@ func (c *CasesEscalateCall) Do(opts ...googleapi.CallOption) (*Case, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.escalate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1709,12 +1720,11 @@ func (c *CasesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1722,6 +1732,7 @@ func (c *CasesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1756,9 +1767,11 @@ func (c *CasesGetCall) Do(opts ...googleapi.CallOption) (*Case, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1858,12 +1871,11 @@ func (c *CasesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/cases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1871,6 +1883,7 @@ func (c *CasesListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1906,9 +1919,11 @@ func (c *CasesListCall) Do(opts ...googleapi.CallOption) (*ListCasesResponse, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2001,8 +2016,7 @@ func (c *CasesPatchCall) Header() http.Header {
 
 func (c *CasesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.case_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.case_)
 	if err != nil {
 		return nil, err
 	}
@@ -2018,6 +2032,7 @@ func (c *CasesPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2052,9 +2067,11 @@ func (c *CasesPatchCall) Do(opts ...googleapi.CallOption) (*Case, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2160,12 +2177,11 @@ func (c *CasesSearchCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/cases:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2173,6 +2189,7 @@ func (c *CasesSearchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2208,9 +2225,11 @@ func (c *CasesSearchCall) Do(opts ...googleapi.CallOption) (*SearchCasesResponse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2265,7 +2284,10 @@ func (r *CasesAttachmentsService) List(parent string) *CasesAttachmentsListCall 
 
 // PageSize sets the optional parameter "pageSize": The maximum number of
 // attachments fetched with each request. If not provided, the default is 10.
-// The maximum page size that will be returned is 100.
+// The maximum page size that will be returned is 100. The size of each page
+// can be smaller than the requested page size and can include zero. For
+// example, you could request 100 attachments on one page, receive 0, and then
+// on the next page, receive 90.
 func (c *CasesAttachmentsListCall) PageSize(pageSize int64) *CasesAttachmentsListCall {
 	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
 	return c
@@ -2314,12 +2336,11 @@ func (c *CasesAttachmentsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/attachments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2327,6 +2348,7 @@ func (c *CasesAttachmentsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.attachments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2362,9 +2384,11 @@ func (c *CasesAttachmentsListCall) Do(opts ...googleapi.CallOption) (*ListAttach
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.attachments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2445,8 +2469,7 @@ func (c *CasesCommentsCreateCall) Header() http.Header {
 
 func (c *CasesCommentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.comment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.comment)
 	if err != nil {
 		return nil, err
 	}
@@ -2462,6 +2485,7 @@ func (c *CasesCommentsCreateCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.comments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2496,9 +2520,11 @@ func (c *CasesCommentsCreateCall) Do(opts ...googleapi.CallOption) (*Comment, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.comments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2580,12 +2606,11 @@ func (c *CasesCommentsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/comments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2593,6 +2618,7 @@ func (c *CasesCommentsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.cases.comments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2628,9 +2654,11 @@ func (c *CasesCommentsListCall) Do(opts ...googleapi.CallOption) (*ListCommentsR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.cases.comments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2721,12 +2749,11 @@ func (c *MediaDownloadCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}:download")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2734,6 +2761,7 @@ func (c *MediaDownloadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.media.download", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2784,9 +2812,11 @@ func (c *MediaDownloadCall) Do(opts ...googleapi.CallOption) (*Media, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.media.download", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2891,8 +2921,7 @@ func (c *MediaUploadCall) Header() http.Header {
 
 func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createattachmentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createattachmentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2903,14 +2932,10 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v2/{+parent}/attachments")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -2919,6 +2944,7 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudsupport.media.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2970,8 +2996,10 @@ func (c *MediaUploadCall) Do(opts ...googleapi.CallOption) (*Attachment, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudsupport.media.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

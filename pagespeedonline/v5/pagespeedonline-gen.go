@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "pagespeedonline:v5"
 const apiName = "pagespeedonline"
@@ -114,7 +117,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Pagespeedapi = NewPagespeedapiService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +137,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Pagespeedapi = NewPagespeedapiService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -188,9 +191,9 @@ type AuditRefs struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditRefs) MarshalJSON() ([]byte, error) {
+func (s AuditRefs) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditRefs
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *AuditRefs) UnmarshalJSON(data []byte) error {
@@ -230,9 +233,9 @@ type Bucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Bucket) MarshalJSON() ([]byte, error) {
+func (s Bucket) MarshalJSON() ([]byte, error) {
 	type NoMethod Bucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Bucket) UnmarshalJSON(data []byte) error {
@@ -279,9 +282,9 @@ type Categories struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Categories) MarshalJSON() ([]byte, error) {
+func (s Categories) MarshalJSON() ([]byte, error) {
 	type NoMethod Categories
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CategoryGroupV5: Message containing a category
@@ -303,9 +306,9 @@ type CategoryGroupV5 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CategoryGroupV5) MarshalJSON() ([]byte, error) {
+func (s CategoryGroupV5) MarshalJSON() ([]byte, error) {
 	type NoMethod CategoryGroupV5
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConfigSettings: Message containing the configuration settings for the
@@ -337,9 +340,9 @@ type ConfigSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConfigSettings) MarshalJSON() ([]byte, error) {
+func (s ConfigSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ConfigSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Environment: Message containing environment configuration for a Lighthouse
@@ -368,9 +371,9 @@ type Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Environment) MarshalJSON() ([]byte, error) {
+func (s Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Environment) UnmarshalJSON(data []byte) error {
@@ -405,9 +408,9 @@ type I18n struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *I18n) MarshalJSON() ([]byte, error) {
+func (s I18n) MarshalJSON() ([]byte, error) {
 	type NoMethod I18n
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LhrEntity: Message containing an Entity.
@@ -439,9 +442,9 @@ type LhrEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LhrEntity) MarshalJSON() ([]byte, error) {
+func (s LhrEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod LhrEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LighthouseAuditResultV5: An audit's result object in a Lighthouse result.
@@ -458,6 +461,8 @@ type LighthouseAuditResultV5 struct {
 	Explanation string `json:"explanation,omitempty"`
 	// Id: The audit's id.
 	Id string `json:"id,omitempty"`
+	// MetricSavings: The metric savings of the audit.
+	MetricSavings *MetricSavings `json:"metricSavings,omitempty"`
 	// NumericUnit: The unit of the numeric_value field. Used to format the numeric
 	// value for display.
 	NumericUnit string `json:"numericUnit,omitempty"`
@@ -486,9 +491,9 @@ type LighthouseAuditResultV5 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LighthouseAuditResultV5) MarshalJSON() ([]byte, error) {
+func (s LighthouseAuditResultV5) MarshalJSON() ([]byte, error) {
 	type NoMethod LighthouseAuditResultV5
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LighthouseAuditResultV5) UnmarshalJSON(data []byte) error {
@@ -533,9 +538,9 @@ type LighthouseCategoryV5 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LighthouseCategoryV5) MarshalJSON() ([]byte, error) {
+func (s LighthouseCategoryV5) MarshalJSON() ([]byte, error) {
 	type NoMethod LighthouseCategoryV5
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LighthouseResultV5: The Lighthouse result object.
@@ -595,9 +600,66 @@ type LighthouseResultV5 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LighthouseResultV5) MarshalJSON() ([]byte, error) {
+func (s LighthouseResultV5) MarshalJSON() ([]byte, error) {
 	type NoMethod LighthouseResultV5
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MetricSavings: The metric savings of the audit.
+type MetricSavings struct {
+	// CLS: Optional. Optional numeric value representing the audit's savings for
+	// the CLS metric.
+	CLS float64 `json:"CLS,omitempty"`
+	// FCP: Optional. Optional numeric value representing the audit's savings for
+	// the FCP metric.
+	FCP float64 `json:"FCP,omitempty"`
+	// INP: Optional. Optional numeric value representing the audit's savings for
+	// the INP metric.
+	INP float64 `json:"INP,omitempty"`
+	// LCP: Optional. Optional numeric value representing the audit's savings for
+	// the LCP metric.
+	LCP float64 `json:"LCP,omitempty"`
+	// TBT: Optional. Optional numeric value representing the audit's savings for
+	// the TBT metric.
+	TBT float64 `json:"TBT,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CLS") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CLS") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MetricSavings) MarshalJSON() ([]byte, error) {
+	type NoMethod MetricSavings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *MetricSavings) UnmarshalJSON(data []byte) error {
+	type NoMethod MetricSavings
+	var s1 struct {
+		CLS gensupport.JSONFloat64 `json:"CLS"`
+		FCP gensupport.JSONFloat64 `json:"FCP"`
+		INP gensupport.JSONFloat64 `json:"INP"`
+		LCP gensupport.JSONFloat64 `json:"LCP"`
+		TBT gensupport.JSONFloat64 `json:"TBT"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.CLS = float64(s1.CLS)
+	s.FCP = float64(s1.FCP)
+	s.INP = float64(s1.INP)
+	s.LCP = float64(s1.LCP)
+	s.TBT = float64(s1.TBT)
+	return nil
 }
 
 // PagespeedApiLoadingExperienceV5: The CrUX loading experience object that
@@ -627,9 +689,9 @@ type PagespeedApiLoadingExperienceV5 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PagespeedApiLoadingExperienceV5) MarshalJSON() ([]byte, error) {
+func (s PagespeedApiLoadingExperienceV5) MarshalJSON() ([]byte, error) {
 	type NoMethod PagespeedApiLoadingExperienceV5
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PagespeedApiPagespeedResponseV5: The Pagespeed API response object.
@@ -668,9 +730,9 @@ type PagespeedApiPagespeedResponseV5 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PagespeedApiPagespeedResponseV5) MarshalJSON() ([]byte, error) {
+func (s PagespeedApiPagespeedResponseV5) MarshalJSON() ([]byte, error) {
 	type NoMethod PagespeedApiPagespeedResponseV5
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PagespeedVersion: The Pagespeed Version object.
@@ -692,9 +754,9 @@ type PagespeedVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PagespeedVersion) MarshalJSON() ([]byte, error) {
+func (s PagespeedVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod PagespeedVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RendererFormattedStrings: Message holding the formatted strings used in the
@@ -863,9 +925,9 @@ type RendererFormattedStrings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RendererFormattedStrings) MarshalJSON() ([]byte, error) {
+func (s RendererFormattedStrings) MarshalJSON() ([]byte, error) {
 	type NoMethod RendererFormattedStrings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuntimeError: Message containing a runtime error config.
@@ -887,9 +949,9 @@ type RuntimeError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuntimeError) MarshalJSON() ([]byte, error) {
+func (s RuntimeError) MarshalJSON() ([]byte, error) {
 	type NoMethod RuntimeError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StackPack: Message containing Stack Pack information.
@@ -915,9 +977,9 @@ type StackPack struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StackPack) MarshalJSON() ([]byte, error) {
+func (s StackPack) MarshalJSON() ([]byte, error) {
 	type NoMethod StackPack
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Timing: Message containing the performance timing data for the Lighthouse
@@ -938,9 +1000,9 @@ type Timing struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Timing) MarshalJSON() ([]byte, error) {
+func (s Timing) MarshalJSON() ([]byte, error) {
 	type NoMethod Timing
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Timing) UnmarshalJSON(data []byte) error {
@@ -986,9 +1048,9 @@ type UserPageLoadMetricV5 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserPageLoadMetricV5) MarshalJSON() ([]byte, error) {
+func (s UserPageLoadMetricV5) MarshalJSON() ([]byte, error) {
 	type NoMethod UserPageLoadMetricV5
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type PagespeedapiRunpagespeedCall struct {
@@ -1117,16 +1179,16 @@ func (c *PagespeedapiRunpagespeedCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "pagespeedonline/v5/runPagespeed")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "pagespeedonline.pagespeedapi.runpagespeed", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1162,8 +1224,10 @@ func (c *PagespeedapiRunpagespeedCall) Do(opts ...googleapi.CallOption) (*Pagesp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "pagespeedonline.pagespeedapi.runpagespeed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

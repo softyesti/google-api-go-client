@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "translate:v3"
 const apiName = "translate"
@@ -126,7 +129,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -342,9 +345,9 @@ type AdaptiveMtDataset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdaptiveMtDataset) MarshalJSON() ([]byte, error) {
+func (s AdaptiveMtDataset) MarshalJSON() ([]byte, error) {
 	type NoMethod AdaptiveMtDataset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdaptiveMtFile: An AdaptiveMtFile.
@@ -377,9 +380,9 @@ type AdaptiveMtFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdaptiveMtFile) MarshalJSON() ([]byte, error) {
+func (s AdaptiveMtFile) MarshalJSON() ([]byte, error) {
 	type NoMethod AdaptiveMtFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdaptiveMtSentence: An AdaptiveMt sentence entry.
@@ -409,20 +412,26 @@ type AdaptiveMtSentence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdaptiveMtSentence) MarshalJSON() ([]byte, error) {
+func (s AdaptiveMtSentence) MarshalJSON() ([]byte, error) {
 	type NoMethod AdaptiveMtSentence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdaptiveMtTranslateRequest: The request for sending an AdaptiveMt
 // translation query.
 type AdaptiveMtTranslateRequest struct {
-	// Content: Required. The content of the input in string format. For now only
-	// one sentence per request is supported.
+	// Content: Required. The content of the input in string format.
 	Content []string `json:"content,omitempty"`
 	// Dataset: Required. The resource name for the dataset to use for adaptive MT.
 	// `projects/{project}/locations/{location-id}/adaptiveMtDatasets/{dataset}`
 	Dataset string `json:"dataset,omitempty"`
+	// GlossaryConfig: Optional. Glossary to be applied. The glossary must be
+	// within the same region (have the same location-id) as the model, otherwise
+	// an INVALID_ARGUMENT (400) error is returned.
+	GlossaryConfig *GlossaryConfig `json:"glossaryConfig,omitempty"`
+	// ReferenceSentenceConfig: Configuration for caller provided reference
+	// sentences.
+	ReferenceSentenceConfig *ReferenceSentenceConfig `json:"referenceSentenceConfig,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Content") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
@@ -436,13 +445,17 @@ type AdaptiveMtTranslateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdaptiveMtTranslateRequest) MarshalJSON() ([]byte, error) {
+func (s AdaptiveMtTranslateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AdaptiveMtTranslateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdaptiveMtTranslateResponse: An AdaptiveMtTranslate response.
 type AdaptiveMtTranslateResponse struct {
+	// GlossaryTranslations: Text translation response if a glossary is provided in
+	// the request. This could be the same as 'translation' above if no terms
+	// apply.
+	GlossaryTranslations []*AdaptiveMtTranslation `json:"glossaryTranslations,omitempty"`
 	// LanguageCode: Output only. The translation's language code.
 	LanguageCode string `json:"languageCode,omitempty"`
 	// Translations: Output only. The translation.
@@ -450,22 +463,22 @@ type AdaptiveMtTranslateResponse struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "LanguageCode") to
+	// ForceSendFields is a list of field names (e.g. "GlossaryTranslations") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "LanguageCode") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "GlossaryTranslations") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *AdaptiveMtTranslateResponse) MarshalJSON() ([]byte, error) {
+func (s AdaptiveMtTranslateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AdaptiveMtTranslateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdaptiveMtTranslation: An AdaptiveMt translation.
@@ -485,9 +498,9 @@ type AdaptiveMtTranslation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdaptiveMtTranslation) MarshalJSON() ([]byte, error) {
+func (s AdaptiveMtTranslation) MarshalJSON() ([]byte, error) {
 	type NoMethod AdaptiveMtTranslation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDocumentInputConfig: Input configuration for BatchTranslateDocument
@@ -519,9 +532,9 @@ type BatchDocumentInputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDocumentInputConfig) MarshalJSON() ([]byte, error) {
+func (s BatchDocumentInputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDocumentInputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDocumentOutputConfig: Output configuration for BatchTranslateDocument
@@ -576,9 +589,9 @@ type BatchDocumentOutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDocumentOutputConfig) MarshalJSON() ([]byte, error) {
+func (s BatchDocumentOutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDocumentOutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchTranslateDocumentRequest: The BatchTranslateDocument request.
@@ -646,9 +659,9 @@ type BatchTranslateDocumentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchTranslateDocumentRequest) MarshalJSON() ([]byte, error) {
+func (s BatchTranslateDocumentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchTranslateDocumentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchTranslateTextRequest: The batch translation request.
@@ -699,9 +712,9 @@ type BatchTranslateTextRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchTranslateTextRequest) MarshalJSON() ([]byte, error) {
+func (s BatchTranslateTextRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchTranslateTextRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -753,9 +766,9 @@ type Dataset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Dataset) MarshalJSON() ([]byte, error) {
+func (s Dataset) MarshalJSON() ([]byte, error) {
 	type NoMethod Dataset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatasetInputConfig: Input configuration for datasets.
@@ -776,9 +789,9 @@ type DatasetInputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatasetInputConfig) MarshalJSON() ([]byte, error) {
+func (s DatasetInputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DatasetInputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatasetOutputConfig: Output configuration for datasets.
@@ -798,9 +811,9 @@ type DatasetOutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatasetOutputConfig) MarshalJSON() ([]byte, error) {
+func (s DatasetOutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DatasetOutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetectLanguageRequest: The request message for language detection.
@@ -837,9 +850,9 @@ type DetectLanguageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectLanguageRequest) MarshalJSON() ([]byte, error) {
+func (s DetectLanguageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectLanguageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetectLanguageResponse: The response message for language detection.
@@ -863,9 +876,9 @@ type DetectLanguageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectLanguageResponse) MarshalJSON() ([]byte, error) {
+func (s DetectLanguageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectLanguageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetectedLanguage: The response message for language detection.
@@ -888,9 +901,9 @@ type DetectedLanguage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectedLanguage) MarshalJSON() ([]byte, error) {
+func (s DetectedLanguage) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectedLanguage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DetectedLanguage) UnmarshalJSON(data []byte) error {
@@ -935,9 +948,9 @@ type DocumentInputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentInputConfig) MarshalJSON() ([]byte, error) {
+func (s DocumentInputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentInputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DocumentOutputConfig: A document translation request output config.
@@ -992,9 +1005,9 @@ type DocumentOutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentOutputConfig) MarshalJSON() ([]byte, error) {
+func (s DocumentOutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentOutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DocumentTranslation: A translated document message.
@@ -1024,9 +1037,9 @@ type DocumentTranslation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DocumentTranslation) MarshalJSON() ([]byte, error) {
+func (s DocumentTranslation) MarshalJSON() ([]byte, error) {
 	type NoMethod DocumentTranslation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1042,7 +1055,7 @@ type Empty struct {
 type Example struct {
 	// Name: Output only. The resource name of the example, in form of
 	// `projects/{project-number-or-id}/locations/{location_id}/datasets/{dataset_id
-	// }/examples/{example_id}'
+	// }/examples/{example_id}`
 	Name string `json:"name,omitempty"`
 	// SourceText: Sentence in source language.
 	SourceText string `json:"sourceText,omitempty"`
@@ -1064,9 +1077,9 @@ type Example struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Example) MarshalJSON() ([]byte, error) {
+func (s Example) MarshalJSON() ([]byte, error) {
 	type NoMethod Example
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExportDataRequest: Request message for ExportData.
@@ -1086,9 +1099,9 @@ type ExportDataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExportDataRequest) MarshalJSON() ([]byte, error) {
+func (s ExportDataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ExportDataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileInputSource: An inlined file.
@@ -1112,9 +1125,9 @@ type FileInputSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileInputSource) MarshalJSON() ([]byte, error) {
+func (s FileInputSource) MarshalJSON() ([]byte, error) {
 	type NoMethod FileInputSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsDestination: The Google Cloud Storage location for the output content.
@@ -1138,9 +1151,9 @@ type GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsInputSource: The Google Cloud Storage location for the input content.
@@ -1161,9 +1174,9 @@ type GcsInputSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsInputSource) MarshalJSON() ([]byte, error) {
+func (s GcsInputSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsInputSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsOutputDestination: The Google Cloud Storage location for the output
@@ -1186,9 +1199,9 @@ type GcsOutputDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsOutputDestination) MarshalJSON() ([]byte, error) {
+func (s GcsOutputDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsOutputDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsSource: The Google Cloud Storage location for the input content.
@@ -1209,9 +1222,9 @@ type GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsSource) MarshalJSON() ([]byte, error) {
+func (s GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Glossary: Represents a glossary built from user-provided data.
@@ -1252,17 +1265,49 @@ type Glossary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Glossary) MarshalJSON() ([]byte, error) {
+func (s Glossary) MarshalJSON() ([]byte, error) {
 	type NoMethod Glossary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GlossaryConfig: Configures which glossary is used for a specific target
+// language and defines options for applying that glossary.
+type GlossaryConfig struct {
+	// ContextualTranslationEnabled: Optional. If set to true, the glossary will be
+	// used for contextual translation.
+	ContextualTranslationEnabled bool `json:"contextualTranslationEnabled,omitempty"`
+	// Glossary: Required. The `glossary` to be applied for this translation. The
+	// format depends on the glossary: - User-provided custom glossary:
+	// `projects/{project-number-or-id}/locations/{location-id}/glossaries/{glossary
+	// -id}`
+	Glossary string `json:"glossary,omitempty"`
+	// IgnoreCase: Optional. Indicates match is case insensitive. The default value
+	// is `false` if missing.
+	IgnoreCase bool `json:"ignoreCase,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "ContextualTranslationEnabled") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
+	// for more details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ContextualTranslationEnabled") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GlossaryConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GlossaryConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GlossaryEntry: Represents a single entry in a glossary.
 type GlossaryEntry struct {
 	// Description: Describes the glossary entry.
 	Description string `json:"description,omitempty"`
-	// Name: Required. The resource name of the entry. Format:
-	// "projects/*/locations/*/glossaries/*/glossaryEntries/*"
+	// Name: Identifier. The resource name of the entry. Format:
+	// `projects/*/locations/*/glossaries/*/glossaryEntries/*`
 	Name string `json:"name,omitempty"`
 	// TermsPair: Used for an unidirectional glossary.
 	TermsPair *GlossaryTermsPair `json:"termsPair,omitempty"`
@@ -1284,9 +1329,9 @@ type GlossaryEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GlossaryEntry) MarshalJSON() ([]byte, error) {
+func (s GlossaryEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod GlossaryEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GlossaryInputConfig: Input configuration for glossaries.
@@ -1317,9 +1362,9 @@ type GlossaryInputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GlossaryInputConfig) MarshalJSON() ([]byte, error) {
+func (s GlossaryInputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GlossaryInputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GlossaryTerm: Represents a single glossary term
@@ -1341,9 +1386,9 @@ type GlossaryTerm struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GlossaryTerm) MarshalJSON() ([]byte, error) {
+func (s GlossaryTerm) MarshalJSON() ([]byte, error) {
 	type NoMethod GlossaryTerm
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GlossaryTermsPair: Represents a single entry for an unidirectional glossary.
@@ -1365,9 +1410,9 @@ type GlossaryTermsPair struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GlossaryTermsPair) MarshalJSON() ([]byte, error) {
+func (s GlossaryTermsPair) MarshalJSON() ([]byte, error) {
 	type NoMethod GlossaryTermsPair
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GlossaryTermsSet: Represents a single entry for an equivalent term set
@@ -1390,9 +1435,9 @@ type GlossaryTermsSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GlossaryTermsSet) MarshalJSON() ([]byte, error) {
+func (s GlossaryTermsSet) MarshalJSON() ([]byte, error) {
 	type NoMethod GlossaryTermsSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportAdaptiveMtFileRequest: The request for importing an AdaptiveMt file
@@ -1415,9 +1460,9 @@ type ImportAdaptiveMtFileRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportAdaptiveMtFileRequest) MarshalJSON() ([]byte, error) {
+func (s ImportAdaptiveMtFileRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportAdaptiveMtFileRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportAdaptiveMtFileResponse: The response for importing an AdaptiveMtFile
@@ -1440,9 +1485,9 @@ type ImportAdaptiveMtFileResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportAdaptiveMtFileResponse) MarshalJSON() ([]byte, error) {
+func (s ImportAdaptiveMtFileResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportAdaptiveMtFileResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportDataRequest: Request message for ImportData.
@@ -1462,9 +1507,9 @@ type ImportDataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportDataRequest) MarshalJSON() ([]byte, error) {
+func (s ImportDataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportDataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InputConfig: Input configuration for BatchTranslateText request.
@@ -1500,9 +1545,9 @@ type InputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InputConfig) MarshalJSON() ([]byte, error) {
+func (s InputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InputFile: An input file.
@@ -1525,9 +1570,9 @@ type InputFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InputFile) MarshalJSON() ([]byte, error) {
+func (s InputFile) MarshalJSON() ([]byte, error) {
 	type NoMethod InputFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LanguageCodePair: Used with unidirectional glossaries.
@@ -1553,9 +1598,9 @@ type LanguageCodePair struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LanguageCodePair) MarshalJSON() ([]byte, error) {
+func (s LanguageCodePair) MarshalJSON() ([]byte, error) {
 	type NoMethod LanguageCodePair
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LanguageCodesSet: Used with equivalent term set glossaries.
@@ -1577,9 +1622,9 @@ type LanguageCodesSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LanguageCodesSet) MarshalJSON() ([]byte, error) {
+func (s LanguageCodesSet) MarshalJSON() ([]byte, error) {
 	type NoMethod LanguageCodesSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAdaptiveMtDatasetsResponse: A list of AdaptiveMtDatasets.
@@ -1607,9 +1652,9 @@ type ListAdaptiveMtDatasetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAdaptiveMtDatasetsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAdaptiveMtDatasetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAdaptiveMtDatasetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAdaptiveMtFilesResponse: The response for listing all AdaptiveMt files
@@ -1637,9 +1682,9 @@ type ListAdaptiveMtFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAdaptiveMtFilesResponse) MarshalJSON() ([]byte, error) {
+func (s ListAdaptiveMtFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAdaptiveMtFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAdaptiveMtSentencesResponse: List AdaptiveMt sentences response.
@@ -1664,9 +1709,9 @@ type ListAdaptiveMtSentencesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAdaptiveMtSentencesResponse) MarshalJSON() ([]byte, error) {
+func (s ListAdaptiveMtSentencesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAdaptiveMtSentencesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDatasetsResponse: Response message for ListDatasets.
@@ -1693,9 +1738,9 @@ type ListDatasetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDatasetsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDatasetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDatasetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListExamplesResponse: Response message for ListExamples.
@@ -1722,9 +1767,9 @@ type ListExamplesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListExamplesResponse) MarshalJSON() ([]byte, error) {
+func (s ListExamplesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListExamplesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGlossariesResponse: Response message for ListGlossaries.
@@ -1751,9 +1796,9 @@ type ListGlossariesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGlossariesResponse) MarshalJSON() ([]byte, error) {
+func (s ListGlossariesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGlossariesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGlossaryEntriesResponse: Response message for ListGlossaryEntries
@@ -1780,9 +1825,9 @@ type ListGlossaryEntriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGlossaryEntriesResponse) MarshalJSON() ([]byte, error) {
+func (s ListGlossaryEntriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGlossaryEntriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -1808,9 +1853,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListModelsResponse: Response message for ListModels.
@@ -1837,9 +1882,9 @@ type ListModelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListModelsResponse) MarshalJSON() ([]byte, error) {
+func (s ListModelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListModelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1865,9 +1910,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -1903,9 +1948,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Model: A trained translation model.
@@ -1957,9 +2002,9 @@ type Model struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Model) MarshalJSON() ([]byte, error) {
+func (s Model) MarshalJSON() ([]byte, error) {
 	type NoMethod Model
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -2004,9 +2049,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OutputConfig: Output configuration for BatchTranslateText request.
@@ -2072,9 +2117,85 @@ type OutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OutputConfig) MarshalJSON() ([]byte, error) {
+func (s OutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod OutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ReferenceSentenceConfig: Message of caller-provided reference configuration.
+type ReferenceSentenceConfig struct {
+	// ReferenceSentencePairLists: Reference sentences pair lists. Each list will
+	// be used as the references to translate the sentence under "content" field at
+	// the corresponding index. Length of the list is required to be equal to the
+	// length of "content" field.
+	ReferenceSentencePairLists []*ReferenceSentencePairList `json:"referenceSentencePairLists,omitempty"`
+	// SourceLanguageCode: Source language code.
+	SourceLanguageCode string `json:"sourceLanguageCode,omitempty"`
+	// TargetLanguageCode: Target language code.
+	TargetLanguageCode string `json:"targetLanguageCode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ReferenceSentencePairLists")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ReferenceSentencePairLists") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ReferenceSentenceConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod ReferenceSentenceConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ReferenceSentencePair: A pair of sentences used as reference in source and
+// target languages.
+type ReferenceSentencePair struct {
+	// SourceSentence: Source sentence in the sentence pair.
+	SourceSentence string `json:"sourceSentence,omitempty"`
+	// TargetSentence: Target sentence in the sentence pair.
+	TargetSentence string `json:"targetSentence,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SourceSentence") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SourceSentence") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ReferenceSentencePair) MarshalJSON() ([]byte, error) {
+	type NoMethod ReferenceSentencePair
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ReferenceSentencePairList: A list of reference sentence pairs.
+type ReferenceSentencePairList struct {
+	// ReferenceSentencePairs: Reference sentence pairs.
+	ReferenceSentencePairs []*ReferenceSentencePair `json:"referenceSentencePairs,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ReferenceSentencePairs") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ReferenceSentencePairs") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ReferenceSentencePairList) MarshalJSON() ([]byte, error) {
+	type NoMethod ReferenceSentencePairList
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Romanization: A single romanization response.
@@ -2100,9 +2221,9 @@ type Romanization struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Romanization) MarshalJSON() ([]byte, error) {
+func (s Romanization) MarshalJSON() ([]byte, error) {
 	type NoMethod Romanization
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RomanizeTextRequest: The request message for synchronous romanization.
@@ -2127,9 +2248,9 @@ type RomanizeTextRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RomanizeTextRequest) MarshalJSON() ([]byte, error) {
+func (s RomanizeTextRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RomanizeTextRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RomanizeTextResponse: The response message for synchronous romanization.
@@ -2153,9 +2274,9 @@ type RomanizeTextResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RomanizeTextResponse) MarshalJSON() ([]byte, error) {
+func (s RomanizeTextResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RomanizeTextResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2187,9 +2308,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SupportedLanguage: A single supported language response corresponds to
@@ -2220,9 +2341,9 @@ type SupportedLanguage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SupportedLanguage) MarshalJSON() ([]byte, error) {
+func (s SupportedLanguage) MarshalJSON() ([]byte, error) {
 	type NoMethod SupportedLanguage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SupportedLanguages: The response message for discovering supported
@@ -2247,9 +2368,9 @@ type SupportedLanguages struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SupportedLanguages) MarshalJSON() ([]byte, error) {
+func (s SupportedLanguages) MarshalJSON() ([]byte, error) {
 	type NoMethod SupportedLanguages
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TranslateDocumentRequest: A document translation request.
@@ -2323,9 +2444,9 @@ type TranslateDocumentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslateDocumentRequest) MarshalJSON() ([]byte, error) {
+func (s TranslateDocumentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslateDocumentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TranslateDocumentResponse: A translated document response message.
@@ -2361,14 +2482,17 @@ type TranslateDocumentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslateDocumentResponse) MarshalJSON() ([]byte, error) {
+func (s TranslateDocumentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslateDocumentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TranslateTextGlossaryConfig: Configures which glossary is used for a
 // specific target language and defines options for applying that glossary.
 type TranslateTextGlossaryConfig struct {
+	// ContextualTranslationEnabled: Optional. If set to true, the glossary will be
+	// used for contextual translation.
+	ContextualTranslationEnabled bool `json:"contextualTranslationEnabled,omitempty"`
 	// Glossary: Required. The `glossary` to be applied for this translation. The
 	// format depends on the glossary: - User-provided custom glossary:
 	// `projects/{project-number-or-id}/locations/{location-id}/glossaries/{glossary
@@ -2377,22 +2501,22 @@ type TranslateTextGlossaryConfig struct {
 	// IgnoreCase: Optional. Indicates match is case insensitive. The default value
 	// is `false` if missing.
 	IgnoreCase bool `json:"ignoreCase,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Glossary") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
+	// ForceSendFields is a list of field names (e.g.
+	// "ContextualTranslationEnabled") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
+	// for more details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Glossary") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "ContextualTranslationEnabled") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslateTextGlossaryConfig) MarshalJSON() ([]byte, error) {
+func (s TranslateTextGlossaryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslateTextGlossaryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TranslateTextRequest: The request message for synchronous translation.
@@ -2421,8 +2545,10 @@ type TranslateTextRequest struct {
 	// `projects/{project-number-or-id}/locations/{location-id}/models/{model-id}`
 	// - General (built-in) models:
 	// `projects/{project-number-or-id}/locations/{location-id}/models/general/nmt`,
-	//  For global (non-regionalized) requests, use `location-id` `global`. For
-	// example,
+	//  - Translation LLM models:
+	// `projects/{project-number-or-id}/locations/{location-id}/models/general/trans
+	// lation-llm`, For global (non-regionalized) requests, use `location-id`
+	// `global`. For example,
 	// `projects/{project-number-or-id}/locations/global/models/general/nmt`. If
 	// not provided, the default Google model (NMT) will be used
 	Model string `json:"model,omitempty"`
@@ -2451,9 +2577,9 @@ type TranslateTextRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslateTextRequest) MarshalJSON() ([]byte, error) {
+func (s TranslateTextRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslateTextRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TranslateTextResponse struct {
@@ -2480,9 +2606,9 @@ type TranslateTextResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslateTextResponse) MarshalJSON() ([]byte, error) {
+func (s TranslateTextResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslateTextResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Translation: A single translation response.
@@ -2517,9 +2643,9 @@ type Translation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Translation) MarshalJSON() ([]byte, error) {
+func (s Translation) MarshalJSON() ([]byte, error) {
 	type NoMethod Translation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransliterationConfig: Configures transliteration feature on top of
@@ -2541,9 +2667,9 @@ type TransliterationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransliterationConfig) MarshalJSON() ([]byte, error) {
+func (s TransliterationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TransliterationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WaitOperationRequest: The request message for Operations.WaitOperation.
@@ -2565,9 +2691,9 @@ type WaitOperationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WaitOperationRequest) MarshalJSON() ([]byte, error) {
+func (s WaitOperationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod WaitOperationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsDetectLanguageCall struct {
@@ -2620,8 +2746,7 @@ func (c *ProjectsDetectLanguageCall) Header() http.Header {
 
 func (c *ProjectsDetectLanguageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.detectlanguagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.detectlanguagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2637,6 +2762,7 @@ func (c *ProjectsDetectLanguageCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.detectLanguage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2672,9 +2798,11 @@ func (c *ProjectsDetectLanguageCall) Do(opts ...googleapi.CallOption) (*DetectLa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.detectLanguage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2761,12 +2889,11 @@ func (c *ProjectsGetSupportedLanguagesCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/supportedLanguages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2774,6 +2901,7 @@ func (c *ProjectsGetSupportedLanguagesCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.getSupportedLanguages", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2809,9 +2937,11 @@ func (c *ProjectsGetSupportedLanguagesCall) Do(opts ...googleapi.CallOption) (*S
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.getSupportedLanguages", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2864,8 +2994,7 @@ func (c *ProjectsRomanizeTextCall) Header() http.Header {
 
 func (c *ProjectsRomanizeTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.romanizetextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.romanizetextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2881,6 +3010,7 @@ func (c *ProjectsRomanizeTextCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.romanizeText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2916,9 +3046,11 @@ func (c *ProjectsRomanizeTextCall) Do(opts ...googleapi.CallOption) (*RomanizeTe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.romanizeText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2973,8 +3105,7 @@ func (c *ProjectsTranslateTextCall) Header() http.Header {
 
 func (c *ProjectsTranslateTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.translatetextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.translatetextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2990,6 +3121,7 @@ func (c *ProjectsTranslateTextCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.translateText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3025,9 +3157,11 @@ func (c *ProjectsTranslateTextCall) Do(opts ...googleapi.CallOption) (*Translate
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.translateText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3076,8 +3210,7 @@ func (c *ProjectsLocationsAdaptiveMtTranslateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAdaptiveMtTranslateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.adaptivemttranslaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.adaptivemttranslaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3093,6 +3226,7 @@ func (c *ProjectsLocationsAdaptiveMtTranslateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtTranslate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3128,9 +3262,11 @@ func (c *ProjectsLocationsAdaptiveMtTranslateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtTranslate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3187,8 +3323,7 @@ func (c *ProjectsLocationsBatchTranslateDocumentCall) Header() http.Header {
 
 func (c *ProjectsLocationsBatchTranslateDocumentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchtranslatedocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchtranslatedocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3204,6 +3339,7 @@ func (c *ProjectsLocationsBatchTranslateDocumentCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.batchTranslateDocument", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3238,9 +3374,11 @@ func (c *ProjectsLocationsBatchTranslateDocumentCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.batchTranslateDocument", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3297,8 +3435,7 @@ func (c *ProjectsLocationsBatchTranslateTextCall) Header() http.Header {
 
 func (c *ProjectsLocationsBatchTranslateTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchtranslatetextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchtranslatetextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3314,6 +3451,7 @@ func (c *ProjectsLocationsBatchTranslateTextCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.batchTranslateText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3348,9 +3486,11 @@ func (c *ProjectsLocationsBatchTranslateTextCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.batchTranslateText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3404,8 +3544,7 @@ func (c *ProjectsLocationsDetectLanguageCall) Header() http.Header {
 
 func (c *ProjectsLocationsDetectLanguageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.detectlanguagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.detectlanguagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3421,6 +3560,7 @@ func (c *ProjectsLocationsDetectLanguageCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.detectLanguage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3456,9 +3596,11 @@ func (c *ProjectsLocationsDetectLanguageCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.detectLanguage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3516,12 +3658,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3529,6 +3670,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3563,9 +3705,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3652,12 +3796,11 @@ func (c *ProjectsLocationsGetSupportedLanguagesCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/supportedLanguages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3665,6 +3808,7 @@ func (c *ProjectsLocationsGetSupportedLanguagesCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.getSupportedLanguages", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3700,9 +3844,11 @@ func (c *ProjectsLocationsGetSupportedLanguagesCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.getSupportedLanguages", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3784,12 +3930,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3797,6 +3942,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3832,9 +3978,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3908,8 +4056,7 @@ func (c *ProjectsLocationsRomanizeTextCall) Header() http.Header {
 
 func (c *ProjectsLocationsRomanizeTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.romanizetextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.romanizetextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3925,6 +4072,7 @@ func (c *ProjectsLocationsRomanizeTextCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.romanizeText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3960,9 +4108,11 @@ func (c *ProjectsLocationsRomanizeTextCall) Do(opts ...googleapi.CallOption) (*R
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.romanizeText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4016,8 +4166,7 @@ func (c *ProjectsLocationsTranslateDocumentCall) Header() http.Header {
 
 func (c *ProjectsLocationsTranslateDocumentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.translatedocumentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.translatedocumentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4033,6 +4182,7 @@ func (c *ProjectsLocationsTranslateDocumentCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.translateDocument", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4068,9 +4218,11 @@ func (c *ProjectsLocationsTranslateDocumentCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.translateDocument", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4125,8 +4277,7 @@ func (c *ProjectsLocationsTranslateTextCall) Header() http.Header {
 
 func (c *ProjectsLocationsTranslateTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.translatetextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.translatetextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4142,6 +4293,7 @@ func (c *ProjectsLocationsTranslateTextCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.translateText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4177,9 +4329,11 @@ func (c *ProjectsLocationsTranslateTextCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.translateText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4228,8 +4382,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAdaptiveMtDatasetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.adaptivemtdataset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.adaptivemtdataset)
 	if err != nil {
 		return nil, err
 	}
@@ -4245,6 +4398,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsCreateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4280,9 +4434,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsCreateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4331,12 +4487,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAdaptiveMtDatasetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4344,6 +4499,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4378,9 +4534,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsDeleteCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4440,12 +4598,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4453,6 +4610,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4488,9 +4646,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4541,8 +4701,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsImportAdaptiveMtFileCall) Header() h
 
 func (c *ProjectsLocationsAdaptiveMtDatasetsImportAdaptiveMtFileCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importadaptivemtfilerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importadaptivemtfilerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4558,6 +4717,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsImportAdaptiveMtFileCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.importAdaptiveMtFile", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4593,9 +4753,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsImportAdaptiveMtFileCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.importAdaptiveMtFile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4680,12 +4842,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/adaptiveMtDatasets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4693,6 +4854,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4728,9 +4890,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4799,12 +4963,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesDeleteCall) Header() 
 
 func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4812,6 +4975,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesDeleteCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtFiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4846,9 +5010,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesDeleteCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtFiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4908,12 +5074,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesGetCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4921,6 +5086,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesGetCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtFiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4955,9 +5121,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesGetCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtFiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5033,12 +5201,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesListCall) doRequest(a
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/adaptiveMtFiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5046,6 +5213,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesListCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtFiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5081,9 +5249,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesListCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtFiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5183,12 +5353,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesAdaptiveMtSentencesLi
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/adaptiveMtSentences")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5196,6 +5365,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesAdaptiveMtSentencesLi
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtFiles.adaptiveMtSentences.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5231,9 +5401,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtFilesAdaptiveMtSentencesLi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtFiles.adaptiveMtSentences.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5333,12 +5505,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtSentencesListCall) doReque
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/adaptiveMtSentences")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5346,6 +5517,7 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtSentencesListCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtSentences.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5381,9 +5553,11 @@ func (c *ProjectsLocationsAdaptiveMtDatasetsAdaptiveMtSentencesListCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.adaptiveMtDatasets.adaptiveMtSentences.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5452,8 +5626,7 @@ func (c *ProjectsLocationsDatasetsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -5469,6 +5642,7 @@ func (c *ProjectsLocationsDatasetsCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5503,9 +5677,11 @@ func (c *ProjectsLocationsDatasetsCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5551,12 +5727,11 @@ func (c *ProjectsLocationsDatasetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5564,6 +5739,7 @@ func (c *ProjectsLocationsDatasetsDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5598,9 +5774,11 @@ func (c *ProjectsLocationsDatasetsDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5650,8 +5828,7 @@ func (c *ProjectsLocationsDatasetsExportDataCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsExportDataCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.exportdatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.exportdatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5667,6 +5844,7 @@ func (c *ProjectsLocationsDatasetsExportDataCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"dataset": c.dataset,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.exportData", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5701,9 +5879,11 @@ func (c *ProjectsLocationsDatasetsExportDataCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.exportData", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5761,12 +5941,11 @@ func (c *ProjectsLocationsDatasetsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5774,6 +5953,7 @@ func (c *ProjectsLocationsDatasetsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5808,9 +5988,11 @@ func (c *ProjectsLocationsDatasetsGetCall) Do(opts ...googleapi.CallOption) (*Da
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5860,8 +6042,7 @@ func (c *ProjectsLocationsDatasetsImportDataCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsImportDataCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importdatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importdatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5877,6 +6058,7 @@ func (c *ProjectsLocationsDatasetsImportDataCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"dataset": c.dataset,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.importData", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5911,9 +6093,11 @@ func (c *ProjectsLocationsDatasetsImportDataCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.importData", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5987,12 +6171,11 @@ func (c *ProjectsLocationsDatasetsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/datasets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6000,6 +6183,7 @@ func (c *ProjectsLocationsDatasetsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6035,9 +6219,11 @@ func (c *ProjectsLocationsDatasetsListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6140,12 +6326,11 @@ func (c *ProjectsLocationsDatasetsExamplesListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/examples")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6153,6 +6338,7 @@ func (c *ProjectsLocationsDatasetsExamplesListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.examples.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6188,9 +6374,11 @@ func (c *ProjectsLocationsDatasetsExamplesListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.datasets.examples.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6260,8 +6448,7 @@ func (c *ProjectsLocationsGlossariesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsGlossariesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.glossary)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.glossary)
 	if err != nil {
 		return nil, err
 	}
@@ -6277,6 +6464,7 @@ func (c *ProjectsLocationsGlossariesCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6311,9 +6499,11 @@ func (c *ProjectsLocationsGlossariesCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6360,12 +6550,11 @@ func (c *ProjectsLocationsGlossariesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsGlossariesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6373,6 +6562,7 @@ func (c *ProjectsLocationsGlossariesDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6407,9 +6597,11 @@ func (c *ProjectsLocationsGlossariesDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6467,12 +6659,11 @@ func (c *ProjectsLocationsGlossariesGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6480,6 +6671,7 @@ func (c *ProjectsLocationsGlossariesGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6514,9 +6706,11 @@ func (c *ProjectsLocationsGlossariesGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6613,12 +6807,11 @@ func (c *ProjectsLocationsGlossariesListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/glossaries")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6626,6 +6819,7 @@ func (c *ProjectsLocationsGlossariesListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6661,9 +6855,11 @@ func (c *ProjectsLocationsGlossariesListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6742,8 +6938,7 @@ func (c *ProjectsLocationsGlossariesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsGlossariesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.glossary)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.glossary)
 	if err != nil {
 		return nil, err
 	}
@@ -6759,6 +6954,7 @@ func (c *ProjectsLocationsGlossariesPatchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6793,9 +6989,11 @@ func (c *ProjectsLocationsGlossariesPatchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6843,8 +7041,7 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesCreateCall) Header() http.Hea
 
 func (c *ProjectsLocationsGlossariesGlossaryEntriesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.glossaryentry)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.glossaryentry)
 	if err != nil {
 		return nil, err
 	}
@@ -6860,6 +7057,7 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesCreateCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6894,9 +7092,11 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesCreateCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6942,12 +7142,11 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesDeleteCall) Header() http.Hea
 
 func (c *ProjectsLocationsGlossariesGlossaryEntriesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6955,6 +7154,7 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesDeleteCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6989,9 +7189,11 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesDeleteCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7049,12 +7251,11 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesGetCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7062,6 +7263,7 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesGetCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7096,9 +7298,11 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesGetCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7174,12 +7378,11 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesListCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/glossaryEntries")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7187,6 +7390,7 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesListCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7222,9 +7426,11 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesListCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7260,8 +7466,8 @@ type ProjectsLocationsGlossariesGlossaryEntriesPatchCall struct {
 
 // Patch: Updates a glossary entry.
 //
-//   - name: The resource name of the entry. Format:
-//     "projects/*/locations/*/glossaries/*/glossaryEntries/*".
+//   - name: Identifier. The resource name of the entry. Format:
+//     `projects/*/locations/*/glossaries/*/glossaryEntries/*`.
 func (r *ProjectsLocationsGlossariesGlossaryEntriesService) Patch(name string, glossaryentry *GlossaryEntry) *ProjectsLocationsGlossariesGlossaryEntriesPatchCall {
 	c := &ProjectsLocationsGlossariesGlossaryEntriesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -7294,8 +7500,7 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesPatchCall) Header() http.Head
 
 func (c *ProjectsLocationsGlossariesGlossaryEntriesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.glossaryentry)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.glossaryentry)
 	if err != nil {
 		return nil, err
 	}
@@ -7311,6 +7516,7 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesPatchCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7345,9 +7551,11 @@ func (c *ProjectsLocationsGlossariesGlossaryEntriesPatchCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.glossaries.glossaryEntries.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7396,8 +7604,7 @@ func (c *ProjectsLocationsModelsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsModelsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.model)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.model)
 	if err != nil {
 		return nil, err
 	}
@@ -7413,6 +7620,7 @@ func (c *ProjectsLocationsModelsCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.models.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7447,9 +7655,11 @@ func (c *ProjectsLocationsModelsCreateCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.models.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7495,12 +7705,11 @@ func (c *ProjectsLocationsModelsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsModelsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7508,6 +7717,7 @@ func (c *ProjectsLocationsModelsDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.models.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7542,9 +7752,11 @@ func (c *ProjectsLocationsModelsDeleteCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.models.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7602,12 +7814,11 @@ func (c *ProjectsLocationsModelsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7615,6 +7826,7 @@ func (c *ProjectsLocationsModelsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.models.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7649,9 +7861,11 @@ func (c *ProjectsLocationsModelsGetCall) Do(opts ...googleapi.CallOption) (*Mode
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.models.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7732,12 +7946,11 @@ func (c *ProjectsLocationsModelsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+parent}/models")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7745,6 +7958,7 @@ func (c *ProjectsLocationsModelsListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.models.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7780,9 +7994,11 @@ func (c *ProjectsLocationsModelsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.models.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7823,7 +8039,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -7859,8 +8075,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7876,6 +8091,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7910,9 +8126,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7961,12 +8179,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7974,6 +8191,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8008,9 +8226,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8070,12 +8290,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8083,6 +8302,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8117,9 +8337,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8198,12 +8420,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v3/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8211,6 +8432,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8246,9 +8468,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8325,8 +8549,7 @@ func (c *ProjectsLocationsOperationsWaitCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsWaitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.waitoperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.waitoperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8342,6 +8565,7 @@ func (c *ProjectsLocationsOperationsWaitCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.wait", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8376,8 +8600,10 @@ func (c *ProjectsLocationsOperationsWaitCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "translate.projects.locations.operations.wait", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

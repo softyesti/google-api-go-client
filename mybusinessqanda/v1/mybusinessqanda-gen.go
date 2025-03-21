@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "mybusinessqanda:v1"
 const apiName = "mybusinessqanda"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Locations = NewLocationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Locations = NewLocationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -210,9 +213,9 @@ type Answer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Answer) MarshalJSON() ([]byte, error) {
+func (s Answer) MarshalJSON() ([]byte, error) {
 	type NoMethod Answer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Author: Represents the author of a question or answer
@@ -242,9 +245,9 @@ type Author struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Author) MarshalJSON() ([]byte, error) {
+func (s Author) MarshalJSON() ([]byte, error) {
 	type NoMethod Author
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -284,9 +287,9 @@ type ListAnswersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAnswersResponse) MarshalJSON() ([]byte, error) {
+func (s ListAnswersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAnswersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListQuestionsResponse: Response message for
@@ -318,9 +321,9 @@ type ListQuestionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListQuestionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListQuestionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListQuestionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Question: Represents a single question and some of its answers.
@@ -364,9 +367,9 @@ type Question struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Question) MarshalJSON() ([]byte, error) {
+func (s Question) MarshalJSON() ([]byte, error) {
 	type NoMethod Question
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpsertAnswerRequest: Request message for QuestionsAndAnswers.UpsertAnswer
@@ -386,9 +389,9 @@ type UpsertAnswerRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpsertAnswerRequest) MarshalJSON() ([]byte, error) {
+func (s UpsertAnswerRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpsertAnswerRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LocationsQuestionsCreateCall struct {
@@ -435,8 +438,7 @@ func (c *LocationsQuestionsCreateCall) Header() http.Header {
 
 func (c *LocationsQuestionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.question)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.question)
 	if err != nil {
 		return nil, err
 	}
@@ -452,6 +454,7 @@ func (c *LocationsQuestionsCreateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -486,9 +489,11 @@ func (c *LocationsQuestionsCreateCall) Do(opts ...googleapi.CallOption) (*Questi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -534,12 +539,11 @@ func (c *LocationsQuestionsDeleteCall) Header() http.Header {
 
 func (c *LocationsQuestionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -547,6 +551,7 @@ func (c *LocationsQuestionsDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -581,9 +586,11 @@ func (c *LocationsQuestionsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -682,12 +689,11 @@ func (c *LocationsQuestionsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -695,6 +701,7 @@ func (c *LocationsQuestionsListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -730,9 +737,11 @@ func (c *LocationsQuestionsListCall) Do(opts ...googleapi.CallOption) (*ListQues
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -809,8 +818,7 @@ func (c *LocationsQuestionsPatchCall) Header() http.Header {
 
 func (c *LocationsQuestionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.question)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.question)
 	if err != nil {
 		return nil, err
 	}
@@ -826,6 +834,7 @@ func (c *LocationsQuestionsPatchCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -860,9 +869,11 @@ func (c *LocationsQuestionsPatchCall) Do(opts ...googleapi.CallOption) (*Questio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -908,12 +919,11 @@ func (c *LocationsQuestionsAnswersDeleteCall) Header() http.Header {
 
 func (c *LocationsQuestionsAnswersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/answers:delete")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -921,6 +931,7 @@ func (c *LocationsQuestionsAnswersDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.answers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -955,9 +966,11 @@ func (c *LocationsQuestionsAnswersDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.answers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1038,12 +1051,11 @@ func (c *LocationsQuestionsAnswersListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/answers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1051,6 +1063,7 @@ func (c *LocationsQuestionsAnswersListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.answers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1086,9 +1099,11 @@ func (c *LocationsQuestionsAnswersListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.answers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1158,8 +1173,7 @@ func (c *LocationsQuestionsAnswersUpsertCall) Header() http.Header {
 
 func (c *LocationsQuestionsAnswersUpsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.upsertanswerrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.upsertanswerrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1175,6 +1189,7 @@ func (c *LocationsQuestionsAnswersUpsertCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.answers.upsert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1209,8 +1224,10 @@ func (c *LocationsQuestionsAnswersUpsertCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessqanda.locations.questions.answers.upsert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

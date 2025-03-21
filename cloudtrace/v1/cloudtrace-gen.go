@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "cloudtrace:v1"
 const apiName = "cloudtrace"
@@ -128,7 +131,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -147,13 +151,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -221,9 +224,9 @@ type ListTracesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTracesResponse) MarshalJSON() ([]byte, error) {
+func (s ListTracesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTracesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Trace: A trace describes how long it takes for an application to perform an
@@ -254,9 +257,9 @@ type Trace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Trace) MarshalJSON() ([]byte, error) {
+func (s Trace) MarshalJSON() ([]byte, error) {
 	type NoMethod Trace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TraceSpan: A span represents a single timed event within a trace. Spans can
@@ -281,18 +284,10 @@ type TraceSpan struct {
 	// around an RPC or other remote request.
 	Kind string `json:"kind,omitempty"`
 	// Labels: Collection of labels associated with the span. Label keys must be
-	// less than 128 bytes. Label values must be less than 16 kilobytes (10MB for
-	// `/stacktrace` values). Some predefined label keys exist, or you may create
-	// your own. When creating your own, we recommend the following formats: *
-	// `/category/product/key` for agents of well-known products (e.g.
-	// `/db/mongodb/read_size`). * `short_host/path/key` for domain-specific keys
-	// (e.g. `foo.com/myproduct/bar`) Predefined labels include: * `/agent` *
-	// `/component` * `/error/message` * `/error/name` * `/http/client_city` *
-	// `/http/client_country` * `/http/client_protocol` * `/http/client_region` *
-	// `/http/host` * `/http/method` * `/http/path` * `/http/redirected_url` *
-	// `/http/request/size` * `/http/response/size` * `/http/route` *
-	// `/http/status_code` * `/http/url` * `/http/user_agent` * `/pid` *
-	// `/stacktrace` * `/tid`
+	// less than 128 bytes. Label values must be less than 16 KiB. Some keys might
+	// have predefined meaning, and you can also create your own. For more
+	// information, see Cloud Trace labels
+	// (https://cloud.google.com/trace/docs/trace-labels).
 	Labels map[string]string `json:"labels,omitempty"`
 	// Name: Name of the span. Must be less than 128 bytes. The span name is
 	// sanitized and displayed in the Trace tool in the Google Cloud Platform
@@ -321,9 +316,9 @@ type TraceSpan struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TraceSpan) MarshalJSON() ([]byte, error) {
+func (s TraceSpan) MarshalJSON() ([]byte, error) {
 	type NoMethod TraceSpan
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Traces: List of new or updated traces.
@@ -343,9 +338,9 @@ type Traces struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Traces) MarshalJSON() ([]byte, error) {
+func (s Traces) MarshalJSON() ([]byte, error) {
 	type NoMethod Traces
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsPatchTracesCall struct {
@@ -396,8 +391,7 @@ func (c *ProjectsPatchTracesCall) Header() http.Header {
 
 func (c *ProjectsPatchTracesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.traces)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.traces)
 	if err != nil {
 		return nil, err
 	}
@@ -413,6 +407,7 @@ func (c *ProjectsPatchTracesCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudtrace.projects.patchTraces", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -447,9 +442,11 @@ func (c *ProjectsPatchTracesCall) Do(opts ...googleapi.CallOption) (*Empty, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudtrace.projects.patchTraces", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -510,12 +507,11 @@ func (c *ProjectsTracesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/traces/{traceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -524,6 +520,7 @@ func (c *ProjectsTracesGetCall) doRequest(alt string) (*http.Response, error) {
 		"projectId": c.projectId,
 		"traceId":   c.traceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudtrace.projects.traces.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -558,9 +555,11 @@ func (c *ProjectsTracesGetCall) Do(opts ...googleapi.CallOption) (*Trace, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudtrace.projects.traces.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -710,12 +709,11 @@ func (c *ProjectsTracesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/traces")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -723,6 +721,7 @@ func (c *ProjectsTracesListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "cloudtrace.projects.traces.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -758,9 +757,11 @@ func (c *ProjectsTracesListCall) Do(opts ...googleapi.CallOption) (*ListTracesRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "cloudtrace.projects.traces.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

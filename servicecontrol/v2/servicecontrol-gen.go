@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "servicecontrol:v2"
 const apiName = "servicecontrol"
@@ -124,7 +127,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Services = NewServicesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -143,13 +147,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Services = NewServicesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -203,9 +206,9 @@ type Api struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Api) MarshalJSON() ([]byte, error) {
+func (s Api) MarshalJSON() ([]byte, error) {
 	type NoMethod Api
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttributeContext: This message defines the standard attribute vocabulary for
@@ -259,9 +262,9 @@ type AttributeContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttributeContext) MarshalJSON() ([]byte, error) {
+func (s AttributeContext) MarshalJSON() ([]byte, error) {
 	type NoMethod AttributeContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLog: Common audit log format for Google Cloud Platform API operations.
@@ -337,9 +340,9 @@ type AuditLog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLog) MarshalJSON() ([]byte, error) {
+func (s AuditLog) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Auth: This message defines request authentication attributes. Terminology is
@@ -374,11 +377,6 @@ type Auth struct {
 	// 'jsmith@example.com', 'iat': 1353601026, 'exp': 1353604926} SAML assertions
 	// are similarly specified, but with an identity provider dependent structure.
 	Claims googleapi.RawMessage `json:"claims,omitempty"`
-	// CredentialId: Identifies the client credential id used for authentication.
-	// credential_id is in the format of AUTH_METHOD:IDENTIFIER, e.g.
-	// "serviceaccount:XXXXX, apikey:XXXXX" where the format of the IDENTIFIER can
-	// vary for different AUTH_METHODs.
-	CredentialId string `json:"credentialId,omitempty"`
 	// Presenter: The authorized presenter of the credential. Reflects the optional
 	// Authorized Presenter (`azp`) claim within a JWT or the OAuth client id. For
 	// example, a Google Cloud Platform client id looks as follows:
@@ -402,9 +400,9 @@ type Auth struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Auth) MarshalJSON() ([]byte, error) {
+func (s Auth) MarshalJSON() ([]byte, error) {
 	type NoMethod Auth
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuthenticationInfo: Authentication information for the operation.
@@ -457,9 +455,9 @@ type AuthenticationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuthenticationInfo) MarshalJSON() ([]byte, error) {
+func (s AuthenticationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AuthenticationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuthorizationInfo: Authorization information for the operation.
@@ -507,9 +505,9 @@ type AuthorizationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuthorizationInfo) MarshalJSON() ([]byte, error) {
+func (s AuthorizationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AuthorizationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckRequest: Request message for the Check method.
@@ -539,13 +537,17 @@ type CheckRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckRequest) MarshalJSON() ([]byte, error) {
+func (s CheckRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckResponse: Response message for the Check method.
 type CheckResponse struct {
+	// DynamicMetadata: Optional response metadata that will be emitted as dynamic
+	// metadata to be consumed by the caller of ServiceController. For
+	// compatibility with the ext_authz interface.
+	DynamicMetadata googleapi.RawMessage `json:"dynamicMetadata,omitempty"`
 	// Headers: Returns a set of request contexts generated from the
 	// `CheckRequest`.
 	Headers map[string]string `json:"headers,omitempty"`
@@ -556,22 +558,22 @@ type CheckResponse struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "Headers") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "DynamicMetadata") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Headers") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "DynamicMetadata") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckResponse) MarshalJSON() ([]byte, error) {
+func (s CheckResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FirstPartyPrincipal: First party identity principal.
@@ -593,9 +595,9 @@ type FirstPartyPrincipal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FirstPartyPrincipal) MarshalJSON() ([]byte, error) {
+func (s FirstPartyPrincipal) MarshalJSON() ([]byte, error) {
 	type NoMethod FirstPartyPrincipal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OrgPolicyViolationInfo: Represents OrgPolicy Violation information.
@@ -625,9 +627,9 @@ type OrgPolicyViolationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OrgPolicyViolationInfo) MarshalJSON() ([]byte, error) {
+func (s OrgPolicyViolationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod OrgPolicyViolationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Peer: This message defines attributes for a node that handles a network
@@ -662,9 +664,9 @@ type Peer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Peer) MarshalJSON() ([]byte, error) {
+func (s Peer) MarshalJSON() ([]byte, error) {
 	type NoMethod Peer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PolicyViolationInfo: Information related to policy violations for this
@@ -686,9 +688,9 @@ type PolicyViolationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyViolationInfo) MarshalJSON() ([]byte, error) {
+func (s PolicyViolationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyViolationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportRequest: Request message for the Report method.
@@ -714,9 +716,9 @@ type ReportRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportRequest) MarshalJSON() ([]byte, error) {
+func (s ReportRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportResponse: Response message for the Report method.
@@ -740,9 +742,9 @@ type ReportResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportResponse) MarshalJSON() ([]byte, error) {
+func (s ReportResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Request: This message defines attributes for an HTTP request. If the actual
@@ -765,6 +767,10 @@ type Request struct {
 	Id string `json:"id,omitempty"`
 	// Method: The HTTP request method, such as `GET`, `POST`.
 	Method string `json:"method,omitempty"`
+	// Origin: The values from Origin header from the HTTP request, such as
+	// "https://console.cloud.google.com". Modern browsers can only have one
+	// origin. Special browsers and/or HTTP clients may require multiple origins.
+	Origin string `json:"origin,omitempty"`
 	// Path: The HTTP URL path, excluding the query parameters.
 	Path string `json:"path,omitempty"`
 	// Protocol: The network protocol used with the request, such as "http/1.1",
@@ -798,9 +804,9 @@ type Request struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Request) MarshalJSON() ([]byte, error) {
+func (s Request) MarshalJSON() ([]byte, error) {
 	type NoMethod Request
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RequestMetadata: Metadata about the request.
@@ -855,9 +861,9 @@ type RequestMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RequestMetadata) MarshalJSON() ([]byte, error) {
+func (s RequestMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod RequestMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Resource: This message defines core attributes for a resource. A resource is
@@ -936,9 +942,9 @@ type Resource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Resource) MarshalJSON() ([]byte, error) {
+func (s Resource) MarshalJSON() ([]byte, error) {
 	type NoMethod Resource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResourceInfo: Describes a resource referenced in the request.
@@ -973,9 +979,9 @@ type ResourceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResourceInfo) MarshalJSON() ([]byte, error) {
+func (s ResourceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ResourceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResourceLocation: Location information about a resource.
@@ -1003,9 +1009,9 @@ type ResourceLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResourceLocation) MarshalJSON() ([]byte, error) {
+func (s ResourceLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod ResourceLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Response: This message defines attributes for a typical network response. It
@@ -1040,9 +1046,9 @@ type Response struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Response) MarshalJSON() ([]byte, error) {
+func (s Response) MarshalJSON() ([]byte, error) {
 	type NoMethod Response
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServiceAccountDelegationInfo: Identity delegation history of an
@@ -1072,9 +1078,9 @@ type ServiceAccountDelegationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServiceAccountDelegationInfo) MarshalJSON() ([]byte, error) {
+func (s ServiceAccountDelegationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ServiceAccountDelegationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServiceDelegationHistory: The history of delegation across multiple services
@@ -1101,9 +1107,9 @@ type ServiceDelegationHistory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServiceDelegationHistory) MarshalJSON() ([]byte, error) {
+func (s ServiceDelegationHistory) MarshalJSON() ([]byte, error) {
 	type NoMethod ServiceDelegationHistory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServiceMetadata: Metadata describing the service and additional service
@@ -1141,9 +1147,9 @@ type ServiceMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServiceMetadata) MarshalJSON() ([]byte, error) {
+func (s ServiceMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ServiceMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SpanContext: The context of a span. This is attached to an Exemplar in
@@ -1170,9 +1176,9 @@ type SpanContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpanContext) MarshalJSON() ([]byte, error) {
+func (s SpanContext) MarshalJSON() ([]byte, error) {
 	type NoMethod SpanContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -1204,9 +1210,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ThirdPartyPrincipal: Third party identity principal.
@@ -1226,9 +1232,9 @@ type ThirdPartyPrincipal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ThirdPartyPrincipal) MarshalJSON() ([]byte, error) {
+func (s ThirdPartyPrincipal) MarshalJSON() ([]byte, error) {
 	type NoMethod ThirdPartyPrincipal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2HttpRequest: A common proto for logging HTTP requests. Only contains
@@ -1254,7 +1260,7 @@ type V2HttpRequest struct {
 	// "websocket"
 	Protocol string `json:"protocol,omitempty"`
 	// Referer: The referer URL of the request, as defined in HTTP/1.1 Header Field
-	// Definitions (http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
+	// Definitions (https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
 	Referer string `json:"referer,omitempty"`
 	// RemoteIp: The IP address (IPv4 or IPv6) of the client that issued the HTTP
 	// request. Examples: "192.168.1.1", "FE80::0202:B3FF:FE1E:8329".
@@ -1294,9 +1300,9 @@ type V2HttpRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2HttpRequest) MarshalJSON() ([]byte, error) {
+func (s V2HttpRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod V2HttpRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2LogEntry: An individual log entry.
@@ -1367,9 +1373,9 @@ type V2LogEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2LogEntry) MarshalJSON() ([]byte, error) {
+func (s V2LogEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod V2LogEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2LogEntryOperation: Additional information about a potentially long-running
@@ -1401,9 +1407,9 @@ type V2LogEntryOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2LogEntryOperation) MarshalJSON() ([]byte, error) {
+func (s V2LogEntryOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod V2LogEntryOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2LogEntrySourceLocation: Additional information about the source code
@@ -1435,9 +1441,9 @@ type V2LogEntrySourceLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V2LogEntrySourceLocation) MarshalJSON() ([]byte, error) {
+func (s V2LogEntrySourceLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod V2LogEntrySourceLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V2ResourceEvent: Report v2 extension proto for passing the resource metadata
@@ -1445,6 +1451,10 @@ func (s *V2LogEntrySourceLocation) MarshalJSON() ([]byte, error) {
 // Chemist. ResourceEvent proto should be serialized into the
 // ReportRequest.operations.extensions.
 type V2ResourceEvent struct {
+	// ContextId: The ESF unique context id of the api request, from which this
+	// resource event originated. This field is only needed for CAIS integration
+	// via api annotation. See go/cais-lro-delete for more details.
+	ContextId int64 `json:"contextId,omitempty,string"`
 	// Destinations: The destinations field determines which backend services
 	// should handle the event. This should be specified as a comma-delimited
 	// string.
@@ -1477,22 +1487,22 @@ type V2ResourceEvent struct {
 	//   "DELETE" - The resource is deleted.
 	//   "UNDELETE" - The resource is un-deleted.
 	Type string `json:"type,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Destinations") to
+	// ForceSendFields is a list of field names (e.g. "ContextId") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Destinations") to include in API
+	// NullFields is a list of field names (e.g. "ContextId") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *V2ResourceEvent) MarshalJSON() ([]byte, error) {
+func (s V2ResourceEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod V2ResourceEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ViolationInfo: Provides information about the Policy violation info for this
@@ -1527,9 +1537,9 @@ type ViolationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ViolationInfo) MarshalJSON() ([]byte, error) {
+func (s ViolationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ViolationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ServicesCheckCall struct {
@@ -1594,8 +1604,7 @@ func (c *ServicesCheckCall) Header() http.Header {
 
 func (c *ServicesCheckCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.checkrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.checkrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1611,6 +1620,7 @@ func (c *ServicesCheckCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"serviceName": c.serviceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "servicecontrol.services.check", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1645,9 +1655,11 @@ func (c *ServicesCheckCall) Do(opts ...googleapi.CallOption) (*CheckResponse, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "servicecontrol.services.check", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1710,8 +1722,7 @@ func (c *ServicesReportCall) Header() http.Header {
 
 func (c *ServicesReportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reportrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1727,6 +1738,7 @@ func (c *ServicesReportCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"serviceName": c.serviceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "servicecontrol.services.report", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1761,8 +1773,10 @@ func (c *ServicesReportCall) Do(opts ...googleapi.CallOption) (*ReportResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "servicecontrol.services.report", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "policysimulator:v1"
 const apiName = "policysimulator"
@@ -115,7 +118,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Folders = NewFoldersService(s)
+	s.Operations = NewOperationsService(s)
+	s.Organizations = NewOrganizationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,16 +141,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Folders = NewFoldersService(s)
-	s.Operations = NewOperationsService(s)
-	s.Organizations = NewOrganizationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -283,7 +286,6 @@ type OrganizationsLocationsService struct {
 func NewOrganizationsLocationsOrgPolicyViolationsPreviewsService(s *Service) *OrganizationsLocationsOrgPolicyViolationsPreviewsService {
 	rs := &OrganizationsLocationsOrgPolicyViolationsPreviewsService{s: s}
 	rs.Operations = NewOrganizationsLocationsOrgPolicyViolationsPreviewsOperationsService(s)
-	rs.OrgPolicyViolations = NewOrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsService(s)
 	return rs
 }
 
@@ -291,8 +293,6 @@ type OrganizationsLocationsOrgPolicyViolationsPreviewsService struct {
 	s *Service
 
 	Operations *OrganizationsLocationsOrgPolicyViolationsPreviewsOperationsService
-
-	OrgPolicyViolations *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsService
 }
 
 func NewOrganizationsLocationsOrgPolicyViolationsPreviewsOperationsService(s *Service) *OrganizationsLocationsOrgPolicyViolationsPreviewsOperationsService {
@@ -301,15 +301,6 @@ func NewOrganizationsLocationsOrgPolicyViolationsPreviewsOperationsService(s *Se
 }
 
 type OrganizationsLocationsOrgPolicyViolationsPreviewsOperationsService struct {
-	s *Service
-}
-
-func NewOrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsService(s *Service) *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsService {
-	rs := &OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsService{s: s}
-	return rs
-}
-
-type OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsService struct {
 	s *Service
 }
 
@@ -429,7 +420,7 @@ type ProjectsLocationsReplaysResultsService struct {
 
 // GoogleCloudOrgpolicyV2AlternatePolicySpec: Similar to PolicySpec but with an
 // extra 'launch' field for launch reference. The PolicySpec here is specific
-// for dry-run/darklaunch.
+// for dry-run.
 type GoogleCloudOrgpolicyV2AlternatePolicySpec struct {
 	// Launch: Reference to the launch that will be used while audit logging and to
 	// control the launch. Should be set only in the alternate policy.
@@ -449,9 +440,9 @@ type GoogleCloudOrgpolicyV2AlternatePolicySpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudOrgpolicyV2AlternatePolicySpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudOrgpolicyV2AlternatePolicySpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudOrgpolicyV2AlternatePolicySpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudOrgpolicyV2CustomConstraint: A custom constraint defined by
@@ -463,11 +454,13 @@ type GoogleCloudOrgpolicyV2CustomConstraint struct {
 	// ActionType: Allow or deny type.
 	//
 	// Possible values:
-	//   "ACTION_TYPE_UNSPECIFIED" - Unspecified. Results in an error.
+	//   "ACTION_TYPE_UNSPECIFIED" - This is only used for distinguishing unset
+	// values and should never be used. Results in an error.
 	//   "ALLOW" - Allowed action type.
 	//   "DENY" - Deny action type.
 	ActionType string `json:"actionType,omitempty"`
-	// Condition: Org policy condition/expression. For example:
+	// Condition: A Common Expression Language (CEL) condition which is used in the
+	// evaluation of the constraint. For example:
 	// `resource.instanceName.matches("[production|test]_.*_(\d)+")` or,
 	// `resource.management.auto_upgrade == true` The max length of the condition
 	// is 1000 characters.
@@ -481,11 +474,12 @@ type GoogleCloudOrgpolicyV2CustomConstraint struct {
 	// MethodTypes: All the operations being applied for this constraint.
 	//
 	// Possible values:
-	//   "METHOD_TYPE_UNSPECIFIED" - Unspecified. Results in an error.
+	//   "METHOD_TYPE_UNSPECIFIED" - This is only used for distinguishing unset
+	// values and should never be used. Results in an error.
 	//   "CREATE" - Constraint applied when creating the resource.
 	//   "UPDATE" - Constraint applied when updating the resource.
-	//   "DELETE" - Constraint applied when deleting the resource. Not supported
-	// yet.
+	//   "DELETE" - Constraint applied when deleting the resource. Not currently
+	// supported.
 	//   "REMOVE_GRANT" - Constraint applied when removing an IAM grant.
 	//   "GOVERN_TAGS" - Constraint applied when enforcing forced tagging.
 	MethodTypes []string `json:"methodTypes,omitempty"`
@@ -502,7 +496,7 @@ type GoogleCloudOrgpolicyV2CustomConstraint struct {
 	ResourceTypes []string `json:"resourceTypes,omitempty"`
 	// UpdateTime: Output only. The last time this custom constraint was updated.
 	// This represents the last time that the `CreateCustomConstraint` or
-	// `UpdateCustomConstraint` RPC was called
+	// `UpdateCustomConstraint` methods were called.
 	UpdateTime string `json:"updateTime,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ActionType") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -517,9 +511,9 @@ type GoogleCloudOrgpolicyV2CustomConstraint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudOrgpolicyV2CustomConstraint) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudOrgpolicyV2CustomConstraint) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudOrgpolicyV2CustomConstraint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudOrgpolicyV2Policy: Defines an organization policy which is used
@@ -547,7 +541,7 @@ type GoogleCloudOrgpolicyV2Policy struct {
 	// name for API requests, but responses will return the name using the
 	// equivalent project number.
 	Name string `json:"name,omitempty"`
-	// Spec: Basic information about the Organization Policy.
+	// Spec: Basic information about the organization policy.
 	Spec *GoogleCloudOrgpolicyV2PolicySpec `json:"spec,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Alternate") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -562,9 +556,9 @@ type GoogleCloudOrgpolicyV2Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudOrgpolicyV2Policy) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudOrgpolicyV2Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudOrgpolicyV2Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudOrgpolicyV2PolicySpec: Defines a Google Cloud policy
@@ -615,9 +609,9 @@ type GoogleCloudOrgpolicyV2PolicySpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudOrgpolicyV2PolicySpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudOrgpolicyV2PolicySpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudOrgpolicyV2PolicySpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudOrgpolicyV2PolicySpecPolicyRule: A rule used to express this
@@ -644,6 +638,12 @@ type GoogleCloudOrgpolicyV2PolicySpecPolicyRule struct {
 	// configuration is acceptable. This field can be set only in policies for
 	// boolean constraints.
 	Enforce bool `json:"enforce,omitempty"`
+	// Parameters: Optional. Required for managed constraints if parameters are
+	// defined. Passes parameter values when policy enforcement is enabled. Ensure
+	// that parameter value types match those defined in the constraint definition.
+	// For example: { "allowedLocations" : ["us-east1", "us-west1"], "allowAll" :
+	// true }
+	Parameters googleapi.RawMessage `json:"parameters,omitempty"`
 	// Values: List of values to be used for this policy rule. This field can be
 	// set only in policies for list constraints.
 	Values *GoogleCloudOrgpolicyV2PolicySpecPolicyRuleStringValues `json:"values,omitempty"`
@@ -660,9 +660,9 @@ type GoogleCloudOrgpolicyV2PolicySpecPolicyRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudOrgpolicyV2PolicySpecPolicyRule) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudOrgpolicyV2PolicySpecPolicyRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudOrgpolicyV2PolicySpecPolicyRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudOrgpolicyV2PolicySpecPolicyRuleStringValues: A message that holds
@@ -696,9 +696,9 @@ type GoogleCloudOrgpolicyV2PolicySpecPolicyRuleStringValues struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudOrgpolicyV2PolicySpecPolicyRuleStringValues) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudOrgpolicyV2PolicySpecPolicyRuleStringValues) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudOrgpolicyV2PolicySpecPolicyRuleStringValues
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1AccessStateDiff: A summary and comparison of the
@@ -755,9 +755,9 @@ type GoogleCloudPolicysimulatorV1AccessStateDiff struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1AccessStateDiff) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1AccessStateDiff) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1AccessStateDiff
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1AccessTuple: Information about the principal,
@@ -795,9 +795,9 @@ type GoogleCloudPolicysimulatorV1AccessTuple struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1AccessTuple) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1AccessTuple) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1AccessTuple
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1BindingExplanation: Details about how a binding
@@ -886,9 +886,9 @@ type GoogleCloudPolicysimulatorV1BindingExplanation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1BindingExplanation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1BindingExplanation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1BindingExplanation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1BindingExplanationAnnotatedMembership: Details
@@ -932,9 +932,9 @@ type GoogleCloudPolicysimulatorV1BindingExplanationAnnotatedMembership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1BindingExplanationAnnotatedMembership) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1BindingExplanationAnnotatedMembership) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1BindingExplanationAnnotatedMembership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1ExplainedAccess: Details about how a set of
@@ -974,9 +974,9 @@ type GoogleCloudPolicysimulatorV1ExplainedAccess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1ExplainedAccess) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1ExplainedAccess) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1ExplainedAccess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1ExplainedPolicy: Details about how a specific
@@ -1038,69 +1038,9 @@ type GoogleCloudPolicysimulatorV1ExplainedPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1ExplainedPolicy) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1ExplainedPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1ExplainedPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsPreviewsResponse:
-// ListOrgPolicyViolationsPreviewsResponse is the response message for
-// OrgPolicyViolationsPreviewService.ListOrgPolicyViolationsPreviews.
-type GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsPreviewsResponse struct {
-	// NextPageToken: A token that you can use to retrieve the next page of
-	// results. If this field is omitted, there are no subsequent pages.
-	NextPageToken string `json:"nextPageToken,omitempty"`
-	// OrgPolicyViolationsPreviews: The list of OrgPolicyViolationsPreview
-	OrgPolicyViolationsPreviews []*GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview `json:"orgPolicyViolationsPreviews,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsPreviewsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsPreviewsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsResponse:
-// ListOrgPolicyViolationsResponse is the response message for
-// OrgPolicyViolationsPreviewService.ListOrgPolicyViolations
-type GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsResponse struct {
-	// NextPageToken: A token that you can use to retrieve the next page of
-	// results. If this field is omitted, there are no subsequent pages.
-	NextPageToken string `json:"nextPageToken,omitempty"`
-	// OrgPolicyViolations: The list of OrgPolicyViolations
-	OrgPolicyViolations []*GoogleCloudPolicysimulatorV1OrgPolicyViolation `json:"orgPolicyViolations,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsResponse) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1ListReplayResultsResponse: Response message for
@@ -1128,235 +1068,9 @@ type GoogleCloudPolicysimulatorV1ListReplayResultsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1ListReplayResultsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1ListReplayResultsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1ListReplayResultsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1OrgPolicyOverlay: The proposed changes to
-// OrgPolicy.
-type GoogleCloudPolicysimulatorV1OrgPolicyOverlay struct {
-	// CustomConstraints: Optional. The OrgPolicy CustomConstraint changes to
-	// preview violations for. Any existing CustomConstraints with the same name
-	// will be overridden in the simulation. That is, violations will be determined
-	// as if all custom constraints in the overlay were instantiated. Only a single
-	// custom_constraint is supported in the overlay at a time. For evaluating
-	// multiple constraints, multiple `GenerateOrgPolicyViolationsPreview` requests
-	// are made, where each request evaluates a single constraint.
-	CustomConstraints []*GoogleCloudPolicysimulatorV1OrgPolicyOverlayCustomConstraintOverlay `json:"customConstraints,omitempty"`
-	// Policies: Optional. The OrgPolicy changes to preview violations for. Any
-	// existing OrgPolicies with the same name will be overridden in the
-	// simulation. That is, violations will be determined as if all policies in the
-	// overlay were created or updated.
-	Policies []*GoogleCloudPolicysimulatorV1OrgPolicyOverlayPolicyOverlay `json:"policies,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "CustomConstraints") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CustomConstraints") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1OrgPolicyOverlay) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1OrgPolicyOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1OrgPolicyOverlayCustomConstraintOverlay: A
-// change to an OrgPolicy custom constraint.
-type GoogleCloudPolicysimulatorV1OrgPolicyOverlayCustomConstraintOverlay struct {
-	// CustomConstraint: Optional. The new or updated custom constraint.
-	CustomConstraint *GoogleCloudOrgpolicyV2CustomConstraint `json:"customConstraint,omitempty"`
-	// CustomConstraintParent: Optional. Resource the constraint is attached to.
-	// Example: "organization/987654"
-	CustomConstraintParent string `json:"customConstraintParent,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "CustomConstraint") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CustomConstraint") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1OrgPolicyOverlayCustomConstraintOverlay) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1OrgPolicyOverlayCustomConstraintOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1OrgPolicyOverlayPolicyOverlay: A change to an
-// OrgPolicy.
-type GoogleCloudPolicysimulatorV1OrgPolicyOverlayPolicyOverlay struct {
-	// Policy: Optional. The new or updated OrgPolicy.
-	Policy *GoogleCloudOrgpolicyV2Policy `json:"policy,omitempty"`
-	// PolicyParent: Optional. The parent of the policy we are attaching to.
-	// Example: "projects/123456"
-	PolicyParent string `json:"policyParent,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Policy") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Policy") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1OrgPolicyOverlayPolicyOverlay) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1OrgPolicyOverlayPolicyOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1OrgPolicyViolation: OrgPolicyViolation is a
-// resource representing a single resource violating a single OrgPolicy
-// constraint.
-type GoogleCloudPolicysimulatorV1OrgPolicyViolation struct {
-	// CustomConstraint: The custom constraint being violated.
-	CustomConstraint *GoogleCloudOrgpolicyV2CustomConstraint `json:"customConstraint,omitempty"`
-	// Error: Any error encountered during the evaluation.
-	Error *GoogleRpcStatus `json:"error,omitempty"`
-	// Name: The name of the `OrgPolicyViolation`. Example:
-	// organizations/my-example-org/locations/global/orgPolicyViolationsPreviews/506
-	// a5f7f/orgPolicyViolations/38ce`
-	Name string `json:"name,omitempty"`
-	// Resource: The resource violating the constraint.
-	Resource *GoogleCloudPolicysimulatorV1ResourceContext `json:"resource,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "CustomConstraint") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CustomConstraint") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1OrgPolicyViolation) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1OrgPolicyViolation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview:
-// OrgPolicyViolationsPreview is a resource providing a preview of the
-// violations that will exist if an OrgPolicy change is made. The list of
-// violations are modeled as child resources and retrieved via a
-// ListOrgPolicyViolations API call. There are potentially more
-// OrgPolicyViolations than could fit in an embedded field. Thus, the use of a
-// child resource instead of a field.
-type GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview struct {
-	// CreateTime: Output only. Time when this `OrgPolicyViolationsPreview` was
-	// created.
-	CreateTime string `json:"createTime,omitempty"`
-	// CustomConstraints: Output only. The names of the constraints against which
-	// all `OrgPolicyViolations` were evaluated. If `OrgPolicyOverlay` only
-	// contains `PolicyOverlay` then it contains the name of the configured custom
-	// constraint, applicable to the specified policies. Otherwise it contains the
-	// name of the constraint specified in `CustomConstraintOverlay`. Format:
-	// `organizations/{organization_id}/customConstraints/{custom_constraint_id}`
-	// Example: `organizations/123/customConstraints/custom.createOnlyE2TypeVms`
-	CustomConstraints []string `json:"customConstraints,omitempty"`
-	// Name: Output only. The resource name of the `OrgPolicyViolationsPreview`. It
-	// has the following format:
-	// `organizations/{organization}/locations/{location}/orgPolicyViolationsPreview
-	// s/{orgPolicyViolationsPreview}` Example:
-	// `organizations/my-example-org/locations/global/orgPolicyViolationsPreviews/50
-	// 6a5f7f`
-	Name string `json:"name,omitempty"`
-	// Overlay: Required. The proposed changes we are previewing violations for.
-	Overlay *GoogleCloudPolicysimulatorV1OrgPolicyOverlay `json:"overlay,omitempty"`
-	// ResourceCounts: Output only. A summary of the state of all resources scanned
-	// for compliance with the changed OrgPolicy.
-	ResourceCounts *GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreviewResourceCounts `json:"resourceCounts,omitempty"`
-	// State: Output only. The state of the `OrgPolicyViolationsPreview`.
-	//
-	// Possible values:
-	//   "PREVIEW_STATE_UNSPECIFIED" - The state is unspecified.
-	//   "PREVIEW_PENDING" - The OrgPolicyViolationsPreview has not been created
-	// yet.
-	//   "PREVIEW_RUNNING" - The OrgPolicyViolationsPreview is currently being
-	// created.
-	//   "PREVIEW_SUCCEEDED" - The OrgPolicyViolationsPreview creation finished
-	// successfully.
-	//   "PREVIEW_FAILED" - The OrgPolicyViolationsPreview creation failed with an
-	// error.
-	State string `json:"state,omitempty"`
-	// ViolationsCount: Output only. The number of OrgPolicyViolations in this
-	// `OrgPolicyViolationsPreview`. This count may differ from
-	// `resource_summary.noncompliant_count` because each OrgPolicyViolation is
-	// specific to a resource **and** constraint. If there are multiple constraints
-	// being evaluated (i.e. multiple policies in the overlay), a single resource
-	// may violate multiple constraints.
-	ViolationsCount int64 `json:"violationsCount,omitempty"`
-
-	// ServerResponse contains the HTTP response code and headers from the server.
-	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "CreateTime") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CreateTime") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreviewResourceCounts: A
-// summary of the state of all resources scanned for compliance with the
-// changed OrgPolicy.
-type GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreviewResourceCounts struct {
-	// Compliant: Output only. Number of scanned resources with zero violations.
-	Compliant int64 `json:"compliant,omitempty"`
-	// Errors: Output only. Number of resources that returned an error when
-	// scanned.
-	Errors int64 `json:"errors,omitempty"`
-	// Noncompliant: Output only. Number of scanned resources with at least one
-	// violation.
-	Noncompliant int64 `json:"noncompliant,omitempty"`
-	// Scanned: Output only. Number of resources checked for compliance. Must
-	// equal: unenforced + noncompliant + compliant + error
-	Scanned int64 `json:"scanned,omitempty"`
-	// Unenforced: Output only. Number of resources where the constraint was not
-	// enforced, i.e. the Policy set `enforced: false` for that resource.
-	Unenforced int64 `json:"unenforced,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Compliant") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Compliant") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreviewResourceCounts) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreviewResourceCounts
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1Replay: A resource describing a `Replay`, or
@@ -1400,9 +1114,9 @@ type GoogleCloudPolicysimulatorV1Replay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1Replay) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1Replay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1Replay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1ReplayConfig: The configuration used for a
@@ -1440,9 +1154,9 @@ type GoogleCloudPolicysimulatorV1ReplayConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1ReplayConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1ReplayConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1ReplayConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1ReplayDiff: The difference between the results
@@ -1468,9 +1182,9 @@ type GoogleCloudPolicysimulatorV1ReplayDiff struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1ReplayDiff) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1ReplayDiff) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1ReplayDiff
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1ReplayOperationMetadata: Metadata about a Replay
@@ -1491,9 +1205,9 @@ type GoogleCloudPolicysimulatorV1ReplayOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1ReplayOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1ReplayOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1ReplayOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1ReplayResult: The result of replaying a single
@@ -1536,9 +1250,9 @@ type GoogleCloudPolicysimulatorV1ReplayResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1ReplayResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1ReplayResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1ReplayResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1ReplayResultsSummary: Summary statistics about
@@ -1571,52 +1285,9 @@ type GoogleCloudPolicysimulatorV1ReplayResultsSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1ReplayResultsSummary) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1ReplayResultsSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1ReplayResultsSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// GoogleCloudPolicysimulatorV1ResourceContext: ResourceContext provides the
-// context we know about a resource. It is similar in concept to
-// google.cloud.asset.v1.Resource, but focuses on the information specifically
-// used by Simulator.
-type GoogleCloudPolicysimulatorV1ResourceContext struct {
-	// Ancestors: The ancestry path of the resource in Google Cloud resource
-	// hierarchy
-	// (https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy),
-	// represented as a list of relative resource names. An ancestry path starts
-	// with the closest ancestor in the hierarchy and ends at root. If the resource
-	// is a project, folder, or organization, the ancestry path starts from the
-	// resource itself. Example: `["projects/123456789", "folders/5432",
-	// "organizations/1234"]`
-	Ancestors []string `json:"ancestors,omitempty"`
-	// AssetType: The asset type of the resource as defined by CAIS. Example:
-	// `compute.googleapis.com/Firewall` See Supported asset types
-	// (https://cloud.google.com/asset-inventory/docs/supported-asset-types) for
-	// more information.
-	AssetType string `json:"assetType,omitempty"`
-	// Resource: The full name of the resource. Example:
-	// `//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/insta
-	// nce1` See Resource names
-	// (https://cloud.google.com/apis/design/resource_names#full_resource_name) for
-	// more information.
-	Resource string `json:"resource,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Ancestors") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Ancestors") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleCloudPolicysimulatorV1ResourceContext) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleCloudPolicysimulatorV1ResourceContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1alphaCreateOrgPolicyViolationsPreviewOperationMet
@@ -1661,9 +1332,9 @@ type GoogleCloudPolicysimulatorV1alphaCreateOrgPolicyViolationsPreviewOperationM
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1alphaCreateOrgPolicyViolationsPreviewOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1alphaCreateOrgPolicyViolationsPreviewOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1alphaCreateOrgPolicyViolationsPreviewOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1alphaGenerateOrgPolicyViolationsPreviewOperationM
@@ -1708,9 +1379,9 @@ type GoogleCloudPolicysimulatorV1alphaGenerateOrgPolicyViolationsPreviewOperatio
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1alphaGenerateOrgPolicyViolationsPreviewOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1alphaGenerateOrgPolicyViolationsPreviewOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1alphaGenerateOrgPolicyViolationsPreviewOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlay: The proposed changes to
@@ -1742,9 +1413,9 @@ type GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlay) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayCustomConstraintOverlay: A
@@ -1768,9 +1439,9 @@ type GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayCustomConstraintOverlay st
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayCustomConstraintOverlay) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayCustomConstraintOverlay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayCustomConstraintOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayPolicyOverlay: A change to
@@ -1794,9 +1465,9 @@ type GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayPolicyOverlay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayPolicyOverlay) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayPolicyOverlay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1alphaOrgPolicyOverlayPolicyOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreview:
@@ -1863,9 +1534,9 @@ type GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreview struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreview) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreview) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreview
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreviewResourceCounts: A
@@ -1899,9 +1570,9 @@ type GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreviewResourceCounts s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreviewResourceCounts) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreviewResourceCounts) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1alphaOrgPolicyViolationsPreviewResourceCounts
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1betaCreateOrgPolicyViolationsPreviewOperationMeta
@@ -1946,9 +1617,9 @@ type GoogleCloudPolicysimulatorV1betaCreateOrgPolicyViolationsPreviewOperationMe
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1betaCreateOrgPolicyViolationsPreviewOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1betaCreateOrgPolicyViolationsPreviewOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1betaCreateOrgPolicyViolationsPreviewOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1betaGenerateOrgPolicyViolationsPreviewOperationMe
@@ -1993,9 +1664,9 @@ type GoogleCloudPolicysimulatorV1betaGenerateOrgPolicyViolationsPreviewOperation
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1betaGenerateOrgPolicyViolationsPreviewOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1betaGenerateOrgPolicyViolationsPreviewOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1betaGenerateOrgPolicyViolationsPreviewOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1betaOrgPolicyOverlay: The proposed changes to
@@ -2027,9 +1698,9 @@ type GoogleCloudPolicysimulatorV1betaOrgPolicyOverlay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1betaOrgPolicyOverlay) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1betaOrgPolicyOverlay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1betaOrgPolicyOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayCustomConstraintOverlay: A
@@ -2053,9 +1724,9 @@ type GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayCustomConstraintOverlay str
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayCustomConstraintOverlay) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayCustomConstraintOverlay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayCustomConstraintOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayPolicyOverlay: A change to
@@ -2079,9 +1750,9 @@ type GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayPolicyOverlay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayPolicyOverlay) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayPolicyOverlay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1betaOrgPolicyOverlayPolicyOverlay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreview:
@@ -2148,9 +1819,9 @@ type GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreview struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreview) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreview) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreview
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreviewResourceCounts: A
@@ -2184,9 +1855,9 @@ type GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreviewResourceCounts st
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreviewResourceCounts) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreviewResourceCounts) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudPolicysimulatorV1betaOrgPolicyViolationsPreviewResourceCounts
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1AuditConfig: Specifies the audit configuration for a service. The
@@ -2225,9 +1896,9 @@ type GoogleIamV1AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1AuditConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1AuditLogConfig: Provides the configuration for logging a type of
@@ -2260,9 +1931,9 @@ type GoogleIamV1AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1Binding: Associates `members`, or principals, with a `role`.
@@ -2359,9 +2030,9 @@ type GoogleIamV1Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1Binding) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1Policy: An Identity and Access Management (IAM) policy, which
@@ -2448,9 +2119,9 @@ type GoogleIamV1Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1Policy) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningListOperationsResponse: The response message for
@@ -2477,9 +2148,9 @@ type GoogleLongrunningListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -2524,9 +2195,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleRpcStatus: The `Status` type defines a logical error model that is
@@ -2558,9 +2229,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeDate: Represents a whole or partial calendar date, such as a
@@ -2596,9 +2267,9 @@ type GoogleTypeDate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeExpr: Represents a textual expression in the Common Expression
@@ -2644,9 +2315,9 @@ type GoogleTypeExpr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeExpr) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeExpr) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeExpr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FoldersLocationsOrgPolicyViolationsPreviewsOperationsGetCall struct {
@@ -2705,12 +2376,11 @@ func (c *FoldersLocationsOrgPolicyViolationsPreviewsOperationsGetCall) doRequest
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2718,6 +2388,7 @@ func (c *FoldersLocationsOrgPolicyViolationsPreviewsOperationsGetCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.orgPolicyViolationsPreviews.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2753,9 +2424,11 @@ func (c *FoldersLocationsOrgPolicyViolationsPreviewsOperationsGetCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.orgPolicyViolationsPreviews.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2805,8 +2478,7 @@ func (c *FoldersLocationsReplaysCreateCall) Header() http.Header {
 
 func (c *FoldersLocationsReplaysCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudpolicysimulatorv1replay)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudpolicysimulatorv1replay)
 	if err != nil {
 		return nil, err
 	}
@@ -2822,6 +2494,7 @@ func (c *FoldersLocationsReplaysCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2857,9 +2530,11 @@ func (c *FoldersLocationsReplaysCreateCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2923,12 +2598,11 @@ func (c *FoldersLocationsReplaysGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2936,6 +2610,7 @@ func (c *FoldersLocationsReplaysGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2971,9 +2646,11 @@ func (c *FoldersLocationsReplaysGetCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3033,12 +2710,11 @@ func (c *FoldersLocationsReplaysOperationsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3046,6 +2722,7 @@ func (c *FoldersLocationsReplaysOperationsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3081,9 +2758,11 @@ func (c *FoldersLocationsReplaysOperationsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3162,12 +2841,11 @@ func (c *FoldersLocationsReplaysOperationsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3175,6 +2853,7 @@ func (c *FoldersLocationsReplaysOperationsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3210,9 +2889,11 @@ func (c *FoldersLocationsReplaysOperationsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3313,12 +2994,11 @@ func (c *FoldersLocationsReplaysResultsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/results")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3326,6 +3006,7 @@ func (c *FoldersLocationsReplaysResultsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.results.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3361,9 +3042,11 @@ func (c *FoldersLocationsReplaysResultsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.folders.locations.replays.results.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3444,12 +3127,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3457,6 +3139,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3492,9 +3175,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunning
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3573,12 +3258,11 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3586,6 +3270,7 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3621,9 +3306,11 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3631,384 +3318,6 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 // A non-nil error returned from f will halt the iteration.
 // The provided context supersedes any context provided to the Context method.
 func (c *OperationsListCall) Pages(ctx context.Context, f func(*GoogleLongrunningListOperationsResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken"))
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
-}
-
-type OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall struct {
-	s                                                      *Service
-	parent                                                 string
-	googlecloudpolicysimulatorv1orgpolicyviolationspreview *GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview
-	urlParams_                                             gensupport.URLParams
-	ctx_                                                   context.Context
-	header_                                                http.Header
-}
-
-// Create: CreateOrgPolicyViolationsPreview creates an
-// OrgPolicyViolationsPreview for the proposed changes in the provided
-// OrgPolicyViolationsPreview.OrgPolicyOverlay. The changes to OrgPolicy are
-// specified by this `OrgPolicyOverlay`. The resources to scan are inferred
-// from these specified changes.
-//
-//   - parent: The organization under which this OrgPolicyViolationsPreview will
-//     be created. Example: `organizations/my-example-org/locations/global`.
-func (r *OrganizationsLocationsOrgPolicyViolationsPreviewsService) Create(parent string, googlecloudpolicysimulatorv1orgpolicyviolationspreview *GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview) *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall {
-	c := &OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.parent = parent
-	c.googlecloudpolicysimulatorv1orgpolicyviolationspreview = googlecloudpolicysimulatorv1orgpolicyviolationspreview
-	return c
-}
-
-// OrgPolicyViolationsPreviewId sets the optional parameter
-// "orgPolicyViolationsPreviewId": An optional user-specified ID for the
-// OrgPolicyViolationsPreview. If not provided, a random ID will be generated.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall) OrgPolicyViolationsPreviewId(orgPolicyViolationsPreviewId string) *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall {
-	c.urlParams_.Set("orgPolicyViolationsPreviewId", orgPolicyViolationsPreviewId)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall) Fields(s ...googleapi.Field) *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall) Context(ctx context.Context) *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudpolicysimulatorv1orgpolicyviolationspreview)
-	if err != nil {
-		return nil, err
-	}
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/orgPolicyViolationsPreviews")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"parent": c.parent,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "policysimulator.organizations.locations.orgPolicyViolationsPreviews.create" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *GoogleLongrunningOperation.ServerResponse.Header or (if a response was
-// returned at all) in error.(*googleapi.Error).Header. Use
-// googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunningOperation, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &GoogleLongrunningOperation{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall struct {
-	s            *Service
-	name         string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// Get: GetOrgPolicyViolationsPreview gets the specified
-// OrgPolicyViolationsPreview. Each OrgPolicyViolationsPreview is available for
-// at least 7 days.
-//
-// - name: The name of the OrgPolicyViolationsPreview to get.
-func (r *OrganizationsLocationsOrgPolicyViolationsPreviewsService) Get(name string) *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall {
-	c := &OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.name = name
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall) Fields(s ...googleapi.Field) *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall) IfNoneMatch(entityTag string) *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall) Context(ctx context.Context) *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"name": c.name,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "policysimulator.organizations.locations.orgPolicyViolationsPreviews.get" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview.ServerResponse.Header
-//
-//	or (if a response was returned at all) in error.(*googleapi.Error).Header.
-//
-// Use googleapi.IsNotModified to check whether the returned error was because
-// http.StatusNotModified was returned.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &GoogleCloudPolicysimulatorV1OrgPolicyViolationsPreview{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type OrganizationsLocationsOrgPolicyViolationsPreviewsListCall struct {
-	s            *Service
-	parent       string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// List: ListOrgPolicyViolationsPreviews lists each OrgPolicyViolationsPreview
-// in an organization. Each OrgPolicyViolationsPreview is available for at
-// least 7 days.
-//
-//   - parent: The parent the violations are scoped to. Format:
-//     `organizations/{organization}/locations/{location}` Example:
-//     `organizations/my-example-org/locations/global`.
-func (r *OrganizationsLocationsOrgPolicyViolationsPreviewsService) List(parent string) *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall {
-	c := &OrganizationsLocationsOrgPolicyViolationsPreviewsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.parent = parent
-	return c
-}
-
-// PageSize sets the optional parameter "pageSize": The maximum number of items
-// to return. The service may return fewer than this value. If unspecified, at
-// most 5 items will be returned. The maximum value is 10; values above 10 will
-// be coerced to 10.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) PageSize(pageSize int64) *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall {
-	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": A page token, received
-// from a previous call. Provide this to retrieve the subsequent page. When
-// paginating, all other parameters must match the call that provided the page
-// token.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) PageToken(pageToken string) *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) Fields(s ...googleapi.Field) *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) IfNoneMatch(entityTag string) *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) Context(ctx context.Context) *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/orgPolicyViolationsPreviews")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"parent": c.parent,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "policysimulator.organizations.locations.orgPolicyViolationsPreviews.list" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsPreviewsResponse.ServerRe
-// sponse.Header or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsPreviewsResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsPreviewsResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsListCall) Pages(ctx context.Context, f func(*GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsPreviewsResponse) error) error {
 	c.ctx_ = ctx
 	defer c.PageToken(c.urlParams_.Get("pageToken"))
 	for {
@@ -4082,12 +3391,11 @@ func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOperationsGetCall) doR
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4095,6 +3403,7 @@ func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOperationsGetCall) doR
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.orgPolicyViolationsPreviews.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4130,161 +3439,12 @@ func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOperationsGetCall) Do(
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-type OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall struct {
-	s            *Service
-	parent       string
-	urlParams_   gensupport.URLParams
-	ifNoneMatch_ string
-	ctx_         context.Context
-	header_      http.Header
-}
-
-// List: ListOrgPolicyViolations lists the OrgPolicyViolations that are present
-// in an OrgPolicyViolationsPreview.
-//
-//   - parent: The OrgPolicyViolationsPreview to get OrgPolicyViolations from.
-//     Format:
-//     organizations/{organization}/locations/{location}/orgPolicyViolationsPrevie
-//     ws/{orgPolicyViolationsPreview}.
-func (r *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsService) List(parent string) *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall {
-	c := &OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
-	c.parent = parent
-	return c
-}
-
-// PageSize sets the optional parameter "pageSize": The maximum number of items
-// to return. The service may return fewer than this value. If unspecified, at
-// most 50 items will be returned. The maximum value is 1000; values above 1000
-// will be coerced to 1000.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) PageSize(pageSize int64) *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall {
-	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
-	return c
-}
-
-// PageToken sets the optional parameter "pageToken": A page token, received
-// from a previous call. Provide this to retrieve the subsequent page. When
-// paginating, all other parameters must match the call that provided the page
-// token.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) PageToken(pageToken string) *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall {
-	c.urlParams_.Set("pageToken", pageToken)
-	return c
-}
-
-// Fields allows partial responses to be retrieved. See
-// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
-// details.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) Fields(s ...googleapi.Field) *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall {
-	c.urlParams_.Set("fields", googleapi.CombineFields(s))
-	return c
-}
-
-// IfNoneMatch sets an optional parameter which makes the operation fail if the
-// object's ETag matches the given value. This is useful for getting updates
-// only after the object has changed since the last request.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) IfNoneMatch(entityTag string) *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall {
-	c.ifNoneMatch_ = entityTag
-	return c
-}
-
-// Context sets the context to be used in this call's Do method.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) Context(ctx context.Context) *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall {
-	c.ctx_ = ctx
-	return c
-}
-
-// Header returns a http.Header that can be modified by the caller to add
-// headers to the request.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) Header() http.Header {
-	if c.header_ == nil {
-		c.header_ = make(http.Header)
-	}
-	return c.header_
-}
-
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	if c.ifNoneMatch_ != "" {
-		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
-	}
-	var body io.Reader = nil
-	c.urlParams_.Set("alt", alt)
-	c.urlParams_.Set("prettyPrint", "false")
-	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/orgPolicyViolations")
-	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	b, err := gensupport.DecodeResponseBytes(target, res)
 	if err != nil {
 		return nil, err
 	}
-	req.Header = reqHeaders
-	googleapi.Expand(req.URL, map[string]string{
-		"parent": c.parent,
-	})
-	return gensupport.SendRequest(c.ctx_, c.s.client, req)
-}
-
-// Do executes the "policysimulator.organizations.locations.orgPolicyViolationsPreviews.orgPolicyViolations.list" call.
-// Any non-2xx status code is an error. Response headers are in either
-// *GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsResponse.ServerResponse.H
-// eader or (if a response was returned at all) in
-// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
-// whether the returned error was because http.StatusNotModified was returned.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsResponse, error) {
-	gensupport.SetOptions(c.urlParams_, opts...)
-	res, err := c.doRequest("json")
-	if res != nil && res.StatusCode == http.StatusNotModified {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, gensupport.WrapError(&googleapi.Error{
-			Code:   res.StatusCode,
-			Header: res.Header,
-		})
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer googleapi.CloseBody(res)
-	if err := googleapi.CheckResponse(res); err != nil {
-		return nil, gensupport.WrapError(err)
-	}
-	ret := &GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsResponse{
-		ServerResponse: googleapi.ServerResponse{
-			Header:         res.Header,
-			HTTPStatusCode: res.StatusCode,
-		},
-	}
-	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
-		return nil, err
-	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.orgPolicyViolationsPreviews.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
-}
-
-// Pages invokes f for each page of results.
-// A non-nil error returned from f will halt the iteration.
-// The provided context supersedes any context provided to the Context method.
-func (c *OrganizationsLocationsOrgPolicyViolationsPreviewsOrgPolicyViolationsListCall) Pages(ctx context.Context, f func(*GoogleCloudPolicysimulatorV1ListOrgPolicyViolationsResponse) error) error {
-	c.ctx_ = ctx
-	defer c.PageToken(c.urlParams_.Get("pageToken"))
-	for {
-		x, err := c.Do()
-		if err != nil {
-			return err
-		}
-		if err := f(x); err != nil {
-			return err
-		}
-		if x.NextPageToken == "" {
-			return nil
-		}
-		c.PageToken(x.NextPageToken)
-	}
 }
 
 type OrganizationsLocationsReplaysCreateCall struct {
@@ -4333,8 +3493,7 @@ func (c *OrganizationsLocationsReplaysCreateCall) Header() http.Header {
 
 func (c *OrganizationsLocationsReplaysCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudpolicysimulatorv1replay)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudpolicysimulatorv1replay)
 	if err != nil {
 		return nil, err
 	}
@@ -4350,6 +3509,7 @@ func (c *OrganizationsLocationsReplaysCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4385,9 +3545,11 @@ func (c *OrganizationsLocationsReplaysCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4451,12 +3613,11 @@ func (c *OrganizationsLocationsReplaysGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4464,6 +3625,7 @@ func (c *OrganizationsLocationsReplaysGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4499,9 +3661,11 @@ func (c *OrganizationsLocationsReplaysGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4561,12 +3725,11 @@ func (c *OrganizationsLocationsReplaysOperationsGetCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4574,6 +3737,7 @@ func (c *OrganizationsLocationsReplaysOperationsGetCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4609,9 +3773,11 @@ func (c *OrganizationsLocationsReplaysOperationsGetCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4690,12 +3856,11 @@ func (c *OrganizationsLocationsReplaysOperationsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4703,6 +3868,7 @@ func (c *OrganizationsLocationsReplaysOperationsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4738,9 +3904,11 @@ func (c *OrganizationsLocationsReplaysOperationsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4841,12 +4009,11 @@ func (c *OrganizationsLocationsReplaysResultsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/results")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4854,6 +4021,7 @@ func (c *OrganizationsLocationsReplaysResultsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.results.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4889,9 +4057,11 @@ func (c *OrganizationsLocationsReplaysResultsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.organizations.locations.replays.results.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4972,12 +4142,11 @@ func (c *ProjectsLocationsOrgPolicyViolationsPreviewsOperationsGetCall) doReques
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4985,6 +4154,7 @@ func (c *ProjectsLocationsOrgPolicyViolationsPreviewsOperationsGetCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.orgPolicyViolationsPreviews.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5020,9 +4190,11 @@ func (c *ProjectsLocationsOrgPolicyViolationsPreviewsOperationsGetCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.orgPolicyViolationsPreviews.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5072,8 +4244,7 @@ func (c *ProjectsLocationsReplaysCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsReplaysCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudpolicysimulatorv1replay)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudpolicysimulatorv1replay)
 	if err != nil {
 		return nil, err
 	}
@@ -5089,6 +4260,7 @@ func (c *ProjectsLocationsReplaysCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5124,9 +4296,11 @@ func (c *ProjectsLocationsReplaysCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5190,12 +4364,11 @@ func (c *ProjectsLocationsReplaysGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5203,6 +4376,7 @@ func (c *ProjectsLocationsReplaysGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5238,9 +4412,11 @@ func (c *ProjectsLocationsReplaysGetCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5300,12 +4476,11 @@ func (c *ProjectsLocationsReplaysOperationsGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5313,6 +4488,7 @@ func (c *ProjectsLocationsReplaysOperationsGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5348,9 +4524,11 @@ func (c *ProjectsLocationsReplaysOperationsGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5429,12 +4607,11 @@ func (c *ProjectsLocationsReplaysOperationsListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5442,6 +4619,7 @@ func (c *ProjectsLocationsReplaysOperationsListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5477,9 +4655,11 @@ func (c *ProjectsLocationsReplaysOperationsListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5580,12 +4760,11 @@ func (c *ProjectsLocationsReplaysResultsListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/results")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5593,6 +4772,7 @@ func (c *ProjectsLocationsReplaysResultsListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.results.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5628,9 +4808,11 @@ func (c *ProjectsLocationsReplaysResultsListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "policysimulator.projects.locations.replays.results.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

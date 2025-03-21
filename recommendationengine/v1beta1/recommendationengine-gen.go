@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "recommendationengine:v1beta1"
 const apiName = "recommendationengine"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -313,9 +316,9 @@ type GoogleApiHttpBody struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleApiHttpBody) MarshalJSON() ([]byte, error) {
+func (s GoogleApiHttpBody) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleApiHttpBody
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1alphaRejoinCatalogMetadata: Metadata for
@@ -342,9 +345,9 @@ type GoogleCloudRecommendationengineV1alphaRejoinCatalogResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1alphaRejoinCatalogResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1alphaRejoinCatalogResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1alphaRejoinCatalogResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1alphaTuningMetadata: Metadata associated
@@ -368,9 +371,9 @@ type GoogleCloudRecommendationengineV1alphaTuningMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1alphaTuningMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1alphaTuningMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1alphaTuningMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1alphaTuningResponse: Response associated
@@ -417,9 +420,9 @@ type GoogleCloudRecommendationengineV1beta1BigQuerySource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1BigQuerySource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1BigQuerySource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1BigQuerySource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1Catalog: The catalog configuration.
@@ -449,9 +452,9 @@ type GoogleCloudRecommendationengineV1beta1Catalog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1Catalog) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1Catalog) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1Catalog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1CatalogInlineSource: The inline source
@@ -473,9 +476,9 @@ type GoogleCloudRecommendationengineV1beta1CatalogInlineSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1CatalogInlineSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1CatalogInlineSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1CatalogInlineSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1CatalogItem: CatalogItem captures all
@@ -539,9 +542,9 @@ type GoogleCloudRecommendationengineV1beta1CatalogItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1CatalogItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1CatalogItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1CatalogItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1CatalogItemCategoryHierarchy: Category
@@ -564,9 +567,9 @@ type GoogleCloudRecommendationengineV1beta1CatalogItemCategoryHierarchy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1CatalogItemCategoryHierarchy) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1CatalogItemCategoryHierarchy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1CatalogItemCategoryHierarchy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1CatalogItemLevelConfig: Configures the
@@ -605,9 +608,9 @@ type GoogleCloudRecommendationengineV1beta1CatalogItemLevelConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1CatalogItemLevelConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1CatalogItemLevelConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1CatalogItemLevelConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1CreatePredictionApiKeyRegistrationReque
@@ -628,9 +631,9 @@ type GoogleCloudRecommendationengineV1beta1CreatePredictionApiKeyRegistrationReq
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1CreatePredictionApiKeyRegistrationRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1CreatePredictionApiKeyRegistrationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1CreatePredictionApiKeyRegistrationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1EventDetail: User event details shared
@@ -686,9 +689,9 @@ type GoogleCloudRecommendationengineV1beta1EventDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1EventDetail) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1EventDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1EventDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1FeatureMap: FeatureMap represents
@@ -719,9 +722,9 @@ type GoogleCloudRecommendationengineV1beta1FeatureMap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1FeatureMap) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1FeatureMap) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1FeatureMap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1FeatureMapFloatList: A list of float
@@ -742,9 +745,9 @@ type GoogleCloudRecommendationengineV1beta1FeatureMapFloatList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1FeatureMapFloatList) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1FeatureMapFloatList) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1FeatureMapFloatList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecommendationengineV1beta1FeatureMapFloatList) UnmarshalJSON(data []byte) error {
@@ -782,9 +785,9 @@ type GoogleCloudRecommendationengineV1beta1FeatureMapStringList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1FeatureMapStringList) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1FeatureMapStringList) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1FeatureMapStringList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1GcsSource: Google Cloud Storage
@@ -822,9 +825,9 @@ type GoogleCloudRecommendationengineV1beta1GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1GcsSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1Image: Catalog item thumbnail/detail
@@ -849,9 +852,9 @@ type GoogleCloudRecommendationengineV1beta1Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1Image) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1Image) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ImportCatalogItemsRequest: Request
@@ -883,9 +886,9 @@ type GoogleCloudRecommendationengineV1beta1ImportCatalogItemsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ImportCatalogItemsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ImportCatalogItemsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ImportCatalogItemsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ImportCatalogItemsResponse: Response
@@ -911,9 +914,9 @@ type GoogleCloudRecommendationengineV1beta1ImportCatalogItemsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ImportCatalogItemsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ImportCatalogItemsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ImportCatalogItemsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ImportErrorsConfig: Configuration of
@@ -937,9 +940,9 @@ type GoogleCloudRecommendationengineV1beta1ImportErrorsConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ImportErrorsConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ImportErrorsConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ImportErrorsConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ImportMetadata: Metadata related to
@@ -973,9 +976,9 @@ type GoogleCloudRecommendationengineV1beta1ImportMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ImportMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ImportMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ImportMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ImportUserEventsRequest: Request
@@ -1006,9 +1009,9 @@ type GoogleCloudRecommendationengineV1beta1ImportUserEventsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ImportUserEventsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ImportUserEventsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ImportUserEventsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ImportUserEventsResponse: Response of
@@ -1036,9 +1039,9 @@ type GoogleCloudRecommendationengineV1beta1ImportUserEventsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ImportUserEventsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ImportUserEventsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ImportUserEventsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1InputConfig: The input config source.
@@ -1066,9 +1069,9 @@ type GoogleCloudRecommendationengineV1beta1InputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1InputConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1InputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1InputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ListCatalogItemsResponse: Response
@@ -1095,9 +1098,9 @@ type GoogleCloudRecommendationengineV1beta1ListCatalogItemsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ListCatalogItemsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ListCatalogItemsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ListCatalogItemsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ListCatalogsResponse: Response for
@@ -1123,9 +1126,9 @@ type GoogleCloudRecommendationengineV1beta1ListCatalogsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ListCatalogsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ListCatalogsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ListCatalogsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ListPredictionApiKeyRegistrationsRespon
@@ -1152,9 +1155,9 @@ type GoogleCloudRecommendationengineV1beta1ListPredictionApiKeyRegistrationsResp
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ListPredictionApiKeyRegistrationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ListPredictionApiKeyRegistrationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ListPredictionApiKeyRegistrationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ListUserEventsResponse: Response
@@ -1181,9 +1184,9 @@ type GoogleCloudRecommendationengineV1beta1ListUserEventsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ListUserEventsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ListUserEventsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ListUserEventsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1PredictRequest: Request message for
@@ -1285,9 +1288,9 @@ type GoogleCloudRecommendationengineV1beta1PredictRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1PredictRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1PredictRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1PredictRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1PredictResponse: Response message for
@@ -1326,9 +1329,9 @@ type GoogleCloudRecommendationengineV1beta1PredictResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1PredictResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1PredictResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1PredictResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1PredictResponsePredictionResult:
@@ -1355,9 +1358,9 @@ type GoogleCloudRecommendationengineV1beta1PredictResponsePredictionResult struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1PredictResponsePredictionResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1PredictResponsePredictionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1PredictResponsePredictionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1PredictionApiKeyRegistration:
@@ -1381,9 +1384,9 @@ type GoogleCloudRecommendationengineV1beta1PredictionApiKeyRegistration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1PredictionApiKeyRegistration) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1PredictionApiKeyRegistration) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1PredictionApiKeyRegistration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ProductCatalogItem: ProductCatalogItem
@@ -1432,9 +1435,9 @@ type GoogleCloudRecommendationengineV1beta1ProductCatalogItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ProductCatalogItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ProductCatalogItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ProductCatalogItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1ProductCatalogItemExactPrice: Exact
@@ -1458,9 +1461,9 @@ type GoogleCloudRecommendationengineV1beta1ProductCatalogItemExactPrice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ProductCatalogItemExactPrice) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ProductCatalogItemExactPrice) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ProductCatalogItemExactPrice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecommendationengineV1beta1ProductCatalogItemExactPrice) UnmarshalJSON(data []byte) error {
@@ -1500,9 +1503,9 @@ type GoogleCloudRecommendationengineV1beta1ProductCatalogItemPriceRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ProductCatalogItemPriceRange) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ProductCatalogItemPriceRange) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ProductCatalogItemPriceRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecommendationengineV1beta1ProductCatalogItemPriceRange) UnmarshalJSON(data []byte) error {
@@ -1577,9 +1580,9 @@ type GoogleCloudRecommendationengineV1beta1ProductDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ProductDetail) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ProductDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ProductDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecommendationengineV1beta1ProductDetail) UnmarshalJSON(data []byte) error {
@@ -1653,9 +1656,9 @@ type GoogleCloudRecommendationengineV1beta1ProductEventDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1ProductEventDetail) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1ProductEventDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1ProductEventDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1PurchaseTransaction: A transaction
@@ -1694,9 +1697,9 @@ type GoogleCloudRecommendationengineV1beta1PurchaseTransaction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1PurchaseTransaction) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1PurchaseTransaction) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1PurchaseTransaction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudRecommendationengineV1beta1PurchaseTransaction) UnmarshalJSON(data []byte) error {
@@ -1734,9 +1737,9 @@ type GoogleCloudRecommendationengineV1beta1PurgeUserEventsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1PurgeUserEventsMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1PurgeUserEventsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1PurgeUserEventsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1PurgeUserEventsRequest: Request
@@ -1772,9 +1775,9 @@ type GoogleCloudRecommendationengineV1beta1PurgeUserEventsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1PurgeUserEventsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1PurgeUserEventsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1PurgeUserEventsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1PurgeUserEventsResponse: Response of
@@ -1802,9 +1805,9 @@ type GoogleCloudRecommendationengineV1beta1PurgeUserEventsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1PurgeUserEventsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1PurgeUserEventsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1PurgeUserEventsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1RejoinUserEventsMetadata: Metadata for
@@ -1837,9 +1840,9 @@ type GoogleCloudRecommendationengineV1beta1RejoinUserEventsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1RejoinUserEventsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1RejoinUserEventsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1RejoinUserEventsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1RejoinUserEventsResponse: Response
@@ -1861,9 +1864,9 @@ type GoogleCloudRecommendationengineV1beta1RejoinUserEventsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1RejoinUserEventsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1RejoinUserEventsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1RejoinUserEventsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1UserEvent: UserEvent captures all
@@ -1927,9 +1930,9 @@ type GoogleCloudRecommendationengineV1beta1UserEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1UserEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1UserEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1UserEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1UserEventImportSummary: A summary of
@@ -1955,9 +1958,9 @@ type GoogleCloudRecommendationengineV1beta1UserEventImportSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1UserEventImportSummary) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1UserEventImportSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1UserEventImportSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1UserEventInlineSource: The inline
@@ -1979,9 +1982,9 @@ type GoogleCloudRecommendationengineV1beta1UserEventInlineSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1UserEventInlineSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1UserEventInlineSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1UserEventInlineSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudRecommendationengineV1beta1UserInfo: Information of end users.
@@ -2030,9 +2033,9 @@ type GoogleCloudRecommendationengineV1beta1UserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudRecommendationengineV1beta1UserInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudRecommendationengineV1beta1UserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudRecommendationengineV1beta1UserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningListOperationsResponse: The response message for
@@ -2059,9 +2062,9 @@ type GoogleLongrunningListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -2106,9 +2109,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -2150,9 +2153,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsCatalogsListCall struct {
@@ -2224,12 +2227,11 @@ func (c *ProjectsLocationsCatalogsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/catalogs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2237,6 +2239,7 @@ func (c *ProjectsLocationsCatalogsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2272,9 +2275,11 @@ func (c *ProjectsLocationsCatalogsListCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2352,8 +2357,7 @@ func (c *ProjectsLocationsCatalogsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsCatalogsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1catalog)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1catalog)
 	if err != nil {
 		return nil, err
 	}
@@ -2369,6 +2373,7 @@ func (c *ProjectsLocationsCatalogsPatchCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2404,9 +2409,11 @@ func (c *ProjectsLocationsCatalogsPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2455,8 +2462,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsCatalogsCatalogItemsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1catalogitem)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1catalogitem)
 	if err != nil {
 		return nil, err
 	}
@@ -2472,6 +2478,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2507,9 +2514,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2557,12 +2566,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsCatalogsCatalogItemsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2570,6 +2578,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2605,9 +2614,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2667,12 +2678,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2680,6 +2690,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2715,9 +2726,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2770,8 +2783,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsImportCall) Header() http.Header {
 
 func (c *ProjectsLocationsCatalogsCatalogItemsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1importcatalogitemsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1importcatalogitemsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2787,6 +2799,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsImportCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2822,9 +2835,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsImportCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2904,12 +2919,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/catalogItems")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2917,6 +2931,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2952,9 +2967,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3034,8 +3051,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsCatalogsCatalogItemsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1catalogitem)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1catalogitem)
 	if err != nil {
 		return nil, err
 	}
@@ -3051,6 +3067,7 @@ func (c *ProjectsLocationsCatalogsCatalogItemsPatchCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3086,9 +3103,11 @@ func (c *ProjectsLocationsCatalogsCatalogItemsPatchCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.catalogItems.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3148,12 +3167,11 @@ func (c *ProjectsLocationsCatalogsEventStoresOperationsGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3161,6 +3179,7 @@ func (c *ProjectsLocationsCatalogsEventStoresOperationsGetCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3196,9 +3215,11 @@ func (c *ProjectsLocationsCatalogsEventStoresOperationsGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3277,12 +3298,11 @@ func (c *ProjectsLocationsCatalogsEventStoresOperationsListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3290,6 +3310,7 @@ func (c *ProjectsLocationsCatalogsEventStoresOperationsListCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3325,9 +3346,11 @@ func (c *ProjectsLocationsCatalogsEventStoresOperationsListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3399,8 +3422,7 @@ func (c *ProjectsLocationsCatalogsEventStoresPlacementsPredictCall) Header() htt
 
 func (c *ProjectsLocationsCatalogsEventStoresPlacementsPredictCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1predictrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1predictrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3416,6 +3438,7 @@ func (c *ProjectsLocationsCatalogsEventStoresPlacementsPredictCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.placements.predict", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3451,9 +3474,11 @@ func (c *ProjectsLocationsCatalogsEventStoresPlacementsPredictCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.placements.predict", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3524,8 +3549,7 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsCreate
 
 func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1createpredictionapikeyregistrationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1createpredictionapikeyregistrationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3541,6 +3565,7 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsCreate
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.predictionApiKeyRegistrations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3576,9 +3601,11 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsCreate
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.predictionApiKeyRegistrations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3626,12 +3653,11 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsDelete
 
 func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3639,6 +3665,7 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsDelete
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.predictionApiKeyRegistrations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3674,9 +3701,11 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsDelete
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.predictionApiKeyRegistrations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3750,12 +3779,11 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsListCa
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/predictionApiKeyRegistrations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3763,6 +3791,7 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsListCa
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.predictionApiKeyRegistrations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3798,9 +3827,11 @@ func (c *ProjectsLocationsCatalogsEventStoresPredictionApiKeyRegistrationsListCa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.predictionApiKeyRegistrations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3909,12 +3940,11 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsCollectCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/userEvents:collect")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3922,6 +3952,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsCollectCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.collect", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3957,9 +3988,11 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsCollectCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.collect", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4013,8 +4046,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsImportCall) Header() http
 
 func (c *ProjectsLocationsCatalogsEventStoresUserEventsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1importusereventsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1importusereventsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4030,6 +4062,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsImportCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4065,9 +4098,11 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsImportCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4173,12 +4208,11 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/userEvents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4186,6 +4220,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsListCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4221,9 +4256,11 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4298,8 +4335,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsPurgeCall) Header() http.
 
 func (c *ProjectsLocationsCatalogsEventStoresUserEventsPurgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1purgeusereventsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1purgeusereventsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4315,6 +4351,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsPurgeCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.purge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4350,9 +4387,11 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsPurgeCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.purge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4408,8 +4447,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsRejoinCall) Header() http
 
 func (c *ProjectsLocationsCatalogsEventStoresUserEventsRejoinCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1rejoinusereventsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1rejoinusereventsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4425,6 +4463,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsRejoinCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.rejoin", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4460,9 +4499,11 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsRejoinCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.rejoin", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4512,8 +4553,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsWriteCall) Header() http.
 
 func (c *ProjectsLocationsCatalogsEventStoresUserEventsWriteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudrecommendationenginev1beta1userevent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudrecommendationenginev1beta1userevent)
 	if err != nil {
 		return nil, err
 	}
@@ -4529,6 +4569,7 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsWriteCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.write", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4564,9 +4605,11 @@ func (c *ProjectsLocationsCatalogsEventStoresUserEventsWriteCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.eventStores.userEvents.write", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4626,12 +4669,11 @@ func (c *ProjectsLocationsCatalogsOperationsGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4639,6 +4681,7 @@ func (c *ProjectsLocationsCatalogsOperationsGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4674,9 +4717,11 @@ func (c *ProjectsLocationsCatalogsOperationsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4755,12 +4800,11 @@ func (c *ProjectsLocationsCatalogsOperationsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4768,6 +4812,7 @@ func (c *ProjectsLocationsCatalogsOperationsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4803,9 +4848,11 @@ func (c *ProjectsLocationsCatalogsOperationsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "recommendationengine.projects.locations.catalogs.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

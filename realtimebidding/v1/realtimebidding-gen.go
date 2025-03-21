@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "realtimebidding:v1"
 const apiName = "realtimebidding"
@@ -115,7 +118,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Bidders = NewBiddersService(s)
+	s.Buyers = NewBuyersService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Bidders = NewBiddersService(s)
-	s.Buyers = NewBuyersService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -298,9 +301,9 @@ type AdTechnologyProviders struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdTechnologyProviders) MarshalJSON() ([]byte, error) {
+func (s AdTechnologyProviders) MarshalJSON() ([]byte, error) {
 	type NoMethod AdTechnologyProviders
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddTargetedAppsRequest: A request to start targeting the provided app IDs in
@@ -338,9 +341,9 @@ type AddTargetedAppsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddTargetedAppsRequest) MarshalJSON() ([]byte, error) {
+func (s AddTargetedAppsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddTargetedAppsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddTargetedPublishersRequest: A request to start targeting the provided
@@ -380,9 +383,9 @@ type AddTargetedPublishersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddTargetedPublishersRequest) MarshalJSON() ([]byte, error) {
+func (s AddTargetedPublishersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddTargetedPublishersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddTargetedSitesRequest: A request to start targeting the provided sites in
@@ -418,9 +421,9 @@ type AddTargetedSitesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddTargetedSitesRequest) MarshalJSON() ([]byte, error) {
+func (s AddTargetedSitesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddTargetedSitesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdvertiserAndBrand: Detected advertiser and brand information.
@@ -454,9 +457,9 @@ type AdvertiserAndBrand struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvertiserAndBrand) MarshalJSON() ([]byte, error) {
+func (s AdvertiserAndBrand) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvertiserAndBrand
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppTargeting: A subset of app inventory to target. Bid requests that match
@@ -483,9 +486,9 @@ type AppTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppTargeting) MarshalJSON() ([]byte, error) {
+func (s AppTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod AppTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchApprovePublisherConnectionsRequest: A request to approve a batch of
@@ -509,9 +512,9 @@ type BatchApprovePublisherConnectionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchApprovePublisherConnectionsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchApprovePublisherConnectionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchApprovePublisherConnectionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchApprovePublisherConnectionsResponse: A response for the request to
@@ -535,9 +538,9 @@ type BatchApprovePublisherConnectionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchApprovePublisherConnectionsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchApprovePublisherConnectionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchApprovePublisherConnectionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchRejectPublisherConnectionsRequest: A request to reject a batch of
@@ -561,9 +564,9 @@ type BatchRejectPublisherConnectionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchRejectPublisherConnectionsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchRejectPublisherConnectionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchRejectPublisherConnectionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchRejectPublisherConnectionsResponse: A response for the request to
@@ -587,9 +590,9 @@ type BatchRejectPublisherConnectionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchRejectPublisherConnectionsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchRejectPublisherConnectionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchRejectPublisherConnectionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Bidder: Bidder settings.
@@ -599,8 +602,8 @@ type Bidder struct {
 	// requests from these nonguaranteed deals will always be sent. When false, bid
 	// requests will be subject to regular pretargeting configurations.
 	// Programmatic Guaranteed deals will always be sent to the bidder, regardless
-	// of the value for this flag. Auction packages are not impacted by this value
-	// and are subject to the regular pretargeting configurations.
+	// of the value for this option. Auction packages are not impacted by this
+	// value and are subject to the regular pretargeting configurations.
 	BypassNonguaranteedDealsPretargeting bool `json:"bypassNonguaranteedDealsPretargeting,omitempty"`
 	// CookieMatchingNetworkId: Output only. The buyer's network ID used for cookie
 	// matching. This ID corresponds to the `google_nid` parameter in the URL used
@@ -640,9 +643,9 @@ type Bidder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Bidder) MarshalJSON() ([]byte, error) {
+func (s Bidder) MarshalJSON() ([]byte, error) {
 	type NoMethod Bidder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Buyer: RTB Buyer account information.
@@ -691,9 +694,9 @@ type Buyer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Buyer) MarshalJSON() ([]byte, error) {
+func (s Buyer) MarshalJSON() ([]byte, error) {
 	type NoMethod Buyer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloseUserListRequest: A request to close a specified user list.
@@ -869,9 +872,9 @@ type Creative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Creative) MarshalJSON() ([]byte, error) {
+func (s Creative) MarshalJSON() ([]byte, error) {
 	type NoMethod Creative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreativeDimensions: The dimensions of a creative. This applies to only HTML
@@ -894,9 +897,9 @@ type CreativeDimensions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreativeDimensions) MarshalJSON() ([]byte, error) {
+func (s CreativeDimensions) MarshalJSON() ([]byte, error) {
 	type NoMethod CreativeDimensions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreativeServingDecision: Top level status and detected attributes of a
@@ -976,6 +979,26 @@ type CreativeServingDecision struct {
 	//   "RENDERING_PLAYABLE" - The creative is considered a playable display
 	// creative.
 	DetectedAttributes []string `json:"detectedAttributes,omitempty"`
+	// DetectedCategories: Output only. IDs of the detected categories. The
+	// taxonomy in which the categories are expressed is specified by the
+	// detected_categories_taxonomy field. Use this in conjunction with
+	// BidRequest.bcat to avoid bidding on impressions where a given ad category is
+	// blocked, or to troubleshoot filtered bids. Can be used to filter the
+	// response of the creatives.list method.
+	DetectedCategories []string `json:"detectedCategories,omitempty"`
+	// DetectedCategoriesTaxonomy: Output only. The taxonomy in which the
+	// detected_categories field is expressed.
+	//
+	// Possible values:
+	//   "AD_CATEGORY_TAXONOMY_UNSPECIFIED" - Default value that should never be
+	// used.
+	//   "GOOGLE_AD_CATEGORY_TAXONOMY" - Google ad categories taxonomy, including
+	// product categories and sensitive categories. Find the category lists at
+	// https://developers.google.com/authorized-buyers/rtb/data#reference-data
+	//   "IAB_CONTENT_1_0" - IAB Content Taxonomy 1.0. See
+	// https://github.com/InteractiveAdvertisingBureau/Taxonomies/blob/main/Content%20Taxonomies/Content%20Taxonomy%201.0.tsv
+	// for more details.
+	DetectedCategoriesTaxonomy string `json:"detectedCategoriesTaxonomy,omitempty"`
 	// DetectedClickThroughUrls: The set of detected destination URLs for the
 	// creative. Can be used to filter the response of the creatives.list method.
 	DetectedClickThroughUrls []string `json:"detectedClickThroughUrls,omitempty"`
@@ -1035,9 +1058,9 @@ type CreativeServingDecision struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreativeServingDecision) MarshalJSON() ([]byte, error) {
+func (s CreativeServingDecision) MarshalJSON() ([]byte, error) {
 	type NoMethod CreativeServingDecision
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -1073,9 +1096,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DestinationNotCrawlableEvidence: Evidence that the creative's destination
@@ -1110,9 +1133,9 @@ type DestinationNotCrawlableEvidence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DestinationNotCrawlableEvidence) MarshalJSON() ([]byte, error) {
+func (s DestinationNotCrawlableEvidence) MarshalJSON() ([]byte, error) {
 	type NoMethod DestinationNotCrawlableEvidence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DestinationNotWorkingEvidence: Evidence of the creative's destination URL
@@ -1178,9 +1201,9 @@ type DestinationNotWorkingEvidence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DestinationNotWorkingEvidence) MarshalJSON() ([]byte, error) {
+func (s DestinationNotWorkingEvidence) MarshalJSON() ([]byte, error) {
 	type NoMethod DestinationNotWorkingEvidence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DestinationUrlEvidence: The full landing page URL of the destination.
@@ -1200,9 +1223,9 @@ type DestinationUrlEvidence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DestinationUrlEvidence) MarshalJSON() ([]byte, error) {
+func (s DestinationUrlEvidence) MarshalJSON() ([]byte, error) {
 	type NoMethod DestinationUrlEvidence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DomainCallEvidence: Number of HTTP calls made by a creative, broken down by
@@ -1228,9 +1251,9 @@ type DomainCallEvidence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DomainCallEvidence) MarshalJSON() ([]byte, error) {
+func (s DomainCallEvidence) MarshalJSON() ([]byte, error) {
 	type NoMethod DomainCallEvidence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DomainCalls: The number of HTTP calls made to the given domain.
@@ -1252,9 +1275,9 @@ type DomainCalls struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DomainCalls) MarshalJSON() ([]byte, error) {
+func (s DomainCalls) MarshalJSON() ([]byte, error) {
 	type NoMethod DomainCalls
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DownloadSizeEvidence: Total download size and URL-level download size
@@ -1279,9 +1302,9 @@ type DownloadSizeEvidence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DownloadSizeEvidence) MarshalJSON() ([]byte, error) {
+func (s DownloadSizeEvidence) MarshalJSON() ([]byte, error) {
 	type NoMethod DownloadSizeEvidence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1343,9 +1366,9 @@ type Endpoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Endpoint) MarshalJSON() ([]byte, error) {
+func (s Endpoint) MarshalJSON() ([]byte, error) {
 	type NoMethod Endpoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetRemarketingTagResponse: This has been sunset as of October 2023, and will
@@ -1375,9 +1398,9 @@ type GetRemarketingTagResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetRemarketingTagResponse) MarshalJSON() ([]byte, error) {
+func (s GetRemarketingTagResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetRemarketingTagResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HtmlContent: HTML content for a creative.
@@ -1404,9 +1427,9 @@ type HtmlContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HtmlContent) MarshalJSON() ([]byte, error) {
+func (s HtmlContent) MarshalJSON() ([]byte, error) {
 	type NoMethod HtmlContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HttpCallEvidence: HTTP calls made by a creative that resulted in policy
@@ -1427,9 +1450,9 @@ type HttpCallEvidence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HttpCallEvidence) MarshalJSON() ([]byte, error) {
+func (s HttpCallEvidence) MarshalJSON() ([]byte, error) {
 	type NoMethod HttpCallEvidence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HttpCookieEvidence: Evidence for HTTP cookie-related policy violations.
@@ -1457,9 +1480,9 @@ type HttpCookieEvidence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HttpCookieEvidence) MarshalJSON() ([]byte, error) {
+func (s HttpCookieEvidence) MarshalJSON() ([]byte, error) {
 	type NoMethod HttpCookieEvidence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Image: An image resource. You may provide a larger image than was requested,
@@ -1484,9 +1507,9 @@ type Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Image) MarshalJSON() ([]byte, error) {
+func (s Image) MarshalJSON() ([]byte, error) {
 	type NoMethod Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBiddersResponse: A response containing bidders.
@@ -1513,9 +1536,9 @@ type ListBiddersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBiddersResponse) MarshalJSON() ([]byte, error) {
+func (s ListBiddersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBiddersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBuyersResponse: A response containing buyer account information.
@@ -1542,9 +1565,9 @@ type ListBuyersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBuyersResponse) MarshalJSON() ([]byte, error) {
+func (s ListBuyersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBuyersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCreativesResponse: A response for listing creatives.
@@ -1571,9 +1594,9 @@ type ListCreativesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCreativesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCreativesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCreativesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListEndpointsResponse: A response containing bidder endpoints.
@@ -1600,9 +1623,9 @@ type ListEndpointsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListEndpointsResponse) MarshalJSON() ([]byte, error) {
+func (s ListEndpointsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListEndpointsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPretargetingConfigsResponse: A response containing pretargeting
@@ -1630,9 +1653,9 @@ type ListPretargetingConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPretargetingConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPretargetingConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPretargetingConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPublisherConnectionsResponse: A response to a request for listing
@@ -1661,9 +1684,9 @@ type ListPublisherConnectionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPublisherConnectionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPublisherConnectionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPublisherConnectionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUserListsResponse: The list user list response.
@@ -1691,9 +1714,9 @@ type ListUserListsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUserListsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUserListsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUserListsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MediaFile: Information about each media file in the VAST.
@@ -1737,9 +1760,9 @@ type MediaFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MediaFile) MarshalJSON() ([]byte, error) {
+func (s MediaFile) MarshalJSON() ([]byte, error) {
 	type NoMethod MediaFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NativeContent: Native content for a creative.
@@ -1785,9 +1808,9 @@ type NativeContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NativeContent) MarshalJSON() ([]byte, error) {
+func (s NativeContent) MarshalJSON() ([]byte, error) {
 	type NoMethod NativeContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *NativeContent) UnmarshalJSON(data []byte) error {
@@ -1825,9 +1848,9 @@ type NumericTargetingDimension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NumericTargetingDimension) MarshalJSON() ([]byte, error) {
+func (s NumericTargetingDimension) MarshalJSON() ([]byte, error) {
 	type NoMethod NumericTargetingDimension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OpenUserListRequest: A request to open a specified user list.
@@ -1867,9 +1890,9 @@ type PolicyCompliance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyCompliance) MarshalJSON() ([]byte, error) {
+func (s PolicyCompliance) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyCompliance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PolicyTopicEntry: Each policy topic entry will represent a violation of a
@@ -1903,9 +1926,9 @@ type PolicyTopicEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyTopicEntry) MarshalJSON() ([]byte, error) {
+func (s PolicyTopicEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyTopicEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PolicyTopicEvidence: Evidence associated with a policy topic entry.
@@ -1942,9 +1965,9 @@ type PolicyTopicEvidence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyTopicEvidence) MarshalJSON() ([]byte, error) {
+func (s PolicyTopicEvidence) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyTopicEvidence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PretargetingConfig: Pretargeting configuration: a set of targeting
@@ -2050,6 +2073,8 @@ type PretargetingConfig struct {
 	//   "DEVICE_ID" - Mobile device advertising ID.
 	//   "PUBLISHER_PROVIDED_ID" - The request has a publisher-provided ID
 	// available to the bidder.
+	//   "PUBLISHER_FIRST_PARTY_ID" - Publisher first party ID, scoped to a single
+	// site, app or vendor needs to be present on the bid request.
 	IncludedUserIdTypes []string `json:"includedUserIdTypes,omitempty"`
 	// InterstitialTargeting: The interstitial targeting specified for this
 	// configuration. The unset value will allow bid requests to be sent regardless
@@ -2136,9 +2161,9 @@ type PretargetingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PretargetingConfig) MarshalJSON() ([]byte, error) {
+func (s PretargetingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PretargetingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PublisherConnection: An Open Bidding exchange's connection to a publisher.
@@ -2191,9 +2216,9 @@ type PublisherConnection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublisherConnection) MarshalJSON() ([]byte, error) {
+func (s PublisherConnection) MarshalJSON() ([]byte, error) {
 	type NoMethod PublisherConnection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveTargetedAppsRequest: A request to stop targeting the provided apps in
@@ -2218,9 +2243,9 @@ type RemoveTargetedAppsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveTargetedAppsRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveTargetedAppsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveTargetedAppsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveTargetedPublishersRequest: A request to stop targeting publishers in a
@@ -2247,9 +2272,9 @@ type RemoveTargetedPublishersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveTargetedPublishersRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveTargetedPublishersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveTargetedPublishersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveTargetedSitesRequest: A request to stop targeting sites in a specific
@@ -2273,9 +2298,9 @@ type RemoveTargetedSitesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveTargetedSitesRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveTargetedSitesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveTargetedSitesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StringTargetingDimension: Generic targeting with string values used in app,
@@ -2305,9 +2330,9 @@ type StringTargetingDimension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StringTargetingDimension) MarshalJSON() ([]byte, error) {
+func (s StringTargetingDimension) MarshalJSON() ([]byte, error) {
 	type NoMethod StringTargetingDimension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SuspendPretargetingConfigRequest: A request to suspend a pretargeting
@@ -2335,9 +2360,9 @@ type UrlDownloadSize struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UrlDownloadSize) MarshalJSON() ([]byte, error) {
+func (s UrlDownloadSize) MarshalJSON() ([]byte, error) {
 	type NoMethod UrlDownloadSize
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UrlRestriction: Deprecated. This will be removed in October 2023. For more
@@ -2387,9 +2412,9 @@ type UrlRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UrlRestriction) MarshalJSON() ([]byte, error) {
+func (s UrlRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod UrlRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserList: Represents an Authorized Buyers user list. Authorized Buyers can
@@ -2442,19 +2467,20 @@ type UserList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserList) MarshalJSON() ([]byte, error) {
+func (s UserList) MarshalJSON() ([]byte, error) {
 	type NoMethod UserList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoContent: Video content for a creative.
 type VideoContent struct {
 	// VideoMetadata: Output only. Video metadata.
 	VideoMetadata *VideoMetadata `json:"videoMetadata,omitempty"`
-	// VideoUrl: The URL to fetch a video ad.
+	// VideoUrl: The URL to fetch a video ad. The URL should return an XML response
+	// that conforms to the VAST 2.0, 3.0 or 4.x standard.
 	VideoUrl string `json:"videoUrl,omitempty"`
 	// VideoVastXml: The contents of a VAST document for a video ad. This document
-	// should conform to the VAST 2.0 or 3.0 standard.
+	// should conform to the VAST 2.0, 3.0, or 4.x standard.
 	VideoVastXml string `json:"videoVastXml,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "VideoMetadata") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2469,9 +2495,9 @@ type VideoContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoContent) MarshalJSON() ([]byte, error) {
+func (s VideoContent) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoMetadata: Video metadata for a creative.
@@ -2517,9 +2543,9 @@ type VideoMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoMetadata) MarshalJSON() ([]byte, error) {
+func (s VideoMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WatchCreativesRequest: A request to receive push notifications when any of
@@ -2558,9 +2584,9 @@ type WatchCreativesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WatchCreativesResponse) MarshalJSON() ([]byte, error) {
+func (s WatchCreativesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod WatchCreativesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BiddersGetCall struct {
@@ -2617,12 +2643,11 @@ func (c *BiddersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2630,6 +2655,7 @@ func (c *BiddersGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2664,9 +2690,11 @@ func (c *BiddersGetCall) Do(opts ...googleapi.CallOption) (*Bidder, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2736,16 +2764,16 @@ func (c *BiddersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/bidders")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2781,9 +2809,11 @@ func (c *BiddersListCall) Do(opts ...googleapi.CallOption) (*ListBiddersResponse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2930,12 +2960,11 @@ func (c *BiddersCreativesListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/creatives")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2943,6 +2972,7 @@ func (c *BiddersCreativesListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.creatives.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2978,9 +3008,11 @@ func (c *BiddersCreativesListCall) Do(opts ...googleapi.CallOption) (*ListCreati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.creatives.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3056,8 +3088,7 @@ func (c *BiddersCreativesWatchCall) Header() http.Header {
 
 func (c *BiddersCreativesWatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.watchcreativesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.watchcreativesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3073,6 +3104,7 @@ func (c *BiddersCreativesWatchCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.creatives.watch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3108,9 +3140,11 @@ func (c *BiddersCreativesWatchCall) Do(opts ...googleapi.CallOption) (*WatchCrea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.creatives.watch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3169,12 +3203,11 @@ func (c *BiddersEndpointsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3182,6 +3215,7 @@ func (c *BiddersEndpointsGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.endpoints.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3216,9 +3250,11 @@ func (c *BiddersEndpointsGetCall) Do(opts ...googleapi.CallOption) (*Endpoint, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.endpoints.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3293,12 +3329,11 @@ func (c *BiddersEndpointsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/endpoints")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3306,6 +3341,7 @@ func (c *BiddersEndpointsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.endpoints.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3341,9 +3377,11 @@ func (c *BiddersEndpointsListCall) Do(opts ...googleapi.CallOption) (*ListEndpoi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.endpoints.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3422,8 +3460,7 @@ func (c *BiddersEndpointsPatchCall) Header() http.Header {
 
 func (c *BiddersEndpointsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.endpoint)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -3439,6 +3476,7 @@ func (c *BiddersEndpointsPatchCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.endpoints.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3473,9 +3511,11 @@ func (c *BiddersEndpointsPatchCall) Do(opts ...googleapi.CallOption) (*Endpoint,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.endpoints.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3524,8 +3564,7 @@ func (c *BiddersPretargetingConfigsActivateCall) Header() http.Header {
 
 func (c *BiddersPretargetingConfigsActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.activatepretargetingconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.activatepretargetingconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3541,6 +3580,7 @@ func (c *BiddersPretargetingConfigsActivateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3576,9 +3616,11 @@ func (c *BiddersPretargetingConfigsActivateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3627,8 +3669,7 @@ func (c *BiddersPretargetingConfigsAddTargetedAppsCall) Header() http.Header {
 
 func (c *BiddersPretargetingConfigsAddTargetedAppsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addtargetedappsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addtargetedappsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3644,6 +3685,7 @@ func (c *BiddersPretargetingConfigsAddTargetedAppsCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"pretargetingConfig": c.pretargetingConfig,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.addTargetedApps", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3679,9 +3721,11 @@ func (c *BiddersPretargetingConfigsAddTargetedAppsCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.addTargetedApps", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3730,8 +3774,7 @@ func (c *BiddersPretargetingConfigsAddTargetedPublishersCall) Header() http.Head
 
 func (c *BiddersPretargetingConfigsAddTargetedPublishersCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addtargetedpublishersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addtargetedpublishersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3747,6 +3790,7 @@ func (c *BiddersPretargetingConfigsAddTargetedPublishersCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"pretargetingConfig": c.pretargetingConfig,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.addTargetedPublishers", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3782,9 +3826,11 @@ func (c *BiddersPretargetingConfigsAddTargetedPublishersCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.addTargetedPublishers", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3833,8 +3879,7 @@ func (c *BiddersPretargetingConfigsAddTargetedSitesCall) Header() http.Header {
 
 func (c *BiddersPretargetingConfigsAddTargetedSitesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addtargetedsitesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addtargetedsitesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3850,6 +3895,7 @@ func (c *BiddersPretargetingConfigsAddTargetedSitesCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"pretargetingConfig": c.pretargetingConfig,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.addTargetedSites", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3885,9 +3931,11 @@ func (c *BiddersPretargetingConfigsAddTargetedSitesCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.addTargetedSites", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3940,8 +3988,7 @@ func (c *BiddersPretargetingConfigsCreateCall) Header() http.Header {
 
 func (c *BiddersPretargetingConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pretargetingconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pretargetingconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -3957,6 +4004,7 @@ func (c *BiddersPretargetingConfigsCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3992,9 +4040,11 @@ func (c *BiddersPretargetingConfigsCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4041,12 +4091,11 @@ func (c *BiddersPretargetingConfigsDeleteCall) Header() http.Header {
 
 func (c *BiddersPretargetingConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4054,6 +4103,7 @@ func (c *BiddersPretargetingConfigsDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4088,9 +4138,11 @@ func (c *BiddersPretargetingConfigsDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4149,12 +4201,11 @@ func (c *BiddersPretargetingConfigsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4162,6 +4213,7 @@ func (c *BiddersPretargetingConfigsGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4197,9 +4249,11 @@ func (c *BiddersPretargetingConfigsGetCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4276,12 +4330,11 @@ func (c *BiddersPretargetingConfigsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/pretargetingConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4289,6 +4342,7 @@ func (c *BiddersPretargetingConfigsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4324,9 +4378,11 @@ func (c *BiddersPretargetingConfigsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4403,8 +4459,7 @@ func (c *BiddersPretargetingConfigsPatchCall) Header() http.Header {
 
 func (c *BiddersPretargetingConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pretargetingconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pretargetingconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -4420,6 +4475,7 @@ func (c *BiddersPretargetingConfigsPatchCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4455,9 +4511,11 @@ func (c *BiddersPretargetingConfigsPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4507,8 +4565,7 @@ func (c *BiddersPretargetingConfigsRemoveTargetedAppsCall) Header() http.Header 
 
 func (c *BiddersPretargetingConfigsRemoveTargetedAppsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removetargetedappsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removetargetedappsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4524,6 +4581,7 @@ func (c *BiddersPretargetingConfigsRemoveTargetedAppsCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"pretargetingConfig": c.pretargetingConfig,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.removeTargetedApps", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4559,9 +4617,11 @@ func (c *BiddersPretargetingConfigsRemoveTargetedAppsCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.removeTargetedApps", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4611,8 +4671,7 @@ func (c *BiddersPretargetingConfigsRemoveTargetedPublishersCall) Header() http.H
 
 func (c *BiddersPretargetingConfigsRemoveTargetedPublishersCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removetargetedpublishersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removetargetedpublishersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4628,6 +4687,7 @@ func (c *BiddersPretargetingConfigsRemoveTargetedPublishersCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"pretargetingConfig": c.pretargetingConfig,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.removeTargetedPublishers", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4663,9 +4723,11 @@ func (c *BiddersPretargetingConfigsRemoveTargetedPublishersCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.removeTargetedPublishers", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4715,8 +4777,7 @@ func (c *BiddersPretargetingConfigsRemoveTargetedSitesCall) Header() http.Header
 
 func (c *BiddersPretargetingConfigsRemoveTargetedSitesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removetargetedsitesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removetargetedsitesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4732,6 +4793,7 @@ func (c *BiddersPretargetingConfigsRemoveTargetedSitesCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"pretargetingConfig": c.pretargetingConfig,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.removeTargetedSites", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4767,9 +4829,11 @@ func (c *BiddersPretargetingConfigsRemoveTargetedSitesCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.removeTargetedSites", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4818,8 +4882,7 @@ func (c *BiddersPretargetingConfigsSuspendCall) Header() http.Header {
 
 func (c *BiddersPretargetingConfigsSuspendCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.suspendpretargetingconfigrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.suspendpretargetingconfigrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4835,6 +4898,7 @@ func (c *BiddersPretargetingConfigsSuspendCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.suspend", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4870,9 +4934,11 @@ func (c *BiddersPretargetingConfigsSuspendCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.pretargetingConfigs.suspend", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4922,8 +4988,7 @@ func (c *BiddersPublisherConnectionsBatchApproveCall) Header() http.Header {
 
 func (c *BiddersPublisherConnectionsBatchApproveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchapprovepublisherconnectionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchapprovepublisherconnectionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4939,6 +5004,7 @@ func (c *BiddersPublisherConnectionsBatchApproveCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.publisherConnections.batchApprove", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4974,9 +5040,11 @@ func (c *BiddersPublisherConnectionsBatchApproveCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.publisherConnections.batchApprove", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5026,8 +5094,7 @@ func (c *BiddersPublisherConnectionsBatchRejectCall) Header() http.Header {
 
 func (c *BiddersPublisherConnectionsBatchRejectCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchrejectpublisherconnectionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchrejectpublisherconnectionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5043,6 +5110,7 @@ func (c *BiddersPublisherConnectionsBatchRejectCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.publisherConnections.batchReject", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5078,9 +5146,11 @@ func (c *BiddersPublisherConnectionsBatchRejectCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.publisherConnections.batchReject", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5142,12 +5212,11 @@ func (c *BiddersPublisherConnectionsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5155,6 +5224,7 @@ func (c *BiddersPublisherConnectionsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.publisherConnections.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5190,9 +5260,11 @@ func (c *BiddersPublisherConnectionsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.publisherConnections.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5291,12 +5363,11 @@ func (c *BiddersPublisherConnectionsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/publisherConnections")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5304,6 +5375,7 @@ func (c *BiddersPublisherConnectionsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.bidders.publisherConnections.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5339,9 +5411,11 @@ func (c *BiddersPublisherConnectionsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.bidders.publisherConnections.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5420,12 +5494,11 @@ func (c *BuyersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5433,6 +5506,7 @@ func (c *BuyersGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5467,9 +5541,11 @@ func (c *BuyersGetCall) Do(opts ...googleapi.CallOption) (*Buyer, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5538,12 +5614,11 @@ func (c *BuyersGetRemarketingTagCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:getRemarketingTag")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5551,6 +5626,7 @@ func (c *BuyersGetRemarketingTagCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.getRemarketingTag", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5586,9 +5662,11 @@ func (c *BuyersGetRemarketingTagCall) Do(opts ...googleapi.CallOption) (*GetRema
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.getRemarketingTag", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5659,16 +5737,16 @@ func (c *BuyersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/buyers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5704,9 +5782,11 @@ func (c *BuyersListCall) Do(opts ...googleapi.CallOption) (*ListBuyersResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5780,8 +5860,7 @@ func (c *BuyersCreativesCreateCall) Header() http.Header {
 
 func (c *BuyersCreativesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.creative)
 	if err != nil {
 		return nil, err
 	}
@@ -5797,6 +5876,7 @@ func (c *BuyersCreativesCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.creatives.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5831,9 +5911,11 @@ func (c *BuyersCreativesCreateCall) Do(opts ...googleapi.CallOption) (*Creative,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.creatives.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5914,12 +5996,11 @@ func (c *BuyersCreativesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5927,6 +6008,7 @@ func (c *BuyersCreativesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.creatives.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5961,9 +6043,11 @@ func (c *BuyersCreativesGetCall) Do(opts ...googleapi.CallOption) (*Creative, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.creatives.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6089,12 +6173,11 @@ func (c *BuyersCreativesListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/creatives")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6102,6 +6185,7 @@ func (c *BuyersCreativesListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.creatives.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6137,9 +6221,11 @@ func (c *BuyersCreativesListCall) Do(opts ...googleapi.CallOption) (*ListCreativ
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.creatives.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6219,8 +6305,7 @@ func (c *BuyersCreativesPatchCall) Header() http.Header {
 
 func (c *BuyersCreativesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.creative)
 	if err != nil {
 		return nil, err
 	}
@@ -6236,6 +6321,7 @@ func (c *BuyersCreativesPatchCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.creatives.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6270,9 +6356,11 @@ func (c *BuyersCreativesPatchCall) Do(opts ...googleapi.CallOption) (*Creative, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.creatives.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6321,8 +6409,7 @@ func (c *BuyersUserListsCloseCall) Header() http.Header {
 
 func (c *BuyersUserListsCloseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.closeuserlistrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.closeuserlistrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6338,6 +6425,7 @@ func (c *BuyersUserListsCloseCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.close", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6372,9 +6460,11 @@ func (c *BuyersUserListsCloseCall) Do(opts ...googleapi.CallOption) (*UserList, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.close", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6427,8 +6517,7 @@ func (c *BuyersUserListsCreateCall) Header() http.Header {
 
 func (c *BuyersUserListsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userlist)
 	if err != nil {
 		return nil, err
 	}
@@ -6444,6 +6533,7 @@ func (c *BuyersUserListsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6478,9 +6568,11 @@ func (c *BuyersUserListsCreateCall) Do(opts ...googleapi.CallOption) (*UserList,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6538,12 +6630,11 @@ func (c *BuyersUserListsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6551,6 +6642,7 @@ func (c *BuyersUserListsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6585,9 +6677,11 @@ func (c *BuyersUserListsGetCall) Do(opts ...googleapi.CallOption) (*UserList, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6656,12 +6750,11 @@ func (c *BuyersUserListsGetRemarketingTagCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:getRemarketingTag")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6669,6 +6762,7 @@ func (c *BuyersUserListsGetRemarketingTagCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.getRemarketingTag", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6704,9 +6798,11 @@ func (c *BuyersUserListsGetRemarketingTagCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.getRemarketingTag", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6783,12 +6879,11 @@ func (c *BuyersUserListsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/userLists")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6796,6 +6891,7 @@ func (c *BuyersUserListsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6831,9 +6927,11 @@ func (c *BuyersUserListsListCall) Do(opts ...googleapi.CallOption) (*ListUserLis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6903,8 +7001,7 @@ func (c *BuyersUserListsOpenCall) Header() http.Header {
 
 func (c *BuyersUserListsOpenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.openuserlistrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.openuserlistrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6920,6 +7017,7 @@ func (c *BuyersUserListsOpenCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.open", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6954,9 +7052,11 @@ func (c *BuyersUserListsOpenCall) Do(opts ...googleapi.CallOption) (*UserList, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.open", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7010,8 +7110,7 @@ func (c *BuyersUserListsUpdateCall) Header() http.Header {
 
 func (c *BuyersUserListsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userlist)
 	if err != nil {
 		return nil, err
 	}
@@ -7027,6 +7126,7 @@ func (c *BuyersUserListsUpdateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7061,8 +7161,10 @@ func (c *BuyersUserListsUpdateCall) Do(opts ...googleapi.CallOption) (*UserList,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "realtimebidding.buyers.userLists.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

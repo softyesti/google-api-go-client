@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "accesscontextmanager:v1"
 const apiName = "accesscontextmanager"
@@ -115,7 +118,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.AccessPolicies = NewAccessPoliciesService(s)
+	s.Operations = NewOperationsService(s)
+	s.Organizations = NewOrganizationsService(s)
+	s.Services = NewServicesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,16 +141,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.AccessPolicies = NewAccessPoliciesService(s)
-	s.Operations = NewOperationsService(s)
-	s.Organizations = NewOrganizationsService(s)
-	s.Services = NewServicesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -263,7 +266,7 @@ type AccessLevel struct {
 	// Description: Description of the `AccessLevel` and its use. Does not affect
 	// behavior.
 	Description string `json:"description,omitempty"`
-	// Name: Resource name for the `AccessLevel`. Format:
+	// Name: Identifier. Resource name for the `AccessLevel`. Format:
 	// `accessPolicies/{access_policy}/accessLevels/{access_level}`. The
 	// `access_level` component must begin with a letter, followed by alphanumeric
 	// characters or `_`. Its maximum length is 50 characters. After you create an
@@ -287,9 +290,9 @@ type AccessLevel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccessLevel) MarshalJSON() ([]byte, error) {
+func (s AccessLevel) MarshalJSON() ([]byte, error) {
 	type NoMethod AccessLevel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccessPolicy: `AccessPolicy` is a container for `AccessLevels` (which define
@@ -301,10 +304,10 @@ func (s *AccessLevel) MarshalJSON() ([]byte, error) {
 type AccessPolicy struct {
 	// Etag: Output only. An opaque identifier for the current version of the
 	// `AccessPolicy`. This will always be a strongly validated etag, meaning that
-	// two Access Polices will be identical if and only if their etags are
+	// two Access Policies will be identical if and only if their etags are
 	// identical. Clients should not expect this to be in any specific format.
 	Etag string `json:"etag,omitempty"`
-	// Name: Output only. Resource name of the `AccessPolicy`. Format:
+	// Name: Output only. Identifier. Resource name of the `AccessPolicy`. Format:
 	// `accessPolicies/{access_policy}`
 	Name string `json:"name,omitempty"`
 	// Parent: Required. The parent of this `AccessPolicy` in the Cloud Resource
@@ -341,9 +344,61 @@ type AccessPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccessPolicy) MarshalJSON() ([]byte, error) {
+func (s AccessPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod AccessPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessScope: Access scope represents the client scope, etc. to which the
+// settings will be applied to.
+type AccessScope struct {
+	// ClientScope: Optional. Client scope for this access scope.
+	ClientScope *ClientScope `json:"clientScope,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ClientScope") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ClientScope") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessScope) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessScope
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSettings: Access settings represent the set of conditions that must be
+// met for access to be granted. At least one of the fields must be set.
+type AccessSettings struct {
+	// AccessLevels: Optional. Access level that a user must have to be granted
+	// access. Only one access level is supported, not multiple. This repeated
+	// field must have exactly one element. Example:
+	// "accessPolicies/9522/accessLevels/device_trusted"
+	AccessLevels []string `json:"accessLevels,omitempty"`
+	// SessionSettings: Optional. Session settings applied to user access on a
+	// given AccessScope.
+	SessionSettings *SessionSettings `json:"sessionSettings,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccessLevels") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccessLevels") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApiOperation: Identification for an API Operation.
@@ -371,9 +426,9 @@ type ApiOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApiOperation) MarshalJSON() ([]byte, error) {
+func (s ApiOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod ApiOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Application: An application that accesses Google Cloud APIs.
@@ -395,9 +450,9 @@ type Application struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Application) MarshalJSON() ([]byte, error) {
+func (s Application) MarshalJSON() ([]byte, error) {
 	type NoMethod Application
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -436,9 +491,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -471,9 +526,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuthorizedOrgsDesc: `AuthorizedOrgsDesc` contains data for an organization's
@@ -515,7 +570,7 @@ type AuthorizedOrgsDesc struct {
 	//   "AUTHORIZATION_TYPE_UNSPECIFIED" - No authorization type specified.
 	//   "AUTHORIZATION_TYPE_TRUST" - This authorization relationship is "trust".
 	AuthorizationType string `json:"authorizationType,omitempty"`
-	// Name: Resource name for the `AuthorizedOrgsDesc`. Format:
+	// Name: Identifier. Resource name for the `AuthorizedOrgsDesc`. Format:
 	// `accessPolicies/{access_policy}/authorizedOrgsDescs/{authorized_orgs_desc}`.
 	// The `authorized_orgs_desc` component must begin with a letter, followed by
 	// alphanumeric characters or `_`. After you create an `AuthorizedOrgsDesc`,
@@ -540,9 +595,9 @@ type AuthorizedOrgsDesc struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuthorizedOrgsDesc) MarshalJSON() ([]byte, error) {
+func (s AuthorizedOrgsDesc) MarshalJSON() ([]byte, error) {
 	type NoMethod AuthorizedOrgsDesc
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BasicLevel: `BasicLevel` is an `AccessLevel` using a set of recommended
@@ -574,9 +629,9 @@ type BasicLevel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BasicLevel) MarshalJSON() ([]byte, error) {
+func (s BasicLevel) MarshalJSON() ([]byte, error) {
 	type NoMethod BasicLevel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -673,13 +728,37 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
 type CancelOperationRequest struct {
+}
+
+// ClientScope: Client scope represents the application, etc. subject to this
+// binding's restrictions.
+type ClientScope struct {
+	// RestrictedClientApplication: Optional. The application that is subject to
+	// this binding's scope.
+	RestrictedClientApplication *Application `json:"restrictedClientApplication,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "RestrictedClientApplication") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
+	// for more details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "RestrictedClientApplication") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ClientScope) MarshalJSON() ([]byte, error) {
+	type NoMethod ClientScope
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitServicePerimetersRequest: A request to commit dry-run specs in all
@@ -705,9 +784,9 @@ type CommitServicePerimetersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitServicePerimetersRequest) MarshalJSON() ([]byte, error) {
+func (s CommitServicePerimetersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitServicePerimetersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitServicePerimetersResponse: A response to
@@ -730,9 +809,9 @@ type CommitServicePerimetersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitServicePerimetersResponse) MarshalJSON() ([]byte, error) {
+func (s CommitServicePerimetersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitServicePerimetersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Condition: A condition necessary for an `AccessLevel` to be granted. The
@@ -789,9 +868,9 @@ type Condition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Condition) MarshalJSON() ([]byte, error) {
+func (s Condition) MarshalJSON() ([]byte, error) {
 	type NoMethod Condition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomLevel: `CustomLevel` is an `AccessLevel` using the Cloud Common
@@ -813,9 +892,9 @@ type CustomLevel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomLevel) MarshalJSON() ([]byte, error) {
+func (s CustomLevel) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomLevel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DevicePolicy: `DevicePolicy` specifies device specific restrictions
@@ -876,9 +955,9 @@ type DevicePolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DevicePolicy) MarshalJSON() ([]byte, error) {
+func (s DevicePolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod DevicePolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EgressFrom: Defines the conditions under which an EgressPolicy matches a
@@ -889,9 +968,11 @@ func (s *DevicePolicy) MarshalJSON() ([]byte, error) {
 type EgressFrom struct {
 	// Identities: A list of identities that are allowed access through
 	// [EgressPolicy]. Identities can be an individual user, service account,
-	// Google group, or third-party identity. The `v1` identities that have the
-	// prefix `user`, `group`, `serviceAccount`, `principal`, and `principalSet` in
-	// https://cloud.google.com/iam/docs/principal-identifiers#v1 are supported.
+	// Google group, or third-party identity. For third-party identity, only single
+	// identities are supported and other identity types are not supported. The
+	// `v1` identities that have the prefix `user`, `group`, `serviceAccount`, and
+	// `principal` in https://cloud.google.com/iam/docs/principal-identifiers#v1
+	// are supported.
 	Identities []string `json:"identities,omitempty"`
 	// IdentityType: Specifies the type of identities that are allowed access to
 	// outside the perimeter. If left unspecified, then members of `identities`
@@ -935,9 +1016,9 @@ type EgressFrom struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EgressFrom) MarshalJSON() ([]byte, error) {
+func (s EgressFrom) MarshalJSON() ([]byte, error) {
 	type NoMethod EgressFrom
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EgressPolicy: Policy for egress from perimeter. EgressPolicies match
@@ -959,6 +1040,11 @@ type EgressPolicy struct {
 	// EgressTo: Defines the conditions on the ApiOperation and destination
 	// resources that cause this EgressPolicy to apply.
 	EgressTo *EgressTo `json:"egressTo,omitempty"`
+	// Title: Optional. Human-readable title for the egress rule. The title must be
+	// unique within the perimeter and can not exceed 100 characters. Within the
+	// access policy, the combined length of all rule titles must not exceed
+	// 240,000 characters.
+	Title string `json:"title,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EgressFrom") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -972,9 +1058,9 @@ type EgressPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EgressPolicy) MarshalJSON() ([]byte, error) {
+func (s EgressPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod EgressPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EgressSource: The source that EgressPolicy authorizes access from inside the
@@ -990,6 +1076,11 @@ type EgressSource struct {
 	// single `*` is specified for `access_level`, then all EgressSources will be
 	// allowed.
 	AccessLevel string `json:"accessLevel,omitempty"`
+	// Resource: A Google Cloud resource from the service perimeter that you want
+	// to allow to access data outside the perimeter. This field supports only
+	// projects. The project format is `projects/{project_number}`. You can't use
+	// `*` in this field to allow all Google Cloud resources.
+	Resource string `json:"resource,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AccessLevel") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1003,9 +1094,9 @@ type EgressSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EgressSource) MarshalJSON() ([]byte, error) {
+func (s EgressSource) MarshalJSON() ([]byte, error) {
 	type NoMethod EgressSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EgressTo: Defines the conditions under which an EgressPolicy matches a
@@ -1034,6 +1125,10 @@ type EgressTo struct {
 	// this list. If `*` is specified for `resources`, then this EgressTo rule will
 	// authorize access to all resources outside the perimeter.
 	Resources []string `json:"resources,omitempty"`
+	// Roles: IAM roles that represent the set of operations that the sources
+	// specified in the corresponding EgressFrom. are allowed to perform in this
+	// ServicePerimeter.
+	Roles []string `json:"roles,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExternalResources") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1047,9 +1142,9 @@ type EgressTo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EgressTo) MarshalJSON() ([]byte, error) {
+func (s EgressTo) MarshalJSON() ([]byte, error) {
 	type NoMethod EgressTo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1104,9 +1199,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcpUserAccessBinding: Restricts access to Cloud Console and Google Cloud
@@ -1141,6 +1236,13 @@ type GcpUserAccessBinding struct {
 	// subject to this binding's restrictions. If the list is empty, the binding
 	// restrictions will universally apply to all applications.
 	RestrictedClientApplications []*Application `json:"restrictedClientApplications,omitempty"`
+	// ScopedAccessSettings: Optional. A list of scoped access settings that set
+	// this binding's restrictions on a subset of applications. This field cannot
+	// be set if restricted_client_applications is set.
+	ScopedAccessSettings []*ScopedAccessSettings `json:"scopedAccessSettings,omitempty"`
+	// SessionSettings: Optional. The Google Cloud session length (GCSL) policy for
+	// the group key.
+	SessionSettings *SessionSettings `json:"sessionSettings,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -1157,13 +1259,13 @@ type GcpUserAccessBinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcpUserAccessBinding) MarshalJSON() ([]byte, error) {
+func (s GcpUserAccessBinding) MarshalJSON() ([]byte, error) {
 	type NoMethod GcpUserAccessBinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// GcpUserAccessBindingOperationMetadata: Metadata of GCP Access Binding Long
-// Running Operations.
+// GcpUserAccessBindingOperationMetadata: Metadata of Google Cloud Access
+// Binding Long Running Operations.
 type GcpUserAccessBindingOperationMetadata struct {
 }
 
@@ -1185,9 +1287,9 @@ type GetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetPolicyOptions: Encapsulates settings provided to GetIamPolicy.
@@ -1217,9 +1319,9 @@ type GetPolicyOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetPolicyOptions) MarshalJSON() ([]byte, error) {
+func (s GetPolicyOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GetPolicyOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IngressFrom: Defines the conditions under which an IngressPolicy matches a
@@ -1229,9 +1331,11 @@ func (s *GetPolicyOptions) MarshalJSON() ([]byte, error) {
 type IngressFrom struct {
 	// Identities: A list of identities that are allowed access through
 	// [IngressPolicy]. Identities can be an individual user, service account,
-	// Google group, or third-party identity. The `v1` identities that have the
-	// prefix `user`, `group`, `serviceAccount`, `principal`, and `principalSet` in
-	// https://cloud.google.com/iam/docs/principal-identifiers#v1 are supported.
+	// Google group, or third-party identity. For third-party identity, only single
+	// identities are supported and other identity types are not supported. The
+	// `v1` identities that have the prefix `user`, `group`, `serviceAccount`, and
+	// `principal` in https://cloud.google.com/iam/docs/principal-identifiers#v1
+	// are supported.
 	Identities []string `json:"identities,omitempty"`
 	// IdentityType: Specifies the type of identities that are allowed access from
 	// outside the perimeter. If left unspecified, then members of `identities`
@@ -1261,9 +1365,9 @@ type IngressFrom struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IngressFrom) MarshalJSON() ([]byte, error) {
+func (s IngressFrom) MarshalJSON() ([]byte, error) {
 	type NoMethod IngressFrom
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IngressPolicy: Policy for ingress into ServicePerimeter. IngressPolicies
@@ -1284,6 +1388,11 @@ type IngressPolicy struct {
 	// IngressTo: Defines the conditions on the ApiOperation and request
 	// destination that cause this IngressPolicy to apply.
 	IngressTo *IngressTo `json:"ingressTo,omitempty"`
+	// Title: Optional. Human-readable title for the ingress rule. The title must
+	// be unique within the perimeter and can not exceed 100 characters. Within the
+	// access policy, the combined length of all rule titles must not exceed
+	// 240,000 characters.
+	Title string `json:"title,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "IngressFrom") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1297,9 +1406,9 @@ type IngressPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IngressPolicy) MarshalJSON() ([]byte, error) {
+func (s IngressPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod IngressPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IngressSource: The source that IngressPolicy authorizes access from.
@@ -1335,9 +1444,9 @@ type IngressSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IngressSource) MarshalJSON() ([]byte, error) {
+func (s IngressSource) MarshalJSON() ([]byte, error) {
 	type NoMethod IngressSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IngressTo: Defines the conditions under which an IngressPolicy matches a
@@ -1354,6 +1463,10 @@ type IngressTo struct {
 	// `*` is specified, then access to all resources inside the perimeter are
 	// allowed.
 	Resources []string `json:"resources,omitempty"`
+	// Roles: IAM roles that represent the set of operations that the sources
+	// specified in the corresponding IngressFrom are allowed to perform in this
+	// ServicePerimeter.
+	Roles []string `json:"roles,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Operations") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1367,9 +1480,9 @@ type IngressTo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IngressTo) MarshalJSON() ([]byte, error) {
+func (s IngressTo) MarshalJSON() ([]byte, error) {
 	type NoMethod IngressTo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccessLevelsResponse: A response to `ListAccessLevelsRequest`.
@@ -1395,9 +1508,9 @@ type ListAccessLevelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccessLevelsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccessLevelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccessLevelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAccessPoliciesResponse: A response to `ListAccessPoliciesRequest`.
@@ -1423,9 +1536,9 @@ type ListAccessPoliciesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAccessPoliciesResponse) MarshalJSON() ([]byte, error) {
+func (s ListAccessPoliciesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAccessPoliciesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAuthorizedOrgsDescsResponse: A response to
@@ -1452,9 +1565,9 @@ type ListAuthorizedOrgsDescsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAuthorizedOrgsDescsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAuthorizedOrgsDescsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAuthorizedOrgsDescsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGcpUserAccessBindingsResponse: Response of ListGcpUserAccessBindings.
@@ -1480,9 +1593,9 @@ type ListGcpUserAccessBindingsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGcpUserAccessBindingsResponse) MarshalJSON() ([]byte, error) {
+func (s ListGcpUserAccessBindingsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGcpUserAccessBindingsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1508,9 +1621,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListServicePerimetersResponse: A response to `ListServicePerimetersRequest`.
@@ -1536,9 +1649,9 @@ type ListServicePerimetersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListServicePerimetersResponse) MarshalJSON() ([]byte, error) {
+func (s ListServicePerimetersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListServicePerimetersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSupportedServicesResponse: A response to `ListSupportedServicesRequest`.
@@ -1565,9 +1678,9 @@ type ListSupportedServicesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSupportedServicesResponse) MarshalJSON() ([]byte, error) {
+func (s ListSupportedServicesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSupportedServicesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MethodSelector: An allowed method or permission of a service specified in
@@ -1593,9 +1706,9 @@ type MethodSelector struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MethodSelector) MarshalJSON() ([]byte, error) {
+func (s MethodSelector) MarshalJSON() ([]byte, error) {
 	type NoMethod MethodSelector
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1640,9 +1753,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OsConstraint: A restriction on the OS type and version of devices making
@@ -1682,9 +1795,9 @@ type OsConstraint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OsConstraint) MarshalJSON() ([]byte, error) {
+func (s OsConstraint) MarshalJSON() ([]byte, error) {
 	type NoMethod OsConstraint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -1774,9 +1887,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceAccessLevelsRequest: A request to replace all existing Access Levels
@@ -1806,9 +1919,9 @@ type ReplaceAccessLevelsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplaceAccessLevelsRequest) MarshalJSON() ([]byte, error) {
+func (s ReplaceAccessLevelsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplaceAccessLevelsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceAccessLevelsResponse: A response to ReplaceAccessLevelsRequest. This
@@ -1829,9 +1942,9 @@ type ReplaceAccessLevelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplaceAccessLevelsResponse) MarshalJSON() ([]byte, error) {
+func (s ReplaceAccessLevelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplaceAccessLevelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceServicePerimetersRequest: A request to replace all existing Service
@@ -1861,9 +1974,9 @@ type ReplaceServicePerimetersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplaceServicePerimetersRequest) MarshalJSON() ([]byte, error) {
+func (s ReplaceServicePerimetersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplaceServicePerimetersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceServicePerimetersResponse: A response to
@@ -1885,9 +1998,39 @@ type ReplaceServicePerimetersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplaceServicePerimetersResponse) MarshalJSON() ([]byte, error) {
+func (s ReplaceServicePerimetersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplaceServicePerimetersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ScopedAccessSettings: A relationship between access settings and its scope.
+type ScopedAccessSettings struct {
+	// ActiveSettings: Optional. Access settings for this scoped access settings.
+	// This field may be empty if dry_run_settings is set.
+	ActiveSettings *AccessSettings `json:"activeSettings,omitempty"`
+	// DryRunSettings: Optional. Dry-run access settings for this scoped access
+	// settings. This field may be empty if active_settings is set.
+	DryRunSettings *AccessSettings `json:"dryRunSettings,omitempty"`
+	// Scope: Optional. Application, etc. to which the access settings will be
+	// applied to. Implicitly, this is the scoped access settings key; as such, it
+	// must be unique and non-empty.
+	Scope *AccessScope `json:"scope,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ActiveSettings") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ActiveSettings") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ScopedAccessSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod ScopedAccessSettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServicePerimeter: `ServicePerimeter` describes a set of Google Cloud
@@ -1905,7 +2048,12 @@ type ServicePerimeter struct {
 	// Description: Description of the `ServicePerimeter` and its use. Does not
 	// affect behavior.
 	Description string `json:"description,omitempty"`
-	// Name: Resource name for the `ServicePerimeter`. Format:
+	// Etag: Optional. An opaque identifier for the current version of the
+	// `ServicePerimeter`. This identifier does not follow any specific format. If
+	// an etag is not provided, the operation will be performed as if a valid etag
+	// is provided.
+	Etag string `json:"etag,omitempty"`
+	// Name: Identifier. Resource name for the `ServicePerimeter`. Format:
 	// `accessPolicies/{access_policy}/servicePerimeters/{service_perimeter}`. The
 	// `service_perimeter` component must begin with a letter, followed by
 	// alphanumeric characters or `_`. After you create a `ServicePerimeter`, you
@@ -1960,9 +2108,9 @@ type ServicePerimeter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServicePerimeter) MarshalJSON() ([]byte, error) {
+func (s ServicePerimeter) MarshalJSON() ([]byte, error) {
 	type NoMethod ServicePerimeter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServicePerimeterConfig: `ServicePerimeterConfig` specifies a set of Google
@@ -2012,9 +2160,62 @@ type ServicePerimeterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServicePerimeterConfig) MarshalJSON() ([]byte, error) {
+func (s ServicePerimeterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ServicePerimeterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SessionSettings: Stores settings related to Google Cloud Session Length
+// including session duration, the type of challenge (i.e. method) they should
+// face when their session expires, and other related settings.
+type SessionSettings struct {
+	// MaxInactivity: Optional. How long a user is allowed to take between actions
+	// before a new access token must be issued. Only set for Google Cloud apps.
+	MaxInactivity string `json:"maxInactivity,omitempty"`
+	// SessionLength: Optional. The session length. Setting this field to zero is
+	// equal to disabling session. Also can set infinite session by flipping the
+	// enabled bit to false below. If use_oidc_max_age is true, for OIDC apps, the
+	// session length will be the minimum of this field and OIDC max_age param.
+	SessionLength string `json:"sessionLength,omitempty"`
+	// SessionLengthEnabled: Optional. This field enables or disables Google Cloud
+	// session length. When false, all fields set above will be disregarded and the
+	// session length is basically infinite.
+	SessionLengthEnabled bool `json:"sessionLengthEnabled,omitempty"`
+	// SessionReauthMethod: Optional. Session method when user's Google Cloud
+	// session is up.
+	//
+	// Possible values:
+	//   "SESSION_REAUTH_METHOD_UNSPECIFIED" - If method is undefined in the API,
+	// LOGIN will be used by default.
+	//   "LOGIN" - The user will be prompted to perform regular login. Users who
+	// are enrolled for two-step verification and haven't chosen "Remember this
+	// computer" will be prompted for their second factor.
+	//   "SECURITY_KEY" - The user will be prompted to authenticate using their
+	// security key. If no security key has been configured, then authentication
+	// will fallback to LOGIN.
+	//   "PASSWORD" - The user will be prompted for their password.
+	SessionReauthMethod string `json:"sessionReauthMethod,omitempty"`
+	// UseOidcMaxAge: Optional. Only useful for OIDC apps. When false, the OIDC
+	// max_age param, if passed in the authentication request will be ignored. When
+	// true, the re-auth period will be the minimum of the session_length field and
+	// the max_age OIDC param.
+	UseOidcMaxAge bool `json:"useOidcMaxAge,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "MaxInactivity") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "MaxInactivity") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SessionSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod SessionSettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -2041,9 +2242,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2075,9 +2276,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SupportedService: `SupportedService` specifies the VPC Service Controls and
@@ -2096,6 +2297,17 @@ type SupportedService struct {
 	// Name: The service name or address of the supported service, such as
 	// `service.googleapis.com`.
 	Name string `json:"name,omitempty"`
+	// ServiceSupportStage: The support stage of the service.
+	//
+	// Possible values:
+	//   "SERVICE_SUPPORT_STAGE_UNSPECIFIED" - Do not use this default value.
+	//   "GA" - GA features are open to all developers and are considered stable
+	// and fully qualified for production use.
+	//   "PREVIEW" - PREVIEW indicates a pre-release stage where the product is
+	// functionally complete but undergoing real-world testing.
+	//   "DEPRECATED" - Deprecated features are scheduled to be shut down and
+	// removed.
+	ServiceSupportStage string `json:"serviceSupportStage,omitempty"`
 	// SupportStage: The support stage of the service.
 	//
 	// Possible values:
@@ -2152,9 +2364,9 @@ type SupportedService struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SupportedService) MarshalJSON() ([]byte, error) {
+func (s SupportedService) MarshalJSON() ([]byte, error) {
 	type NoMethod SupportedService
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -2177,9 +2389,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -2204,9 +2416,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VpcAccessibleServices: Specifies how APIs are allowed to communicate within
@@ -2233,9 +2445,9 @@ type VpcAccessibleServices struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VpcAccessibleServices) MarshalJSON() ([]byte, error) {
+func (s VpcAccessibleServices) MarshalJSON() ([]byte, error) {
 	type NoMethod VpcAccessibleServices
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VpcNetworkSource: The originating network source in Google Cloud.
@@ -2255,9 +2467,9 @@ type VpcNetworkSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VpcNetworkSource) MarshalJSON() ([]byte, error) {
+func (s VpcNetworkSource) MarshalJSON() ([]byte, error) {
 	type NoMethod VpcNetworkSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VpcSubNetwork: Sub-segment ranges inside of a VPC Network.
@@ -2289,9 +2501,9 @@ type VpcSubNetwork struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VpcSubNetwork) MarshalJSON() ([]byte, error) {
+func (s VpcSubNetwork) MarshalJSON() ([]byte, error) {
 	type NoMethod VpcSubNetwork
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccessPoliciesCreateCall struct {
@@ -2337,8 +2549,7 @@ func (c *AccessPoliciesCreateCall) Header() http.Header {
 
 func (c *AccessPoliciesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accesspolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.accesspolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -2351,6 +2562,7 @@ func (c *AccessPoliciesCreateCall) doRequest(alt string) (*http.Response, error)
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2385,9 +2597,11 @@ func (c *AccessPoliciesCreateCall) Do(opts ...googleapi.CallOption) (*Operation,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2436,12 +2650,11 @@ func (c *AccessPoliciesDeleteCall) Header() http.Header {
 
 func (c *AccessPoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2449,6 +2662,7 @@ func (c *AccessPoliciesDeleteCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2483,9 +2697,11 @@ func (c *AccessPoliciesDeleteCall) Do(opts ...googleapi.CallOption) (*Operation,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2544,12 +2760,11 @@ func (c *AccessPoliciesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2557,6 +2772,7 @@ func (c *AccessPoliciesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2591,9 +2807,11 @@ func (c *AccessPoliciesGetCall) Do(opts ...googleapi.CallOption) (*AccessPolicy,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2644,8 +2862,7 @@ func (c *AccessPoliciesGetIamPolicyCall) Header() http.Header {
 
 func (c *AccessPoliciesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2661,6 +2878,7 @@ func (c *AccessPoliciesGetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2695,9 +2913,11 @@ func (c *AccessPoliciesGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Poli
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2773,16 +2993,16 @@ func (c *AccessPoliciesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/accessPolicies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2818,9 +3038,11 @@ func (c *AccessPoliciesListCall) Do(opts ...googleapi.CallOption) (*ListAccessPo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2858,8 +3080,8 @@ type AccessPoliciesPatchCall struct {
 // has a successful status after the changes to the access policy propagate to
 // long-lasting storage.
 //
-//   - name: Output only. Resource name of the `AccessPolicy`. Format:
-//     `accessPolicies/{access_policy}`.
+//   - name: Output only. Identifier. Resource name of the `AccessPolicy`.
+//     Format: `accessPolicies/{access_policy}`.
 func (r *AccessPoliciesService) Patch(name string, accesspolicy *AccessPolicy) *AccessPoliciesPatchCall {
 	c := &AccessPoliciesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -2899,8 +3121,7 @@ func (c *AccessPoliciesPatchCall) Header() http.Header {
 
 func (c *AccessPoliciesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accesspolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.accesspolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -2916,6 +3137,7 @@ func (c *AccessPoliciesPatchCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2950,9 +3172,11 @@ func (c *AccessPoliciesPatchCall) Do(opts ...googleapi.CallOption) (*Operation, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3005,8 +3229,7 @@ func (c *AccessPoliciesSetIamPolicyCall) Header() http.Header {
 
 func (c *AccessPoliciesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3022,6 +3245,7 @@ func (c *AccessPoliciesSetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3056,9 +3280,11 @@ func (c *AccessPoliciesSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Poli
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3112,8 +3338,7 @@ func (c *AccessPoliciesTestIamPermissionsCall) Header() http.Header {
 
 func (c *AccessPoliciesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3129,6 +3354,7 @@ func (c *AccessPoliciesTestIamPermissionsCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3164,9 +3390,11 @@ func (c *AccessPoliciesTestIamPermissionsCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3218,8 +3446,7 @@ func (c *AccessPoliciesAccessLevelsCreateCall) Header() http.Header {
 
 func (c *AccessPoliciesAccessLevelsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accesslevel)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.accesslevel)
 	if err != nil {
 		return nil, err
 	}
@@ -3235,6 +3462,7 @@ func (c *AccessPoliciesAccessLevelsCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3269,9 +3497,11 @@ func (c *AccessPoliciesAccessLevelsCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3320,12 +3550,11 @@ func (c *AccessPoliciesAccessLevelsDeleteCall) Header() http.Header {
 
 func (c *AccessPoliciesAccessLevelsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3333,6 +3562,7 @@ func (c *AccessPoliciesAccessLevelsDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3367,9 +3597,11 @@ func (c *AccessPoliciesAccessLevelsDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3450,12 +3682,11 @@ func (c *AccessPoliciesAccessLevelsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3463,6 +3694,7 @@ func (c *AccessPoliciesAccessLevelsGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3497,9 +3729,11 @@ func (c *AccessPoliciesAccessLevelsGetCall) Do(opts ...googleapi.CallOption) (*A
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3592,12 +3826,11 @@ func (c *AccessPoliciesAccessLevelsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/accessLevels")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3605,6 +3838,7 @@ func (c *AccessPoliciesAccessLevelsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3640,9 +3874,11 @@ func (c *AccessPoliciesAccessLevelsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3681,7 +3917,7 @@ type AccessPoliciesAccessLevelsPatchCall struct {
 // long-lasting storage. If access levels contain errors, an error response is
 // returned for the first error encountered.
 //
-//   - name: Resource name for the `AccessLevel`. Format:
+//   - name: Identifier. Resource name for the `AccessLevel`. Format:
 //     `accessPolicies/{access_policy}/accessLevels/{access_level}`. The
 //     `access_level` component must begin with a letter, followed by
 //     alphanumeric characters or `_`. Its maximum length is 50 characters. After
@@ -3725,8 +3961,7 @@ func (c *AccessPoliciesAccessLevelsPatchCall) Header() http.Header {
 
 func (c *AccessPoliciesAccessLevelsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accesslevel)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.accesslevel)
 	if err != nil {
 		return nil, err
 	}
@@ -3742,6 +3977,7 @@ func (c *AccessPoliciesAccessLevelsPatchCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3776,9 +4012,11 @@ func (c *AccessPoliciesAccessLevelsPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3834,8 +4072,7 @@ func (c *AccessPoliciesAccessLevelsReplaceAllCall) Header() http.Header {
 
 func (c *AccessPoliciesAccessLevelsReplaceAllCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.replaceaccesslevelsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.replaceaccesslevelsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3851,6 +4088,7 @@ func (c *AccessPoliciesAccessLevelsReplaceAllCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.replaceAll", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3885,9 +4123,11 @@ func (c *AccessPoliciesAccessLevelsReplaceAllCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.replaceAll", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3941,8 +4181,7 @@ func (c *AccessPoliciesAccessLevelsTestIamPermissionsCall) Header() http.Header 
 
 func (c *AccessPoliciesAccessLevelsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3958,6 +4197,7 @@ func (c *AccessPoliciesAccessLevelsTestIamPermissionsCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3993,9 +4233,11 @@ func (c *AccessPoliciesAccessLevelsTestIamPermissionsCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.accessLevels.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4048,8 +4290,7 @@ func (c *AccessPoliciesAuthorizedOrgsDescsCreateCall) Header() http.Header {
 
 func (c *AccessPoliciesAuthorizedOrgsDescsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.authorizedorgsdesc)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.authorizedorgsdesc)
 	if err != nil {
 		return nil, err
 	}
@@ -4065,6 +4306,7 @@ func (c *AccessPoliciesAuthorizedOrgsDescsCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4099,9 +4341,11 @@ func (c *AccessPoliciesAuthorizedOrgsDescsCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4150,12 +4394,11 @@ func (c *AccessPoliciesAuthorizedOrgsDescsDeleteCall) Header() http.Header {
 
 func (c *AccessPoliciesAuthorizedOrgsDescsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4163,6 +4406,7 @@ func (c *AccessPoliciesAuthorizedOrgsDescsDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4197,9 +4441,11 @@ func (c *AccessPoliciesAuthorizedOrgsDescsDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4258,12 +4504,11 @@ func (c *AccessPoliciesAuthorizedOrgsDescsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4271,6 +4516,7 @@ func (c *AccessPoliciesAuthorizedOrgsDescsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4306,9 +4552,11 @@ func (c *AccessPoliciesAuthorizedOrgsDescsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4382,12 +4630,11 @@ func (c *AccessPoliciesAuthorizedOrgsDescsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/authorizedOrgsDescs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4395,6 +4642,7 @@ func (c *AccessPoliciesAuthorizedOrgsDescsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4430,9 +4678,11 @@ func (c *AccessPoliciesAuthorizedOrgsDescsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4473,7 +4723,7 @@ type AccessPoliciesAuthorizedOrgsDescsPatchCall struct {
 // list in `AuthorizedOrgsDesc` can be updated. The name, authorization_type,
 // asset_type and authorization_direction cannot be updated.
 //
-//   - name: Resource name for the `AuthorizedOrgsDesc`. Format:
+//   - name: Identifier. Resource name for the `AuthorizedOrgsDesc`. Format:
 //     `accessPolicies/{access_policy}/authorizedOrgsDescs/{authorized_orgs_desc}`
 //     . The `authorized_orgs_desc` component must begin with a letter, followed
 //     by alphanumeric characters or `_`. After you create an
@@ -4517,8 +4767,7 @@ func (c *AccessPoliciesAuthorizedOrgsDescsPatchCall) Header() http.Header {
 
 func (c *AccessPoliciesAuthorizedOrgsDescsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.authorizedorgsdesc)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.authorizedorgsdesc)
 	if err != nil {
 		return nil, err
 	}
@@ -4534,6 +4783,7 @@ func (c *AccessPoliciesAuthorizedOrgsDescsPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4568,9 +4818,11 @@ func (c *AccessPoliciesAuthorizedOrgsDescsPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.authorizedOrgsDescs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4630,8 +4882,7 @@ func (c *AccessPoliciesServicePerimetersCommitCall) Header() http.Header {
 
 func (c *AccessPoliciesServicePerimetersCommitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commitserviceperimetersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.commitserviceperimetersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4647,6 +4898,7 @@ func (c *AccessPoliciesServicePerimetersCommitCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.commit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4681,9 +4933,11 @@ func (c *AccessPoliciesServicePerimetersCommitCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.commit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4735,8 +4989,7 @@ func (c *AccessPoliciesServicePerimetersCreateCall) Header() http.Header {
 
 func (c *AccessPoliciesServicePerimetersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.serviceperimeter)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.serviceperimeter)
 	if err != nil {
 		return nil, err
 	}
@@ -4752,6 +5005,7 @@ func (c *AccessPoliciesServicePerimetersCreateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4786,9 +5040,11 @@ func (c *AccessPoliciesServicePerimetersCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4837,12 +5093,11 @@ func (c *AccessPoliciesServicePerimetersDeleteCall) Header() http.Header {
 
 func (c *AccessPoliciesServicePerimetersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4850,6 +5105,7 @@ func (c *AccessPoliciesServicePerimetersDeleteCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4884,9 +5140,11 @@ func (c *AccessPoliciesServicePerimetersDeleteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4945,12 +5203,11 @@ func (c *AccessPoliciesServicePerimetersGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4958,6 +5215,7 @@ func (c *AccessPoliciesServicePerimetersGetCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4993,9 +5251,11 @@ func (c *AccessPoliciesServicePerimetersGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5069,12 +5329,11 @@ func (c *AccessPoliciesServicePerimetersListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/servicePerimeters")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5082,6 +5341,7 @@ func (c *AccessPoliciesServicePerimetersListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5117,9 +5377,11 @@ func (c *AccessPoliciesServicePerimetersListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5158,7 +5420,7 @@ type AccessPoliciesServicePerimetersPatchCall struct {
 // long-lasting storage. If a service perimeter contains errors, an error
 // response is returned for the first error encountered.
 //
-//   - name: Resource name for the `ServicePerimeter`. Format:
+//   - name: Identifier. Resource name for the `ServicePerimeter`. Format:
 //     `accessPolicies/{access_policy}/servicePerimeters/{service_perimeter}`.
 //     The `service_perimeter` component must begin with a letter, followed by
 //     alphanumeric characters or `_`. After you create a `ServicePerimeter`, you
@@ -5202,8 +5464,7 @@ func (c *AccessPoliciesServicePerimetersPatchCall) Header() http.Header {
 
 func (c *AccessPoliciesServicePerimetersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.serviceperimeter)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.serviceperimeter)
 	if err != nil {
 		return nil, err
 	}
@@ -5219,6 +5480,7 @@ func (c *AccessPoliciesServicePerimetersPatchCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5253,9 +5515,11 @@ func (c *AccessPoliciesServicePerimetersPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5310,8 +5574,7 @@ func (c *AccessPoliciesServicePerimetersReplaceAllCall) Header() http.Header {
 
 func (c *AccessPoliciesServicePerimetersReplaceAllCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.replaceserviceperimetersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.replaceserviceperimetersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5327,6 +5590,7 @@ func (c *AccessPoliciesServicePerimetersReplaceAllCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.replaceAll", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5361,9 +5625,11 @@ func (c *AccessPoliciesServicePerimetersReplaceAllCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.replaceAll", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5417,8 +5683,7 @@ func (c *AccessPoliciesServicePerimetersTestIamPermissionsCall) Header() http.He
 
 func (c *AccessPoliciesServicePerimetersTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5434,6 +5699,7 @@ func (c *AccessPoliciesServicePerimetersTestIamPermissionsCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5469,9 +5735,11 @@ func (c *AccessPoliciesServicePerimetersTestIamPermissionsCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.accessPolicies.servicePerimeters.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5491,7 +5759,7 @@ type OperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -5527,8 +5795,7 @@ func (c *OperationsCancelCall) Header() http.Header {
 
 func (c *OperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5544,6 +5811,7 @@ func (c *OperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5578,9 +5846,11 @@ func (c *OperationsCancelCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5629,12 +5899,11 @@ func (c *OperationsDeleteCall) Header() http.Header {
 
 func (c *OperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5642,6 +5911,7 @@ func (c *OperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5676,9 +5946,11 @@ func (c *OperationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5738,12 +6010,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5751,6 +6022,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5785,9 +6057,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5866,12 +6140,11 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5879,6 +6152,7 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5914,9 +6188,11 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*ListOperationsRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5989,8 +6265,7 @@ func (c *OrganizationsGcpUserAccessBindingsCreateCall) Header() http.Header {
 
 func (c *OrganizationsGcpUserAccessBindingsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.gcpuseraccessbinding)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.gcpuseraccessbinding)
 	if err != nil {
 		return nil, err
 	}
@@ -6006,6 +6281,7 @@ func (c *OrganizationsGcpUserAccessBindingsCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6040,9 +6316,11 @@ func (c *OrganizationsGcpUserAccessBindingsCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6090,12 +6368,11 @@ func (c *OrganizationsGcpUserAccessBindingsDeleteCall) Header() http.Header {
 
 func (c *OrganizationsGcpUserAccessBindingsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6103,6 +6380,7 @@ func (c *OrganizationsGcpUserAccessBindingsDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6137,9 +6415,11 @@ func (c *OrganizationsGcpUserAccessBindingsDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6197,12 +6477,11 @@ func (c *OrganizationsGcpUserAccessBindingsGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6210,6 +6489,7 @@ func (c *OrganizationsGcpUserAccessBindingsGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6245,9 +6525,11 @@ func (c *OrganizationsGcpUserAccessBindingsGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6321,12 +6603,11 @@ func (c *OrganizationsGcpUserAccessBindingsListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/gcpUserAccessBindings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6334,6 +6615,7 @@ func (c *OrganizationsGcpUserAccessBindingsListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6369,9 +6651,11 @@ func (c *OrganizationsGcpUserAccessBindingsListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6422,10 +6706,26 @@ func (r *OrganizationsGcpUserAccessBindingsService) Patch(name string, gcpuserac
 	return c
 }
 
+// Append sets the optional parameter "append": This field controls whether or
+// not certain repeated settings in the update request overwrite or append to
+// existing settings on the binding. If true, then append. Otherwise overwrite.
+// So far, only scoped_access_settings with reauth_settings supports appending.
+// Global access_levels, access_levels in scoped_access_settings,
+// dry_run_access_levels, reauth_settings, and session_settings are not
+// compatible with append functionality, and the request will return an error
+// if append=true when these settings are in the update_mask. The request will
+// also return an error if append=true when "scoped_access_settings" is not set
+// in the update_mask.
+func (c *OrganizationsGcpUserAccessBindingsPatchCall) Append(append bool) *OrganizationsGcpUserAccessBindingsPatchCall {
+	c.urlParams_.Set("append", fmt.Sprint(append))
+	return c
+}
+
 // UpdateMask sets the optional parameter "updateMask": Required. Only the
 // fields specified in this mask are updated. Because name and group_key cannot
 // be changed, update_mask is required and may only contain the following
-// fields: `access_levels`, `dry_run_access_levels`. update_mask { paths:
+// fields: `access_levels`, `dry_run_access_levels`, `reauth_settings`
+// `session_settings`, `scoped_access_settings`. update_mask { paths:
 // "access_levels" }
 func (c *OrganizationsGcpUserAccessBindingsPatchCall) UpdateMask(updateMask string) *OrganizationsGcpUserAccessBindingsPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
@@ -6457,8 +6757,7 @@ func (c *OrganizationsGcpUserAccessBindingsPatchCall) Header() http.Header {
 
 func (c *OrganizationsGcpUserAccessBindingsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.gcpuseraccessbinding)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.gcpuseraccessbinding)
 	if err != nil {
 		return nil, err
 	}
@@ -6474,6 +6773,7 @@ func (c *OrganizationsGcpUserAccessBindingsPatchCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6508,9 +6808,11 @@ func (c *OrganizationsGcpUserAccessBindingsPatchCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.organizations.gcpUserAccessBindings.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6570,12 +6872,11 @@ func (c *ServicesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/services/{name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6583,6 +6884,7 @@ func (c *ServicesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.services.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6618,9 +6920,11 @@ func (c *ServicesGetCall) Do(opts ...googleapi.CallOption) (*SupportedService, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.services.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6688,16 +6992,16 @@ func (c *ServicesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/services")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "accesscontextmanager.services.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6733,9 +7037,11 @@ func (c *ServicesListCall) Do(opts ...googleapi.CallOption) (*ListSupportedServi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "accesscontextmanager.services.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

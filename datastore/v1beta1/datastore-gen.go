@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "datastore:v1beta1"
 const apiName = "datastore"
@@ -126,7 +129,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -222,9 +225,9 @@ type GoogleDatastoreAdminV1CommonMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1CommonMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1CommonMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1CommonMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata: Metadata for
@@ -273,9 +276,9 @@ type GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1DatastoreFirestoreMigrationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1EntityFilter: Identifies a subset of entities in a
@@ -309,9 +312,9 @@ type GoogleDatastoreAdminV1EntityFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1EntityFilter) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1EntityFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1EntityFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ExportEntitiesMetadata: Metadata for ExportEntities
@@ -344,9 +347,9 @@ type GoogleDatastoreAdminV1ExportEntitiesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ExportEntitiesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ExportEntitiesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ExportEntitiesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ExportEntitiesResponse: The response for
@@ -370,9 +373,9 @@ type GoogleDatastoreAdminV1ExportEntitiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ExportEntitiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ExportEntitiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ExportEntitiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1ImportEntitiesMetadata: Metadata for ImportEntities
@@ -403,9 +406,9 @@ type GoogleDatastoreAdminV1ImportEntitiesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1ImportEntitiesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1ImportEntitiesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1ImportEntitiesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1IndexOperationMetadata: Metadata for Index operations.
@@ -429,9 +432,9 @@ type GoogleDatastoreAdminV1IndexOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1IndexOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1IndexOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1IndexOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1MigrationProgressEvent: An event signifying the start
@@ -474,9 +477,9 @@ type GoogleDatastoreAdminV1MigrationProgressEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1MigrationProgressEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1MigrationProgressEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1MigrationProgressEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1MigrationStateEvent: An event signifying a change in
@@ -504,9 +507,9 @@ type GoogleDatastoreAdminV1MigrationStateEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1MigrationStateEvent) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1MigrationStateEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1MigrationStateEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1PrepareStepDetails: Details for the `PREPARE` step.
@@ -534,9 +537,9 @@ type GoogleDatastoreAdminV1PrepareStepDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1PrepareStepDetails) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1PrepareStepDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1PrepareStepDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1Progress: Measures the progress of a particular
@@ -561,15 +564,15 @@ type GoogleDatastoreAdminV1Progress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1Progress) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1Progress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1Progress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1RedirectWritesStepDetails: Details for the
 // `REDIRECT_WRITES` step.
 type GoogleDatastoreAdminV1RedirectWritesStepDetails struct {
-	// ConcurrencyMode: Ths concurrency mode for this database.
+	// ConcurrencyMode: The concurrency mode for this database.
 	//
 	// Possible values:
 	//   "CONCURRENCY_MODE_UNSPECIFIED" - Unspecified.
@@ -591,9 +594,9 @@ type GoogleDatastoreAdminV1RedirectWritesStepDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1RedirectWritesStepDetails) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1RedirectWritesStepDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1RedirectWritesStepDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1CommonMetadata: Metadata common to all Datastore
@@ -642,9 +645,9 @@ type GoogleDatastoreAdminV1beta1CommonMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1CommonMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1CommonMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1CommonMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1EntityFilter: Identifies a subset of entities in
@@ -678,9 +681,9 @@ type GoogleDatastoreAdminV1beta1EntityFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1EntityFilter) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1EntityFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1EntityFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1ExportEntitiesMetadata: Metadata for
@@ -713,9 +716,9 @@ type GoogleDatastoreAdminV1beta1ExportEntitiesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1ExportEntitiesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1ExportEntitiesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1ExportEntitiesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1ExportEntitiesRequest: The request for
@@ -755,9 +758,9 @@ type GoogleDatastoreAdminV1beta1ExportEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1ExportEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1ExportEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1ExportEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1ExportEntitiesResponse: The response for
@@ -781,9 +784,9 @@ type GoogleDatastoreAdminV1beta1ExportEntitiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1ExportEntitiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1ExportEntitiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1ExportEntitiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1ImportEntitiesMetadata: Metadata for
@@ -814,9 +817,9 @@ type GoogleDatastoreAdminV1beta1ImportEntitiesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1ImportEntitiesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1ImportEntitiesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1ImportEntitiesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1ImportEntitiesRequest: The request for
@@ -854,9 +857,9 @@ type GoogleDatastoreAdminV1beta1ImportEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1ImportEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1ImportEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1ImportEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDatastoreAdminV1beta1Progress: Measures the progress of a particular
@@ -881,9 +884,9 @@ type GoogleDatastoreAdminV1beta1Progress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDatastoreAdminV1beta1Progress) MarshalJSON() ([]byte, error) {
+func (s GoogleDatastoreAdminV1beta1Progress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDatastoreAdminV1beta1Progress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -928,9 +931,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -962,9 +965,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsExportCall struct {
@@ -1017,8 +1020,7 @@ func (c *ProjectsExportCall) Header() http.Header {
 
 func (c *ProjectsExportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googledatastoreadminv1beta1exportentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googledatastoreadminv1beta1exportentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1034,6 +1036,7 @@ func (c *ProjectsExportCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.export", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1069,9 +1072,11 @@ func (c *ProjectsExportCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1123,8 +1128,7 @@ func (c *ProjectsImportCall) Header() http.Header {
 
 func (c *ProjectsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googledatastoreadminv1beta1importentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googledatastoreadminv1beta1importentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1140,6 +1144,7 @@ func (c *ProjectsImportCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datastore.projects.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1175,8 +1180,10 @@ func (c *ProjectsImportCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunnin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datastore.projects.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

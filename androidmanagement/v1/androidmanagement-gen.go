@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "androidmanagement:v1"
 const apiName = "androidmanagement"
@@ -114,7 +117,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Enterprises = NewEnterprisesService(s)
+	s.ProvisioningInfo = NewProvisioningInfoService(s)
+	s.SignupUrls = NewSignupUrlsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,15 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Enterprises = NewEnterprisesService(s)
-	s.ProvisioningInfo = NewProvisioningInfoService(s)
-	s.SignupUrls = NewSignupUrlsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -301,9 +304,9 @@ type AdbShellCommandEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdbShellCommandEvent) MarshalJSON() ([]byte, error) {
+func (s AdbShellCommandEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod AdbShellCommandEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdbShellInteractiveEvent: An ADB interactive shell was opened via “adb
@@ -317,12 +320,14 @@ type AdvancedSecurityOverrides struct {
 	// CommonCriteriaMode: Controls Common Criteria Mode—security standards
 	// defined in the Common Criteria for Information Technology Security
 	// Evaluation (https://www.commoncriteriaportal.org/) (CC). Enabling Common
-	// Criteria Mode increases certain security components on a device, including
-	// AES-GCM encryption of Bluetooth Long Term Keys, and Wi-Fi configuration
-	// stores.Warning: Common Criteria Mode enforces a strict security model
-	// typically only required for IT products used in national security systems
-	// and other highly sensitive organizations. Standard device use may be
-	// affected. Only enabled if required.
+	// Criteria Mode increases certain security components on a device, see
+	// CommonCriteriaMode for details.Warning: Common Criteria Mode enforces a
+	// strict security model typically only required for IT products used in
+	// national security systems and other highly sensitive organizations. Standard
+	// device use may be affected. Only enabled if required. If Common Criteria
+	// Mode is turned off after being enabled previously, all user-configured Wi-Fi
+	// networks may be lost and any enterprise-configured Wi-Fi networks that
+	// require user input may need to be reconfigured.
 	//
 	// Possible values:
 	//   "COMMON_CRITERIA_MODE_UNSPECIFIED" - Unspecified. Defaults to
@@ -330,6 +335,23 @@ type AdvancedSecurityOverrides struct {
 	//   "COMMON_CRITERIA_MODE_DISABLED" - Default. Disables Common Criteria Mode.
 	//   "COMMON_CRITERIA_MODE_ENABLED" - Enables Common Criteria Mode.
 	CommonCriteriaMode string `json:"commonCriteriaMode,omitempty"`
+	// ContentProtectionPolicy: Optional. Controls whether content protection,
+	// which scans for deceptive apps, is enabled. This is supported on Android 15
+	// and above.
+	//
+	// Possible values:
+	//   "CONTENT_PROTECTION_POLICY_UNSPECIFIED" - Unspecified. Defaults to
+	// CONTENT_PROTECTION_DISABLED.
+	//   "CONTENT_PROTECTION_DISABLED" - Content protection is disabled and the
+	// user cannot change this.
+	//   "CONTENT_PROTECTION_ENFORCED" - Content protection is enabled and the user
+	// cannot change this.Supported on Android 15 and above. A nonComplianceDetail
+	// with API_LEVEL is reported if the Android version is less than 15.
+	//   "CONTENT_PROTECTION_USER_CHOICE" - Content protection is not controlled by
+	// the policy. The user is allowed to choose the behavior of content
+	// protection.Supported on Android 15 and above. A nonComplianceDetail with
+	// API_LEVEL is reported if the Android version is less than 15.
+	ContentProtectionPolicy string `json:"contentProtectionPolicy,omitempty"`
 	// DeveloperSettings: Controls access to developer settings: developer options
 	// and safe boot. Replaces safeBootDisabled (deprecated) and
 	// debuggingFeaturesAllowed (deprecated).
@@ -408,9 +430,9 @@ type AdvancedSecurityOverrides struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdvancedSecurityOverrides) MarshalJSON() ([]byte, error) {
+func (s AdvancedSecurityOverrides) MarshalJSON() ([]byte, error) {
 	type NoMethod AdvancedSecurityOverrides
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AlwaysOnVpnPackage: Configuration for an always-on VPN connection.
@@ -432,9 +454,9 @@ type AlwaysOnVpnPackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AlwaysOnVpnPackage) MarshalJSON() ([]byte, error) {
+func (s AlwaysOnVpnPackage) MarshalJSON() ([]byte, error) {
 	type NoMethod AlwaysOnVpnPackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApiLevelCondition: A compliance rule condition which is satisfied if the
@@ -459,9 +481,9 @@ type ApiLevelCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApiLevelCondition) MarshalJSON() ([]byte, error) {
+func (s ApiLevelCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod ApiLevelCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppProcessInfo: Information about a process. It contains process name, start
@@ -497,9 +519,9 @@ type AppProcessInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppProcessInfo) MarshalJSON() ([]byte, error) {
+func (s AppProcessInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AppProcessInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppProcessStartEvent: An app process was started. This is available
@@ -521,9 +543,9 @@ type AppProcessStartEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppProcessStartEvent) MarshalJSON() ([]byte, error) {
+func (s AppProcessStartEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod AppProcessStartEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppTrackInfo: Id to name association of a app track.
@@ -548,9 +570,9 @@ type AppTrackInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppTrackInfo) MarshalJSON() ([]byte, error) {
+func (s AppTrackInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AppTrackInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppVersion: This represents a single version of the app.
@@ -580,9 +602,9 @@ type AppVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppVersion) MarshalJSON() ([]byte, error) {
+func (s AppVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod AppVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Application: Information about an app.
@@ -685,9 +707,9 @@ type Application struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Application) MarshalJSON() ([]byte, error) {
+func (s Application) MarshalJSON() ([]byte, error) {
 	type NoMethod Application
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationEvent: An app-related event.
@@ -722,9 +744,9 @@ type ApplicationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationEvent) MarshalJSON() ([]byte, error) {
+func (s ApplicationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationPermission: A permission required by the app.
@@ -750,9 +772,9 @@ type ApplicationPermission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationPermission) MarshalJSON() ([]byte, error) {
+func (s ApplicationPermission) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationPermission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationPolicy: Policy for an individual app. Note: Application
@@ -844,22 +866,22 @@ type ApplicationPolicy struct {
 	// default.
 	//   "PROMPT" - Prompt the user to grant a permission.
 	//   "GRANT" - Automatically grant a permission.On Android 12 and above,
-	// Manifest.permission.READ_SMS
+	// READ_SMS
 	// (https://developer.android.com/reference/android/Manifest.permission#READ_SMS)
 	// and following sensor-related permissions can only be granted on fully
-	// managed devices: Manifest.permission.ACCESS_FINE_LOCATION
+	// managed devices: ACCESS_FINE_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_FINE_LOCATION)
-	// Manifest.permission.ACCESS_BACKGROUND_LOCATION
+	// ACCESS_BACKGROUND_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_BACKGROUND_LOCATION)
-	// Manifest.permission.ACCESS_COARSE_LOCATION
+	// ACCESS_COARSE_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_COARSE_LOCATION)
-	// Manifest.permission.CAMERA
+	// CAMERA
 	// (https://developer.android.com/reference/android/Manifest.permission#CAMERA)
-	// Manifest.permission.RECORD_AUDIO
+	// RECORD_AUDIO
 	// (https://developer.android.com/reference/android/Manifest.permission#RECORD_AUDIO)
-	// Manifest.permission.ACTIVITY_RECOGNITION
+	// ACTIVITY_RECOGNITION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACTIVITY_RECOGNITION)
-	// Manifest.permission.BODY_SENSORS
+	// BODY_SENSORS
 	// (https://developer.android.com/reference/android/Manifest.permission#BODY_SENSORS)
 	//   "DENY" - Automatically deny a permission.
 	DefaultPermissionPolicy string `json:"defaultPermissionPolicy,omitempty"`
@@ -870,13 +892,17 @@ type ApplicationPolicy struct {
 	// Possible values:
 	//   "DELEGATED_SCOPE_UNSPECIFIED" - No delegation scope specified.
 	//   "CERT_INSTALL" - Grants access to certificate installation and management.
+	// This scope can be delegated to multiple applications.
 	//   "MANAGED_CONFIGURATIONS" - Grants access to managed configurations
-	// management.
-	//   "BLOCK_UNINSTALL" - Grants access to blocking uninstallation.
+	// management. This scope can be delegated to multiple applications.
+	//   "BLOCK_UNINSTALL" - Grants access to blocking uninstallation. This scope
+	// can be delegated to multiple applications.
 	//   "PERMISSION_GRANT" - Grants access to permission policy and permission
-	// grant state.
-	//   "PACKAGE_ACCESS" - Grants access to package access state.
-	//   "ENABLE_SYSTEM_APP" - Grants access for enabling system apps.
+	// grant state. This scope can be delegated to multiple applications.
+	//   "PACKAGE_ACCESS" - Grants access to package access state. This scope can
+	// be delegated to multiple applications.
+	//   "ENABLE_SYSTEM_APP" - Grants access for enabling system apps. This scope
+	// can be delegated to multiple applications.
 	//   "NETWORK_ACTIVITY_LOGS" - Grants access to network activity logs. Allows
 	// the delegated application to call setNetworkLoggingEnabled
 	// (https://developer.android.com/reference/android/app/admin/DevicePolicyManager#setNetworkLoggingEnabled%28android.content.ComponentName,%20boolean%29),
@@ -909,7 +935,7 @@ type ApplicationPolicy struct {
 	// (https://developer.android.com/reference/android/app/admin/DevicePolicyManager#grantKeyPairToApp%28android.content.ComponentName,%20java.lang.String,%20java.lang.String%29)
 	// and revokeKeyPairFromApp
 	// (https://developer.android.com/reference/android/app/admin/DevicePolicyManager#revokeKeyPairFromApp%28android.content.ComponentName,%20java.lang.String,%20java.lang.String%29)
-	// methods. There can be at most one app that has this delegation.
+	// methods. This scope can be delegated to at most one application.
 	// choosePrivateKeyRules must be empty and privateKeySelectionEnabled has no
 	// effect if certificate selection is delegated to an application.
 	DelegatedScopes []string `json:"delegatedScopes,omitempty"`
@@ -1022,9 +1048,9 @@ type ApplicationPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationPolicy) MarshalJSON() ([]byte, error) {
+func (s ApplicationPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationReport: Information reported about an installed app.
@@ -1092,9 +1118,9 @@ type ApplicationReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationReport) MarshalJSON() ([]byte, error) {
+func (s ApplicationReport) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplicationReportingSettings: Settings controlling the behavior of
@@ -1116,9 +1142,9 @@ type ApplicationReportingSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplicationReportingSettings) MarshalJSON() ([]byte, error) {
+func (s ApplicationReportingSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplicationReportingSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUsageLogEvents: Batched event logs of events from the device.
@@ -1148,9 +1174,9 @@ type BatchUsageLogEvents struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUsageLogEvents) MarshalJSON() ([]byte, error) {
+func (s BatchUsageLogEvents) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUsageLogEvents
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BlockAction: An action to block access to apps and data on a fully managed
@@ -1187,9 +1213,9 @@ type BlockAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BlockAction) MarshalJSON() ([]byte, error) {
+func (s BlockAction) MarshalJSON() ([]byte, error) {
 	type NoMethod BlockAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertAuthorityInstalledEvent: A new root certificate was installed into the
@@ -1217,9 +1243,9 @@ type CertAuthorityInstalledEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertAuthorityInstalledEvent) MarshalJSON() ([]byte, error) {
+func (s CertAuthorityInstalledEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod CertAuthorityInstalledEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertAuthorityRemovedEvent: A root certificate was removed from the system's
@@ -1247,9 +1273,9 @@ type CertAuthorityRemovedEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertAuthorityRemovedEvent) MarshalJSON() ([]byte, error) {
+func (s CertAuthorityRemovedEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod CertAuthorityRemovedEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertValidationFailureEvent: An X.509v3 certificate failed to validate,
@@ -1272,9 +1298,9 @@ type CertValidationFailureEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertValidationFailureEvent) MarshalJSON() ([]byte, error) {
+func (s CertValidationFailureEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod CertValidationFailureEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ChoosePrivateKeyRule: Controls apps' access to private keys. The rule
@@ -1320,9 +1346,9 @@ type ChoosePrivateKeyRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ChoosePrivateKeyRule) MarshalJSON() ([]byte, error) {
+func (s ChoosePrivateKeyRule) MarshalJSON() ([]byte, error) {
 	type NoMethod ChoosePrivateKeyRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClearAppsDataParams: Parameters associated with the CLEAR_APP_DATA command
@@ -1344,9 +1370,9 @@ type ClearAppsDataParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClearAppsDataParams) MarshalJSON() ([]byte, error) {
+func (s ClearAppsDataParams) MarshalJSON() ([]byte, error) {
 	type NoMethod ClearAppsDataParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClearAppsDataStatus: Status of the CLEAR_APP_DATA command to clear the data
@@ -1368,9 +1394,9 @@ type ClearAppsDataStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClearAppsDataStatus) MarshalJSON() ([]byte, error) {
+func (s ClearAppsDataStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod ClearAppsDataStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Command: A command.
@@ -1479,9 +1505,9 @@ type Command struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Command) MarshalJSON() ([]byte, error) {
+func (s Command) MarshalJSON() ([]byte, error) {
 	type NoMethod Command
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommonCriteriaModeInfo: Information about Common Criteria Mode—security
@@ -1499,6 +1525,24 @@ type CommonCriteriaModeInfo struct {
 	//   "COMMON_CRITERIA_MODE_ENABLED" - Common Criteria Mode is currently
 	// enabled.
 	CommonCriteriaModeStatus string `json:"commonCriteriaModeStatus,omitempty"`
+	// PolicySignatureVerificationStatus: Output only. The status of policy
+	// signature verification.
+	//
+	// Possible values:
+	//   "POLICY_SIGNATURE_VERIFICATION_STATUS_UNSPECIFIED" - Unspecified. The
+	// verification status has not been reported. This is set only if
+	// statusReportingSettings.commonCriteriaModeEnabled is false.
+	//   "POLICY_SIGNATURE_VERIFICATION_DISABLED" - Policy signature verification
+	// is disabled on the device as common_criteria_mode is set to false.
+	//   "POLICY_SIGNATURE_VERIFICATION_SUCCEEDED" - Policy signature verification
+	// succeeded.
+	//   "POLICY_SIGNATURE_VERIFICATION_NOT_SUPPORTED" - Policy signature
+	// verification is not supported, e.g. because the device has been enrolled
+	// with a CloudDPC version that does not support the policy signature
+	// verification.
+	//   "POLICY_SIGNATURE_VERIFICATION_FAILED" - The policy signature verification
+	// failed. The policy has not been applied.
+	PolicySignatureVerificationStatus string `json:"policySignatureVerificationStatus,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CommonCriteriaModeStatus")
 	// to unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1512,9 +1556,9 @@ type CommonCriteriaModeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommonCriteriaModeInfo) MarshalJSON() ([]byte, error) {
+func (s CommonCriteriaModeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod CommonCriteriaModeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComplianceRule: A rule declaring which mitigating actions to take when a
@@ -1551,9 +1595,9 @@ type ComplianceRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComplianceRule) MarshalJSON() ([]byte, error) {
+func (s ComplianceRule) MarshalJSON() ([]byte, error) {
 	type NoMethod ComplianceRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConnectEvent: A TCP connect event was initiated through the standard network
@@ -1578,9 +1622,9 @@ type ConnectEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConnectEvent) MarshalJSON() ([]byte, error) {
+func (s ConnectEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod ConnectEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContactInfo: Contact details for managed Google Play enterprises.
@@ -1617,9 +1661,9 @@ type ContactInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContactInfo) MarshalJSON() ([]byte, error) {
+func (s ContactInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ContactInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentProviderEndpoint: This feature is not generally available.
@@ -1643,9 +1687,9 @@ type ContentProviderEndpoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentProviderEndpoint) MarshalJSON() ([]byte, error) {
+func (s ContentProviderEndpoint) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentProviderEndpoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CrossProfilePolicies: Controls the data from the work profile that can be
@@ -1759,9 +1803,9 @@ type CrossProfilePolicies struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CrossProfilePolicies) MarshalJSON() ([]byte, error) {
+func (s CrossProfilePolicies) MarshalJSON() ([]byte, error) {
 	type NoMethod CrossProfilePolicies
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CryptoSelfTestCompletedEvent: Validates whether Android’s built-in
@@ -1783,9 +1827,9 @@ type CryptoSelfTestCompletedEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CryptoSelfTestCompletedEvent) MarshalJSON() ([]byte, error) {
+func (s CryptoSelfTestCompletedEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod CryptoSelfTestCompletedEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -1820,9 +1864,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Device: A device owned by an enterprise. Unless otherwise noted, all fields
@@ -1875,7 +1919,7 @@ type Device struct {
 	// standards defined in the Common Criteria for Information Technology Security
 	// Evaluation (https://www.commoncriteriaportal.org/) (CC).This information is
 	// only available if statusReportingSettings.commonCriteriaModeEnabled is true
-	// in the device's policy.
+	// in the device's policy the device is company-owned.
 	CommonCriteriaModeInfo *CommonCriteriaModeInfo `json:"commonCriteriaModeInfo,omitempty"`
 	// DeviceSettings: Device settings information. This information is only
 	// available if deviceSettingsEnabled is true in the device's policy.
@@ -2024,9 +2068,9 @@ type Device struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Device) MarshalJSON() ([]byte, error) {
+func (s Device) MarshalJSON() ([]byte, error) {
 	type NoMethod Device
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceConnectivityManagement: Covers controls for device connectivity such
@@ -2112,6 +2156,8 @@ type DeviceConnectivityManagement struct {
 	// nonComplianceDetail with API_LEVEL is reported if the Android version is
 	// less than 13.
 	WifiDirectSettings string `json:"wifiDirectSettings,omitempty"`
+	// WifiRoamingPolicy: Optional. Wi-Fi roaming policy.
+	WifiRoamingPolicy *WifiRoamingPolicy `json:"wifiRoamingPolicy,omitempty"`
 	// WifiSsidPolicy: Restrictions on which Wi-Fi SSIDs the device can connect to.
 	// Note that this does not affect which networks can be configured on the
 	// device. Supported on company-owned devices running Android 13 and above.
@@ -2129,9 +2175,9 @@ type DeviceConnectivityManagement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceConnectivityManagement) MarshalJSON() ([]byte, error) {
+func (s DeviceConnectivityManagement) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceConnectivityManagement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceRadioState: Controls for device radio settings.
@@ -2222,9 +2268,9 @@ type DeviceRadioState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceRadioState) MarshalJSON() ([]byte, error) {
+func (s DeviceRadioState) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceRadioState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceSettings: Information about security related device settings on
@@ -2276,9 +2322,9 @@ type DeviceSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceSettings) MarshalJSON() ([]byte, error) {
+func (s DeviceSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Display: Device display information.
@@ -2317,9 +2363,33 @@ type Display struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Display) MarshalJSON() ([]byte, error) {
+func (s Display) MarshalJSON() ([]byte, error) {
 	type NoMethod Display
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DisplaySettings: Controls for the display settings.
+type DisplaySettings struct {
+	// ScreenBrightnessSettings: Optional. Controls the screen brightness settings.
+	ScreenBrightnessSettings *ScreenBrightnessSettings `json:"screenBrightnessSettings,omitempty"`
+	// ScreenTimeoutSettings: Optional. Controls the screen timeout settings.
+	ScreenTimeoutSettings *ScreenTimeoutSettings `json:"screenTimeoutSettings,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ScreenBrightnessSettings")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ScreenBrightnessSettings") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DisplaySettings) MarshalJSON() ([]byte, error) {
+	type NoMethod DisplaySettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DnsEvent: A DNS lookup event was initiated through the standard network
@@ -2349,9 +2419,9 @@ type DnsEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DnsEvent) MarshalJSON() ([]byte, error) {
+func (s DnsEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod DnsEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DpcMigrationInfo: Information related to whether this device was migrated
@@ -2376,9 +2446,9 @@ type DpcMigrationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DpcMigrationInfo) MarshalJSON() ([]byte, error) {
+func (s DpcMigrationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DpcMigrationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -2422,7 +2492,11 @@ type EnrollmentToken struct {
 	//   "PERSONAL_USAGE_DISALLOWED" - Personal usage is disallowed
 	//   "PERSONAL_USAGE_DISALLOWED_USERLESS" - Device is not associated with a
 	// single user, and thus both personal usage and corporate identity
-	// authentication are not expected.
+	// authentication are not expected. Important: This setting is mandatory for
+	// dedicated device enrollment and it is a breaking change. This change needs
+	// to be implemented before January 2025.For additional details see the
+	// dedicated device provisioning guide
+	// (https://developers.google.com/android/management/provision-device#company-owned_devices_for_work_use_only).
 	AllowPersonalUsage string `json:"allowPersonalUsage,omitempty"`
 	// Duration: The length of time the enrollment token is valid, ranging from 1
 	// minute to Durations.MAX_VALUE
@@ -2477,9 +2551,9 @@ type EnrollmentToken struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnrollmentToken) MarshalJSON() ([]byte, error) {
+func (s EnrollmentToken) MarshalJSON() ([]byte, error) {
 	type NoMethod EnrollmentToken
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Enterprise: The configuration applied to an enterprise.
@@ -2499,10 +2573,23 @@ type Enterprise struct {
 	// report.
 	//   "COMMAND" - A notification sent when a device command has completed.
 	//   "USAGE_LOGS" - A notification sent when device sends BatchUsageLogEvents.
+	//   "ENTERPRISE_UPGRADE" - A notification sent when an enterprise is
+	// upgraded.Note: This feature is not generally available.
 	EnabledNotificationTypes []string `json:"enabledNotificationTypes,omitempty"`
 	// EnterpriseDisplayName: The name of the enterprise displayed to users. This
 	// field has a maximum length of 100 characters.
 	EnterpriseDisplayName string `json:"enterpriseDisplayName,omitempty"`
+	// EnterpriseType: Output only. The type of the enterprise.
+	//
+	// Possible values:
+	//   "ENTERPRISE_TYPE_UNSPECIFIED" - This value is not used.
+	//   "MANAGED_GOOGLE_DOMAIN" - The enterprise belongs to a managed Google
+	// domain
+	// (https://developers.google.com/android/work/terminology#managed_google_domain).
+	//   "MANAGED_GOOGLE_PLAY_ACCOUNTS_ENTERPRISE" - The enterprise is a managed
+	// Google Play Accounts enterprise
+	// (https://developers.google.com/android/work/terminology#managed_google_play_accounts_enterprise).
+	EnterpriseType string `json:"enterpriseType,omitempty"`
 	// GoogleAuthenticationSettings: Settings for Google-provided user
 	// authentication.
 	GoogleAuthenticationSettings *GoogleAuthenticationSettings `json:"googleAuthenticationSettings,omitempty"`
@@ -2510,6 +2597,23 @@ type Enterprise struct {
 	// types are: image/bmp, image/gif, image/x-ico, image/jpeg, image/png,
 	// image/webp, image/vnd.wap.wbmp, image/x-adobe-dng.
 	Logo *ExternalData `json:"logo,omitempty"`
+	// ManagedGoogleDomainType: Output only. The type of managed Google domain.
+	//
+	// Possible values:
+	//   "MANAGED_GOOGLE_DOMAIN_TYPE_UNSPECIFIED" - The managed Google domain type
+	// is not specified.
+	//   "TYPE_TEAM" - The managed Google domain is an email-verified team.
+	//   "TYPE_DOMAIN" - The managed Google domain is domain-verified.
+	ManagedGoogleDomainType string `json:"managedGoogleDomainType,omitempty"`
+	// ManagedGooglePlayAccountsEnterpriseType: Output only. The type of a managed
+	// Google Play Accounts enterprise.
+	//
+	// Possible values:
+	//   "MANAGED_GOOGLE_PLAY_ACCOUNTS_ENTERPRISE_TYPE_UNSPECIFIED" - The managed
+	// Google Play Accounts enterprise type is not specified.
+	//   "CUSTOMER_MANAGED" - The enterprise is customer-managed
+	//   "EMM_MANAGED" - The enterprise is EMM-managed (deprecated).
+	ManagedGooglePlayAccountsEnterpriseType string `json:"managedGooglePlayAccountsEnterpriseType,omitempty"`
 	// Name: The name of the enterprise which is generated by the server during
 	// creation, in the form enterprises/{enterpriseId}.
 	Name string `json:"name,omitempty"`
@@ -2544,19 +2648,19 @@ type Enterprise struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Enterprise) MarshalJSON() ([]byte, error) {
+func (s Enterprise) MarshalJSON() ([]byte, error) {
 	type NoMethod Enterprise
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExtensionConfig: Configuration to enable an app as an extension app, with
 // the capability of interacting with Android Device Policy offline. For
-// Android versions 13 and above, extension apps are exempt from battery
+// Android versions 11 and above, extension apps are exempt from battery
 // restrictions so will not be placed into the restricted App Standby Bucket
 // (https://developer.android.com/topic/performance/appstandby#restricted-bucket).
 // Extensions apps are also protected against users clearing their data or
 // force-closing the application, although admins can continue to use the clear
-// app data command on extension apps if needed for Android 13 and above.
+// app data command on extension apps if needed for Android 11 and above.
 type ExtensionConfig struct {
 	// NotificationReceiver: Fully qualified class name of the receiver service
 	// class for Android Device Policy to notify the extension app of any local
@@ -2586,9 +2690,9 @@ type ExtensionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExtensionConfig) MarshalJSON() ([]byte, error) {
+func (s ExtensionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ExtensionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExternalData: Data hosted at an external location. The data is to be
@@ -2617,9 +2721,9 @@ type ExternalData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExternalData) MarshalJSON() ([]byte, error) {
+func (s ExternalData) MarshalJSON() ([]byte, error) {
 	type NoMethod ExternalData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilePulledEvent: A file was downloaded from the device.
@@ -2639,9 +2743,9 @@ type FilePulledEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilePulledEvent) MarshalJSON() ([]byte, error) {
+func (s FilePulledEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod FilePulledEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilePushedEvent: A file was uploaded onto the device.
@@ -2661,9 +2765,9 @@ type FilePushedEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilePushedEvent) MarshalJSON() ([]byte, error) {
+func (s FilePushedEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod FilePushedEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FreezePeriod: A system freeze period. When a device’s clock is within the
@@ -2682,11 +2786,13 @@ func (s *FilePushedEvent) MarshalJSON() ([]byte, error) {
 type FreezePeriod struct {
 	// EndDate: The end date (inclusive) of the freeze period. Must be no later
 	// than 90 days from the start date. If the end date is earlier than the start
-	// date, the freeze period is considered wrapping year-end. Note: year must not
-	// be set. For example, {"month": 1,"date": 30}.
+	// date, the freeze period is considered wrapping year-end. Note: day and month
+	// must be set. year should not be set as it is not used. For example,
+	// {"month": 1,"date": 30}.
 	EndDate *Date `json:"endDate,omitempty"`
-	// StartDate: The start date (inclusive) of the freeze period. Note: year must
-	// not be set. For example, {"month": 1,"date": 30}.
+	// StartDate: The start date (inclusive) of the freeze period. Note: day and
+	// month must be set. year should not be set as it is not used. For example,
+	// {"month": 1,"date": 30}.
 	StartDate *Date `json:"startDate,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EndDate") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -2701,9 +2807,73 @@ type FreezePeriod struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FreezePeriod) MarshalJSON() ([]byte, error) {
+func (s FreezePeriod) MarshalJSON() ([]byte, error) {
 	type NoMethod FreezePeriod
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GenerateEnterpriseUpgradeUrlRequest: Request message for generating a URL to
+// upgrade an existing managed Google Play Accounts enterprise to a managed
+// Google domain.Note: This feature is not generally available.
+type GenerateEnterpriseUpgradeUrlRequest struct {
+	// AdminEmail: Optional. Email address used to prefill the admin field of the
+	// enterprise signup form as part of the upgrade process. This value is a hint
+	// only and can be altered by the user. Personal email addresses are not
+	// allowed. If allowedDomains is non-empty then this must belong to one of the
+	// allowedDomains.
+	AdminEmail string `json:"adminEmail,omitempty"`
+	// AllowedDomains: Optional. A list of domains that are permitted for the admin
+	// email. The IT admin cannot enter an email address with a domain name that is
+	// not in this list. Subdomains of domains in this list are not allowed but can
+	// be allowed by adding a second entry which has *. prefixed to the domain name
+	// (e.g. *.example.com). If the field is not present or is an empty list then
+	// the IT admin is free to use any valid domain name. Personal email domains
+	// are not allowed.
+	AllowedDomains []string `json:"allowedDomains,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AdminEmail") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AdminEmail") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GenerateEnterpriseUpgradeUrlRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GenerateEnterpriseUpgradeUrlRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GenerateEnterpriseUpgradeUrlResponse: Response message for generating a URL
+// to upgrade an existing managed Google Play Accounts enterprise to a managed
+// Google domain.Note: This feature is not generally available.
+type GenerateEnterpriseUpgradeUrlResponse struct {
+	// Url: A URL for an enterprise admin to upgrade their enterprise. The page
+	// can't be rendered in an iframe.
+	Url string `json:"url,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Url") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Url") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GenerateEnterpriseUpgradeUrlResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GenerateEnterpriseUpgradeUrlResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAuthenticationSettings: Contains settings for Google-provided user
@@ -2735,9 +2905,9 @@ type GoogleAuthenticationSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAuthenticationSettings) MarshalJSON() ([]byte, error) {
+func (s GoogleAuthenticationSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAuthenticationSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HardwareInfo: Information about device hardware. The fields related to
@@ -2800,9 +2970,9 @@ type HardwareInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HardwareInfo) MarshalJSON() ([]byte, error) {
+func (s HardwareInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod HardwareInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *HardwareInfo) UnmarshalJSON(data []byte) error {
@@ -2894,9 +3064,9 @@ type HardwareStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HardwareStatus) MarshalJSON() ([]byte, error) {
+func (s HardwareStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod HardwareStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *HardwareStatus) UnmarshalJSON(data []byte) error {
@@ -2984,9 +3154,9 @@ type InstallConstraint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstallConstraint) MarshalJSON() ([]byte, error) {
+func (s InstallConstraint) MarshalJSON() ([]byte, error) {
 	type NoMethod InstallConstraint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IssueCommandResponse: Response on issuing a command. This is currently empty
@@ -3019,9 +3189,9 @@ type KeyDestructionEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyDestructionEvent) MarshalJSON() ([]byte, error) {
+func (s KeyDestructionEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyDestructionEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyGeneratedEvent: A cryptographic key including user installed, admin
@@ -3049,9 +3219,9 @@ type KeyGeneratedEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyGeneratedEvent) MarshalJSON() ([]byte, error) {
+func (s KeyGeneratedEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyGeneratedEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyImportEvent: A cryptographic key including user installed, admin
@@ -3079,9 +3249,9 @@ type KeyImportEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyImportEvent) MarshalJSON() ([]byte, error) {
+func (s KeyImportEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyImportEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyIntegrityViolationEvent: A cryptographic key including user installed,
@@ -3107,9 +3277,9 @@ type KeyIntegrityViolationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyIntegrityViolationEvent) MarshalJSON() ([]byte, error) {
+func (s KeyIntegrityViolationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyIntegrityViolationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyedAppState: Keyed app state reported by the app.
@@ -3151,9 +3321,9 @@ type KeyedAppState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyedAppState) MarshalJSON() ([]byte, error) {
+func (s KeyedAppState) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyedAppState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyguardDismissAuthAttemptEvent: An attempt was made to unlock the device.
@@ -3176,9 +3346,9 @@ type KeyguardDismissAuthAttemptEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyguardDismissAuthAttemptEvent) MarshalJSON() ([]byte, error) {
+func (s KeyguardDismissAuthAttemptEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyguardDismissAuthAttemptEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyguardDismissedEvent: The keyguard was dismissed. Intentionally empty.
@@ -3266,9 +3436,9 @@ type KioskCustomization struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KioskCustomization) MarshalJSON() ([]byte, error) {
+func (s KioskCustomization) MarshalJSON() ([]byte, error) {
 	type NoMethod KioskCustomization
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LaunchAppAction: An action to launch an app.
@@ -3288,9 +3458,9 @@ type LaunchAppAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LaunchAppAction) MarshalJSON() ([]byte, error) {
+func (s LaunchAppAction) MarshalJSON() ([]byte, error) {
 	type NoMethod LaunchAppAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDevicesResponse: Response to a request to list devices for a given
@@ -3317,9 +3487,9 @@ type ListDevicesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDevicesResponse) MarshalJSON() ([]byte, error) {
+func (s ListDevicesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDevicesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListEnrollmentTokensResponse: Response to a request to list enrollment
@@ -3346,9 +3516,9 @@ type ListEnrollmentTokensResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListEnrollmentTokensResponse) MarshalJSON() ([]byte, error) {
+func (s ListEnrollmentTokensResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListEnrollmentTokensResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListEnterprisesResponse: Response to a request to list enterprises.
@@ -3374,9 +3544,9 @@ type ListEnterprisesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListEnterprisesResponse) MarshalJSON() ([]byte, error) {
+func (s ListEnterprisesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListEnterprisesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMigrationTokensResponse: Response to a request to list migration tokens
@@ -3403,9 +3573,9 @@ type ListMigrationTokensResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMigrationTokensResponse) MarshalJSON() ([]byte, error) {
+func (s ListMigrationTokensResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMigrationTokensResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -3431,9 +3601,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPoliciesResponse: Response to a request to list policies for a given
@@ -3460,9 +3630,9 @@ type ListPoliciesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPoliciesResponse) MarshalJSON() ([]byte, error) {
+func (s ListPoliciesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPoliciesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWebAppsResponse: Response to a request to list web apps for a given
@@ -3489,9 +3659,9 @@ type ListWebAppsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWebAppsResponse) MarshalJSON() ([]byte, error) {
+func (s ListWebAppsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWebAppsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: The device location containing the latitude and longitude.
@@ -3513,9 +3683,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Location) UnmarshalJSON(data []byte) error {
@@ -3568,9 +3738,9 @@ type LostModeLocationEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LostModeLocationEvent) MarshalJSON() ([]byte, error) {
+func (s LostModeLocationEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod LostModeLocationEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LostModeOutgoingPhoneCallEvent: An event indicating an outgoing phone call
@@ -3599,9 +3769,9 @@ type ManagedConfigurationTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedConfigurationTemplate) MarshalJSON() ([]byte, error) {
+func (s ManagedConfigurationTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedConfigurationTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManagedProperty: Managed property.
@@ -3650,9 +3820,9 @@ type ManagedProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedProperty) MarshalJSON() ([]byte, error) {
+func (s ManagedProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManagedPropertyEntry: An entry of a managed property.
@@ -3675,9 +3845,9 @@ type ManagedPropertyEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedPropertyEntry) MarshalJSON() ([]byte, error) {
+func (s ManagedPropertyEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedPropertyEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MediaMountEvent: Removable media was mounted.
@@ -3700,9 +3870,9 @@ type MediaMountEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MediaMountEvent) MarshalJSON() ([]byte, error) {
+func (s MediaMountEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod MediaMountEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MediaUnmountEvent: Removable media was unmounted.
@@ -3725,9 +3895,9 @@ type MediaUnmountEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MediaUnmountEvent) MarshalJSON() ([]byte, error) {
+func (s MediaUnmountEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod MediaUnmountEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MemoryEvent: An event related to memory and storage measurements.To
@@ -3766,9 +3936,9 @@ type MemoryEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MemoryEvent) MarshalJSON() ([]byte, error) {
+func (s MemoryEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod MemoryEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MemoryInfo: Information about device memory and storage.
@@ -3790,9 +3960,9 @@ type MemoryInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MemoryInfo) MarshalJSON() ([]byte, error) {
+func (s MemoryInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod MemoryInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MigrationToken: A token to initiate the migration of a device from being
@@ -3867,9 +4037,9 @@ type MigrationToken struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MigrationToken) MarshalJSON() ([]byte, error) {
+func (s MigrationToken) MarshalJSON() ([]byte, error) {
 	type NoMethod MigrationToken
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkInfo: Device network info.
@@ -3901,9 +4071,9 @@ type NetworkInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkInfo) MarshalJSON() ([]byte, error) {
+func (s NetworkInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NonComplianceDetail: Provides detail about non-compliance with a policy
@@ -3963,11 +4133,11 @@ type NonComplianceDetail struct {
 	// setting.
 	//
 	// Possible values:
-	//   "NON_COMPLIANCE_REASON_UNSPECIFIED" - This value is disallowed.
+	//   "NON_COMPLIANCE_REASON_UNSPECIFIED" - This value is not used.
 	//   "API_LEVEL" - The setting is not supported in the API level of the Android
 	// version running on the device.
-	//   "MANAGEMENT_MODE" - The management mode (profile owner, device owner,
-	// etc.) doesn't support the setting.
+	//   "MANAGEMENT_MODE" - The management mode (such as fully managed or work
+	// profile) doesn't support the setting.
 	//   "USER_ACTION" - The user has not taken required action to comply with the
 	// setting.
 	//   "INVALID_VALUE" - The setting has an invalid value.
@@ -4044,9 +4214,9 @@ type NonComplianceDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NonComplianceDetail) MarshalJSON() ([]byte, error) {
+func (s NonComplianceDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod NonComplianceDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NonComplianceDetailCondition: A compliance rule condition which is satisfied
@@ -4059,11 +4229,11 @@ type NonComplianceDetailCondition struct {
 	// setting. If not set, then this condition matches any reason.
 	//
 	// Possible values:
-	//   "NON_COMPLIANCE_REASON_UNSPECIFIED" - This value is disallowed.
+	//   "NON_COMPLIANCE_REASON_UNSPECIFIED" - This value is not used.
 	//   "API_LEVEL" - The setting is not supported in the API level of the Android
 	// version running on the device.
-	//   "MANAGEMENT_MODE" - The management mode (profile owner, device owner,
-	// etc.) doesn't support the setting.
+	//   "MANAGEMENT_MODE" - The management mode (such as fully managed or work
+	// profile) doesn't support the setting.
 	//   "USER_ACTION" - The user has not taken required action to comply with the
 	// setting.
 	//   "INVALID_VALUE" - The setting has an invalid value.
@@ -4102,9 +4272,9 @@ type NonComplianceDetailCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NonComplianceDetailCondition) MarshalJSON() ([]byte, error) {
+func (s NonComplianceDetailCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod NonComplianceDetailCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OncCertificateProvider: This feature is not generally available.
@@ -4126,9 +4296,9 @@ type OncCertificateProvider struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OncCertificateProvider) MarshalJSON() ([]byte, error) {
+func (s OncCertificateProvider) MarshalJSON() ([]byte, error) {
 	type NoMethod OncCertificateProvider
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OncWifiContext: Additional context for non-compliance related to Wi-Fi
@@ -4149,9 +4319,9 @@ type OncWifiContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OncWifiContext) MarshalJSON() ([]byte, error) {
+func (s OncWifiContext) MarshalJSON() ([]byte, error) {
 	type NoMethod OncWifiContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -4195,9 +4365,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OsShutdownEvent: Device was shutdown. Intentionally empty.
@@ -4241,9 +4411,9 @@ type OsStartupEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OsStartupEvent) MarshalJSON() ([]byte, error) {
+func (s OsStartupEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod OsStartupEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PackageNameList: A list of package names.
@@ -4263,9 +4433,9 @@ type PackageNameList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PackageNameList) MarshalJSON() ([]byte, error) {
+func (s PackageNameList) MarshalJSON() ([]byte, error) {
 	type NoMethod PackageNameList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PasswordPoliciesContext: Additional context for non-compliance related to
@@ -4294,9 +4464,9 @@ type PasswordPoliciesContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PasswordPoliciesContext) MarshalJSON() ([]byte, error) {
+func (s PasswordPoliciesContext) MarshalJSON() ([]byte, error) {
 	type NoMethod PasswordPoliciesContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PasswordRequirements: Requirements for the password used to unlock a device.
@@ -4443,9 +4613,9 @@ type PasswordRequirements struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PasswordRequirements) MarshalJSON() ([]byte, error) {
+func (s PasswordRequirements) MarshalJSON() ([]byte, error) {
 	type NoMethod PasswordRequirements
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerAppResult: The result of an attempt to clear the data of a single app.
@@ -4476,9 +4646,9 @@ type PerAppResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerAppResult) MarshalJSON() ([]byte, error) {
+func (s PerAppResult) MarshalJSON() ([]byte, error) {
 	type NoMethod PerAppResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PermissionGrant: Configuration for an Android permission and its grant
@@ -4495,22 +4665,22 @@ type PermissionGrant struct {
 	// default.
 	//   "PROMPT" - Prompt the user to grant a permission.
 	//   "GRANT" - Automatically grant a permission.On Android 12 and above,
-	// Manifest.permission.READ_SMS
+	// READ_SMS
 	// (https://developer.android.com/reference/android/Manifest.permission#READ_SMS)
 	// and following sensor-related permissions can only be granted on fully
-	// managed devices: Manifest.permission.ACCESS_FINE_LOCATION
+	// managed devices: ACCESS_FINE_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_FINE_LOCATION)
-	// Manifest.permission.ACCESS_BACKGROUND_LOCATION
+	// ACCESS_BACKGROUND_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_BACKGROUND_LOCATION)
-	// Manifest.permission.ACCESS_COARSE_LOCATION
+	// ACCESS_COARSE_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_COARSE_LOCATION)
-	// Manifest.permission.CAMERA
+	// CAMERA
 	// (https://developer.android.com/reference/android/Manifest.permission#CAMERA)
-	// Manifest.permission.RECORD_AUDIO
+	// RECORD_AUDIO
 	// (https://developer.android.com/reference/android/Manifest.permission#RECORD_AUDIO)
-	// Manifest.permission.ACTIVITY_RECOGNITION
+	// ACTIVITY_RECOGNITION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACTIVITY_RECOGNITION)
-	// Manifest.permission.BODY_SENSORS
+	// BODY_SENSORS
 	// (https://developer.android.com/reference/android/Manifest.permission#BODY_SENSORS)
 	//   "DENY" - Automatically deny a permission.
 	Policy string `json:"policy,omitempty"`
@@ -4527,9 +4697,9 @@ type PermissionGrant struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PermissionGrant) MarshalJSON() ([]byte, error) {
+func (s PermissionGrant) MarshalJSON() ([]byte, error) {
 	type NoMethod PermissionGrant
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PersistentPreferredActivity: A default activity for handling intents that
@@ -4564,9 +4734,9 @@ type PersistentPreferredActivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PersistentPreferredActivity) MarshalJSON() ([]byte, error) {
+func (s PersistentPreferredActivity) MarshalJSON() ([]byte, error) {
 	type NoMethod PersistentPreferredActivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PersonalApplicationPolicy: Policies for apps in the personal profile of a
@@ -4596,9 +4766,9 @@ type PersonalApplicationPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PersonalApplicationPolicy) MarshalJSON() ([]byte, error) {
+func (s PersonalApplicationPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod PersonalApplicationPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PersonalUsagePolicies: Policies controlling personal usage on a
@@ -4635,6 +4805,17 @@ type PersonalUsagePolicies struct {
 	// installType set to AVAILABLE are allowed to be installed in the personal
 	// profile.
 	PersonalPlayStoreMode string `json:"personalPlayStoreMode,omitempty"`
+	// PrivateSpacePolicy: Optional. Controls whether a private space is allowed on
+	// the device.
+	//
+	// Possible values:
+	//   "PRIVATE_SPACE_POLICY_UNSPECIFIED" - Unspecified. Defaults to
+	// PRIVATE_SPACE_ALLOWED.
+	//   "PRIVATE_SPACE_ALLOWED" - Users can create a private space profile.
+	//   "PRIVATE_SPACE_DISALLOWED" - Users cannot create a private space profile.
+	// Supported only for company-owned devices with a work profile. Caution: Any
+	// existing private space will be removed.
+	PrivateSpacePolicy string `json:"privateSpacePolicy,omitempty"`
 	// ScreenCaptureDisabled: If true, screen capture is disabled for all users.
 	ScreenCaptureDisabled bool `json:"screenCaptureDisabled,omitempty"`
 	// ForceSendFields is a list of field names (e.g.
@@ -4652,9 +4833,9 @@ type PersonalUsagePolicies struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PersonalUsagePolicies) MarshalJSON() ([]byte, error) {
+func (s PersonalUsagePolicies) MarshalJSON() ([]byte, error) {
 	type NoMethod PersonalUsagePolicies
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: A policy resource represents a group of settings that govern the
@@ -4663,10 +4844,12 @@ type Policy struct {
 	// AccountTypesWithManagementDisabled: Account types that can't be managed by
 	// the user.
 	AccountTypesWithManagementDisabled []string `json:"accountTypesWithManagementDisabled,omitempty"`
-	// AddUserDisabled: Whether adding new users and profiles is disabled.
+	// AddUserDisabled: Whether adding new users and profiles is disabled. For
+	// devices where managementMode is DEVICE_OWNER this field is ignored and the
+	// user is never allowed to add or remove users.
 	AddUserDisabled bool `json:"addUserDisabled,omitempty"`
 	// AdjustVolumeDisabled: Whether adjusting the master volume is disabled. Also
-	// mutes the device.
+	// mutes the device. The setting has effect only on fully managed devices.
 	AdjustVolumeDisabled bool `json:"adjustVolumeDisabled,omitempty"`
 	// AdvancedSecurityOverrides: Advanced security settings. In most cases,
 	// setting these is not needed.
@@ -4699,6 +4882,21 @@ type Policy struct {
 	AppAutoUpdatePolicy string `json:"appAutoUpdatePolicy,omitempty"`
 	// Applications: Policy applied to apps. This can have at most 3,000 elements.
 	Applications []*ApplicationPolicy `json:"applications,omitempty"`
+	// AssistContentPolicy: Optional. Controls whether AssistContent
+	// (https://developer.android.com/reference/android/app/assist/AssistContent)
+	// is allowed to be sent to a privileged app such as an assistant app.
+	// AssistContent includes screenshots and information about an app, such as
+	// package name. This is supported on Android 15 and above.
+	//
+	// Possible values:
+	//   "ASSIST_CONTENT_POLICY_UNSPECIFIED" - Unspecified. Defaults to
+	// ASSIST_CONTENT_ALLOWED.
+	//   "ASSIST_CONTENT_DISALLOWED" - Assist content is blocked from being sent to
+	// a privileged app.Supported on Android 15 and above. A nonComplianceDetail
+	// with API_LEVEL is reported if the Android version is less than 15.
+	//   "ASSIST_CONTENT_ALLOWED" - Assist content is allowed to be sent to a
+	// privileged app.Supported on Android 15 and above.
+	AssistContentPolicy string `json:"assistContentPolicy,omitempty"`
 	// AutoDateAndTimeZone: Whether auto date, time, and time zone are enabled on a
 	// company-owned device. If this is set, then autoTimeRequired is ignored.
 	//
@@ -4810,22 +5008,22 @@ type Policy struct {
 	// default.
 	//   "PROMPT" - Prompt the user to grant a permission.
 	//   "GRANT" - Automatically grant a permission.On Android 12 and above,
-	// Manifest.permission.READ_SMS
+	// READ_SMS
 	// (https://developer.android.com/reference/android/Manifest.permission#READ_SMS)
 	// and following sensor-related permissions can only be granted on fully
-	// managed devices: Manifest.permission.ACCESS_FINE_LOCATION
+	// managed devices: ACCESS_FINE_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_FINE_LOCATION)
-	// Manifest.permission.ACCESS_BACKGROUND_LOCATION
+	// ACCESS_BACKGROUND_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_BACKGROUND_LOCATION)
-	// Manifest.permission.ACCESS_COARSE_LOCATION
+	// ACCESS_COARSE_LOCATION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACCESS_COARSE_LOCATION)
-	// Manifest.permission.CAMERA
+	// CAMERA
 	// (https://developer.android.com/reference/android/Manifest.permission#CAMERA)
-	// Manifest.permission.RECORD_AUDIO
+	// RECORD_AUDIO
 	// (https://developer.android.com/reference/android/Manifest.permission#RECORD_AUDIO)
-	// Manifest.permission.ACTIVITY_RECOGNITION
+	// ACTIVITY_RECOGNITION
 	// (https://developer.android.com/reference/android/Manifest.permission#ACTIVITY_RECOGNITION)
-	// Manifest.permission.BODY_SENSORS
+	// BODY_SENSORS
 	// (https://developer.android.com/reference/android/Manifest.permission#BODY_SENSORS)
 	//   "DENY" - Automatically deny a permission.
 	DefaultPermissionPolicy string `json:"defaultPermissionPolicy,omitempty"`
@@ -4838,6 +5036,8 @@ type Policy struct {
 	// DeviceRadioState: Covers controls for radio state such as Wi-Fi, bluetooth,
 	// and more.
 	DeviceRadioState *DeviceRadioState `json:"deviceRadioState,omitempty"`
+	// DisplaySettings: Optional. Controls for the display settings.
+	DisplaySettings *DisplaySettings `json:"displaySettings,omitempty"`
 	// EncryptionPolicy: Whether encryption is enabled
 	//
 	// Possible values:
@@ -4867,7 +5067,8 @@ type Policy struct {
 	InstallUnknownSourcesAllowed bool `json:"installUnknownSourcesAllowed,omitempty"`
 	// KeyguardDisabled: If true, this disables the Lock Screen
 	// (https://source.android.com/docs/core/display/multi_display/lock-screen) for
-	// primary and/or secondary displays.
+	// primary and/or secondary displays. This policy is supported only in
+	// dedicated device management mode.
 	KeyguardDisabled bool `json:"keyguardDisabled,omitempty"`
 	// KeyguardDisabledFeatures: Disabled keyguard customizations, such as widgets.
 	//
@@ -5074,7 +5275,8 @@ type Policy struct {
 	SafeBootDisabled bool `json:"safeBootDisabled,omitempty"`
 	// ScreenCaptureDisabled: Whether screen capture is disabled.
 	ScreenCaptureDisabled bool `json:"screenCaptureDisabled,omitempty"`
-	// SetUserIconDisabled: Whether changing the user icon is disabled.
+	// SetUserIconDisabled: Whether changing the user icon is disabled. The setting
+	// has effect only on fully managed devices.
 	SetUserIconDisabled bool `json:"setUserIconDisabled,omitempty"`
 	// SetWallpaperDisabled: Whether changing the wallpaper is disabled.
 	SetWallpaperDisabled bool `json:"setWallpaperDisabled,omitempty"`
@@ -5159,7 +5361,7 @@ type Policy struct {
 	// disabled then network escape hatch will be shown in order to refresh the
 	// device policy (see networkEscapeHatchEnabled).
 	WifiConfigDisabled bool `json:"wifiConfigDisabled,omitempty"`
-	// WifiConfigsLockdownEnabled: DEPRECATED - Use wifi_config_disabled.
+	// WifiConfigsLockdownEnabled: This is deprecated.
 	WifiConfigsLockdownEnabled bool `json:"wifiConfigsLockdownEnabled,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -5179,9 +5381,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PolicyEnforcementRule: A rule that defines the actions to take if a device
@@ -5217,9 +5419,9 @@ type PolicyEnforcementRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PolicyEnforcementRule) MarshalJSON() ([]byte, error) {
+func (s PolicyEnforcementRule) MarshalJSON() ([]byte, error) {
 	type NoMethod PolicyEnforcementRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostureDetail: Additional details regarding the security posture of the
@@ -5255,9 +5457,9 @@ type PostureDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostureDetail) MarshalJSON() ([]byte, error) {
+func (s PostureDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod PostureDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PowerManagementEvent: A power management event.
@@ -5293,9 +5495,9 @@ type PowerManagementEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PowerManagementEvent) MarshalJSON() ([]byte, error) {
+func (s PowerManagementEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod PowerManagementEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *PowerManagementEvent) UnmarshalJSON(data []byte) error {
@@ -5369,9 +5571,9 @@ type ProvisioningInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProvisioningInfo) MarshalJSON() ([]byte, error) {
+func (s ProvisioningInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ProvisioningInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProxyInfo: Configuration info for an HTTP proxy. For a direct proxy, set the
@@ -5400,9 +5602,9 @@ type ProxyInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProxyInfo) MarshalJSON() ([]byte, error) {
+func (s ProxyInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ProxyInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoteLockEvent: The device or profile has been remotely locked via the LOCK
@@ -5428,9 +5630,107 @@ type RemoteLockEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoteLockEvent) MarshalJSON() ([]byte, error) {
+func (s RemoteLockEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoteLockEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ScreenBrightnessSettings: Controls for the screen brightness settings.
+type ScreenBrightnessSettings struct {
+	// ScreenBrightness: Optional. The screen brightness between 1 and 255 where 1
+	// is the lowest and 255 is the highest brightness. A value of 0 (default)
+	// means no screen brightness set. Any other value is rejected.
+	// screenBrightnessMode must be either BRIGHTNESS_AUTOMATIC or BRIGHTNESS_FIXED
+	// to set this. Supported on Android 9 and above on fully managed devices. A
+	// NonComplianceDetail with API_LEVEL is reported if the Android version is
+	// less than 9. Supported on work profiles on company-owned devices on Android
+	// 15 and above.
+	ScreenBrightness int64 `json:"screenBrightness,omitempty"`
+	// ScreenBrightnessMode: Optional. Controls the screen brightness mode.
+	//
+	// Possible values:
+	//   "SCREEN_BRIGHTNESS_MODE_UNSPECIFIED" - Unspecified. Defaults to
+	// BRIGHTNESS_USER_CHOICE.
+	//   "BRIGHTNESS_USER_CHOICE" - The user is allowed to configure the screen
+	// brightness. screenBrightness must not be set.
+	//   "BRIGHTNESS_AUTOMATIC" - The screen brightness mode is automatic in which
+	// the brightness is automatically adjusted and the user is not allowed to
+	// configure the screen brightness. screenBrightness can still be set and it is
+	// taken into account while the brightness is automatically adjusted. Supported
+	// on Android 9 and above on fully managed devices. A NonComplianceDetail with
+	// API_LEVEL is reported if the Android version is less than 9. Supported on
+	// work profiles on company-owned devices on Android 15 and above.
+	//   "BRIGHTNESS_FIXED" - The screen brightness mode is fixed in which the
+	// brightness is set to screenBrightness and the user is not allowed to
+	// configure the screen brightness. screenBrightness must be set. Supported on
+	// Android 9 and above on fully managed devices. A NonComplianceDetail with
+	// API_LEVEL is reported if the Android version is less than 9. Supported on
+	// work profiles on company-owned devices on Android 15 and above.
+	ScreenBrightnessMode string `json:"screenBrightnessMode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ScreenBrightness") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ScreenBrightness") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ScreenBrightnessSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod ScreenBrightnessSettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ScreenTimeoutSettings: Controls the screen timeout settings.
+type ScreenTimeoutSettings struct {
+	// ScreenTimeout: Optional. Controls the screen timeout duration. The screen
+	// timeout duration must be greater than 0, otherwise it is rejected.
+	// Additionally, it should not be greater than maximumTimeToLock, otherwise the
+	// screen timeout is set to maximumTimeToLock and a NonComplianceDetail with
+	// INVALID_VALUE reason and SCREEN_TIMEOUT_GREATER_THAN_MAXIMUM_TIME_TO_LOCK
+	// specific reason is reported. If the screen timeout is less than a certain
+	// lower bound, it is set to the lower bound. The lower bound may vary across
+	// devices. If this is set, screenTimeoutMode must be SCREEN_TIMEOUT_ENFORCED.
+	// Supported on Android 9 and above on fully managed devices. A
+	// NonComplianceDetail with API_LEVEL is reported if the Android version is
+	// less than 9. Supported on work profiles on company-owned devices on Android
+	// 15 and above.
+	ScreenTimeout string `json:"screenTimeout,omitempty"`
+	// ScreenTimeoutMode: Optional. Controls whether the user is allowed to
+	// configure the screen timeout.
+	//
+	// Possible values:
+	//   "SCREEN_TIMEOUT_MODE_UNSPECIFIED" - Unspecified. Defaults to
+	// SCREEN_TIMEOUT_USER_CHOICE.
+	//   "SCREEN_TIMEOUT_USER_CHOICE" - The user is allowed to configure the screen
+	// timeout. screenTimeout must not be set.
+	//   "SCREEN_TIMEOUT_ENFORCED" - The screen timeout is set to screenTimeout and
+	// the user is not allowed to configure the timeout. screenTimeout must be set.
+	// Supported on Android 9 and above on fully managed devices. A
+	// NonComplianceDetail with API_LEVEL is reported if the Android version is
+	// less than 9. Supported on work profiles on company-owned devices on Android
+	// 15 and above.
+	ScreenTimeoutMode string `json:"screenTimeoutMode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ScreenTimeout") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ScreenTimeout") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ScreenTimeoutSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod ScreenTimeoutSettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SecurityPosture: The security posture of the device, as determined by the
@@ -5463,9 +5763,9 @@ type SecurityPosture struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SecurityPosture) MarshalJSON() ([]byte, error) {
+func (s SecurityPosture) MarshalJSON() ([]byte, error) {
 	type NoMethod SecurityPosture
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetupAction: An action executed during setup.
@@ -5495,9 +5795,9 @@ type SetupAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetupAction) MarshalJSON() ([]byte, error) {
+func (s SetupAction) MarshalJSON() ([]byte, error) {
 	type NoMethod SetupAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SigninDetail: A resource containing sign in details for an enterprise. Use
@@ -5534,8 +5834,30 @@ type SigninDetail struct {
 	//   "PERSONAL_USAGE_DISALLOWED" - Personal usage is disallowed
 	//   "PERSONAL_USAGE_DISALLOWED_USERLESS" - Device is not associated with a
 	// single user, and thus both personal usage and corporate identity
-	// authentication are not expected.
+	// authentication are not expected. Important: This setting is mandatory for
+	// dedicated device enrollment and it is a breaking change. This change needs
+	// to be implemented before January 2025.For additional details see the
+	// dedicated device provisioning guide
+	// (https://developers.google.com/android/management/provision-device#company-owned_devices_for_work_use_only).
 	AllowPersonalUsage string `json:"allowPersonalUsage,omitempty"`
+	// DefaultStatus: Optional. Whether the sign-in URL should be used by default
+	// for the enterprise. The SigninDetail with defaultStatus set to
+	// SIGNIN_DETAIL_IS_DEFAULT is used for Google account enrollment method. Only
+	// one of an enterprise's signinDetails can have defaultStatus set to
+	// SIGNIN_DETAIL_IS_DEFAULT. If an Enterprise has at least one signinDetails
+	// and none of them have defaultStatus set to SIGNIN_DETAIL_IS_DEFAULT then the
+	// first one from the list is selected and has set defaultStatus to
+	// SIGNIN_DETAIL_IS_DEFAULT. If no signinDetails specified for the Enterprise
+	// then the Google Account device enrollment will fail.
+	//
+	// Possible values:
+	//   "SIGNIN_DETAIL_DEFAULT_STATUS_UNSPECIFIED" - Equivalent to
+	// SIGNIN_DETAIL_IS_NOT_DEFAULT.
+	//   "SIGNIN_DETAIL_IS_DEFAULT" - The sign-in URL will be used by default for
+	// the enterprise.
+	//   "SIGNIN_DETAIL_IS_NOT_DEFAULT" - The sign-in URL will not be used by
+	// default for the enterprise.
+	DefaultStatus string `json:"defaultStatus,omitempty"`
 	// QrCode: A JSON string whose UTF-8 representation can be used to generate a
 	// QR code to enroll a device with this enrollment token. To enroll a device
 	// using NFC, the NFC record must contain a serialized java.util.Properties
@@ -5567,9 +5889,9 @@ type SigninDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SigninDetail) MarshalJSON() ([]byte, error) {
+func (s SigninDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod SigninDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SignupUrl: An enterprise signup URL.
@@ -5596,9 +5918,9 @@ type SignupUrl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SignupUrl) MarshalJSON() ([]byte, error) {
+func (s SignupUrl) MarshalJSON() ([]byte, error) {
 	type NoMethod SignupUrl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareInfo: Information about device software.
@@ -5644,9 +5966,9 @@ type SoftwareInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareInfo) MarshalJSON() ([]byte, error) {
+func (s SoftwareInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SpecificNonComplianceContext: Additional context for
@@ -5672,9 +5994,9 @@ type SpecificNonComplianceContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SpecificNonComplianceContext) MarshalJSON() ([]byte, error) {
+func (s SpecificNonComplianceContext) MarshalJSON() ([]byte, error) {
 	type NoMethod SpecificNonComplianceContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartLostModeParams: Parameters associated with the START_LOST_MODE command
@@ -5710,9 +6032,9 @@ type StartLostModeParams struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartLostModeParams) MarshalJSON() ([]byte, error) {
+func (s StartLostModeParams) MarshalJSON() ([]byte, error) {
 	type NoMethod StartLostModeParams
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartLostModeStatus: Status of the START_LOST_MODE command to put the device
@@ -5742,9 +6064,9 @@ type StartLostModeStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartLostModeStatus) MarshalJSON() ([]byte, error) {
+func (s StartLostModeStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod StartLostModeStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The Status type defines a logical error model that is suitable for
@@ -5776,9 +6098,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StatusReportingSettings: Settings controlling the behavior of status
@@ -5790,7 +6112,7 @@ type StatusReportingSettings struct {
 	// ApplicationReportsEnabled: Whether app reports are enabled.
 	ApplicationReportsEnabled bool `json:"applicationReportsEnabled,omitempty"`
 	// CommonCriteriaModeEnabled: Whether Common Criteria Mode reporting is
-	// enabled.
+	// enabled. This is supported only on company-owned devices.
 	CommonCriteriaModeEnabled bool `json:"commonCriteriaModeEnabled,omitempty"`
 	// DeviceSettingsEnabled: Whether device settings reporting is enabled.
 	DeviceSettingsEnabled bool `json:"deviceSettingsEnabled,omitempty"`
@@ -5825,9 +6147,9 @@ type StatusReportingSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StatusReportingSettings) MarshalJSON() ([]byte, error) {
+func (s StatusReportingSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod StatusReportingSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopLostModeParams: Parameters associated with the STOP_LOST_MODE command to
@@ -5858,9 +6180,9 @@ type StopLostModeStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StopLostModeStatus) MarshalJSON() ([]byte, error) {
+func (s StopLostModeStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod StopLostModeStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopLostModeUserAttemptEvent: A lost mode event indicating the user has
@@ -5888,9 +6210,9 @@ type StopLostModeUserAttemptEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StopLostModeUserAttemptEvent) MarshalJSON() ([]byte, error) {
+func (s StopLostModeUserAttemptEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod StopLostModeUserAttemptEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SystemUpdate: Configuration for managing system updatesNote: Google Play
@@ -5946,9 +6268,9 @@ type SystemUpdate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SystemUpdate) MarshalJSON() ([]byte, error) {
+func (s SystemUpdate) MarshalJSON() ([]byte, error) {
 	type NoMethod SystemUpdate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SystemUpdateInfo: Information about a potential pending system update.
@@ -5985,9 +6307,9 @@ type SystemUpdateInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SystemUpdateInfo) MarshalJSON() ([]byte, error) {
+func (s SystemUpdateInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SystemUpdateInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TelephonyInfo: Telephony information associated with a given SIM card on the
@@ -5996,6 +6318,8 @@ func (s *SystemUpdateInfo) MarshalJSON() ([]byte, error) {
 type TelephonyInfo struct {
 	// CarrierName: The carrier name associated with this SIM card.
 	CarrierName string `json:"carrierName,omitempty"`
+	// IccId: Output only. The ICCID associated with this SIM card.
+	IccId string `json:"iccId,omitempty"`
 	// PhoneNumber: The phone number associated with this SIM card.
 	PhoneNumber string `json:"phoneNumber,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CarrierName") to
@@ -6011,9 +6335,9 @@ type TelephonyInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TelephonyInfo) MarshalJSON() ([]byte, error) {
+func (s TelephonyInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod TelephonyInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TermsAndConditions: A terms and conditions page to be accepted during
@@ -6037,9 +6361,9 @@ type TermsAndConditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TermsAndConditions) MarshalJSON() ([]byte, error) {
+func (s TermsAndConditions) MarshalJSON() ([]byte, error) {
 	type NoMethod TermsAndConditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UsageLog: Controls types of device activity logs collected from the device
@@ -6100,9 +6424,9 @@ type UsageLog struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsageLog) MarshalJSON() ([]byte, error) {
+func (s UsageLog) MarshalJSON() ([]byte, error) {
 	type NoMethod UsageLog
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UsageLogEvent: An event logged on the device.
@@ -6267,9 +6591,9 @@ type UsageLogEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsageLogEvent) MarshalJSON() ([]byte, error) {
+func (s UsageLogEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod UsageLogEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // User: A user belonging to an enterprise.
@@ -6293,9 +6617,9 @@ type User struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *User) MarshalJSON() ([]byte, error) {
+func (s User) MarshalJSON() ([]byte, error) {
 	type NoMethod User
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserFacingMessage: Provides a user-facing message with locale info. The
@@ -6323,9 +6647,9 @@ type UserFacingMessage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserFacingMessage) MarshalJSON() ([]byte, error) {
+func (s UserFacingMessage) MarshalJSON() ([]byte, error) {
 	type NoMethod UserFacingMessage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebApp: A web app.
@@ -6375,9 +6699,9 @@ type WebApp struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebApp) MarshalJSON() ([]byte, error) {
+func (s WebApp) MarshalJSON() ([]byte, error) {
 	type NoMethod WebApp
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebAppIcon: An icon for a web app. Supported formats are: png, jpg and webp.
@@ -6400,9 +6724,9 @@ type WebAppIcon struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebAppIcon) MarshalJSON() ([]byte, error) {
+func (s WebAppIcon) MarshalJSON() ([]byte, error) {
 	type NoMethod WebAppIcon
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebToken: A web token used to access the managed Google Play iframe.
@@ -6464,9 +6788,73 @@ type WebToken struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebToken) MarshalJSON() ([]byte, error) {
+func (s WebToken) MarshalJSON() ([]byte, error) {
 	type NoMethod WebToken
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// WifiRoamingPolicy: Wi-Fi roaming policy.
+type WifiRoamingPolicy struct {
+	// WifiRoamingSettings: Optional. Wi-Fi roaming settings. SSIDs provided in
+	// this list must be unique, the policy will be rejected otherwise.
+	WifiRoamingSettings []*WifiRoamingSetting `json:"wifiRoamingSettings,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "WifiRoamingSettings") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "WifiRoamingSettings") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s WifiRoamingPolicy) MarshalJSON() ([]byte, error) {
+	type NoMethod WifiRoamingPolicy
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// WifiRoamingSetting: Wi-Fi roaming setting.
+type WifiRoamingSetting struct {
+	// WifiRoamingMode: Required. Wi-Fi roaming mode for the specified SSID.
+	//
+	// Possible values:
+	//   "WIFI_ROAMING_MODE_UNSPECIFIED" - Unspecified. Defaults to
+	// WIFI_ROAMING_DEFAULT.
+	//   "WIFI_ROAMING_DISABLED" - Wi-Fi roaming is disabled. Supported on Android
+	// 15 and above on fully managed devices and work profiles on company-owned
+	// devices. A nonComplianceDetail with MANAGEMENT_MODE is reported for other
+	// management modes. A nonComplianceDetail with API_LEVEL is reported if the
+	// Android version is less than 15.
+	//   "WIFI_ROAMING_DEFAULT" - Default Wi-Fi roaming mode of the device.
+	//   "WIFI_ROAMING_AGGRESSIVE" - Aggressive roaming mode which allows quicker
+	// Wi-Fi roaming. Supported on Android 15 and above on fully managed devices
+	// and work profiles on company-owned devices. A nonComplianceDetail with
+	// MANAGEMENT_MODE is reported for other management modes. A
+	// nonComplianceDetail with API_LEVEL is reported if the Android version is
+	// less than 15. A nonComplianceDetail with DEVICE_INCOMPATIBLE is reported if
+	// the device does not support aggressive roaming mode.
+	WifiRoamingMode string `json:"wifiRoamingMode,omitempty"`
+	// WifiSsid: Required. SSID of the Wi-Fi network.
+	WifiSsid string `json:"wifiSsid,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "WifiRoamingMode") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "WifiRoamingMode") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s WifiRoamingSetting) MarshalJSON() ([]byte, error) {
+	type NoMethod WifiRoamingSetting
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WifiSsid: Represents a Wi-Fi SSID.
@@ -6486,9 +6874,9 @@ type WifiSsid struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WifiSsid) MarshalJSON() ([]byte, error) {
+func (s WifiSsid) MarshalJSON() ([]byte, error) {
 	type NoMethod WifiSsid
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WifiSsidPolicy: Restrictions on which Wi-Fi SSIDs the device can connect to.
@@ -6527,9 +6915,9 @@ type WifiSsidPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WifiSsidPolicy) MarshalJSON() ([]byte, error) {
+func (s WifiSsidPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod WifiSsidPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WipeAction: An action to reset a company owned device or delete a work
@@ -6554,9 +6942,9 @@ type WipeAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WipeAction) MarshalJSON() ([]byte, error) {
+func (s WipeAction) MarshalJSON() ([]byte, error) {
 	type NoMethod WipeAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WipeFailureEvent: The work profile or company-owned device failed to wipe
@@ -6647,8 +7035,7 @@ func (c *EnterprisesCreateCall) Header() http.Header {
 
 func (c *EnterprisesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enterprise)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.enterprise)
 	if err != nil {
 		return nil, err
 	}
@@ -6661,6 +7048,7 @@ func (c *EnterprisesCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6695,9 +7083,11 @@ func (c *EnterprisesCreateCall) Do(opts ...googleapi.CallOption) (*Enterprise, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6746,12 +7136,11 @@ func (c *EnterprisesDeleteCall) Header() http.Header {
 
 func (c *EnterprisesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6759,6 +7148,7 @@ func (c *EnterprisesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6793,9 +7183,118 @@ func (c *EnterprisesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type EnterprisesGenerateEnterpriseUpgradeUrlCall struct {
+	s                                   *Service
+	name                                string
+	generateenterpriseupgradeurlrequest *GenerateEnterpriseUpgradeUrlRequest
+	urlParams_                          gensupport.URLParams
+	ctx_                                context.Context
+	header_                             http.Header
+}
+
+// GenerateEnterpriseUpgradeUrl: Generates an enterprise upgrade URL to upgrade
+// an existing managed Google Play Accounts enterprise to a managed Google
+// domain.Note: This feature is not generally available.
+//
+//   - name: The name of the enterprise to be upgraded in the form
+//     enterprises/{enterpriseId}.
+func (r *EnterprisesService) GenerateEnterpriseUpgradeUrl(name string, generateenterpriseupgradeurlrequest *GenerateEnterpriseUpgradeUrlRequest) *EnterprisesGenerateEnterpriseUpgradeUrlCall {
+	c := &EnterprisesGenerateEnterpriseUpgradeUrlCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.generateenterpriseupgradeurlrequest = generateenterpriseupgradeurlrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *EnterprisesGenerateEnterpriseUpgradeUrlCall) Fields(s ...googleapi.Field) *EnterprisesGenerateEnterpriseUpgradeUrlCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *EnterprisesGenerateEnterpriseUpgradeUrlCall) Context(ctx context.Context) *EnterprisesGenerateEnterpriseUpgradeUrlCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *EnterprisesGenerateEnterpriseUpgradeUrlCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *EnterprisesGenerateEnterpriseUpgradeUrlCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.generateenterpriseupgradeurlrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:generateEnterpriseUpgradeUrl")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.generateEnterpriseUpgradeUrl", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "androidmanagement.enterprises.generateEnterpriseUpgradeUrl" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GenerateEnterpriseUpgradeUrlResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *EnterprisesGenerateEnterpriseUpgradeUrlCall) Do(opts ...googleapi.CallOption) (*GenerateEnterpriseUpgradeUrlResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GenerateEnterpriseUpgradeUrlResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.generateEnterpriseUpgradeUrl", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6853,12 +7352,11 @@ func (c *EnterprisesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6866,6 +7364,7 @@ func (c *EnterprisesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6900,9 +7399,11 @@ func (c *EnterprisesGetCall) Do(opts ...googleapi.CallOption) (*Enterprise, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6992,16 +7493,16 @@ func (c *EnterprisesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/enterprises")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7037,9 +7538,11 @@ func (c *EnterprisesListCall) Do(opts ...googleapi.CallOption) (*ListEnterprises
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7116,8 +7619,7 @@ func (c *EnterprisesPatchCall) Header() http.Header {
 
 func (c *EnterprisesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enterprise)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.enterprise)
 	if err != nil {
 		return nil, err
 	}
@@ -7133,6 +7635,7 @@ func (c *EnterprisesPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7167,9 +7670,11 @@ func (c *EnterprisesPatchCall) Do(opts ...googleapi.CallOption) (*Enterprise, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7237,12 +7742,11 @@ func (c *EnterprisesApplicationsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7250,6 +7754,7 @@ func (c *EnterprisesApplicationsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.applications.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7284,9 +7789,11 @@ func (c *EnterprisesApplicationsGetCall) Do(opts ...googleapi.CallOption) (*Appl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.applications.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7362,12 +7869,11 @@ func (c *EnterprisesDevicesDeleteCall) Header() http.Header {
 
 func (c *EnterprisesDevicesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7375,6 +7881,7 @@ func (c *EnterprisesDevicesDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7409,9 +7916,11 @@ func (c *EnterprisesDevicesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7470,12 +7979,11 @@ func (c *EnterprisesDevicesGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7483,6 +7991,7 @@ func (c *EnterprisesDevicesGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7517,9 +8026,11 @@ func (c *EnterprisesDevicesGetCall) Do(opts ...googleapi.CallOption) (*Device, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7570,8 +8081,7 @@ func (c *EnterprisesDevicesIssueCommandCall) Header() http.Header {
 
 func (c *EnterprisesDevicesIssueCommandCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.command)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.command)
 	if err != nil {
 		return nil, err
 	}
@@ -7587,6 +8097,7 @@ func (c *EnterprisesDevicesIssueCommandCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.issueCommand", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7621,9 +8132,11 @@ func (c *EnterprisesDevicesIssueCommandCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.issueCommand", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7696,12 +8209,11 @@ func (c *EnterprisesDevicesListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/devices")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7709,6 +8221,7 @@ func (c *EnterprisesDevicesListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7744,9 +8257,11 @@ func (c *EnterprisesDevicesListCall) Do(opts ...googleapi.CallOption) (*ListDevi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7824,8 +8339,7 @@ func (c *EnterprisesDevicesPatchCall) Header() http.Header {
 
 func (c *EnterprisesDevicesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.device)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.device)
 	if err != nil {
 		return nil, err
 	}
@@ -7841,6 +8355,7 @@ func (c *EnterprisesDevicesPatchCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7875,9 +8390,11 @@ func (c *EnterprisesDevicesPatchCall) Do(opts ...googleapi.CallOption) (*Device,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7931,12 +8448,11 @@ func (c *EnterprisesDevicesOperationsCancelCall) Header() http.Header {
 
 func (c *EnterprisesDevicesOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7944,6 +8460,7 @@ func (c *EnterprisesDevicesOperationsCancelCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7978,9 +8495,11 @@ func (c *EnterprisesDevicesOperationsCancelCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8040,12 +8559,11 @@ func (c *EnterprisesDevicesOperationsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8053,6 +8571,7 @@ func (c *EnterprisesDevicesOperationsGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8087,9 +8606,11 @@ func (c *EnterprisesDevicesOperationsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8168,12 +8689,11 @@ func (c *EnterprisesDevicesOperationsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8181,6 +8701,7 @@ func (c *EnterprisesDevicesOperationsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8216,9 +8737,11 @@ func (c *EnterprisesDevicesOperationsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.devices.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8254,10 +8777,7 @@ type EnterprisesEnrollmentTokensCreateCall struct {
 
 // Create: Creates an enrollment token for a given enterprise. It's up to the
 // caller's responsibility to manage the lifecycle of newly created tokens and
-// deleting them when they're not intended to be used anymore. Once an
-// enrollment token has been created, it's not possible to retrieve the token's
-// content anymore using AM API. It is recommended for EMMs to securely store
-// the token if it's intended to be reused.
+// deleting them when they're not intended to be used anymore.
 //
 // - parent: The name of the enterprise in the form enterprises/{enterpriseId}.
 func (r *EnterprisesEnrollmentTokensService) Create(parent string, enrollmenttoken *EnrollmentToken) *EnterprisesEnrollmentTokensCreateCall {
@@ -8292,8 +8812,7 @@ func (c *EnterprisesEnrollmentTokensCreateCall) Header() http.Header {
 
 func (c *EnterprisesEnrollmentTokensCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enrollmenttoken)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.enrollmenttoken)
 	if err != nil {
 		return nil, err
 	}
@@ -8309,6 +8828,7 @@ func (c *EnterprisesEnrollmentTokensCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.enrollmentTokens.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8344,9 +8864,11 @@ func (c *EnterprisesEnrollmentTokensCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.enrollmentTokens.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8394,12 +8916,11 @@ func (c *EnterprisesEnrollmentTokensDeleteCall) Header() http.Header {
 
 func (c *EnterprisesEnrollmentTokensDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8407,6 +8928,7 @@ func (c *EnterprisesEnrollmentTokensDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.enrollmentTokens.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8441,9 +8963,11 @@ func (c *EnterprisesEnrollmentTokensDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.enrollmentTokens.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8507,12 +9031,11 @@ func (c *EnterprisesEnrollmentTokensGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8520,6 +9043,7 @@ func (c *EnterprisesEnrollmentTokensGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.enrollmentTokens.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8555,9 +9079,11 @@ func (c *EnterprisesEnrollmentTokensGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.enrollmentTokens.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8637,12 +9163,11 @@ func (c *EnterprisesEnrollmentTokensListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/enrollmentTokens")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8650,6 +9175,7 @@ func (c *EnterprisesEnrollmentTokensListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.enrollmentTokens.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8685,9 +9211,11 @@ func (c *EnterprisesEnrollmentTokensListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.enrollmentTokens.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8762,8 +9290,7 @@ func (c *EnterprisesMigrationTokensCreateCall) Header() http.Header {
 
 func (c *EnterprisesMigrationTokensCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.migrationtoken)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.migrationtoken)
 	if err != nil {
 		return nil, err
 	}
@@ -8779,6 +9306,7 @@ func (c *EnterprisesMigrationTokensCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.migrationTokens.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8813,9 +9341,11 @@ func (c *EnterprisesMigrationTokensCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.migrationTokens.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8874,12 +9404,11 @@ func (c *EnterprisesMigrationTokensGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8887,6 +9416,7 @@ func (c *EnterprisesMigrationTokensGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.migrationTokens.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8921,9 +9451,11 @@ func (c *EnterprisesMigrationTokensGetCall) Do(opts ...googleapi.CallOption) (*M
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.migrationTokens.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9000,12 +9532,11 @@ func (c *EnterprisesMigrationTokensListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/migrationTokens")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9013,6 +9544,7 @@ func (c *EnterprisesMigrationTokensListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.migrationTokens.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9048,9 +9580,11 @@ func (c *EnterprisesMigrationTokensListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.migrationTokens.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9119,12 +9653,11 @@ func (c *EnterprisesPoliciesDeleteCall) Header() http.Header {
 
 func (c *EnterprisesPoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9132,6 +9665,7 @@ func (c *EnterprisesPoliciesDeleteCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.policies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9166,9 +9700,11 @@ func (c *EnterprisesPoliciesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.policies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9227,12 +9763,11 @@ func (c *EnterprisesPoliciesGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9240,6 +9775,7 @@ func (c *EnterprisesPoliciesGetCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.policies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9274,9 +9810,11 @@ func (c *EnterprisesPoliciesGetCall) Do(opts ...googleapi.CallOption) (*Policy, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.policies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9348,12 +9886,11 @@ func (c *EnterprisesPoliciesListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/policies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9361,6 +9898,7 @@ func (c *EnterprisesPoliciesListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.policies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9396,9 +9934,11 @@ func (c *EnterprisesPoliciesListCall) Do(opts ...googleapi.CallOption) (*ListPol
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.policies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9476,8 +10016,7 @@ func (c *EnterprisesPoliciesPatchCall) Header() http.Header {
 
 func (c *EnterprisesPoliciesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.policy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.policy)
 	if err != nil {
 		return nil, err
 	}
@@ -9493,6 +10032,7 @@ func (c *EnterprisesPoliciesPatchCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.policies.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9527,9 +10067,11 @@ func (c *EnterprisesPoliciesPatchCall) Do(opts ...googleapi.CallOption) (*Policy
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.policies.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9577,8 +10119,7 @@ func (c *EnterprisesWebAppsCreateCall) Header() http.Header {
 
 func (c *EnterprisesWebAppsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webapp)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.webapp)
 	if err != nil {
 		return nil, err
 	}
@@ -9594,6 +10135,7 @@ func (c *EnterprisesWebAppsCreateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9628,9 +10170,11 @@ func (c *EnterprisesWebAppsCreateCall) Do(opts ...googleapi.CallOption) (*WebApp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9677,12 +10221,11 @@ func (c *EnterprisesWebAppsDeleteCall) Header() http.Header {
 
 func (c *EnterprisesWebAppsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9690,6 +10233,7 @@ func (c *EnterprisesWebAppsDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9724,9 +10268,11 @@ func (c *EnterprisesWebAppsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9785,12 +10331,11 @@ func (c *EnterprisesWebAppsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9798,6 +10343,7 @@ func (c *EnterprisesWebAppsGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9832,9 +10378,11 @@ func (c *EnterprisesWebAppsGetCall) Do(opts ...googleapi.CallOption) (*WebApp, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9906,12 +10454,11 @@ func (c *EnterprisesWebAppsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/webApps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9919,6 +10466,7 @@ func (c *EnterprisesWebAppsListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9954,9 +10502,11 @@ func (c *EnterprisesWebAppsListCall) Do(opts ...googleapi.CallOption) (*ListWebA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10034,8 +10584,7 @@ func (c *EnterprisesWebAppsPatchCall) Header() http.Header {
 
 func (c *EnterprisesWebAppsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webapp)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.webapp)
 	if err != nil {
 		return nil, err
 	}
@@ -10051,6 +10600,7 @@ func (c *EnterprisesWebAppsPatchCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10085,9 +10635,11 @@ func (c *EnterprisesWebAppsPatchCall) Do(opts ...googleapi.CallOption) (*WebApp,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webApps.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10136,8 +10688,7 @@ func (c *EnterprisesWebTokensCreateCall) Header() http.Header {
 
 func (c *EnterprisesWebTokensCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webtoken)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.webtoken)
 	if err != nil {
 		return nil, err
 	}
@@ -10153,6 +10704,7 @@ func (c *EnterprisesWebTokensCreateCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webTokens.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10187,9 +10739,11 @@ func (c *EnterprisesWebTokensCreateCall) Do(opts ...googleapi.CallOption) (*WebT
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.enterprises.webTokens.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10249,12 +10803,11 @@ func (c *ProvisioningInfoGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10262,6 +10815,7 @@ func (c *ProvisioningInfoGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.provisioningInfo.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10297,9 +10851,11 @@ func (c *ProvisioningInfoGetCall) Do(opts ...googleapi.CallOption) (*Provisionin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.provisioningInfo.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10318,9 +10874,23 @@ func (r *SignupUrlsService) Create() *SignupUrlsCreateCall {
 
 // AdminEmail sets the optional parameter "adminEmail": Email address used to
 // prefill the admin field of the enterprise signup form. This value is a hint
-// only and can be altered by the user.
+// only and can be altered by the user. If allowedDomains is non-empty then
+// this must belong to one of the allowedDomains.
 func (c *SignupUrlsCreateCall) AdminEmail(adminEmail string) *SignupUrlsCreateCall {
 	c.urlParams_.Set("adminEmail", adminEmail)
+	return c
+}
+
+// AllowedDomains sets the optional parameter "allowedDomains": A list of
+// domains that are permitted for the admin email. The IT admin cannot enter an
+// email address with a domain name that is not in this list. Subdomains of
+// domains in this list are not allowed but can be allowed by adding a second
+// entry which has *. prefixed to the domain name (e.g. *.example.com). If the
+// field is not present or is an empty list then the IT admin is free to use
+// any valid domain name. Personal email domains are always allowed, but will
+// result in the creation of a managed Google Play Accounts enterprise.
+func (c *SignupUrlsCreateCall) AllowedDomains(allowedDomains ...string) *SignupUrlsCreateCall {
+	c.urlParams_.SetMulti("allowedDomains", append([]string{}, allowedDomains...))
 	return c
 }
 
@@ -10368,16 +10938,16 @@ func (c *SignupUrlsCreateCall) Header() http.Header {
 
 func (c *SignupUrlsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/signupUrls")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "androidmanagement.signupUrls.create", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10412,8 +10982,10 @@ func (c *SignupUrlsCreateCall) Do(opts ...googleapi.CallOption) (*SignupUrl, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "androidmanagement.signupUrls.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

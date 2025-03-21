@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "firebase:v1beta1"
 const apiName = "firebase"
@@ -133,7 +136,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.AvailableProjects = NewAvailableProjectsService(s)
+	s.Operations = NewOperationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -152,15 +158,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.AvailableProjects = NewAvailableProjectsService(s)
-	s.Operations = NewOperationsService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -279,12 +282,14 @@ type ProjectsWebAppsService struct {
 
 // AddFirebaseRequest: All fields are required.
 type AddFirebaseRequest struct {
-	// LocationId: Deprecated. Instead, to set a Project's default GCP resource
-	// location, call `FinalizeDefaultLocation`
-	// (../projects.defaultLocation/finalize) after you add Firebase resources to
-	// the GCP `Project`. The ID of the Project's default GCP resource location.
-	// The location must be one of the available GCP resource locations
-	// (https://firebase.google.com/docs/projects/locations).
+	// LocationId: **DEPRECATED.** _Instead, use product-specific REST APIs to work
+	// with the location of each resource in a Project. This field may be ignored,
+	// especially for newly provisioned projects after October 30, 2024._ The ID of
+	// the Project's "location for default Google Cloud resources"
+	// (https://firebase.google.com/docs/projects/locations#default-cloud-location),
+	// which are resources associated with Google App Engine. The location must be
+	// one of the available Google App Engine locations
+	// (https://cloud.google.com/about/locations#region).
 	LocationId string `json:"locationId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "LocationId") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -299,9 +304,9 @@ type AddFirebaseRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddFirebaseRequest) MarshalJSON() ([]byte, error) {
+func (s AddFirebaseRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddFirebaseRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AddGoogleAnalyticsRequest struct {
@@ -327,40 +332,46 @@ type AddGoogleAnalyticsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddGoogleAnalyticsRequest) MarshalJSON() ([]byte, error) {
+func (s AddGoogleAnalyticsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddGoogleAnalyticsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AdminSdkConfig struct {
-	// DatabaseURL: **DEPRECATED.** _Instead, find the default Firebase Realtime
-	// Database instance name using the list endpoint
+	// DatabaseURL: **DEPRECATED.** _Instead, find the URL of the default Realtime
+	// Database instance using the list endpoint
 	// (https://firebase.google.com/docs/reference/rest/database/database-management/rest/v1beta/projects.locations.instances/list)
-	// within the Firebase Realtime Database REST API. Note that the default
-	// instance for the Project might not yet be provisioned, so the return might
-	// not contain a default instance._ The default Firebase Realtime Database URL.
+	// within the Firebase Realtime Database REST API. If the default instance for
+	// the Project has not yet been provisioned, the return might not contain a
+	// default instance. Note that the config that's generated for the Firebase
+	// console or the Firebase CLI uses the Realtime Database endpoint to populate
+	// this value for that config._ The URL of the default Firebase Realtime
+	// Database instance.
 	DatabaseURL string `json:"databaseURL,omitempty"`
 	// LocationId: **DEPRECATED.** _Instead, use product-specific REST APIs to find
-	// the location of resources._ The ID of the Project's default GCP resource
-	// location. The location is one of the available GCP resource locations
-	// (https://firebase.google.com/docs/projects/locations). This field is omitted
-	// if the default GCP resource location has not been finalized yet. To set a
-	// Project's default GCP resource location, call `FinalizeDefaultLocation`
-	// (../projects.defaultLocation/finalize) after you add Firebase resources to
-	// the Project.
+	// the location of each resource in a Project. This field may not be populated,
+	// especially for newly provisioned projects after October 30, 2024._ The ID of
+	// the Project's "location for default Google Cloud resources"
+	// (https://firebase.google.com/docs/projects/locations#default-cloud-location),
+	// which are resources associated with Google App Engine. The location is one
+	// of the available App Engine locations
+	// (https://cloud.google.com/about/locations#region). This field is omitted if
+	// the location for default Google Cloud resources has not been set.
 	LocationId string `json:"locationId,omitempty"`
 	// ProjectId: Immutable. A user-assigned unique identifier for the
 	// `FirebaseProject`. This identifier may appear in URLs or names for some
 	// Firebase resources associated with the Project, but it should generally be
 	// treated as a convenience alias to reference the Project.
 	ProjectId string `json:"projectId,omitempty"`
-	// StorageBucket: **DEPRECATED.** _Instead, find the default Cloud Storage for
-	// Firebase bucket using the list endpoint
+	// StorageBucket: **DEPRECATED.** _Instead, find the name of the default Cloud
+	// Storage for Firebase bucket using the list endpoint
 	// (https://firebase.google.com/docs/reference/rest/storage/rest/v1beta/projects.buckets/list)
-	// within the Cloud Storage for Firebase REST API. Note that the default bucket
-	// for the Project might not yet be provisioned, so the return might not
-	// contain a default bucket._ The default Cloud Storage for Firebase storage
-	// bucket name.
+	// within the Cloud Storage for Firebase REST API. If the default bucket for
+	// the Project has not yet been provisioned, the return might not contain a
+	// default bucket. Note that the config that's generated for the Firebase
+	// console or the Firebase CLI uses the Cloud Storage for Firebase endpoint to
+	// populate this value for that config._ The name of the default Cloud Storage
+	// for Firebase bucket.
 	StorageBucket string `json:"storageBucket,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -378,9 +389,9 @@ type AdminSdkConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdminSdkConfig) MarshalJSON() ([]byte, error) {
+func (s AdminSdkConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AdminSdkConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AnalyticsDetails struct {
@@ -411,9 +422,9 @@ type AnalyticsDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyticsDetails) MarshalJSON() ([]byte, error) {
+func (s AnalyticsDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyticsDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyticsProperty: Details of a Google Analytics property
@@ -445,9 +456,9 @@ type AnalyticsProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyticsProperty) MarshalJSON() ([]byte, error) {
+func (s AnalyticsProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyticsProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidApp: Details of a Firebase App for Android.
@@ -481,9 +492,11 @@ type AndroidApp struct {
 	// (https://google.aip.dev/154#declarative-friendly-resources). This etag is
 	// strongly validated.
 	Etag string `json:"etag,omitempty"`
-	// ExpireTime: Output only. Timestamp of when the App will be considered
-	// expired and cannot be undeleted. This value is only provided if the App is
-	// in the `DELETED` state.
+	// ExpireTime: Output only. If the App has been removed from the Project, this
+	// is the timestamp of when the App is considered expired and will be
+	// permanently deleted. After this time, the App cannot be undeleted (that is,
+	// restored to the Project). This value is only provided if the App is in the
+	// `DELETED` state.
 	ExpireTime string `json:"expireTime,omitempty"`
 	// Name: The resource name of the AndroidApp, in the format: projects/
 	// PROJECT_IDENTIFIER/androidApps/APP_ID * PROJECT_IDENTIFIER: the parent
@@ -533,9 +546,9 @@ type AndroidApp struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidApp) MarshalJSON() ([]byte, error) {
+func (s AndroidApp) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidApp
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AndroidAppConfig: Configuration metadata of a single Firebase App for
@@ -562,9 +575,9 @@ type AndroidAppConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AndroidAppConfig) MarshalJSON() ([]byte, error) {
+func (s AndroidAppConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AndroidAppConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DefaultResources: **DEPRECATED.** _Auto-provisioning of these resources is
@@ -573,12 +586,12 @@ func (s *AndroidAppConfig) MarshalJSON() ([]byte, error) {
 // resource directly from its resource-specific API._ The default
 // auto-provisioned resources associated with the Project.
 type DefaultResources struct {
-	// HostingSite: Output only. **DEPRECATED.** _Instead, find the default
-	// Firebase Hosting site name using the ListSites
+	// HostingSite: Output only. **DEPRECATED.** _Instead, find the name of the
+	// default Firebase Hosting site using ListSites
 	// (https://firebase.google.com/docs/reference/hosting/rest/v1beta1/projects.sites/list)
-	// within the Firebase Hosting REST API. Note that the default site for the
-	// Project might not yet be provisioned, so the return might not contain a
-	// default site._ The default Firebase Hosting site name, in the format:
+	// within the Firebase Hosting REST API. If the default Hosting site for the
+	// Project has not yet been provisioned, the return might not contain a default
+	// site._ The name of the default Firebase Hosting site, in the format:
 	// PROJECT_ID Though rare, your `projectId` might already be used as the name
 	// for an existing Hosting site in another project (learn more about creating
 	// non-default, additional sites
@@ -589,36 +602,39 @@ type DefaultResources struct {
 	// `myproject123-a5c16`
 	HostingSite string `json:"hostingSite,omitempty"`
 	// LocationId: Output only. **DEPRECATED.** _Instead, use product-specific REST
-	// APIs to find the location of resources._ The ID of the Project's default GCP
-	// resource location. The location is one of the available GCP resource
-	// locations (https://firebase.google.com/docs/projects/locations). This field
-	// is omitted if the default GCP resource location has not been finalized yet.
-	// To set a Project's default GCP resource location, call
-	// `FinalizeDefaultLocation` (../projects.defaultLocation/finalize) after you
-	// add Firebase resources to the Project.
+	// APIs to find the location of each resource in a Project. This field may not
+	// be populated, especially for newly provisioned projects after October 30,
+	// 2024._ The ID of the Project's "location for default Google Cloud resources"
+	// (https://firebase.google.com/docs/projects/locations#default-cloud-location),
+	// which are resources associated with Google App Engine. The location is one
+	// of the available Google App Engine locations
+	// (https://cloud.google.com/about/locations#region). This field is omitted if
+	// the location for default Google Cloud resources has not been set.
 	LocationId string `json:"locationId,omitempty"`
 	// RealtimeDatabaseInstance: Output only. **DEPRECATED.** _Instead, find the
-	// default Firebase Realtime Database instance name using the list endpoint
+	// name of the default Realtime Database instance using the list endpoint
 	// (https://firebase.google.com/docs/reference/rest/database/database-management/rest/v1beta/projects.locations.instances/list)
-	// within the Firebase Realtime Database REST API. Note that the default
-	// instance for the Project might not yet be provisioned, so the return might
-	// not contain a default instance._ The default Firebase Realtime Database
-	// instance name, in the format: PROJECT_ID Though rare, your `projectId` might
-	// already be used as the name for an existing Realtime Database instance in
-	// another project (learn more about database sharding
+	// within the Firebase Realtime Database REST API. If the default Realtime
+	// Database instance for a Project has not yet been provisioned, the return
+	// might not contain a default instance._ The default Firebase Realtime
+	// Database instance name, in the format: PROJECT_ID Though rare, your
+	// `projectId` might already be used as the name for an existing Realtime
+	// Database instance in another project (learn more about database sharding
 	// (https://firebase.google.com/docs/database/usage/sharding)). In these cases,
 	// your `projectId` is appended with a hyphen then five alphanumeric characters
 	// to create your default Realtime Database instance name. For example, if your
 	// `projectId` is `myproject123`, your default database instance name might be:
 	// `myproject123-a5c16`
 	RealtimeDatabaseInstance string `json:"realtimeDatabaseInstance,omitempty"`
-	// StorageBucket: Output only. **DEPRECATED.** _Instead, find the default Cloud
-	// Storage for Firebase bucket using the list endpoint
+	// StorageBucket: Output only. **DEPRECATED.** _Instead, find the name of the
+	// default Cloud Storage for Firebase bucket using the list endpoint
 	// (https://firebase.google.com/docs/reference/rest/storage/rest/v1beta/projects.buckets/list)
-	// within the Cloud Storage for Firebase REST API. Note that the default bucket
-	// for the Project might not yet be provisioned, so the return might not
-	// contain a default bucket._ The default Cloud Storage for Firebase storage
-	// bucket, in the format: PROJECT_ID.appspot.com
+	// within the Cloud Storage for Firebase REST API. If the default bucket for
+	// the Project has not yet been provisioned, the return might not contain a
+	// default bucket._ The name of the default Cloud Storage for Firebase bucket,
+	// in one of the following formats: * If provisioned _before_ October 30, 2024:
+	// PROJECT_ID.firebasestorage.app * If provisioned _on or after_ October 30,
+	// 2024: PROJECT_ID.firebasestorage.app
 	StorageBucket string `json:"storageBucket,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "HostingSite") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -633,9 +649,9 @@ type DefaultResources struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DefaultResources) MarshalJSON() ([]byte, error) {
+func (s DefaultResources) MarshalJSON() ([]byte, error) {
 	type NoMethod DefaultResources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -648,9 +664,12 @@ type Empty struct {
 }
 
 type FinalizeDefaultLocationRequest struct {
-	// LocationId: The ID of the Project's default GCP resource location. The
-	// location must be one of the available GCP resource locations
-	// (https://firebase.google.com/docs/projects/locations).
+	// LocationId: **DEPRECATED** The ID of the Project's "location for default
+	// Google Cloud resources"
+	// (https://firebase.google.com/docs/projects/locations#default-cloud-location),
+	// which are resources associated with Google App Engine. The location must be
+	// one of the available Google App Engine locations
+	// (https://cloud.google.com/about/locations#region).
 	LocationId string `json:"locationId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "LocationId") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -665,9 +684,9 @@ type FinalizeDefaultLocationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FinalizeDefaultLocationRequest) MarshalJSON() ([]byte, error) {
+func (s FinalizeDefaultLocationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod FinalizeDefaultLocationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FirebaseAppInfo: A high-level summary of an App.
@@ -695,9 +714,11 @@ type FirebaseAppInfo struct {
 	AppId string `json:"appId,omitempty"`
 	// DisplayName: The user-assigned display name of the Firebase App.
 	DisplayName string `json:"displayName,omitempty"`
-	// ExpireTime: Output only. Timestamp of when the App will be considered
-	// expired and cannot be undeleted. This value is only provided if the App is
-	// in the `DELETED` state.
+	// ExpireTime: Output only. If the App has been removed from the Project, this
+	// is the timestamp of when the App is considered expired and will be
+	// permanently deleted. After this time, the App cannot be undeleted (that is,
+	// restored to the Project). This value is only provided if the App is in the
+	// `DELETED` state.
 	ExpireTime string `json:"expireTime,omitempty"`
 	// Name: The resource name of the Firebase App, in the format:
 	// projects/PROJECT_ID /iosApps/APP_ID or
@@ -746,22 +767,22 @@ type FirebaseAppInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FirebaseAppInfo) MarshalJSON() ([]byte, error) {
+func (s FirebaseAppInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod FirebaseAppInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FirebaseProject: A `FirebaseProject` is the top-level Firebase entity. It is
 // the container for Firebase Apps, Firebase Hosting sites, storage systems
 // (Firebase Realtime Database, Cloud Firestore, Cloud Storage buckets), and
-// other Firebase and Google Cloud Platform (GCP) resources. You create a
-// `FirebaseProject` by calling AddFirebase and specifying an *existing* GCP
-// `Project`
+// other Firebase and Google Cloud resources. You create a `FirebaseProject` by
+// calling AddFirebase and specifying an *existing* Google Cloud `Project`
 // (https://cloud.google.com/resource-manager/reference/rest/v1/projects). This
-// adds Firebase resources to the existing GCP `Project`. Since a
-// FirebaseProject is actually also a GCP `Project`, a `FirebaseProject` has
-// the same underlying GCP identifiers (`projectNumber` and `projectId`). This
-// allows for easy interop with Google APIs.
+// adds Firebase resources to the existing Google Cloud `Project`. Since a
+// FirebaseProject is actually also a Google Cloud `Project`, a
+// `FirebaseProject` has the same underlying Google Cloud identifiers
+// (`projectNumber` and `projectId`). This allows for easy interop with Google
+// APIs.
 type FirebaseProject struct {
 	// Annotations: A set of user-defined annotations for the FirebaseProject.
 	// Learn more about annotations in Google's AIP-128 standard
@@ -825,9 +846,9 @@ type FirebaseProject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FirebaseProject) MarshalJSON() ([]byte, error) {
+func (s FirebaseProject) MarshalJSON() ([]byte, error) {
 	type NoMethod FirebaseProject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosApp: Details of a Firebase App for iOS.
@@ -867,9 +888,11 @@ type IosApp struct {
 	// (https://google.aip.dev/154#declarative-friendly-resources). This etag is
 	// strongly validated.
 	Etag string `json:"etag,omitempty"`
-	// ExpireTime: Output only. Timestamp of when the App will be considered
-	// expired and cannot be undeleted. This value is only provided if the App is
-	// in the `DELETED` state.
+	// ExpireTime: Output only. If the App has been removed from the Project, this
+	// is the timestamp of when the App is considered expired and will be
+	// permanently deleted. After this time, the App cannot be undeleted (that is,
+	// restored to the Project). This value is only provided if the App is in the
+	// `DELETED` state.
 	ExpireTime string `json:"expireTime,omitempty"`
 	// Name: The resource name of the IosApp, in the format:
 	// projects/PROJECT_IDENTIFIER /iosApps/APP_ID * PROJECT_IDENTIFIER: the parent
@@ -915,9 +938,9 @@ type IosApp struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosApp) MarshalJSON() ([]byte, error) {
+func (s IosApp) MarshalJSON() ([]byte, error) {
 	type NoMethod IosApp
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IosAppConfig: Configuration metadata of a single Firebase App for iOS.
@@ -943,9 +966,9 @@ type IosAppConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IosAppConfig) MarshalJSON() ([]byte, error) {
+func (s IosAppConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod IosAppConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListAndroidAppsResponse struct {
@@ -974,9 +997,9 @@ type ListAndroidAppsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAndroidAppsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAndroidAppsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAndroidAppsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListAvailableLocationsResponse struct {
@@ -1004,9 +1027,9 @@ type ListAvailableLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAvailableLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAvailableLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAvailableLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListAvailableProjectsResponse struct {
@@ -1016,8 +1039,8 @@ type ListAvailableProjectsResponse struct {
 	// `ListAvailableProjects` to find the next group of Projects. Page tokens are
 	// short-lived and should not be persisted.
 	NextPageToken string `json:"nextPageToken,omitempty"`
-	// ProjectInfo: The list of GCP `Projects` which can have Firebase resources
-	// added to them.
+	// ProjectInfo: The list of Google Cloud `Projects` which can have Firebase
+	// resources added to them.
 	ProjectInfo []*ProjectInfo `json:"projectInfo,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -1035,9 +1058,9 @@ type ListAvailableProjectsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAvailableProjectsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAvailableProjectsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAvailableProjectsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListFirebaseProjectsResponse struct {
@@ -1065,9 +1088,9 @@ type ListFirebaseProjectsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFirebaseProjectsResponse) MarshalJSON() ([]byte, error) {
+func (s ListFirebaseProjectsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFirebaseProjectsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListIosAppsResponse struct {
@@ -1095,9 +1118,9 @@ type ListIosAppsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListIosAppsResponse) MarshalJSON() ([]byte, error) {
+func (s ListIosAppsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListIosAppsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListShaCertificatesResponse struct {
@@ -1120,9 +1143,9 @@ type ListShaCertificatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListShaCertificatesResponse) MarshalJSON() ([]byte, error) {
+func (s ListShaCertificatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListShaCertificatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListWebAppsResponse struct {
@@ -1150,40 +1173,39 @@ type ListWebAppsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWebAppsResponse) MarshalJSON() ([]byte, error) {
+func (s ListWebAppsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWebAppsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: **DEPRECATED.** _This Location is no longer used to determine
 // Firebase resource locations. Instead, consult product documentation to
-// determine valid locations for each resource used in your Project._ A GCP
-// resource location that can be selected for a FirebaseProject.
+// determine valid locations for each resource used in your Project._ A
+// "location for default Google Cloud resources"
+// (https://firebase.google.com/docs/projects/locations#default-cloud-location)
+// that can be selected for a FirebaseProject. These are resources associated
+// with Google App Engine.
 type Location struct {
-	// Features: Products and services that are available in the GCP resource
-	// location.
+	// Features: Products and services that are available in the location for
+	// default Google Cloud resources.
 	//
 	// Possible values:
 	//   "LOCATION_FEATURE_UNSPECIFIED" - Used internally for distinguishing unset
 	// values and is not intended for external use.
 	//   "FIRESTORE" - This location supports Cloud Firestore database instances.
-	// App Engine is available in this location, so it can be a Project's [default
-	// GCP resource
-	// location](//firebase.google.com/docs/projects/locations#default-cloud-locatio
-	// n).
+	// Google App Engine is available in this location, so it can be a Project's
+	// location for default Google Cloud resources.
 	//   "DEFAULT_STORAGE" - This location supports default Cloud Storage buckets.
-	// App Engine is available in this location, so it can be a Project's [default
-	// GCP resource
-	// location](//firebase.google.com/docs/projects/locations#default-cloud-locatio
-	// n).
+	// Google App Engine is available in this location, so it can be a Project's
+	// location for default Google Cloud resources.
 	//   "FUNCTIONS" - Cloud Functions for Firebase is available in this location.
 	Features []string `json:"features,omitempty"`
-	// LocationId: The ID of the GCP resource location. It will be one of the
-	// available GCP resource locations
-	// (https://firebase.google.com/docs/projects/locations#types).
+	// LocationId: The ID of the Project's location for default Google Cloud
+	// resources. It will be one of the available Google App Engine locations
+	// (https://cloud.google.com/about/locations#region).
 	LocationId string `json:"locationId,omitempty"`
-	// Type: Indicates whether the GCP resource location is a regional or
-	// multi-regional location
+	// Type: Indicates whether the location for default Google Cloud resources is a
+	// regional or multi-regional location
 	// (https://firebase.google.com/docs/projects/locations#types) for data
 	// replication.
 	//
@@ -1209,12 +1231,11 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// MessageSet: This is proto2's version of MessageSet.
 type MessageSet struct {
 }
 
@@ -1260,9 +1281,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Describes the progress of an LRO. It is included in the
@@ -1287,29 +1308,30 @@ type ProductMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProductMetadata) MarshalJSON() ([]byte, error) {
+func (s ProductMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ProductMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// ProjectInfo: A reference to a Google Cloud Platform (GCP) `Project`.
+// ProjectInfo: A reference to a Google Cloud `Project`.
 type ProjectInfo struct {
-	// DisplayName: The user-assigned display name of the GCP `Project`, for
-	// example: `My App`
+	// DisplayName: The user-assigned display name of the Google Cloud `Project`,
+	// for example: `My App`.
 	DisplayName string `json:"displayName,omitempty"`
-	// LocationId: The ID of the Project's default GCP resource location. The
-	// location is one of the available GCP resource locations
-	// (https://firebase.google.com/docs/projects/locations). Not all Projects will
+	// LocationId: **DEPRECATED** _Instead, use product-specific REST APIs to work
+	// with the location of each resource in a Project. This field may not be
+	// populated, especially for newly provisioned projects after October 30,
+	// 2024._ The ID of the Project's "location for default Google Cloud resources"
+	// (https://firebase.google.com/docs/projects/locations#default-cloud-location).
+	// The location is one of the available Google App Engine locations
+	// (https://cloud.google.com/about/locations#region). Not all Projects will
 	// have this field populated. If it is not populated, it means that the Project
-	// does not yet have a default GCP resource location. To set a Project's
-	// default GCP resource location, call `FinalizeDefaultLocation`
-	// (../projects.defaultLocation/finalize) after you add Firebase resources to
-	// the Project.
+	// does not yet have a location for default Google Cloud resources.
 	LocationId string `json:"locationId,omitempty"`
-	// Project: The resource name of the GCP `Project` to which Firebase resources
-	// can be added, in the format: projects/PROJECT_IDENTIFIER Refer to the
-	// `FirebaseProject` `name` (../projects#FirebaseProject.FIELDS.name) field for
-	// details about PROJECT_IDENTIFIER values.
+	// Project: The resource name of the Google Cloud `Project` to which Firebase
+	// resources can be added, in the format: projects/PROJECT_IDENTIFIER Refer to
+	// the `FirebaseProject` `name` (../projects#FirebaseProject.FIELDS.name) field
+	// for details about PROJECT_IDENTIFIER values.
 	Project string `json:"project,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DisplayName") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1324,9 +1346,9 @@ type ProjectInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProjectInfo) MarshalJSON() ([]byte, error) {
+func (s ProjectInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ProjectInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RemoveAnalyticsRequest struct {
@@ -1350,9 +1372,9 @@ type RemoveAnalyticsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveAnalyticsRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveAnalyticsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveAnalyticsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RemoveAndroidAppRequest struct {
@@ -1364,9 +1386,9 @@ type RemoveAndroidAppRequest struct {
 	Etag string `json:"etag,omitempty"`
 	// Immediate: Determines whether to _immediately_ delete the AndroidApp. If set
 	// to true, the App is immediately deleted from the Project and cannot be
-	// restored to the Project. If not set, defaults to false, which means the App
-	// will be set to expire in 30 days. Within the 30 days, the App may be
-	// restored to the Project using UndeleteAndroidApp.
+	// undeleted (that is, restored to the Project). If not set, defaults to false,
+	// which means the App will be set to expire in 30 days. Within the 30 days,
+	// the App may be restored to the Project using UndeleteAndroidApp.
 	Immediate bool `json:"immediate,omitempty"`
 	// ValidateOnly: If set to true, the request is only validated. The App will
 	// _not_ be removed.
@@ -1384,9 +1406,9 @@ type RemoveAndroidAppRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveAndroidAppRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveAndroidAppRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveAndroidAppRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RemoveIosAppRequest struct {
@@ -1397,10 +1419,10 @@ type RemoveIosAppRequest struct {
 	// ensures that the client has an up-to-date value before proceeding.
 	Etag string `json:"etag,omitempty"`
 	// Immediate: Determines whether to _immediately_ delete the IosApp. If set to
-	// true, the App is immediately deleted from the Project and cannot be restored
-	// to the Project. If not set, defaults to false, which means the App will be
-	// set to expire in 30 days. Within the 30 days, the App may be restored to the
-	// Project using UndeleteIosApp
+	// true, the App is immediately deleted from the Project and cannot be
+	// undeleted (that is, restored to the Project). If not set, defaults to false,
+	// which means the App will be set to expire in 30 days. Within the 30 days,
+	// the App may be restored to the Project using UndeleteIosApp
 	Immediate bool `json:"immediate,omitempty"`
 	// ValidateOnly: If set to true, the request is only validated. The App will
 	// _not_ be removed.
@@ -1418,9 +1440,9 @@ type RemoveIosAppRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveIosAppRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveIosAppRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveIosAppRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RemoveWebAppRequest struct {
@@ -1431,10 +1453,10 @@ type RemoveWebAppRequest struct {
 	// ensures that the client has an up-to-date value before proceeding.
 	Etag string `json:"etag,omitempty"`
 	// Immediate: Determines whether to _immediately_ delete the WebApp. If set to
-	// true, the App is immediately deleted from the Project and cannot be restored
-	// to the Project. If not set, defaults to false, which means the App will be
-	// set to expire in 30 days. Within the 30 days, the App may be restored to the
-	// Project using UndeleteWebApp
+	// true, the App is immediately deleted from the Project and cannot be
+	// undeleted (that is, restored to the Project). If not set, defaults to false,
+	// which means the App will be set to expire in 30 days. Within the 30 days,
+	// the App may be restored to the Project using UndeleteWebApp
 	Immediate bool `json:"immediate,omitempty"`
 	// ValidateOnly: If set to true, the request is only validated. The App will
 	// _not_ be removed.
@@ -1452,9 +1474,9 @@ type RemoveWebAppRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveWebAppRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveWebAppRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveWebAppRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SearchFirebaseAppsResponse struct {
@@ -1481,9 +1503,9 @@ type SearchFirebaseAppsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchFirebaseAppsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchFirebaseAppsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchFirebaseAppsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ShaCertificate: A SHA-1 or SHA-256 certificate associated with the
@@ -1528,9 +1550,9 @@ type ShaCertificate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ShaCertificate) MarshalJSON() ([]byte, error) {
+func (s ShaCertificate) MarshalJSON() ([]byte, error) {
 	type NoMethod ShaCertificate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -1562,26 +1584,30 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StatusProto: Wire-format for a Status object
 type StatusProto struct {
-	// CanonicalCode: The canonical error code (see codes.proto) that most closely
-	// corresponds to this status. This may be missing, and in the common case of
-	// the generic space, it definitely will be.
+	// CanonicalCode: copybara:strip_begin(b/383363683)
+	// copybara:strip_end_and_replace optional int32 canonical_code = 6;
 	CanonicalCode int64 `json:"canonicalCode,omitempty"`
 	// Code: Numeric code drawn from the space specified below. Often, this is the
 	// canonical error space, and code is drawn from google3/util/task/codes.proto
+	// copybara:strip_begin(b/383363683) copybara:strip_end_and_replace optional
+	// int32 code = 1;
 	Code int64 `json:"code,omitempty"`
-	// Message: Detail message
+	// Message: Detail message copybara:strip_begin(b/383363683)
+	// copybara:strip_end_and_replace optional string message = 3;
 	Message string `json:"message,omitempty"`
 	// MessageSet: message_set associates an arbitrary proto message with the
-	// status.
+	// status. copybara:strip_begin(b/383363683) copybara:strip_end_and_replace
+	// optional proto2.bridge.MessageSet message_set = 5;
 	MessageSet *MessageSet `json:"messageSet,omitempty"`
-	// Space: The following are usually only present when code != 0 Space to which
+	// Space: copybara:strip_begin(b/383363683) Space to which this status belongs
+	// copybara:strip_end_and_replace optional string space = 2; // Space to which
 	// this status belongs
 	Space string `json:"space,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CanonicalCode") to
@@ -1597,9 +1623,9 @@ type StatusProto struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StatusProto) MarshalJSON() ([]byte, error) {
+func (s StatusProto) MarshalJSON() ([]byte, error) {
 	type NoMethod StatusProto
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamMapping: A mapping of a Firebase App to a Google Analytics data stream
@@ -1637,9 +1663,9 @@ type StreamMapping struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamMapping) MarshalJSON() ([]byte, error) {
+func (s StreamMapping) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamMapping
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UndeleteAndroidAppRequest struct {
@@ -1662,9 +1688,9 @@ type UndeleteAndroidAppRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UndeleteAndroidAppRequest) MarshalJSON() ([]byte, error) {
+func (s UndeleteAndroidAppRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UndeleteAndroidAppRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UndeleteIosAppRequest struct {
@@ -1687,9 +1713,9 @@ type UndeleteIosAppRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UndeleteIosAppRequest) MarshalJSON() ([]byte, error) {
+func (s UndeleteIosAppRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UndeleteIosAppRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UndeleteWebAppRequest struct {
@@ -1712,9 +1738,9 @@ type UndeleteWebAppRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UndeleteWebAppRequest) MarshalJSON() ([]byte, error) {
+func (s UndeleteWebAppRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UndeleteWebAppRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebApp: Details of a Firebase App for the web.
@@ -1750,9 +1776,11 @@ type WebApp struct {
 	// (https://google.aip.dev/154#declarative-friendly-resources). This etag is
 	// strongly validated.
 	Etag string `json:"etag,omitempty"`
-	// ExpireTime: Output only. Timestamp of when the App will be considered
-	// expired and cannot be undeleted. This value is only provided if the App is
-	// in the `DELETED` state.
+	// ExpireTime: Output only. If the App has been removed from the Project, this
+	// is the timestamp of when the App is considered expired and will be
+	// permanently deleted. After this time, the App cannot be undeleted (that is,
+	// restored to the Project). This value is only provided if the App is in the
+	// `DELETED` state.
 	ExpireTime string `json:"expireTime,omitempty"`
 	// Name: The resource name of the WebApp, in the format:
 	// projects/PROJECT_IDENTIFIER /webApps/APP_ID * PROJECT_IDENTIFIER: the parent
@@ -1801,9 +1829,9 @@ type WebApp struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebApp) MarshalJSON() ([]byte, error) {
+func (s WebApp) MarshalJSON() ([]byte, error) {
 	type NoMethod WebApp
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebAppConfig: Configuration metadata of a single Firebase App for the web.
@@ -1820,21 +1848,25 @@ type WebAppConfig struct {
 	// AuthDomain: The domain Firebase Auth configures for OAuth redirects, in the
 	// format: PROJECT_ID.firebaseapp.com
 	AuthDomain string `json:"authDomain,omitempty"`
-	// DatabaseURL: **DEPRECATED.** _Instead, find the default Firebase Realtime
-	// Database instance name using the list endpoint
+	// DatabaseURL: **DEPRECATED.** _Instead, find the URL of the default Realtime
+	// Database instance using the list endpoint
 	// (https://firebase.google.com/docs/reference/rest/database/database-management/rest/v1beta/projects.locations.instances/list)
-	// within the Firebase Realtime Database REST API. Note that the default
-	// instance for the Project might not yet be provisioned, so the return might
-	// not contain a default instance._ The default Firebase Realtime Database URL.
+	// within the Firebase Realtime Database REST API. If the default instance for
+	// the Project has not yet been provisioned, the return might not contain a
+	// default instance. Note that the config that's generated for the Firebase
+	// console or the Firebase CLI uses the Realtime Database endpoint to populate
+	// this value for that config._ The URL of the default Firebase Realtime
+	// Database instance.
 	DatabaseURL string `json:"databaseURL,omitempty"`
 	// LocationId: **DEPRECATED.** _Instead, use product-specific REST APIs to find
-	// the location of resources._ The ID of the Project's default GCP resource
-	// location. The location is one of the available GCP resource locations
-	// (https://firebase.google.com/docs/projects/locations). This field is omitted
-	// if the default GCP resource location has not been finalized yet. To set a
-	// Project's default GCP resource location, call `FinalizeDefaultLocation`
-	// (../projects.defaultLocation/finalize) after you add Firebase resources to
-	// the Project.
+	// the location of each resource in a Project. This field may not be populated,
+	// especially for newly provisioned projects after October 30, 2024._ The ID of
+	// the Project's "location for default Google Cloud resources"
+	// (https://firebase.google.com/docs/projects/locations#default-cloud-location),
+	// which are resources associated with Google App Engine. The location is one
+	// of the available App Engine locations
+	// (https://cloud.google.com/about/locations#region). This field is omitted if
+	// the location for default Google Cloud resources has not been set.
 	LocationId string `json:"locationId,omitempty"`
 	// MeasurementId: The unique Google-assigned identifier of the Google Analytics
 	// web stream associated with the `WebApp`. Firebase SDKs use this ID to
@@ -1855,14 +1887,28 @@ type WebAppConfig struct {
 	// ProjectId: Immutable. A user-assigned unique identifier for the
 	// `FirebaseProject`.
 	ProjectId string `json:"projectId,omitempty"`
-	// StorageBucket: **DEPRECATED.** _Instead, find the default Cloud Storage for
-	// Firebase bucket using the list endpoint
+	// ProjectNumber: Output only. Immutable. The globally unique, Google-assigned
+	// canonical identifier for the Project. Use this identifier when configuring
+	// integrations and/or making API calls to Google Cloud or third-party
+	// services.
+	ProjectNumber string `json:"projectNumber,omitempty"`
+	// RealtimeDatabaseUrl: Optional. Duplicate field for the URL of the default
+	// Realtime Database instances (if the default instance has been provisioned).
+	// If the request asks for the V2 config format, this field will be populated
+	// instead of `realtime_database_instance_uri`.
+	RealtimeDatabaseUrl string `json:"realtimeDatabaseUrl,omitempty"`
+	// StorageBucket: **DEPRECATED.** _Instead, find the name of the default Cloud
+	// Storage for Firebase bucket using the list endpoint
 	// (https://firebase.google.com/docs/reference/rest/storage/rest/v1beta/projects.buckets/list)
-	// within the Cloud Storage for Firebase REST API. Note that the default bucket
-	// for the Project might not yet be provisioned, so the return might not
-	// contain a default bucket._ The default Cloud Storage for Firebase storage
-	// bucket name.
+	// within the Cloud Storage for Firebase REST API. If the default bucket for
+	// the Project has not yet been provisioned, the return might not contain a
+	// default bucket. Note that the config that's generated for the Firebase
+	// console or the Firebase CLI uses the Cloud Storage for Firebase endpoint to
+	// populate this value for that config._ The name of the default Cloud Storage
+	// for Firebase bucket.
 	StorageBucket string `json:"storageBucket,omitempty"`
+	// Version: Version of the config specification.
+	Version string `json:"version,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -1879,9 +1925,9 @@ type WebAppConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebAppConfig) MarshalJSON() ([]byte, error) {
+func (s WebAppConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod WebAppConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AvailableProjectsListCall struct {
@@ -1892,13 +1938,14 @@ type AvailableProjectsListCall struct {
 	header_      http.Header
 }
 
-// List: Lists each [Google Cloud Platform (GCP) `Project`]
+// List: Lists each Google Cloud `Project`
 // (https://cloud.google.com/resource-manager/reference/rest/v1/projects) that
-// can have Firebase resources added to it. A Project will only be listed if: -
-// The caller has sufficient Google IAM (https://cloud.google.com/iam)
-// permissions to call AddFirebase. - The Project is not already a
-// FirebaseProject. - The Project is not in an Organization which has policies
-// that prevent Firebase resources from being added.
+// can have Firebase resources added and Firebase services enabled. A Project
+// will only be listed if: - The caller has sufficient Google IAM
+// (https://cloud.google.com/iam) permissions to call AddFirebase. - The
+// Project is not already a FirebaseProject. - The Project is not in an
+// Organization which has policies that prevent Firebase resources from being
+// added.
 func (r *AvailableProjectsService) List() *AvailableProjectsListCall {
 	c := &AvailableProjectsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	return c
@@ -1958,16 +2005,16 @@ func (c *AvailableProjectsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/availableProjects")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.availableProjects.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2003,9 +2050,11 @@ func (c *AvailableProjectsListCall) Do(opts ...googleapi.CallOption) (*ListAvail
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.availableProjects.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2086,12 +2135,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2099,6 +2147,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2133,9 +2182,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2148,37 +2199,39 @@ type ProjectsAddFirebaseCall struct {
 	header_            http.Header
 }
 
-// AddFirebase: Adds Firebase resources to the specified existing [Google Cloud
-// Platform (GCP) `Project`]
+// AddFirebase: Adds Firebase resources and enables Firebase services in the
+// specified existing Google Cloud `Project`
 // (https://cloud.google.com/resource-manager/reference/rest/v1/projects).
-// Since a FirebaseProject is actually also a GCP `Project`, a
-// `FirebaseProject` has the same underlying GCP identifiers (`projectNumber`
-// and `projectId`). This allows for easy interop with Google APIs. The result
-// of this call is an `Operation` (../../v1beta1/operations). Poll the
-// `Operation` to track the provisioning process by calling GetOperation until
-// `done` (../../v1beta1/operations#Operation.FIELDS.done) is `true`. When
-// `done` is `true`, the `Operation` has either succeeded or failed. If the
-// `Operation` succeeded, its `response`
+// Since a FirebaseProject is actually also a Google Cloud `Project`, a
+// `FirebaseProject` has the same underlying Google Cloud identifiers
+// (`projectNumber` and `projectId`). This allows for easy interop with Google
+// APIs. The result of this call is an `Operation` (../../v1beta1/operations).
+// Poll the `Operation` to track the provisioning process by calling
+// GetOperation until `done` (../../v1beta1/operations#Operation.FIELDS.done)
+// is `true`. When `done` is `true`, the `Operation` has either succeeded or
+// failed. If the `Operation` succeeded, its `response`
 // (../../v1beta1/operations#Operation.FIELDS.response) is set to a
 // FirebaseProject; if the `Operation` failed, its `error`
 // (../../v1beta1/operations#Operation.FIELDS.error) is set to a
 // google.rpc.Status. The `Operation` is automatically deleted after
 // completion, so there is no need to call DeleteOperation. This method does
-// not modify any billing account information on the underlying GCP `Project`.
-// To call `AddFirebase`, a project member or service account must have the
-// following permissions (the IAM roles of Editor and Owner contain these
-// permissions): `firebase.projects.update`, `resourcemanager.projects.get`,
-// `serviceusage.services.enable`, and `serviceusage.services.get`.
+// not modify any billing account information on the underlying Google Cloud
+// `Project`. To call `AddFirebase`, a project member or service account must
+// have the following permissions (the IAM roles of Editor and Owner contain
+// these permissions): `firebase.projects.update`,
+// `resourcemanager.projects.get`, `serviceusage.services.enable`, and
+// `serviceusage.services.get`.
 //
-//   - project: The resource name of the GCP `Project` to which Firebase
-//     resources will be added, in the format: projects/PROJECT_IDENTIFIER Refer
-//     to the `FirebaseProject` `name` (../projects#FirebaseProject.FIELDS.name)
-//     field for details about PROJECT_IDENTIFIER values. After calling
-//     `AddFirebase`, the unique Project identifiers ( `projectNumber`
+//   - project: The resource name of the Google Cloud `Project` in which Firebase
+//     resources will be added and Firebase services enabled, in the format:
+//     projects/ PROJECT_IDENTIFIER Refer to the `FirebaseProject` `name`
+//     (../projects#FirebaseProject.FIELDS.name) field for details about
+//     PROJECT_IDENTIFIER values. After calling `AddFirebase`, the unique Project
+//     identifiers ( `projectNumber`
 //     (https://cloud.google.com/resource-manager/reference/rest/v1/projects#Project.FIELDS.project_number)
 //     and `projectId`
 //     (https://cloud.google.com/resource-manager/reference/rest/v1/projects#Project.FIELDS.project_id))
-//     of the underlying GCP `Project` are also the identifiers of the
+//     of the underlying Google Cloud `Project` are also the identifiers of the
 //     FirebaseProject.
 func (r *ProjectsService) AddFirebase(projectid string, addfirebaserequest *AddFirebaseRequest) *ProjectsAddFirebaseCall {
 	c := &ProjectsAddFirebaseCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -2212,8 +2265,7 @@ func (c *ProjectsAddFirebaseCall) Header() http.Header {
 
 func (c *ProjectsAddFirebaseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addfirebaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addfirebaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2229,6 +2281,7 @@ func (c *ProjectsAddFirebaseCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"project": c.projectid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.addFirebase", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2263,9 +2316,11 @@ func (c *ProjectsAddFirebaseCall) Do(opts ...googleapi.CallOption) (*Operation, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.addFirebase", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2351,8 +2406,7 @@ func (c *ProjectsAddGoogleAnalyticsCall) Header() http.Header {
 
 func (c *ProjectsAddGoogleAnalyticsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addgoogleanalyticsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addgoogleanalyticsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2368,6 +2422,7 @@ func (c *ProjectsAddGoogleAnalyticsCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.addGoogleAnalytics", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2402,9 +2457,11 @@ func (c *ProjectsAddGoogleAnalyticsCall) Do(opts ...googleapi.CallOption) (*Oper
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.addGoogleAnalytics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2465,12 +2522,11 @@ func (c *ProjectsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2478,6 +2534,7 @@ func (c *ProjectsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2513,9 +2570,11 @@ func (c *ProjectsGetCall) Do(opts ...googleapi.CallOption) (*FirebaseProject, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2580,12 +2639,11 @@ func (c *ProjectsGetAdminSdkConfigCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2593,6 +2651,7 @@ func (c *ProjectsGetAdminSdkConfigCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.getAdminSdkConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2627,9 +2686,11 @@ func (c *ProjectsGetAdminSdkConfigCall) Do(opts ...googleapi.CallOption) (*Admin
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.getAdminSdkConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2693,12 +2754,11 @@ func (c *ProjectsGetAnalyticsDetailsCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2706,6 +2766,7 @@ func (c *ProjectsGetAnalyticsDetailsCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.getAnalyticsDetails", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2741,9 +2802,11 @@ func (c *ProjectsGetAnalyticsDetailsCall) Do(opts ...googleapi.CallOption) (*Ana
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.getAnalyticsDetails", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2830,16 +2893,16 @@ func (c *ProjectsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/projects")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2875,9 +2938,11 @@ func (c *ProjectsListCall) Do(opts ...googleapi.CallOption) (*ListFirebaseProjec
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2966,8 +3031,7 @@ func (c *ProjectsPatchCall) Header() http.Header {
 
 func (c *ProjectsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.firebaseproject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.firebaseproject)
 	if err != nil {
 		return nil, err
 	}
@@ -2983,6 +3047,7 @@ func (c *ProjectsPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3018,9 +3083,11 @@ func (c *ProjectsPatchCall) Do(opts ...googleapi.CallOption) (*FirebaseProject, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3081,8 +3148,7 @@ func (c *ProjectsRemoveAnalyticsCall) Header() http.Header {
 
 func (c *ProjectsRemoveAnalyticsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removeanalyticsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removeanalyticsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3098,6 +3164,7 @@ func (c *ProjectsRemoveAnalyticsCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.removeAnalytics", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3132,9 +3199,11 @@ func (c *ProjectsRemoveAnalyticsCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.removeAnalytics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3250,12 +3319,11 @@ func (c *ProjectsSearchAppsCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}:searchApps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3263,6 +3331,7 @@ func (c *ProjectsSearchAppsCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.searchApps", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3298,9 +3367,11 @@ func (c *ProjectsSearchAppsCall) Do(opts ...googleapi.CallOption) (*SearchFireba
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.searchApps", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3376,8 +3447,7 @@ func (c *ProjectsAndroidAppsCreateCall) Header() http.Header {
 
 func (c *ProjectsAndroidAppsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.androidapp)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.androidapp)
 	if err != nil {
 		return nil, err
 	}
@@ -3393,6 +3463,7 @@ func (c *ProjectsAndroidAppsCreateCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3427,9 +3498,11 @@ func (c *ProjectsAndroidAppsCreateCall) Do(opts ...googleapi.CallOption) (*Opera
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3492,12 +3565,11 @@ func (c *ProjectsAndroidAppsGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3505,6 +3577,7 @@ func (c *ProjectsAndroidAppsGetCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3539,9 +3612,11 @@ func (c *ProjectsAndroidAppsGetCall) Do(opts ...googleapi.CallOption) (*AndroidA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3606,12 +3681,11 @@ func (c *ProjectsAndroidAppsGetConfigCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3619,6 +3693,7 @@ func (c *ProjectsAndroidAppsGetConfigCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3654,9 +3729,11 @@ func (c *ProjectsAndroidAppsGetConfigCall) Do(opts ...googleapi.CallOption) (*An
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3745,12 +3822,11 @@ func (c *ProjectsAndroidAppsListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/androidApps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3758,6 +3834,7 @@ func (c *ProjectsAndroidAppsListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3793,9 +3870,11 @@ func (c *ProjectsAndroidAppsListCall) Do(opts ...googleapi.CallOption) (*ListAnd
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3882,8 +3961,7 @@ func (c *ProjectsAndroidAppsPatchCall) Header() http.Header {
 
 func (c *ProjectsAndroidAppsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.androidapp)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.androidapp)
 	if err != nil {
 		return nil, err
 	}
@@ -3899,6 +3977,7 @@ func (c *ProjectsAndroidAppsPatchCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3933,9 +4012,11 @@ func (c *ProjectsAndroidAppsPatchCall) Do(opts ...googleapi.CallOption) (*Androi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3988,8 +4069,7 @@ func (c *ProjectsAndroidAppsRemoveCall) Header() http.Header {
 
 func (c *ProjectsAndroidAppsRemoveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removeandroidapprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removeandroidapprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4005,6 +4085,7 @@ func (c *ProjectsAndroidAppsRemoveCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.remove", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4039,9 +4120,11 @@ func (c *ProjectsAndroidAppsRemoveCall) Do(opts ...googleapi.CallOption) (*Opera
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.remove", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4094,8 +4177,7 @@ func (c *ProjectsAndroidAppsUndeleteCall) Header() http.Header {
 
 func (c *ProjectsAndroidAppsUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.undeleteandroidapprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.undeleteandroidapprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4111,6 +4193,7 @@ func (c *ProjectsAndroidAppsUndeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4145,9 +4228,11 @@ func (c *ProjectsAndroidAppsUndeleteCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4201,8 +4286,7 @@ func (c *ProjectsAndroidAppsShaCreateCall) Header() http.Header {
 
 func (c *ProjectsAndroidAppsShaCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.shacertificate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.shacertificate)
 	if err != nil {
 		return nil, err
 	}
@@ -4218,6 +4302,7 @@ func (c *ProjectsAndroidAppsShaCreateCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.sha.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4252,9 +4337,11 @@ func (c *ProjectsAndroidAppsShaCreateCall) Do(opts ...googleapi.CallOption) (*Sh
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.sha.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4307,12 +4394,11 @@ func (c *ProjectsAndroidAppsShaDeleteCall) Header() http.Header {
 
 func (c *ProjectsAndroidAppsShaDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4320,6 +4406,7 @@ func (c *ProjectsAndroidAppsShaDeleteCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.sha.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4354,9 +4441,11 @@ func (c *ProjectsAndroidAppsShaDeleteCall) Do(opts ...googleapi.CallOption) (*Em
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.sha.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4420,12 +4509,11 @@ func (c *ProjectsAndroidAppsShaListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/sha")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4433,6 +4521,7 @@ func (c *ProjectsAndroidAppsShaListCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.sha.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4468,9 +4557,11 @@ func (c *ProjectsAndroidAppsShaListCall) Do(opts ...googleapi.CallOption) (*List
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.androidApps.sha.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4483,28 +4574,33 @@ type ProjectsAvailableLocationsListCall struct {
 	header_      http.Header
 }
 
-// List: **DEPRECATED.** _Instead, use the applicable resource-specific REST
-// API (or associated documentation, as needed) to determine valid locations
-// for each resource used in your Project._ Lists the valid Google Cloud
-// Platform (GCP) resource locations for the specified Project (including a
-// FirebaseProject). One of these locations can be selected as the Project's
-// _default_ GCP resource location
-// (https://firebase.google.com/docs/projects/locations), which is the
-// geographical location where the Project's resources, such as Cloud
-// Firestore, will be provisioned by default. However, if the default GCP
-// resource location has already been set for the Project, then this setting
-// cannot be changed. This call checks for any possible location restrictions
+// List: **DECOMMISSIONED.** **If called, this endpoint will return a 404
+// error.** _Instead, use the applicable resource-specific REST API (or
+// associated documentation, as needed) to determine valid locations for each
+// resource used in your Project._ Lists the valid "locations for default
+// Google Cloud resources"
+// (https://firebase.google.com/docs/projects/locations#default-cloud-location)
+// for the specified Project (including a FirebaseProject). One of these
+// locations can be selected as the Project's location for default Google Cloud
+// resources, which is the geographical location where the Project's resources
+// associated with Google App Engine (such as the default Cloud Firestore
+// instance) will be provisioned by default. However, if the location for
+// default Google Cloud resources has already been set for the Project, then
+// this setting cannot be changed. This call checks for any possible location
+// restrictions
 // (https://cloud.google.com/resource-manager/docs/organization-policy/defining-locations)
 // for the specified Project and, thus, might return a subset of all possible
-// GCP resource locations. To list all GCP resource locations (regardless of
-// any restrictions), call the endpoint without specifying a unique project
-// identifier (that is, `/v1beta1/{parent=projects/-}/listAvailableLocations`).
-// To call `ListAvailableLocations` with a specified project, a member must be
-// at minimum a Viewer of the Project. Calls without a specified project do not
+// locations. To list all locations (regardless of any restrictions), call the
+// endpoint without specifying a unique project identifier (that is,
+// `/v1beta1/{parent=projects/-}/listAvailableLocations`). To call
+// `ListAvailableLocations` with a specified project, a member must be at
+// minimum a Viewer of the Project. Calls without a specified project do not
 // require any specific project permissions.
 //
-//   - parent: The FirebaseProject for which to list GCP resource locations, in
-//     the format: projects/PROJECT_IDENTIFIER Refer to the `FirebaseProject`
+//   - parent: The FirebaseProject for which to list locations for default Google
+//     Cloud resources
+//     (https://firebase.google.com/docs/projects/locations#default-cloud-location),
+//     in the format: projects/PROJECT_IDENTIFIER Refer to the `FirebaseProject`
 //     `name` (../projects#FirebaseProject.FIELDS.name) field for details about
 //     PROJECT_IDENTIFIER values. If no unique project identifier is specified
 //     (that is, `projects/-`), the returned list does not take into account
@@ -4569,12 +4665,11 @@ func (c *ProjectsAvailableLocationsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/availableLocations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4582,6 +4677,7 @@ func (c *ProjectsAvailableLocationsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parentid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.availableLocations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4617,9 +4713,11 @@ func (c *ProjectsAvailableLocationsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.availableLocations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4653,23 +4751,24 @@ type ProjectsDefaultLocationFinalizeCall struct {
 	header_                        http.Header
 }
 
-// Finalize: **DEPRECATED.** _Instead, use the applicable resource-specific
-// REST API to set the location for each resource used in your Project._ Sets
-// the default Google Cloud Platform (GCP) resource location for the specified
-// FirebaseProject. This method creates an App Engine application with a
-// default Cloud Storage bucket
+// Finalize: **DECOMMISSIONED.** **If called, this endpoint will return a 404
+// error.** _Instead, use the applicable resource-specific REST API to set the
+// location for each resource used in your Project._ Sets the "location for
+// default Google Cloud resources"
+// (https://firebase.google.com/docs/projects/locations#default-cloud-location)
+// for the specified FirebaseProject. This method creates a Google App Engine
+// application with a default Cloud Storage bucket
 // (https://cloud.google.com/appengine/docs/standard/python/googlecloudstorageclient/setting-up-cloud-storage#activating_a_cloud_storage_bucket),
 // located in the specified `locationId`
 // (#body.request_body.FIELDS.location_id). This location must be one of the
-// available GCP resource locations
-// (https://firebase.google.com/docs/projects/locations). After the default GCP
-// resource location is finalized, or if it was already set, it cannot be
-// changed. The default GCP resource location for the specified
-// `FirebaseProject` might already be set because either the underlying GCP
-// `Project` already has an App Engine application or `FinalizeDefaultLocation`
-// was previously called with a specified `locationId`. Any new calls to
-// `FinalizeDefaultLocation` with a *different* specified `locationId` will
-// return a 409 error. The result of this call is an `Operation`
+// available App Engine locations
+// (https://cloud.google.com/about/locations#region). After the location for
+// default Google Cloud resources is finalized, or if it was already set, it
+// cannot be changed. The location for default Google Cloud resources for the
+// specified `FirebaseProject` might already be set because either the
+// underlying Google Cloud `Project` already has an App Engine application or
+// `FinalizeDefaultLocation` was previously called with a specified
+// `locationId`. The result of this call is an `Operation`
 // (../../v1beta1/operations), which can be used to track the provisioning
 // process. The `response` (../../v1beta1/operations#Operation.FIELDS.response)
 // type of the `Operation` is google.protobuf.Empty. The `Operation` can be
@@ -4683,11 +4782,12 @@ type ProjectsDefaultLocationFinalizeCall struct {
 // in the request body (#request-body) are required. To call
 // `FinalizeDefaultLocation`, a member must be an Owner of the Project.
 //
-//   - parent: The resource name of the FirebaseProject for which the default GCP
-//     resource location will be set, in the format: projects/PROJECT_IDENTIFIER
-//     Refer to the `FirebaseProject` `name`
-//     (../projects#FirebaseProject.FIELDS.name) field for details about
-//     PROJECT_IDENTIFIER values.
+//   - parent: The resource name of the FirebaseProject for which the "location
+//     for default Google Cloud resources"
+//     (https://firebase.google.com/docs/projects/locations#default-cloud-location)
+//     will be set, in the format: projects/PROJECT_IDENTIFIER Refer to the
+//     `FirebaseProject` `name` (../projects#FirebaseProject.FIELDS.name) field
+//     for details about PROJECT_IDENTIFIER values.
 func (r *ProjectsDefaultLocationService) Finalize(parent string, finalizedefaultlocationrequest *FinalizeDefaultLocationRequest) *ProjectsDefaultLocationFinalizeCall {
 	c := &ProjectsDefaultLocationFinalizeCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -4720,8 +4820,7 @@ func (c *ProjectsDefaultLocationFinalizeCall) Header() http.Header {
 
 func (c *ProjectsDefaultLocationFinalizeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.finalizedefaultlocationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.finalizedefaultlocationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4737,6 +4836,7 @@ func (c *ProjectsDefaultLocationFinalizeCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.defaultLocation.finalize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4771,9 +4871,11 @@ func (c *ProjectsDefaultLocationFinalizeCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.defaultLocation.finalize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4827,8 +4929,7 @@ func (c *ProjectsIosAppsCreateCall) Header() http.Header {
 
 func (c *ProjectsIosAppsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.iosapp)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.iosapp)
 	if err != nil {
 		return nil, err
 	}
@@ -4844,6 +4945,7 @@ func (c *ProjectsIosAppsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4878,9 +4980,11 @@ func (c *ProjectsIosAppsCreateCall) Do(opts ...googleapi.CallOption) (*Operation
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4943,12 +5047,11 @@ func (c *ProjectsIosAppsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4956,6 +5059,7 @@ func (c *ProjectsIosAppsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4990,9 +5094,11 @@ func (c *ProjectsIosAppsGetCall) Do(opts ...googleapi.CallOption) (*IosApp, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5056,12 +5162,11 @@ func (c *ProjectsIosAppsGetConfigCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5069,6 +5174,7 @@ func (c *ProjectsIosAppsGetConfigCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5103,9 +5209,11 @@ func (c *ProjectsIosAppsGetConfigCall) Do(opts ...googleapi.CallOption) (*IosApp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5194,12 +5302,11 @@ func (c *ProjectsIosAppsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/iosApps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5207,6 +5314,7 @@ func (c *ProjectsIosAppsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5242,9 +5350,11 @@ func (c *ProjectsIosAppsListCall) Do(opts ...googleapi.CallOption) (*ListIosApps
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5331,8 +5441,7 @@ func (c *ProjectsIosAppsPatchCall) Header() http.Header {
 
 func (c *ProjectsIosAppsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.iosapp)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.iosapp)
 	if err != nil {
 		return nil, err
 	}
@@ -5348,6 +5457,7 @@ func (c *ProjectsIosAppsPatchCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5382,9 +5492,11 @@ func (c *ProjectsIosAppsPatchCall) Do(opts ...googleapi.CallOption) (*IosApp, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5437,8 +5549,7 @@ func (c *ProjectsIosAppsRemoveCall) Header() http.Header {
 
 func (c *ProjectsIosAppsRemoveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removeiosapprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removeiosapprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5454,6 +5565,7 @@ func (c *ProjectsIosAppsRemoveCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.remove", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5488,9 +5600,11 @@ func (c *ProjectsIosAppsRemoveCall) Do(opts ...googleapi.CallOption) (*Operation
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.remove", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5543,8 +5657,7 @@ func (c *ProjectsIosAppsUndeleteCall) Header() http.Header {
 
 func (c *ProjectsIosAppsUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.undeleteiosapprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.undeleteiosapprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5560,6 +5673,7 @@ func (c *ProjectsIosAppsUndeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5594,9 +5708,11 @@ func (c *ProjectsIosAppsUndeleteCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.iosApps.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5650,8 +5766,7 @@ func (c *ProjectsWebAppsCreateCall) Header() http.Header {
 
 func (c *ProjectsWebAppsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webapp)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.webapp)
 	if err != nil {
 		return nil, err
 	}
@@ -5667,6 +5782,7 @@ func (c *ProjectsWebAppsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.webApps.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5701,9 +5817,11 @@ func (c *ProjectsWebAppsCreateCall) Do(opts ...googleapi.CallOption) (*Operation
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.webApps.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5766,12 +5884,11 @@ func (c *ProjectsWebAppsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5779,6 +5896,7 @@ func (c *ProjectsWebAppsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.webApps.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5813,9 +5931,11 @@ func (c *ProjectsWebAppsGetCall) Do(opts ...googleapi.CallOption) (*WebApp, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.webApps.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5879,12 +5999,11 @@ func (c *ProjectsWebAppsGetConfigCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5892,6 +6011,7 @@ func (c *ProjectsWebAppsGetConfigCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.webApps.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5926,9 +6046,11 @@ func (c *ProjectsWebAppsGetConfigCall) Do(opts ...googleapi.CallOption) (*WebApp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.webApps.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6017,12 +6139,11 @@ func (c *ProjectsWebAppsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta1/{+parent}/webApps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6030,6 +6151,7 @@ func (c *ProjectsWebAppsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.webApps.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6065,9 +6187,11 @@ func (c *ProjectsWebAppsListCall) Do(opts ...googleapi.CallOption) (*ListWebApps
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.webApps.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6154,8 +6278,7 @@ func (c *ProjectsWebAppsPatchCall) Header() http.Header {
 
 func (c *ProjectsWebAppsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webapp)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.webapp)
 	if err != nil {
 		return nil, err
 	}
@@ -6171,6 +6294,7 @@ func (c *ProjectsWebAppsPatchCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.webApps.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6205,9 +6329,11 @@ func (c *ProjectsWebAppsPatchCall) Do(opts ...googleapi.CallOption) (*WebApp, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.webApps.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6260,8 +6386,7 @@ func (c *ProjectsWebAppsRemoveCall) Header() http.Header {
 
 func (c *ProjectsWebAppsRemoveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removewebapprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removewebapprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6277,6 +6402,7 @@ func (c *ProjectsWebAppsRemoveCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.webApps.remove", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6311,9 +6437,11 @@ func (c *ProjectsWebAppsRemoveCall) Do(opts ...googleapi.CallOption) (*Operation
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.webApps.remove", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6366,8 +6494,7 @@ func (c *ProjectsWebAppsUndeleteCall) Header() http.Header {
 
 func (c *ProjectsWebAppsUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.undeletewebapprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.undeletewebapprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6383,6 +6510,7 @@ func (c *ProjectsWebAppsUndeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebase.projects.webApps.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6417,8 +6545,10 @@ func (c *ProjectsWebAppsUndeleteCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebase.projects.webApps.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

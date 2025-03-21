@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "webfonts:v1"
 const apiName = "webfonts"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Webfonts = NewWebfontsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Webfonts = NewWebfontsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -172,9 +175,9 @@ type Axis struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Axis) MarshalJSON() ([]byte, error) {
+func (s Axis) MarshalJSON() ([]byte, error) {
 	type NoMethod Axis
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Axis) UnmarshalJSON(data []byte) error {
@@ -233,9 +236,9 @@ type Webfont struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Webfont) MarshalJSON() ([]byte, error) {
+func (s Webfont) MarshalJSON() ([]byte, error) {
 	type NoMethod Webfont
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebfontList: Response containing the list of fonts currently served by the
@@ -262,9 +265,9 @@ type WebfontList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebfontList) MarshalJSON() ([]byte, error) {
+func (s WebfontList) MarshalJSON() ([]byte, error) {
 	type NoMethod WebfontList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type WebfontsListCall struct {
@@ -294,6 +297,14 @@ func (r *WebfontsService) List() *WebfontsListCall {
 // standard weights.
 func (c *WebfontsListCall) Capability(capability ...string) *WebfontsListCall {
 	c.urlParams_.SetMulti("capability", append([]string{}, capability...))
+	return c
+}
+
+// Category sets the optional parameter "category": Filters by
+// Webfont.category, if category is found in Webfont.categories. If not set,
+// returns all families.
+func (c *WebfontsListCall) Category(category string) *WebfontsListCall {
+	c.urlParams_.Set("category", category)
 	return c
 }
 
@@ -362,16 +373,16 @@ func (c *WebfontsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/webfonts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webfonts.webfonts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -406,8 +417,10 @@ func (c *WebfontsListCall) Do(opts ...googleapi.CallOption) (*WebfontList, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webfonts.webfonts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

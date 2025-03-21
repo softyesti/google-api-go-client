@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"cloud.google.com/go/auth/grpctransport"
 	"cloud.google.com/go/compute/metadata"
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/oauth2/google"
@@ -22,8 +23,8 @@ func TestDial(t *testing.T) {
 	oldDialContext := dialContext
 	// Replace package var in order to assert DialContext args.
 	dialContext = func(ctxGot context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
-		if len(opts) != 4 {
-			t.Fatalf("got: %d, want: 4", len(opts))
+		if len(opts) != 3 {
+			t.Fatalf("got: %d, want: 3", len(opts))
 		}
 		return nil, nil
 	}
@@ -33,6 +34,85 @@ func TestDial(t *testing.T) {
 
 	var o internal.DialSettings
 	dial(context.Background(), false, &o)
+}
+
+func TestDialPoolNewAuthDialOptions(t *testing.T) {
+	oldDialContextNewAuth := dialContextNewAuth
+	var wantNumOpts int
+	var universeDomain string
+	// Replace package var in order to assert DialContext args.
+	dialContextNewAuth = func(ctx context.Context, secure bool, opts *grpctransport.Options) (grpctransport.GRPCClientConnPool, error) {
+		if len(opts.GRPCDialOpts) != wantNumOpts {
+			t.Fatalf("got: %d, want: %d", len(opts.GRPCDialOpts), wantNumOpts)
+		}
+		if opts.UniverseDomain != universeDomain {
+			t.Fatalf("got: %q, want: %q", opts.UniverseDomain, universeDomain)
+		}
+		return nil, nil
+	}
+	defer func() {
+		dialContextNewAuth = oldDialContextNewAuth
+	}()
+
+	for _, testcase := range []struct {
+		name        string
+		ds          *internal.DialSettings
+		wantNumOpts int
+	}{
+		{
+			name:        "no dial options",
+			ds:          &internal.DialSettings{},
+			wantNumOpts: 0,
+		},
+		{
+			name: "with user agent",
+			ds: &internal.DialSettings{
+				UserAgent: "test",
+			},
+			wantNumOpts: 1,
+		},
+		{
+			name: "universe domain",
+			ds: &internal.DialSettings{
+				UniverseDomain: "example.com",
+			},
+			wantNumOpts: 0,
+		},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			wantNumOpts = testcase.wantNumOpts
+			universeDomain = testcase.ds.UniverseDomain
+			dialPoolNewAuth(context.Background(), false, 1, testcase.ds)
+		})
+	}
+}
+
+func TestPrepareDialOptsNewAuth(t *testing.T) {
+	for _, testcase := range []struct {
+		name        string
+		ds          *internal.DialSettings
+		wantNumOpts int
+	}{
+		{
+			name:        "empty",
+			ds:          &internal.DialSettings{},
+			wantNumOpts: 0,
+		},
+		{
+			name: "user agent",
+			ds: &internal.DialSettings{
+				UserAgent: "test",
+			},
+			wantNumOpts: 1,
+		},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			got := prepareDialOptsNewAuth(testcase.ds)
+			if len(got) != testcase.wantNumOpts {
+				t.Fatalf("got %d options, want %d options", len(got), testcase.wantNumOpts)
+			}
+		})
+	}
 }
 
 func TestCheckDirectPathEndPoint(t *testing.T) {
@@ -76,6 +156,9 @@ func TestCheckDirectPathEndPoint(t *testing.T) {
 }
 
 func TestLogDirectPathMisconfigAttrempDirectPathNotSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
 	o := &internal.DialSettings{}
 	o.EnableDirectPathXds = true
 
@@ -120,6 +203,9 @@ func TestLogDirectPathMisconfigWrongCredential(t *testing.T) {
 }
 
 func TestLogDirectPathMisconfigNotOnGCE(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
 	o := &internal.DialSettings{}
 	o.EnableDirectPath = true
 	o.EnableDirectPathXds = true

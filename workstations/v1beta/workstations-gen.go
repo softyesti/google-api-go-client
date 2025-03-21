@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "workstations:v1beta"
 const apiName = "workstations"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -243,9 +246,9 @@ type Accelerator struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Accelerator) MarshalJSON() ([]byte, error) {
+func (s Accelerator) MarshalJSON() ([]byte, error) {
 	type NoMethod Accelerator
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -284,9 +287,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -319,9 +322,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -418,12 +421,18 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// BoostConfig: A configuration that workstations can boost to.
+// BoostConfig: A boost configuration is a set of resources that a workstation
+// can use to increase its performance. If you specify a boost configuration,
+// upon startup, workstation users can choose to use a VM provisioned under the
+// boost config by passing the boost config ID in the start request. If the
+// workstation user does not provide a boost config ID in the start request,
+// the system will choose a VM from the pool provisioned under the default
+// config.
 type BoostConfig struct {
 	// Accelerators: Optional. A list of the type and count of accelerator cards
 	// attached to the boost instance. Defaults to `none`.
@@ -433,10 +442,11 @@ type BoostConfig struct {
 	BootDiskSizeGb int64 `json:"bootDiskSizeGb,omitempty"`
 	// EnableNestedVirtualization: Optional. Whether to enable nested
 	// virtualization on boosted Cloud Workstations VMs running using this boost
-	// configuration. Nested virtualization lets you run virtual machine (VM)
-	// instances inside your workstation. Before enabling nested virtualization,
-	// consider the following important considerations. Cloud Workstations
-	// instances are subject to the same restrictions as Compute Engine instances
+	// configuration. Defaults to false. Nested virtualization lets you run virtual
+	// machine (VM) instances inside your workstation. Before enabling nested
+	// virtualization, consider the following important considerations. Cloud
+	// Workstations instances are subject to the same restrictions as Compute
+	// Engine instances
 	// (https://cloud.google.com/compute/docs/instances/nested-virtualization/overview#restrictions):
 	// * **Organization policy**: projects, folders, or organizations may be
 	// restricted from creating nested VMs if the **Disable VM nested
@@ -448,16 +458,9 @@ type BoostConfig struct {
 	// performance for workloads that are CPU-bound and possibly greater than a 10%
 	// decrease for workloads that are input/output bound. * **Machine Type**:
 	// nested virtualization can only be enabled on boost configurations that
-	// specify a machine_type in the N1 or N2 machine series. * **GPUs**: nested
-	// virtualization may not be enabled on boost configurations with accelerators.
-	// * **Operating System**: Because Container-Optimized OS
-	// (https://cloud.google.com/compute/docs/images/os-details#container-optimized_os_cos)
-	// does not support nested virtualization, when nested virtualization is
-	// enabled, the underlying Compute Engine VM instances boot from an Ubuntu LTS
-	// (https://cloud.google.com/compute/docs/images/os-details#ubuntu_lts) image.
-	// Defaults to false.
+	// specify a machine_type in the N1 or N2 machine series.
 	EnableNestedVirtualization bool `json:"enableNestedVirtualization,omitempty"`
-	// Id: Optional. Required. The id to be used for the boost config.
+	// Id: Required. The ID to be used for the boost configuration.
 	Id string `json:"id,omitempty"`
 	// MachineType: Optional. The type of machine that boosted VM instances will
 	// use—for example, `e2-standard-4`. For more information about machine types
@@ -481,9 +484,9 @@ type BoostConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BoostConfig) MarshalJSON() ([]byte, error) {
+func (s BoostConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod BoostConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -530,9 +533,9 @@ type Container struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Container) MarshalJSON() ([]byte, error) {
+func (s Container) MarshalJSON() ([]byte, error) {
 	type NoMethod Container
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomerEncryptionKey: A customer-managed encryption key (CMEK) for the
@@ -567,14 +570,14 @@ type CustomerEncryptionKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomerEncryptionKey) MarshalJSON() ([]byte, error) {
+func (s CustomerEncryptionKey) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomerEncryptionKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// DomainConfig: Configuration options for private workstation clusters.
+// DomainConfig: Configuration options for a custom domain.
 type DomainConfig struct {
-	// Domain: Immutable. Whether Workstations endpoint is private.
+	// Domain: Immutable. Domain used by Workstations for HTTP ingress.
 	Domain string `json:"domain,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Domain") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -589,9 +592,9 @@ type DomainConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DomainConfig) MarshalJSON() ([]byte, error) {
+func (s DomainConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DomainConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EphemeralDirectory: An ephemeral directory which won't persist across
@@ -615,9 +618,9 @@ type EphemeralDirectory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EphemeralDirectory) MarshalJSON() ([]byte, error) {
+func (s EphemeralDirectory) MarshalJSON() ([]byte, error) {
 	type NoMethod EphemeralDirectory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -663,9 +666,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GceConfidentialInstanceConfig: A set of Compute Engine Confidential VM
@@ -687,9 +690,9 @@ type GceConfidentialInstanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GceConfidentialInstanceConfig) MarshalJSON() ([]byte, error) {
+func (s GceConfidentialInstanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GceConfidentialInstanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GceInstance: A runtime using a Compute Engine instance.
@@ -698,7 +701,9 @@ type GceInstance struct {
 	// attached to the instance.
 	Accelerators []*Accelerator `json:"accelerators,omitempty"`
 	// BoostConfigs: Optional. A list of the boost configurations that workstations
-	// created using this workstation configuration are allowed to use.
+	// created using this workstation configuration are allowed to use. If
+	// specified, users will have the option to choose from the list of boost
+	// configs when starting a workstation.
 	BoostConfigs []*BoostConfig `json:"boostConfigs,omitempty"`
 	// BootDiskSizeGb: Optional. The size of the boot disk for the VM in gigabytes
 	// (GB). The minimum boot disk size is `30` GB. Defaults to `50` GB.
@@ -718,10 +723,11 @@ type GceInstance struct {
 	DisableSsh bool `json:"disableSsh,omitempty"`
 	// EnableNestedVirtualization: Optional. Whether to enable nested
 	// virtualization on Cloud Workstations VMs created using this workstation
-	// configuration. Nested virtualization lets you run virtual machine (VM)
-	// instances inside your workstation. Before enabling nested virtualization,
-	// consider the following important considerations. Cloud Workstations
-	// instances are subject to the same restrictions as Compute Engine instances
+	// configuration. Defaults to false. Nested virtualization lets you run virtual
+	// machine (VM) instances inside your workstation. Before enabling nested
+	// virtualization, consider the following important considerations. Cloud
+	// Workstations instances are subject to the same restrictions as Compute
+	// Engine instances
 	// (https://cloud.google.com/compute/docs/instances/nested-virtualization/overview#restrictions):
 	// * **Organization policy**: projects, folders, or organizations may be
 	// restricted from creating nested VMs if the **Disable VM nested
@@ -733,13 +739,7 @@ type GceInstance struct {
 	// performance for workloads that are CPU-bound and possibly greater than a 10%
 	// decrease for workloads that are input/output bound. * **Machine Type**:
 	// nested virtualization can only be enabled on workstation configurations that
-	// specify a machine_type in the N1 or N2 machine series. * **GPUs**: nested
-	// virtualization may not be enabled on workstation configurations with
-	// accelerators. * **Operating System**: because Container-Optimized OS
-	// (https://cloud.google.com/compute/docs/images/os-details#container-optimized_os_cos)
-	// does not support nested virtualization, when nested virtualization is
-	// enabled, the underlying Compute Engine VM instances boot from an Ubuntu LTS
-	// (https://cloud.google.com/compute/docs/images/os-details#ubuntu_lts) image.
+	// specify a machine_type in the N1 or N2 machine series.
 	EnableNestedVirtualization bool `json:"enableNestedVirtualization,omitempty"`
 	// MachineType: Optional. The type of machine to use for VM instances—for
 	// example, "e2-standard-4". For more information about machine types that
@@ -782,9 +782,9 @@ type GceInstance struct {
 	// rules (https://cloud.google.com/workstations/docs/configure-firewall-rules).
 	Tags []string `json:"tags,omitempty"`
 	// VmTags: Optional. Resource manager tags to be bound to this instance. Tag
-	// keys and values have the same definition as
-	// https://cloud.google.com/resource-manager/docs/tags/tags-overview Keys must
-	// be in the format `tagKeys/{tag_key_id}`, and values are in the format
+	// keys and values have the same definition as resource manager tags
+	// (https://cloud.google.com/resource-manager/docs/tags/tags-overview). Keys
+	// must be in the format `tagKeys/{tag_key_id}`, and values are in the format
 	// `tagValues/456`.
 	VmTags map[string]string `json:"vmTags,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Accelerators") to
@@ -800,9 +800,35 @@ type GceInstance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GceInstance) MarshalJSON() ([]byte, error) {
+func (s GceInstance) MarshalJSON() ([]byte, error) {
 	type NoMethod GceInstance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GceInstanceHost: The Compute Engine instance host.
+type GceInstanceHost struct {
+	// Id: Optional. Output only. The ID of the Compute Engine instance.
+	Id string `json:"id,omitempty"`
+	// Name: Optional. Output only. The name of the Compute Engine instance.
+	Name string `json:"name,omitempty"`
+	// Zone: Optional. Output only. The zone of the Compute Engine instance.
+	Zone string `json:"zone,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Id") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GceInstanceHost) MarshalJSON() ([]byte, error) {
+	type NoMethod GceInstanceHost
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcePersistentDisk: An EphemeralDirectory is backed by a Compute Engine
@@ -816,12 +842,20 @@ type GcePersistentDisk struct {
 	// SourceImage: Optional. Name of the disk image to use as the source for the
 	// disk. Must be empty if source_snapshot is set. Updating source_image will
 	// update content in the ephemeral directory after the workstation is
-	// restarted. This field is mutable.
+	// restarted. Only file systems supported by Container-Optimized OS (COS) are
+	// explicitly supported. For a list of supported file systems, please refer to
+	// the COS documentation
+	// (https://cloud.google.com/container-optimized-os/docs/concepts/supported-filesystems).
+	// This field is mutable.
 	SourceImage string `json:"sourceImage,omitempty"`
 	// SourceSnapshot: Optional. Name of the snapshot to use as the source for the
 	// disk. Must be empty if source_image is set. Must be empty if read_only is
 	// false. Updating source_snapshot will update content in the ephemeral
-	// directory after the workstation is restarted. This field is mutable.
+	// directory after the workstation is restarted. Only file systems supported by
+	// Container-Optimized OS (COS) are explicitly supported. For a list of
+	// supported file systems, please refer to the COS documentation
+	// (https://cloud.google.com/container-optimized-os/docs/concepts/supported-filesystems).
+	// This field is mutable.
 	SourceSnapshot string `json:"sourceSnapshot,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DiskType") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -836,9 +870,9 @@ type GcePersistentDisk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcePersistentDisk) MarshalJSON() ([]byte, error) {
+func (s GcePersistentDisk) MarshalJSON() ([]byte, error) {
 	type NoMethod GcePersistentDisk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GceRegionalPersistentDisk: A Persistent Directory backed by a Compute Engine
@@ -889,9 +923,9 @@ type GceRegionalPersistentDisk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GceRegionalPersistentDisk) MarshalJSON() ([]byte, error) {
+func (s GceRegionalPersistentDisk) MarshalJSON() ([]byte, error) {
 	type NoMethod GceRegionalPersistentDisk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GceShieldedInstanceConfig: A set of Compute Engine Shielded instance
@@ -917,9 +951,9 @@ type GceShieldedInstanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GceShieldedInstanceConfig) MarshalJSON() ([]byte, error) {
+func (s GceShieldedInstanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GceShieldedInstanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenerateAccessTokenRequest: Request message for GenerateAccessToken.
@@ -951,9 +985,9 @@ type GenerateAccessTokenRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenerateAccessTokenRequest) MarshalJSON() ([]byte, error) {
+func (s GenerateAccessTokenRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GenerateAccessTokenRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenerateAccessTokenResponse: Response message for GenerateAccessToken.
@@ -980,9 +1014,9 @@ type GenerateAccessTokenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenerateAccessTokenResponse) MarshalJSON() ([]byte, error) {
+func (s GenerateAccessTokenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GenerateAccessTokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -1012,9 +1046,47 @@ type Host struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Host) MarshalJSON() ([]byte, error) {
+func (s Host) MarshalJSON() ([]byte, error) {
 	type NoMethod Host
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// HttpOptions: HTTP options for the running workstations.
+type HttpOptions struct {
+	// AllowedUnauthenticatedCorsPreflightRequests: Optional. By default, the
+	// workstations service makes sure that all requests to the workstation are
+	// authenticated. CORS preflight requests do not include cookies or custom
+	// headers, and so are considered unauthenticated and blocked by the
+	// workstations service. Enabling this option allows these unauthenticated CORS
+	// preflight requests through to the workstation, where it becomes the
+	// responsibility of the destination server in the workstation to validate the
+	// request.
+	AllowedUnauthenticatedCorsPreflightRequests bool `json:"allowedUnauthenticatedCorsPreflightRequests,omitempty"`
+	// DisableLocalhostReplacement: Optional. By default, the workstations service
+	// replaces references to localhost, 127.0.0.1, and 0.0.0.0 with the
+	// workstation's hostname in http responses from the workstation so that
+	// applications under development run properly on the workstation. This may
+	// intefere with some applications, and so this option allows that behavior to
+	// be disabled.
+	DisableLocalhostReplacement bool `json:"disableLocalhostReplacement,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "AllowedUnauthenticatedCorsPreflightRequests") to unconditionally include in
+	// API requests. By default, fields with empty or default values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g.
+	// "AllowedUnauthenticatedCorsPreflightRequests") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s HttpOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod HttpOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1040,9 +1112,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUsableWorkstationConfigsResponse: Response message for
@@ -1071,9 +1143,9 @@ type ListUsableWorkstationConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUsableWorkstationConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUsableWorkstationConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUsableWorkstationConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUsableWorkstationsResponse: Response message for ListUsableWorkstations.
@@ -1101,9 +1173,9 @@ type ListUsableWorkstationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUsableWorkstationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUsableWorkstationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUsableWorkstationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkstationClustersResponse: Response message for
@@ -1132,9 +1204,9 @@ type ListWorkstationClustersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkstationClustersResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkstationClustersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkstationClustersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkstationConfigsResponse: Response message for ListWorkstationConfigs.
@@ -1162,9 +1234,9 @@ type ListWorkstationConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkstationConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkstationConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkstationConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkstationsResponse: Response message for ListWorkstations.
@@ -1192,9 +1264,9 @@ type ListWorkstationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkstationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkstationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkstationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1239,9 +1311,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Metadata for long-running operations.
@@ -1275,12 +1347,14 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PersistentDirectory: A directory to persist across workstation sessions.
+// Updates to this field will not update existing workstations and will only
+// take effect on new workstations.
 type PersistentDirectory struct {
 	// GcePd: A PersistentDirectory backed by a Compute Engine persistent disk.
 	GcePd *GceRegionalPersistentDisk `json:"gcePd,omitempty"`
@@ -1299,9 +1373,9 @@ type PersistentDirectory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PersistentDirectory) MarshalJSON() ([]byte, error) {
+func (s PersistentDirectory) MarshalJSON() ([]byte, error) {
 	type NoMethod PersistentDirectory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -1391,17 +1465,19 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// PortRange: A PortsConfig defines a range of ports. Both first and last are
+// PortRange: A PortRange defines a range of ports. Both first and last are
 // inclusive. To specify a single port, both first and last should be the same.
 type PortRange struct {
-	// First: Required. Starting port number for the current range of ports.
+	// First: Required. Starting port number for the current range of ports. Valid
+	// ports are 22, 80, and ports within the range 1024-65535.
 	First int64 `json:"first,omitempty"`
-	// Last: Required. Ending port number for the current range of ports.
+	// Last: Required. Ending port number for the current range of ports. Valid
+	// ports are 22, 80, and ports within the range 1024-65535.
 	Last int64 `json:"last,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "First") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1416,16 +1492,32 @@ type PortRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PortRange) MarshalJSON() ([]byte, error) {
+func (s PortRange) MarshalJSON() ([]byte, error) {
 	type NoMethod PortRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
+// PrivateClusterConfig: Configuration options for private workstation
+// clusters.
 type PrivateClusterConfig struct {
-	AllowedProjects       []string `json:"allowedProjects,omitempty"`
-	ClusterHostname       string   `json:"clusterHostname,omitempty"`
-	EnablePrivateEndpoint bool     `json:"enablePrivateEndpoint,omitempty"`
-	ServiceAttachmentUri  string   `json:"serviceAttachmentUri,omitempty"`
+	// AllowedProjects: Optional. Additional projects that are allowed to attach to
+	// the workstation cluster's service attachment. By default, the workstation
+	// cluster's project and the VPC host project (if different) are allowed.
+	AllowedProjects []string `json:"allowedProjects,omitempty"`
+	// ClusterHostname: Output only. Hostname for the workstation cluster. This
+	// field will be populated only when private endpoint is enabled. To access
+	// workstations in the workstation cluster, create a new DNS zone mapping this
+	// domain name to an internal IP address and a forwarding rule mapping that
+	// address to the service attachment.
+	ClusterHostname string `json:"clusterHostname,omitempty"`
+	// EnablePrivateEndpoint: Immutable. Whether Workstations endpoint is private.
+	EnablePrivateEndpoint bool `json:"enablePrivateEndpoint,omitempty"`
+	// ServiceAttachmentUri: Output only. Service attachment URI for the
+	// workstation cluster. The service attachment is created when private endpoint
+	// is enabled. To access workstations in the workstation cluster, configure
+	// access to the managed service using Private Service Connect
+	// (https://cloud.google.com/vpc/docs/configure-private-service-connect-services).
+	ServiceAttachmentUri string `json:"serviceAttachmentUri,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AllowedProjects") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1439,9 +1531,9 @@ type PrivateClusterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrivateClusterConfig) MarshalJSON() ([]byte, error) {
+func (s PrivateClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PrivateClusterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadinessCheck: A readiness check to be performed on a workstation.
@@ -1463,9 +1555,31 @@ type ReadinessCheck struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadinessCheck) MarshalJSON() ([]byte, error) {
+func (s ReadinessCheck) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadinessCheck
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RuntimeHost: Runtime host for the workstation.
+type RuntimeHost struct {
+	// GceInstanceHost: Specifies a Compute Engine instance as the host.
+	GceInstanceHost *GceInstanceHost `json:"gceInstanceHost,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "GceInstanceHost") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "GceInstanceHost") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RuntimeHost) MarshalJSON() ([]byte, error) {
+	type NoMethod RuntimeHost
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -1492,9 +1606,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartWorkstationRequest: Request message for StartWorkstation.
@@ -1521,9 +1635,9 @@ type StartWorkstationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartWorkstationRequest) MarshalJSON() ([]byte, error) {
+func (s StartWorkstationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod StartWorkstationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -1555,9 +1669,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopWorkstationRequest: Request message for StopWorkstation.
@@ -1581,9 +1695,9 @@ type StopWorkstationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StopWorkstationRequest) MarshalJSON() ([]byte, error) {
+func (s StopWorkstationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod StopWorkstationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -1606,9 +1720,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -1633,9 +1747,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Workstation: A single instance of a developer workstation with its own
@@ -1643,8 +1757,18 @@ func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 type Workstation struct {
 	// Annotations: Optional. Client-specified annotations.
 	Annotations map[string]string `json:"annotations,omitempty"`
+	// BoostConfigs: Output only. List of available boost configuration IDs that
+	// this workstation can be boosted up to.
+	BoostConfigs []*WorkstationBoostConfig `json:"boostConfigs,omitempty"`
+	// Conditions: Output only. Status conditions describing the workstation's
+	// current state.
+	Conditions []*Status `json:"conditions,omitempty"`
 	// CreateTime: Output only. Time when this workstation was created.
 	CreateTime string `json:"createTime,omitempty"`
+	// Degraded: Output only. Whether this workstation is in degraded mode, in
+	// which case it may require user action to restore full functionality. Details
+	// can be found in conditions.
+	Degraded bool `json:"degraded,omitempty"`
 	// DeleteTime: Output only. Time when this workstation was soft-deleted.
 	DeleteTime string `json:"deleteTime,omitempty"`
 	// DisplayName: Optional. Human-readable name for this workstation.
@@ -1676,6 +1800,16 @@ type Workstation struct {
 	// Reconciling: Output only. Indicates whether this workstation is currently
 	// being updated to match its intended state.
 	Reconciling bool `json:"reconciling,omitempty"`
+	// RuntimeHost: Optional. Output only. Runtime host for the workstation when in
+	// STATE_RUNNING.
+	RuntimeHost *RuntimeHost `json:"runtimeHost,omitempty"`
+	// SatisfiesPzi: Output only. Reserved for future use.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
+	// SatisfiesPzs: Output only. Reserved for future use.
+	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
+	// SourceWorkstation: Optional. The source workstation from which this
+	// workstation's persistent directories were cloned on creation.
+	SourceWorkstation string `json:"sourceWorkstation,omitempty"`
 	// StartTime: Output only. Time when this workstation was most recently
 	// successfully started, regardless of the workstation's initial state.
 	StartTime string `json:"startTime,omitempty"`
@@ -1711,9 +1845,32 @@ type Workstation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Workstation) MarshalJSON() ([]byte, error) {
+func (s Workstation) MarshalJSON() ([]byte, error) {
 	type NoMethod Workstation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// WorkstationBoostConfig: Boost configuration for this workstation. This
+// object is populated from the parent workstation configuration.
+type WorkstationBoostConfig struct {
+	// Id: Output only. Boost configuration ID.
+	Id string `json:"id,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Id") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s WorkstationBoostConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod WorkstationBoostConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkstationCluster: A workstation cluster resource in the Cloud Workstations
@@ -1763,10 +1920,17 @@ type WorkstationCluster struct {
 	// Reconciling: Output only. Indicates whether this workstation cluster is
 	// currently being updated to match its intended state.
 	Reconciling bool `json:"reconciling,omitempty"`
+	// SatisfiesPzi: Output only. Reserved for future use.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
+	// SatisfiesPzs: Output only. Reserved for future use.
+	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
 	// Subnetwork: Immutable. Name of the Compute Engine subnetwork in which
 	// instances associated with this workstation cluster will be created. Must be
 	// part of the subnetwork specified for this workstation cluster.
 	Subnetwork string `json:"subnetwork,omitempty"`
+	// Tags: Optional. Tag keys/values directly bound to this resource. For
+	// example: "123/environment": "production", "123/costCenter": "marketing"
+	Tags map[string]string `json:"tags,omitempty"`
 	// Uid: Output only. A system-assigned unique identifier for this workstation
 	// cluster.
 	Uid string `json:"uid,omitempty"`
@@ -1789,9 +1953,9 @@ type WorkstationCluster struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkstationCluster) MarshalJSON() ([]byte, error) {
+func (s WorkstationCluster) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkstationCluster
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkstationConfig: A workstation configuration resource in the Cloud
@@ -1803,9 +1967,10 @@ func (s *WorkstationCluster) MarshalJSON() ([]byte, error) {
 // Management (IAM) (https://cloud.google.com/iam/docs/overview) rules to grant
 // access to teams or to individual developers.
 type WorkstationConfig struct {
-	// AllowedPorts: Optional. A Single or Range of ports externally accessible in
-	// the workstation. If not specified defaults to ports 22, 80 and ports
-	// 1024-65535.
+	// AllowedPorts: Optional. A list of PortRanges specifying single ports or
+	// ranges of ports that are externally accessible in the workstation. Allowed
+	// ports must be one of 22, 80, or within range 1024-65535. If not specified
+	// defaults to ports 22, 80, and ports 1024-65535.
 	AllowedPorts []*PortRange `json:"allowedPorts,omitempty"`
 	// Annotations: Optional. Client-specified annotations.
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -1835,10 +2000,15 @@ type WorkstationConfig struct {
 	// configuration.
 	DisplayName string `json:"displayName,omitempty"`
 	// EnableAuditAgent: Optional. Whether to enable Linux `auditd` logging on the
-	// workstation. When enabled, a service account must also be specified that has
-	// `logging.buckets.write` permission on the project. Operating system audit
-	// logging is distinct from Cloud Audit Logs
-	// (https://cloud.google.com/workstations/docs/audit-logging).
+	// workstation. When enabled, a service_account must also be specified that has
+	// `roles/logging.logWriter` and `roles/monitoring.metricWriter` on the
+	// project. Operating system audit logging is distinct from Cloud Audit Logs
+	// (https://cloud.google.com/workstations/docs/audit-logging) and Container
+	// output logging
+	// (https://cloud.google.com/workstations/docs/container-output-logging#overview).
+	// Operating system audit logs are available in the Cloud Logging
+	// (https://cloud.google.com/logging/docs) console by querying:
+	// resource.type="gce_instance" log_name:"/logs/linux-auditd"
 	EnableAuditAgent bool `json:"enableAuditAgent,omitempty"`
 	// EncryptionKey: Immutable. Encrypts resources of this workstation
 	// configuration using a customer-managed encryption key (CMEK). If specified,
@@ -1860,8 +2030,17 @@ type WorkstationConfig struct {
 	// delete requests to make sure that the client has an up-to-date value before
 	// proceeding.
 	Etag string `json:"etag,omitempty"`
+	// GrantWorkstationAdminRoleOnCreate: Optional. Grant creator of a workstation
+	// `roles/workstations.policyAdmin` role along with `roles/workstations.user`
+	// role on the workstation created by them. This allows workstation users to
+	// share access to either their entire workstation, or individual ports.
+	// Defaults to false.
+	GrantWorkstationAdminRoleOnCreate bool `json:"grantWorkstationAdminRoleOnCreate,omitempty"`
 	// Host: Optional. Runtime host for the workstation.
 	Host *Host `json:"host,omitempty"`
+	// HttpOptions: Optional. HTTP options that customize the behavior of the
+	// workstation service's HTTP proxy.
+	HttpOptions *HttpOptions `json:"httpOptions,omitempty"`
 	// IdleTimeout: Optional. Number of seconds to wait before automatically
 	// stopping a workstation after it last received user traffic. A value of
 	// "0s" indicates that Cloud Workstations VMs created with this configuration
@@ -1875,6 +2054,15 @@ type WorkstationConfig struct {
 	// applied to the workstation configuration and that are also propagated to the
 	// underlying Compute Engine resources.
 	Labels map[string]string `json:"labels,omitempty"`
+	// MaxUsableWorkstations: Optional. Maximum number of workstations under this
+	// configuration a user can have `workstations.workstation.use` permission on.
+	// Only enforced on CreateWorkstation API calls on the user issuing the API
+	// request. Can be overridden by: - granting a user
+	// workstations.workstationConfigs.exemptMaxUsableWorkstationLimit permission,
+	// or - having a user with that permission create a workstation and granting
+	// another user `workstations.workstation.use` permission on that workstation.
+	// If not specified, defaults to `0`, which indicates unlimited.
+	MaxUsableWorkstations int64 `json:"maxUsableWorkstations,omitempty"`
 	// Name: Identifier. Full name of this workstation configuration.
 	Name string `json:"name,omitempty"`
 	// PersistentDirectories: Optional. Directories to persist across workstation
@@ -1909,6 +2097,10 @@ type WorkstationConfig struct {
 	// time. This is strongly discouraged because you incur costs and will not pick
 	// up security updates.
 	RunningTimeout string `json:"runningTimeout,omitempty"`
+	// SatisfiesPzi: Output only. Reserved for future use.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
+	// SatisfiesPzs: Output only. Reserved for future use.
+	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
 	// Uid: Output only. A system-assigned unique identifier for this workstation
 	// configuration.
 	Uid string `json:"uid,omitempty"`
@@ -1931,9 +2123,9 @@ type WorkstationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkstationConfig) MarshalJSON() ([]byte, error) {
+func (s WorkstationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkstationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsOperationsCancelCall struct {
@@ -1952,7 +2144,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -1988,8 +2180,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2005,6 +2196,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2040,9 +2232,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2091,12 +2285,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2104,6 +2297,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2139,9 +2333,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2201,12 +2397,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2214,6 +2409,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2248,9 +2444,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2329,12 +2527,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2342,6 +2539,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2377,9 +2575,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2462,8 +2662,7 @@ func (c *ProjectsLocationsWorkstationClustersCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsWorkstationClustersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workstationcluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workstationcluster)
 	if err != nil {
 		return nil, err
 	}
@@ -2479,6 +2678,7 @@ func (c *ProjectsLocationsWorkstationClustersCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2513,9 +2713,11 @@ func (c *ProjectsLocationsWorkstationClustersCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2585,12 +2787,11 @@ func (c *ProjectsLocationsWorkstationClustersDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsWorkstationClustersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2598,6 +2799,7 @@ func (c *ProjectsLocationsWorkstationClustersDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2632,9 +2834,11 @@ func (c *ProjectsLocationsWorkstationClustersDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2692,12 +2896,11 @@ func (c *ProjectsLocationsWorkstationClustersGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2705,6 +2908,7 @@ func (c *ProjectsLocationsWorkstationClustersGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2740,9 +2944,11 @@ func (c *ProjectsLocationsWorkstationClustersGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2814,12 +3020,11 @@ func (c *ProjectsLocationsWorkstationClustersListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/workstationClusters")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2827,6 +3032,7 @@ func (c *ProjectsLocationsWorkstationClustersListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2862,9 +3068,11 @@ func (c *ProjectsLocationsWorkstationClustersListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2955,8 +3163,7 @@ func (c *ProjectsLocationsWorkstationClustersPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsWorkstationClustersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workstationcluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workstationcluster)
 	if err != nil {
 		return nil, err
 	}
@@ -2972,6 +3179,7 @@ func (c *ProjectsLocationsWorkstationClustersPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3006,9 +3214,11 @@ func (c *ProjectsLocationsWorkstationClustersPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3070,8 +3280,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsCreateCall) Heade
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workstationconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workstationconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -3087,6 +3296,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsCreateCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3121,9 +3331,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsCreateCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3192,12 +3404,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsDeleteCall) Heade
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3205,6 +3416,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsDeleteCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3239,9 +3451,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsDeleteCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3299,12 +3513,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsGetCall) doReques
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3312,6 +3525,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsGetCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3347,9 +3561,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsGetCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3427,12 +3643,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsGetIamPolicyCall)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3440,6 +3655,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsGetIamPolicyCall)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3474,9 +3690,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsGetIamPolicyCall)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3548,12 +3766,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsListCall) doReque
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/workstationConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3561,6 +3778,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsListCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3596,9 +3814,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsListCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3692,12 +3912,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsListUsableCall) d
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/workstationConfigs:listUsable")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3705,6 +3924,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsListUsableCall) d
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.listUsable", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3740,9 +3960,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsListUsableCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.listUsable", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3833,8 +4055,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsPatchCall) Header
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workstationconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workstationconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -3850,6 +4071,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsPatchCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3884,9 +4106,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsPatchCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3938,8 +4162,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsSetIamPolicyCall)
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3955,6 +4178,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsSetIamPolicyCall)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3989,9 +4213,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsSetIamPolicyCall)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4046,8 +4272,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsTestIamPermission
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4063,6 +4288,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsTestIamPermission
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4098,9 +4324,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsTestIamPermission
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4162,8 +4390,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsCreat
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workstation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workstation)
 	if err != nil {
 		return nil, err
 	}
@@ -4179,6 +4406,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsCreat
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4213,9 +4441,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsCreat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4276,12 +4506,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsDelet
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4289,6 +4518,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsDelet
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4323,9 +4553,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsDelet
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4339,7 +4571,8 @@ type ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGenerateA
 }
 
 // GenerateAccessToken: Returns a short-lived credential that can be used to
-// send authenticated and authorized traffic to a workstation.
+// send authenticated and authorized traffic to a workstation. Once generated
+// this token cannot be revoked and is good for the lifetime of the token.
 //
 //   - workstation: Name of the workstation for which the access token should be
 //     generated.
@@ -4375,8 +4608,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGener
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGenerateAccessTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.generateaccesstokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.generateaccesstokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4392,6 +4624,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGener
 	googleapi.Expand(req.URL, map[string]string{
 		"workstation": c.workstation,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.generateAccessToken", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4427,9 +4660,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGener
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.generateAccessToken", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4487,12 +4722,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGetCa
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4500,6 +4734,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGetCa
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4534,9 +4769,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGetCa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4614,12 +4851,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGetIa
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4627,6 +4863,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGetIa
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4661,9 +4898,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGetIa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4736,12 +4975,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsListC
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/workstations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4749,6 +4987,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsListC
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4784,9 +5023,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsListC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4881,12 +5122,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsListU
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/workstations:listUsable")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4894,6 +5134,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsListU
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.listUsable", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4929,9 +5170,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsListU
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.listUsable", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5022,8 +5265,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsPatch
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workstation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workstation)
 	if err != nil {
 		return nil, err
 	}
@@ -5039,6 +5281,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsPatch
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5073,9 +5316,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsPatch
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5127,8 +5372,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsSetIa
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5144,6 +5388,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsSetIa
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5178,9 +5423,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsSetIa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5228,8 +5475,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsStart
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsStartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.startworkstationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.startworkstationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5245,6 +5491,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsStart
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.start", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5279,9 +5526,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsStart
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.start", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5329,8 +5578,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsStopC
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsStopCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.stopworkstationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.stopworkstationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5346,6 +5594,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsStopC
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.stop", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5380,9 +5629,11 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsStopC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.stop", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5437,8 +5688,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsTestI
 
 func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5454,6 +5704,7 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsTestI
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5489,8 +5740,10 @@ func (c *ProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsTestI
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workstations.projects.locations.workstationClusters.workstationConfigs.workstations.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

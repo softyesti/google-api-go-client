@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "analytics:v3"
 const apiName = "analytics"
@@ -142,7 +145,12 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Data = NewDataService(s)
+	s.Management = NewManagementService(s)
+	s.Metadata = NewMetadataService(s)
+	s.Provisioning = NewProvisioningService(s)
+	s.UserDeletion = NewUserDeletionService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -161,17 +169,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Data = NewDataService(s)
-	s.Management = NewManagementService(s)
-	s.Metadata = NewMetadataService(s)
-	s.Provisioning = NewProvisioningService(s)
-	s.UserDeletion = NewUserDeletionService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -572,9 +575,9 @@ type Account struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Account) MarshalJSON() ([]byte, error) {
+func (s Account) MarshalJSON() ([]byte, error) {
 	type NoMethod Account
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountChildLink: Child link for an account entry. Points to the list of web
@@ -597,9 +600,9 @@ type AccountChildLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountChildLink) MarshalJSON() ([]byte, error) {
+func (s AccountChildLink) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountChildLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountPermissions: Permissions the user has for this account.
@@ -620,9 +623,9 @@ type AccountPermissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountPermissions) MarshalJSON() ([]byte, error) {
+func (s AccountPermissions) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountPermissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountRef: JSON template for a linked account.
@@ -648,9 +651,9 @@ type AccountRef struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountRef) MarshalJSON() ([]byte, error) {
+func (s AccountRef) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountRef
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountSummaries: An AccountSummary collection lists a summary of accounts,
@@ -694,9 +697,9 @@ type AccountSummaries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountSummaries) MarshalJSON() ([]byte, error) {
+func (s AccountSummaries) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountSummaries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountSummary: JSON template for an Analytics AccountSummary. An
@@ -725,9 +728,9 @@ type AccountSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountSummary) MarshalJSON() ([]byte, error) {
+func (s AccountSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountTicket: JSON template for an Analytics account ticket. The account
@@ -763,9 +766,9 @@ type AccountTicket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountTicket) MarshalJSON() ([]byte, error) {
+func (s AccountTicket) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountTicket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountTreeRequest: JSON template for an Analytics account tree requests.
@@ -793,9 +796,9 @@ type AccountTreeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountTreeRequest) MarshalJSON() ([]byte, error) {
+func (s AccountTreeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountTreeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountTreeResponse: JSON template for an Analytics account tree response.
@@ -826,9 +829,9 @@ type AccountTreeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountTreeResponse) MarshalJSON() ([]byte, error) {
+func (s AccountTreeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountTreeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Accounts: An account collection provides a list of Analytics accounts to
@@ -873,9 +876,9 @@ type Accounts struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Accounts) MarshalJSON() ([]byte, error) {
+func (s Accounts) MarshalJSON() ([]byte, error) {
 	type NoMethod Accounts
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdWordsAccount: JSON template for an Google Ads account.
@@ -901,9 +904,9 @@ type AdWordsAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdWordsAccount) MarshalJSON() ([]byte, error) {
+func (s AdWordsAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod AdWordsAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyticsDataimportDeleteUploadDataRequest: Request template for the delete
@@ -924,9 +927,9 @@ type AnalyticsDataimportDeleteUploadDataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyticsDataimportDeleteUploadDataRequest) MarshalJSON() ([]byte, error) {
+func (s AnalyticsDataimportDeleteUploadDataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyticsDataimportDeleteUploadDataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Column: JSON template for a metadata column.
@@ -950,9 +953,9 @@ type Column struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Column) MarshalJSON() ([]byte, error) {
+func (s Column) MarshalJSON() ([]byte, error) {
 	type NoMethod Column
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Columns: Lists columns (dimensions and metrics) for a particular report
@@ -985,9 +988,9 @@ type Columns struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Columns) MarshalJSON() ([]byte, error) {
+func (s Columns) MarshalJSON() ([]byte, error) {
 	type NoMethod Columns
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomDataSource: JSON template for an Analytics custom data source.
@@ -1037,9 +1040,9 @@ type CustomDataSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomDataSource) MarshalJSON() ([]byte, error) {
+func (s CustomDataSource) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomDataSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CustomDataSourceChildLink struct {
@@ -1061,9 +1064,9 @@ type CustomDataSourceChildLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomDataSourceChildLink) MarshalJSON() ([]byte, error) {
+func (s CustomDataSourceChildLink) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomDataSourceChildLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomDataSourceParentLink: Parent link for this custom data source. Points
@@ -1086,9 +1089,9 @@ type CustomDataSourceParentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomDataSourceParentLink) MarshalJSON() ([]byte, error) {
+func (s CustomDataSourceParentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomDataSourceParentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomDataSources: Lists Analytics custom data sources to which the user has
@@ -1132,9 +1135,9 @@ type CustomDataSources struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomDataSources) MarshalJSON() ([]byte, error) {
+func (s CustomDataSources) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomDataSources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomDimension: JSON template for Analytics Custom Dimension.
@@ -1181,9 +1184,9 @@ type CustomDimension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomDimension) MarshalJSON() ([]byte, error) {
+func (s CustomDimension) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomDimension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomDimensionParentLink: Parent link for the custom dimension. Points to
@@ -1206,9 +1209,9 @@ type CustomDimensionParentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomDimensionParentLink) MarshalJSON() ([]byte, error) {
+func (s CustomDimensionParentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomDimensionParentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomDimensions: A custom dimension collection lists Analytics custom
@@ -1252,9 +1255,9 @@ type CustomDimensions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomDimensions) MarshalJSON() ([]byte, error) {
+func (s CustomDimensions) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomDimensions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomMetric: JSON template for Analytics Custom Metric.
@@ -1307,9 +1310,9 @@ type CustomMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomMetric) MarshalJSON() ([]byte, error) {
+func (s CustomMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomMetricParentLink: Parent link for the custom metric. Points to the
@@ -1332,9 +1335,9 @@ type CustomMetricParentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomMetricParentLink) MarshalJSON() ([]byte, error) {
+func (s CustomMetricParentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomMetricParentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomMetrics: A custom metric collection lists Analytics custom metrics to
@@ -1378,9 +1381,9 @@ type CustomMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomMetrics) MarshalJSON() ([]byte, error) {
+func (s CustomMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityAdWordsLink: JSON template for Analytics Entity Google Ads Link.
@@ -1418,9 +1421,9 @@ type EntityAdWordsLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityAdWordsLink) MarshalJSON() ([]byte, error) {
+func (s EntityAdWordsLink) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityAdWordsLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityAdWordsLinkEntity: Web property being linked.
@@ -1439,9 +1442,9 @@ type EntityAdWordsLinkEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityAdWordsLinkEntity) MarshalJSON() ([]byte, error) {
+func (s EntityAdWordsLinkEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityAdWordsLinkEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityAdWordsLinks: An entity Google Ads link collection provides a list of
@@ -1483,9 +1486,9 @@ type EntityAdWordsLinks struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityAdWordsLinks) MarshalJSON() ([]byte, error) {
+func (s EntityAdWordsLinks) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityAdWordsLinks
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityUserLink: JSON template for an Analytics Entity-User Link. Returns
@@ -1520,9 +1523,9 @@ type EntityUserLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityUserLink) MarshalJSON() ([]byte, error) {
+func (s EntityUserLink) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityUserLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityUserLinkEntity: Entity for this link. It can be an account, a web
@@ -1547,9 +1550,9 @@ type EntityUserLinkEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityUserLinkEntity) MarshalJSON() ([]byte, error) {
+func (s EntityUserLinkEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityUserLinkEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityUserLinkPermissions: Permissions the user has for this entity.
@@ -1576,9 +1579,9 @@ type EntityUserLinkPermissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityUserLinkPermissions) MarshalJSON() ([]byte, error) {
+func (s EntityUserLinkPermissions) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityUserLinkPermissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityUserLinks: An entity user link collection provides a list of Analytics
@@ -1619,9 +1622,9 @@ type EntityUserLinks struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityUserLinks) MarshalJSON() ([]byte, error) {
+func (s EntityUserLinks) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityUserLinks
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Experiment: JSON template for Analytics experiment resource.
@@ -1751,9 +1754,9 @@ type Experiment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Experiment) MarshalJSON() ([]byte, error) {
+func (s Experiment) MarshalJSON() ([]byte, error) {
 	type NoMethod Experiment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Experiment) UnmarshalJSON(data []byte) error {
@@ -1793,9 +1796,9 @@ type ExperimentParentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExperimentParentLink) MarshalJSON() ([]byte, error) {
+func (s ExperimentParentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod ExperimentParentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ExperimentVariations struct {
@@ -1830,9 +1833,9 @@ type ExperimentVariations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExperimentVariations) MarshalJSON() ([]byte, error) {
+func (s ExperimentVariations) MarshalJSON() ([]byte, error) {
 	type NoMethod ExperimentVariations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ExperimentVariations) UnmarshalJSON(data []byte) error {
@@ -1891,9 +1894,9 @@ type Experiments struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Experiments) MarshalJSON() ([]byte, error) {
+func (s Experiments) MarshalJSON() ([]byte, error) {
 	type NoMethod Experiments
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Filter: JSON template for an Analytics account filter.
@@ -1947,9 +1950,9 @@ type Filter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Filter) MarshalJSON() ([]byte, error) {
+func (s Filter) MarshalJSON() ([]byte, error) {
 	type NoMethod Filter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterAdvancedDetails: Details for the filter of the type ADVANCED.
@@ -1997,9 +2000,9 @@ type FilterAdvancedDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterAdvancedDetails) MarshalJSON() ([]byte, error) {
+func (s FilterAdvancedDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterAdvancedDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterLowercaseDetails: Details for the filter of the type LOWER.
@@ -2022,9 +2025,9 @@ type FilterLowercaseDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterLowercaseDetails) MarshalJSON() ([]byte, error) {
+func (s FilterLowercaseDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterLowercaseDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterParentLink: Parent link for this filter. Points to the account to
@@ -2047,9 +2050,9 @@ type FilterParentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterParentLink) MarshalJSON() ([]byte, error) {
+func (s FilterParentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterParentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterSearchAndReplaceDetails: Details for the filter of the type
@@ -2079,9 +2082,9 @@ type FilterSearchAndReplaceDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterSearchAndReplaceDetails) MarshalJSON() ([]byte, error) {
+func (s FilterSearchAndReplaceDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterSearchAndReplaceDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterUppercaseDetails: Details for the filter of the type UPPER.
@@ -2104,9 +2107,9 @@ type FilterUppercaseDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterUppercaseDetails) MarshalJSON() ([]byte, error) {
+func (s FilterUppercaseDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterUppercaseDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterExpression: JSON template for an Analytics filter expression.
@@ -2226,9 +2229,9 @@ type FilterExpression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterExpression) MarshalJSON() ([]byte, error) {
+func (s FilterExpression) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterExpression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterRef: JSON template for a profile filter link.
@@ -2256,9 +2259,9 @@ type FilterRef struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterRef) MarshalJSON() ([]byte, error) {
+func (s FilterRef) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterRef
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Filters: A filter collection lists filters created by users in an Analytics
@@ -2301,9 +2304,9 @@ type Filters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Filters) MarshalJSON() ([]byte, error) {
+func (s Filters) MarshalJSON() ([]byte, error) {
 	type NoMethod Filters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GaData: Analytics data for a given view (profile).
@@ -2369,9 +2372,9 @@ type GaData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GaData) MarshalJSON() ([]byte, error) {
+func (s GaData) MarshalJSON() ([]byte, error) {
 	type NoMethod GaData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GaDataColumnHeaders struct {
@@ -2396,9 +2399,9 @@ type GaDataColumnHeaders struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GaDataColumnHeaders) MarshalJSON() ([]byte, error) {
+func (s GaDataColumnHeaders) MarshalJSON() ([]byte, error) {
 	type NoMethod GaDataColumnHeaders
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GaDataDataTable struct {
@@ -2417,9 +2420,9 @@ type GaDataDataTable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GaDataDataTable) MarshalJSON() ([]byte, error) {
+func (s GaDataDataTable) MarshalJSON() ([]byte, error) {
 	type NoMethod GaDataDataTable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GaDataDataTableCols struct {
@@ -2439,9 +2442,9 @@ type GaDataDataTableCols struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GaDataDataTableCols) MarshalJSON() ([]byte, error) {
+func (s GaDataDataTableCols) MarshalJSON() ([]byte, error) {
 	type NoMethod GaDataDataTableCols
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GaDataDataTableRows struct {
@@ -2459,9 +2462,9 @@ type GaDataDataTableRows struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GaDataDataTableRows) MarshalJSON() ([]byte, error) {
+func (s GaDataDataTableRows) MarshalJSON() ([]byte, error) {
 	type NoMethod GaDataDataTableRows
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GaDataDataTableRowsC struct {
@@ -2479,9 +2482,9 @@ type GaDataDataTableRowsC struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GaDataDataTableRowsC) MarshalJSON() ([]byte, error) {
+func (s GaDataDataTableRowsC) MarshalJSON() ([]byte, error) {
 	type NoMethod GaDataDataTableRowsC
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GaDataProfileInfo: Information for the view (profile), for which the
@@ -2513,9 +2516,9 @@ type GaDataProfileInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GaDataProfileInfo) MarshalJSON() ([]byte, error) {
+func (s GaDataProfileInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GaDataProfileInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GaDataQuery: Analytics data request query parameters.
@@ -2555,9 +2558,9 @@ type GaDataQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GaDataQuery) MarshalJSON() ([]byte, error) {
+func (s GaDataQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod GaDataQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Goal: JSON template for Analytics goal resource.
@@ -2618,9 +2621,9 @@ type Goal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Goal) MarshalJSON() ([]byte, error) {
+func (s Goal) MarshalJSON() ([]byte, error) {
 	type NoMethod Goal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Goal) UnmarshalJSON(data []byte) error {
@@ -2657,9 +2660,9 @@ type GoalEventDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoalEventDetails) MarshalJSON() ([]byte, error) {
+func (s GoalEventDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoalEventDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoalEventDetailsEventConditions struct {
@@ -2689,9 +2692,9 @@ type GoalEventDetailsEventConditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoalEventDetailsEventConditions) MarshalJSON() ([]byte, error) {
+func (s GoalEventDetailsEventConditions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoalEventDetailsEventConditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoalParentLink: Parent link for a goal. Points to the view (profile) to
@@ -2714,9 +2717,9 @@ type GoalParentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoalParentLink) MarshalJSON() ([]byte, error) {
+func (s GoalParentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod GoalParentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoalUrlDestinationDetails: Details for the goal of the type URL_DESTINATION.
@@ -2746,9 +2749,9 @@ type GoalUrlDestinationDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoalUrlDestinationDetails) MarshalJSON() ([]byte, error) {
+func (s GoalUrlDestinationDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoalUrlDestinationDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoalUrlDestinationDetailsSteps struct {
@@ -2771,9 +2774,9 @@ type GoalUrlDestinationDetailsSteps struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoalUrlDestinationDetailsSteps) MarshalJSON() ([]byte, error) {
+func (s GoalUrlDestinationDetailsSteps) MarshalJSON() ([]byte, error) {
 	type NoMethod GoalUrlDestinationDetailsSteps
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoalVisitNumPagesDetails: Details for the goal of the type VISIT_NUM_PAGES.
@@ -2796,9 +2799,9 @@ type GoalVisitNumPagesDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoalVisitNumPagesDetails) MarshalJSON() ([]byte, error) {
+func (s GoalVisitNumPagesDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoalVisitNumPagesDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoalVisitTimeOnSiteDetails: Details for the goal of the type
@@ -2822,9 +2825,9 @@ type GoalVisitTimeOnSiteDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoalVisitTimeOnSiteDetails) MarshalJSON() ([]byte, error) {
+func (s GoalVisitTimeOnSiteDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoalVisitTimeOnSiteDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Goals: A goal collection lists Analytics goals to which the user has access.
@@ -2868,9 +2871,9 @@ type Goals struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Goals) MarshalJSON() ([]byte, error) {
+func (s Goals) MarshalJSON() ([]byte, error) {
 	type NoMethod Goals
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HashClientIdRequest: JSON template for a hash Client Id request resource.
@@ -2891,9 +2894,9 @@ type HashClientIdRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HashClientIdRequest) MarshalJSON() ([]byte, error) {
+func (s HashClientIdRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod HashClientIdRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HashClientIdResponse: JSON template for a hash Client Id response resource.
@@ -2918,9 +2921,9 @@ type HashClientIdResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HashClientIdResponse) MarshalJSON() ([]byte, error) {
+func (s HashClientIdResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod HashClientIdResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IncludeConditions: JSON template for an Analytics Remarketing Include
@@ -2957,9 +2960,9 @@ type IncludeConditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IncludeConditions) MarshalJSON() ([]byte, error) {
+func (s IncludeConditions) MarshalJSON() ([]byte, error) {
 	type NoMethod IncludeConditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LinkedForeignAccount: JSON template for an Analytics Remarketing Audience
@@ -3003,9 +3006,9 @@ type LinkedForeignAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LinkedForeignAccount) MarshalJSON() ([]byte, error) {
+func (s LinkedForeignAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod LinkedForeignAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // McfData: Multi-Channel Funnels data for a given view (profile).
@@ -3068,9 +3071,9 @@ type McfData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *McfData) MarshalJSON() ([]byte, error) {
+func (s McfData) MarshalJSON() ([]byte, error) {
 	type NoMethod McfData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type McfDataColumnHeaders struct {
@@ -3094,9 +3097,9 @@ type McfDataColumnHeaders struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *McfDataColumnHeaders) MarshalJSON() ([]byte, error) {
+func (s McfDataColumnHeaders) MarshalJSON() ([]byte, error) {
 	type NoMethod McfDataColumnHeaders
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // McfDataProfileInfo: Information for the view (profile), for which the
@@ -3128,9 +3131,9 @@ type McfDataProfileInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *McfDataProfileInfo) MarshalJSON() ([]byte, error) {
+func (s McfDataProfileInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod McfDataProfileInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // McfDataQuery: Analytics data request query parameters.
@@ -3170,9 +3173,9 @@ type McfDataQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *McfDataQuery) MarshalJSON() ([]byte, error) {
+func (s McfDataQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod McfDataQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // McfDataRowsItem: A union object representing a dimension or metric value.
@@ -3197,9 +3200,9 @@ type McfDataRowsItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *McfDataRowsItem) MarshalJSON() ([]byte, error) {
+func (s McfDataRowsItem) MarshalJSON() ([]byte, error) {
 	type NoMethod McfDataRowsItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type McfDataRowsItemConversionPathValue struct {
@@ -3222,9 +3225,9 @@ type McfDataRowsItemConversionPathValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *McfDataRowsItemConversionPathValue) MarshalJSON() ([]byte, error) {
+func (s McfDataRowsItemConversionPathValue) MarshalJSON() ([]byte, error) {
 	type NoMethod McfDataRowsItemConversionPathValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Profile: JSON template for an Analytics view (profile).
@@ -3316,9 +3319,9 @@ type Profile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Profile) MarshalJSON() ([]byte, error) {
+func (s Profile) MarshalJSON() ([]byte, error) {
 	type NoMethod Profile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfileChildLink: Child link for this view (profile). Points to the list of
@@ -3341,9 +3344,9 @@ type ProfileChildLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfileChildLink) MarshalJSON() ([]byte, error) {
+func (s ProfileChildLink) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfileChildLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfileParentLink: Parent link for this view (profile). Points to the web
@@ -3366,9 +3369,9 @@ type ProfileParentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfileParentLink) MarshalJSON() ([]byte, error) {
+func (s ProfileParentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfileParentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfilePermissions: Permissions the user has for this view (profile).
@@ -3390,9 +3393,9 @@ type ProfilePermissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfilePermissions) MarshalJSON() ([]byte, error) {
+func (s ProfilePermissions) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfilePermissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfileFilterLink: JSON template for an Analytics profile filter link.
@@ -3436,9 +3439,9 @@ type ProfileFilterLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfileFilterLink) MarshalJSON() ([]byte, error) {
+func (s ProfileFilterLink) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfileFilterLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfileFilterLinks: A profile filter link collection lists profile filter
@@ -3482,9 +3485,9 @@ type ProfileFilterLinks struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfileFilterLinks) MarshalJSON() ([]byte, error) {
+func (s ProfileFilterLinks) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfileFilterLinks
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfileRef: JSON template for a linked view (profile).
@@ -3518,9 +3521,9 @@ type ProfileRef struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfileRef) MarshalJSON() ([]byte, error) {
+func (s ProfileRef) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfileRef
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfileSummary: JSON template for an Analytics ProfileSummary.
@@ -3549,9 +3552,9 @@ type ProfileSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfileSummary) MarshalJSON() ([]byte, error) {
+func (s ProfileSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfileSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Profiles: A view (profile) collection lists Analytics views (profiles) to
@@ -3595,9 +3598,9 @@ type Profiles struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Profiles) MarshalJSON() ([]byte, error) {
+func (s Profiles) MarshalJSON() ([]byte, error) {
 	type NoMethod Profiles
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RealtimeData: Real time data for a given view (profile).
@@ -3644,9 +3647,9 @@ type RealtimeData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RealtimeData) MarshalJSON() ([]byte, error) {
+func (s RealtimeData) MarshalJSON() ([]byte, error) {
 	type NoMethod RealtimeData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RealtimeDataColumnHeaders struct {
@@ -3671,9 +3674,9 @@ type RealtimeDataColumnHeaders struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RealtimeDataColumnHeaders) MarshalJSON() ([]byte, error) {
+func (s RealtimeDataColumnHeaders) MarshalJSON() ([]byte, error) {
 	type NoMethod RealtimeDataColumnHeaders
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RealtimeDataProfileInfo: Information for the view (profile), for which the
@@ -3705,9 +3708,9 @@ type RealtimeDataProfileInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RealtimeDataProfileInfo) MarshalJSON() ([]byte, error) {
+func (s RealtimeDataProfileInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RealtimeDataProfileInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RealtimeDataQuery: Real time data request query parameters.
@@ -3737,9 +3740,9 @@ type RealtimeDataQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RealtimeDataQuery) MarshalJSON() ([]byte, error) {
+func (s RealtimeDataQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod RealtimeDataQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemarketingAudience: JSON template for an Analytics remarketing audience.
@@ -3795,9 +3798,9 @@ type RemarketingAudience struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemarketingAudience) MarshalJSON() ([]byte, error) {
+func (s RemarketingAudience) MarshalJSON() ([]byte, error) {
 	type NoMethod RemarketingAudience
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemarketingAudienceAudienceDefinition: The simple audience definition that
@@ -3818,9 +3821,9 @@ type RemarketingAudienceAudienceDefinition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemarketingAudienceAudienceDefinition) MarshalJSON() ([]byte, error) {
+func (s RemarketingAudienceAudienceDefinition) MarshalJSON() ([]byte, error) {
 	type NoMethod RemarketingAudienceAudienceDefinition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemarketingAudienceStateBasedAudienceDefinition: A state based audience
@@ -3844,9 +3847,9 @@ type RemarketingAudienceStateBasedAudienceDefinition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemarketingAudienceStateBasedAudienceDefinition) MarshalJSON() ([]byte, error) {
+func (s RemarketingAudienceStateBasedAudienceDefinition) MarshalJSON() ([]byte, error) {
 	type NoMethod RemarketingAudienceStateBasedAudienceDefinition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemarketingAudienceStateBasedAudienceDefinitionExcludeConditions: Defines
@@ -3870,9 +3873,9 @@ type RemarketingAudienceStateBasedAudienceDefinitionExcludeConditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemarketingAudienceStateBasedAudienceDefinitionExcludeConditions) MarshalJSON() ([]byte, error) {
+func (s RemarketingAudienceStateBasedAudienceDefinitionExcludeConditions) MarshalJSON() ([]byte, error) {
 	type NoMethod RemarketingAudienceStateBasedAudienceDefinitionExcludeConditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemarketingAudiences: A remarketing audience collection lists Analytics
@@ -3916,9 +3919,9 @@ type RemarketingAudiences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemarketingAudiences) MarshalJSON() ([]byte, error) {
+func (s RemarketingAudiences) MarshalJSON() ([]byte, error) {
 	type NoMethod RemarketingAudiences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Segment: JSON template for an Analytics segment.
@@ -3955,9 +3958,9 @@ type Segment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Segment) MarshalJSON() ([]byte, error) {
+func (s Segment) MarshalJSON() ([]byte, error) {
 	type NoMethod Segment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Segments: An segment collection lists Analytics segments that the user has
@@ -4001,9 +4004,9 @@ type Segments struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Segments) MarshalJSON() ([]byte, error) {
+func (s Segments) MarshalJSON() ([]byte, error) {
 	type NoMethod Segments
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnsampledReport: JSON template for Analytics unsampled report resource.
@@ -4068,9 +4071,9 @@ type UnsampledReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnsampledReport) MarshalJSON() ([]byte, error) {
+func (s UnsampledReport) MarshalJSON() ([]byte, error) {
 	type NoMethod UnsampledReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnsampledReportCloudStorageDownloadDetails: Download details for a file
@@ -4093,9 +4096,9 @@ type UnsampledReportCloudStorageDownloadDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnsampledReportCloudStorageDownloadDetails) MarshalJSON() ([]byte, error) {
+func (s UnsampledReportCloudStorageDownloadDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod UnsampledReportCloudStorageDownloadDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnsampledReportDriveDownloadDetails: Download details for a file stored in
@@ -4116,9 +4119,9 @@ type UnsampledReportDriveDownloadDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnsampledReportDriveDownloadDetails) MarshalJSON() ([]byte, error) {
+func (s UnsampledReportDriveDownloadDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod UnsampledReportDriveDownloadDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UnsampledReports: An unsampled report collection lists Analytics unsampled
@@ -4163,9 +4166,9 @@ type UnsampledReports struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UnsampledReports) MarshalJSON() ([]byte, error) {
+func (s UnsampledReports) MarshalJSON() ([]byte, error) {
 	type NoMethod UnsampledReports
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Upload: Metadata returned for an upload operation.
@@ -4201,9 +4204,9 @@ type Upload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Upload) MarshalJSON() ([]byte, error) {
+func (s Upload) MarshalJSON() ([]byte, error) {
 	type NoMethod Upload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Uploads: Upload collection lists Analytics uploads to which the user has
@@ -4245,9 +4248,9 @@ type Uploads struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Uploads) MarshalJSON() ([]byte, error) {
+func (s Uploads) MarshalJSON() ([]byte, error) {
 	type NoMethod Uploads
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserDeletionRequest: JSON template for a user deletion request resource.
@@ -4281,9 +4284,9 @@ type UserDeletionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserDeletionRequest) MarshalJSON() ([]byte, error) {
+func (s UserDeletionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UserDeletionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserDeletionRequestId: User ID.
@@ -4305,9 +4308,9 @@ type UserDeletionRequestId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserDeletionRequestId) MarshalJSON() ([]byte, error) {
+func (s UserDeletionRequestId) MarshalJSON() ([]byte, error) {
 	type NoMethod UserDeletionRequestId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserRef: JSON template for a user reference.
@@ -4330,9 +4333,9 @@ type UserRef struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserRef) MarshalJSON() ([]byte, error) {
+func (s UserRef) MarshalJSON() ([]byte, error) {
 	type NoMethod UserRef
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebPropertyRef: JSON template for a web property reference.
@@ -4362,9 +4365,9 @@ type WebPropertyRef struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebPropertyRef) MarshalJSON() ([]byte, error) {
+func (s WebPropertyRef) MarshalJSON() ([]byte, error) {
 	type NoMethod WebPropertyRef
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebPropertySummary: JSON template for an Analytics WebPropertySummary.
@@ -4400,9 +4403,9 @@ type WebPropertySummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebPropertySummary) MarshalJSON() ([]byte, error) {
+func (s WebPropertySummary) MarshalJSON() ([]byte, error) {
 	type NoMethod WebPropertySummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Webproperties: A web property collection lists Analytics web properties to
@@ -4446,9 +4449,9 @@ type Webproperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Webproperties) MarshalJSON() ([]byte, error) {
+func (s Webproperties) MarshalJSON() ([]byte, error) {
 	type NoMethod Webproperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Webproperty: JSON template for an Analytics web property.
@@ -4517,9 +4520,9 @@ type Webproperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Webproperty) MarshalJSON() ([]byte, error) {
+func (s Webproperty) MarshalJSON() ([]byte, error) {
 	type NoMethod Webproperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebpropertyChildLink: Child link for this web property. Points to the list
@@ -4542,9 +4545,9 @@ type WebpropertyChildLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebpropertyChildLink) MarshalJSON() ([]byte, error) {
+func (s WebpropertyChildLink) MarshalJSON() ([]byte, error) {
 	type NoMethod WebpropertyChildLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebpropertyParentLink: Parent link for this web property. Points to the
@@ -4567,9 +4570,9 @@ type WebpropertyParentLink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebpropertyParentLink) MarshalJSON() ([]byte, error) {
+func (s WebpropertyParentLink) MarshalJSON() ([]byte, error) {
 	type NoMethod WebpropertyParentLink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebpropertyPermissions: Permissions the user has for this web property.
@@ -4591,9 +4594,9 @@ type WebpropertyPermissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebpropertyPermissions) MarshalJSON() ([]byte, error) {
+func (s WebpropertyPermissions) MarshalJSON() ([]byte, error) {
 	type NoMethod WebpropertyPermissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DataGaGetCall struct {
@@ -4745,16 +4748,16 @@ func (c *DataGaGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "data/ga")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.data.ga.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4789,9 +4792,11 @@ func (c *DataGaGetCall) Do(opts ...googleapi.CallOption) (*GaData, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.data.ga.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4915,16 +4920,16 @@ func (c *DataMcfGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "data/mcf")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.data.mcf.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4959,9 +4964,11 @@ func (c *DataMcfGetCall) Do(opts ...googleapi.CallOption) (*McfData, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.data.mcf.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5050,16 +5057,16 @@ func (c *DataRealtimeGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "data/realtime")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.data.realtime.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5094,9 +5101,11 @@ func (c *DataRealtimeGetCall) Do(opts ...googleapi.CallOption) (*RealtimeData, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.data.realtime.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5167,16 +5176,16 @@ func (c *ManagementAccountSummariesListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accountSummaries")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.accountSummaries.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5212,9 +5221,11 @@ func (c *ManagementAccountSummariesListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.accountSummaries.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5263,12 +5274,11 @@ func (c *ManagementAccountUserLinksDeleteCall) Header() http.Header {
 
 func (c *ManagementAccountUserLinksDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/entityUserLinks/{linkId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5277,6 +5287,7 @@ func (c *ManagementAccountUserLinksDeleteCall) doRequest(alt string) (*http.Resp
 		"accountId": c.accountId,
 		"linkId":    c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.accountUserLinks.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5291,6 +5302,7 @@ func (c *ManagementAccountUserLinksDeleteCall) Do(opts ...googleapi.CallOption) 
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.accountUserLinks.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -5338,8 +5350,7 @@ func (c *ManagementAccountUserLinksInsertCall) Header() http.Header {
 
 func (c *ManagementAccountUserLinksInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityuserlink)
 	if err != nil {
 		return nil, err
 	}
@@ -5355,6 +5366,7 @@ func (c *ManagementAccountUserLinksInsertCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.accountUserLinks.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5389,9 +5401,11 @@ func (c *ManagementAccountUserLinksInsertCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.accountUserLinks.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5464,12 +5478,11 @@ func (c *ManagementAccountUserLinksListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/entityUserLinks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5477,6 +5490,7 @@ func (c *ManagementAccountUserLinksListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.accountUserLinks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5512,9 +5526,11 @@ func (c *ManagementAccountUserLinksListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.accountUserLinks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5565,8 +5581,7 @@ func (c *ManagementAccountUserLinksUpdateCall) Header() http.Header {
 
 func (c *ManagementAccountUserLinksUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityuserlink)
 	if err != nil {
 		return nil, err
 	}
@@ -5583,6 +5598,7 @@ func (c *ManagementAccountUserLinksUpdateCall) doRequest(alt string) (*http.Resp
 		"accountId": c.accountId,
 		"linkId":    c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.accountUserLinks.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5617,9 +5633,11 @@ func (c *ManagementAccountUserLinksUpdateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.accountUserLinks.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5688,16 +5706,16 @@ func (c *ManagementAccountsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.accounts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5732,9 +5750,11 @@ func (c *ManagementAccountsListCall) Do(opts ...googleapi.CallOption) (*Accounts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.accounts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5778,8 +5798,7 @@ func (c *ManagementClientIdHashClientIdCall) Header() http.Header {
 
 func (c *ManagementClientIdHashClientIdCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.hashclientidrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.hashclientidrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5792,6 +5811,7 @@ func (c *ManagementClientIdHashClientIdCall) doRequest(alt string) (*http.Respon
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.clientId.hashClientId", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5827,9 +5847,11 @@ func (c *ManagementClientIdHashClientIdCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.clientId.hashClientId", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5905,12 +5927,11 @@ func (c *ManagementCustomDataSourcesListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5919,6 +5940,7 @@ func (c *ManagementCustomDataSourcesListCall) doRequest(alt string) (*http.Respo
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customDataSources.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5954,9 +5976,11 @@ func (c *ManagementCustomDataSourcesListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customDataSources.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6020,12 +6044,11 @@ func (c *ManagementCustomDimensionsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions/{customDimensionId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6035,6 +6058,7 @@ func (c *ManagementCustomDimensionsGetCall) doRequest(alt string) (*http.Respons
 		"webPropertyId":     c.webPropertyId,
 		"customDimensionId": c.customDimensionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6070,9 +6094,11 @@ func (c *ManagementCustomDimensionsGetCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6123,8 +6149,7 @@ func (c *ManagementCustomDimensionsInsertCall) Header() http.Header {
 
 func (c *ManagementCustomDimensionsInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customdimension)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customdimension)
 	if err != nil {
 		return nil, err
 	}
@@ -6141,6 +6166,7 @@ func (c *ManagementCustomDimensionsInsertCall) doRequest(alt string) (*http.Resp
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6176,9 +6202,11 @@ func (c *ManagementCustomDimensionsInsertCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6254,12 +6282,11 @@ func (c *ManagementCustomDimensionsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDimensions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6268,6 +6295,7 @@ func (c *ManagementCustomDimensionsListCall) doRequest(alt string) (*http.Respon
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6303,9 +6331,11 @@ func (c *ManagementCustomDimensionsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6369,8 +6399,7 @@ func (c *ManagementCustomDimensionsPatchCall) Header() http.Header {
 
 func (c *ManagementCustomDimensionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customdimension)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customdimension)
 	if err != nil {
 		return nil, err
 	}
@@ -6388,6 +6417,7 @@ func (c *ManagementCustomDimensionsPatchCall) doRequest(alt string) (*http.Respo
 		"webPropertyId":     c.webPropertyId,
 		"customDimensionId": c.customDimensionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6423,9 +6453,11 @@ func (c *ManagementCustomDimensionsPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6488,8 +6520,7 @@ func (c *ManagementCustomDimensionsUpdateCall) Header() http.Header {
 
 func (c *ManagementCustomDimensionsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.customdimension)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.customdimension)
 	if err != nil {
 		return nil, err
 	}
@@ -6507,6 +6538,7 @@ func (c *ManagementCustomDimensionsUpdateCall) doRequest(alt string) (*http.Resp
 		"webPropertyId":     c.webPropertyId,
 		"customDimensionId": c.customDimensionId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6542,9 +6574,11 @@ func (c *ManagementCustomDimensionsUpdateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customDimensions.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6608,12 +6642,11 @@ func (c *ManagementCustomMetricsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics/{customMetricId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6623,6 +6656,7 @@ func (c *ManagementCustomMetricsGetCall) doRequest(alt string) (*http.Response, 
 		"webPropertyId":  c.webPropertyId,
 		"customMetricId": c.customMetricId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6657,9 +6691,11 @@ func (c *ManagementCustomMetricsGetCall) Do(opts ...googleapi.CallOption) (*Cust
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6710,8 +6746,7 @@ func (c *ManagementCustomMetricsInsertCall) Header() http.Header {
 
 func (c *ManagementCustomMetricsInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custommetric)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.custommetric)
 	if err != nil {
 		return nil, err
 	}
@@ -6728,6 +6763,7 @@ func (c *ManagementCustomMetricsInsertCall) doRequest(alt string) (*http.Respons
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6762,9 +6798,11 @@ func (c *ManagementCustomMetricsInsertCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6840,12 +6878,11 @@ func (c *ManagementCustomMetricsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6854,6 +6891,7 @@ func (c *ManagementCustomMetricsListCall) doRequest(alt string) (*http.Response,
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6888,9 +6926,11 @@ func (c *ManagementCustomMetricsListCall) Do(opts ...googleapi.CallOption) (*Cus
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6954,8 +6994,7 @@ func (c *ManagementCustomMetricsPatchCall) Header() http.Header {
 
 func (c *ManagementCustomMetricsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custommetric)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.custommetric)
 	if err != nil {
 		return nil, err
 	}
@@ -6973,6 +7012,7 @@ func (c *ManagementCustomMetricsPatchCall) doRequest(alt string) (*http.Response
 		"webPropertyId":  c.webPropertyId,
 		"customMetricId": c.customMetricId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7007,9 +7047,11 @@ func (c *ManagementCustomMetricsPatchCall) Do(opts ...googleapi.CallOption) (*Cu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7072,8 +7114,7 @@ func (c *ManagementCustomMetricsUpdateCall) Header() http.Header {
 
 func (c *ManagementCustomMetricsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.custommetric)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.custommetric)
 	if err != nil {
 		return nil, err
 	}
@@ -7091,6 +7132,7 @@ func (c *ManagementCustomMetricsUpdateCall) doRequest(alt string) (*http.Respons
 		"webPropertyId":  c.webPropertyId,
 		"customMetricId": c.customMetricId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7125,9 +7167,11 @@ func (c *ManagementCustomMetricsUpdateCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.customMetrics.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7182,12 +7226,11 @@ func (c *ManagementExperimentsDeleteCall) Header() http.Header {
 
 func (c *ManagementExperimentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7198,6 +7241,7 @@ func (c *ManagementExperimentsDeleteCall) doRequest(alt string) (*http.Response,
 		"profileId":     c.profileId,
 		"experimentId":  c.experimentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.experiments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7212,6 +7256,7 @@ func (c *ManagementExperimentsDeleteCall) Do(opts ...googleapi.CallOption) error
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.experiments.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -7278,12 +7323,11 @@ func (c *ManagementExperimentsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments/{experimentId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7294,6 +7338,7 @@ func (c *ManagementExperimentsGetCall) doRequest(alt string) (*http.Response, er
 		"profileId":     c.profileId,
 		"experimentId":  c.experimentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.experiments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7328,9 +7373,11 @@ func (c *ManagementExperimentsGetCall) Do(opts ...googleapi.CallOption) (*Experi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.experiments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7384,8 +7431,7 @@ func (c *ManagementExperimentsInsertCall) Header() http.Header {
 
 func (c *ManagementExperimentsInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.experiment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.experiment)
 	if err != nil {
 		return nil, err
 	}
@@ -7403,6 +7449,7 @@ func (c *ManagementExperimentsInsertCall) doRequest(alt string) (*http.Response,
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.experiments.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7437,9 +7484,11 @@ func (c *ManagementExperimentsInsertCall) Do(opts ...googleapi.CallOption) (*Exp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.experiments.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7518,12 +7567,11 @@ func (c *ManagementExperimentsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/experiments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7533,6 +7581,7 @@ func (c *ManagementExperimentsListCall) doRequest(alt string) (*http.Response, e
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.experiments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7567,9 +7616,11 @@ func (c *ManagementExperimentsListCall) Do(opts ...googleapi.CallOption) (*Exper
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.experiments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7626,8 +7677,7 @@ func (c *ManagementExperimentsPatchCall) Header() http.Header {
 
 func (c *ManagementExperimentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.experiment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.experiment)
 	if err != nil {
 		return nil, err
 	}
@@ -7646,6 +7696,7 @@ func (c *ManagementExperimentsPatchCall) doRequest(alt string) (*http.Response, 
 		"profileId":     c.profileId,
 		"experimentId":  c.experimentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.experiments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7680,9 +7731,11 @@ func (c *ManagementExperimentsPatchCall) Do(opts ...googleapi.CallOption) (*Expe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.experiments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7739,8 +7792,7 @@ func (c *ManagementExperimentsUpdateCall) Header() http.Header {
 
 func (c *ManagementExperimentsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.experiment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.experiment)
 	if err != nil {
 		return nil, err
 	}
@@ -7759,6 +7811,7 @@ func (c *ManagementExperimentsUpdateCall) doRequest(alt string) (*http.Response,
 		"profileId":     c.profileId,
 		"experimentId":  c.experimentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.experiments.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7793,9 +7846,11 @@ func (c *ManagementExperimentsUpdateCall) Do(opts ...googleapi.CallOption) (*Exp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.experiments.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7844,12 +7899,11 @@ func (c *ManagementFiltersDeleteCall) Header() http.Header {
 
 func (c *ManagementFiltersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters/{filterId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7858,6 +7912,7 @@ func (c *ManagementFiltersDeleteCall) doRequest(alt string) (*http.Response, err
 		"accountId": c.accountId,
 		"filterId":  c.filterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.filters.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7892,9 +7947,11 @@ func (c *ManagementFiltersDeleteCall) Do(opts ...googleapi.CallOption) (*Filter,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.filters.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7955,12 +8012,11 @@ func (c *ManagementFiltersGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters/{filterId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7969,6 +8025,7 @@ func (c *ManagementFiltersGetCall) doRequest(alt string) (*http.Response, error)
 		"accountId": c.accountId,
 		"filterId":  c.filterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.filters.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8003,9 +8060,11 @@ func (c *ManagementFiltersGetCall) Do(opts ...googleapi.CallOption) (*Filter, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.filters.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8053,8 +8112,7 @@ func (c *ManagementFiltersInsertCall) Header() http.Header {
 
 func (c *ManagementFiltersInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filter)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.filter)
 	if err != nil {
 		return nil, err
 	}
@@ -8070,6 +8128,7 @@ func (c *ManagementFiltersInsertCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.filters.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8104,9 +8163,11 @@ func (c *ManagementFiltersInsertCall) Do(opts ...googleapi.CallOption) (*Filter,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.filters.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8179,12 +8240,11 @@ func (c *ManagementFiltersListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/filters")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8192,6 +8252,7 @@ func (c *ManagementFiltersListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.filters.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8226,9 +8287,11 @@ func (c *ManagementFiltersListCall) Do(opts ...googleapi.CallOption) (*Filters, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.filters.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8279,8 +8342,7 @@ func (c *ManagementFiltersPatchCall) Header() http.Header {
 
 func (c *ManagementFiltersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filter)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.filter)
 	if err != nil {
 		return nil, err
 	}
@@ -8297,6 +8359,7 @@ func (c *ManagementFiltersPatchCall) doRequest(alt string) (*http.Response, erro
 		"accountId": c.accountId,
 		"filterId":  c.filterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.filters.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8331,9 +8394,11 @@ func (c *ManagementFiltersPatchCall) Do(opts ...googleapi.CallOption) (*Filter, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.filters.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8384,8 +8449,7 @@ func (c *ManagementFiltersUpdateCall) Header() http.Header {
 
 func (c *ManagementFiltersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filter)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.filter)
 	if err != nil {
 		return nil, err
 	}
@@ -8402,6 +8466,7 @@ func (c *ManagementFiltersUpdateCall) doRequest(alt string) (*http.Response, err
 		"accountId": c.accountId,
 		"filterId":  c.filterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.filters.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8436,9 +8501,11 @@ func (c *ManagementFiltersUpdateCall) Do(opts ...googleapi.CallOption) (*Filter,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.filters.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8505,12 +8572,11 @@ func (c *ManagementGoalsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals/{goalId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8521,6 +8587,7 @@ func (c *ManagementGoalsGetCall) doRequest(alt string) (*http.Response, error) {
 		"profileId":     c.profileId,
 		"goalId":        c.goalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.goals.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8555,9 +8622,11 @@ func (c *ManagementGoalsGetCall) Do(opts ...googleapi.CallOption) (*Goal, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.goals.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8611,8 +8680,7 @@ func (c *ManagementGoalsInsertCall) Header() http.Header {
 
 func (c *ManagementGoalsInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.goal)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.goal)
 	if err != nil {
 		return nil, err
 	}
@@ -8630,6 +8698,7 @@ func (c *ManagementGoalsInsertCall) doRequest(alt string) (*http.Response, error
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.goals.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8664,9 +8733,11 @@ func (c *ManagementGoalsInsertCall) Do(opts ...googleapi.CallOption) (*Goal, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.goals.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8751,12 +8822,11 @@ func (c *ManagementGoalsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/goals")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8766,6 +8836,7 @@ func (c *ManagementGoalsListCall) doRequest(alt string) (*http.Response, error) 
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.goals.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8800,9 +8871,11 @@ func (c *ManagementGoalsListCall) Do(opts ...googleapi.CallOption) (*Goals, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.goals.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8859,8 +8932,7 @@ func (c *ManagementGoalsPatchCall) Header() http.Header {
 
 func (c *ManagementGoalsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.goal)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.goal)
 	if err != nil {
 		return nil, err
 	}
@@ -8879,6 +8951,7 @@ func (c *ManagementGoalsPatchCall) doRequest(alt string) (*http.Response, error)
 		"profileId":     c.profileId,
 		"goalId":        c.goalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.goals.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8913,9 +8986,11 @@ func (c *ManagementGoalsPatchCall) Do(opts ...googleapi.CallOption) (*Goal, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.goals.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8972,8 +9047,7 @@ func (c *ManagementGoalsUpdateCall) Header() http.Header {
 
 func (c *ManagementGoalsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.goal)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.goal)
 	if err != nil {
 		return nil, err
 	}
@@ -8992,6 +9066,7 @@ func (c *ManagementGoalsUpdateCall) doRequest(alt string) (*http.Response, error
 		"profileId":     c.profileId,
 		"goalId":        c.goalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.goals.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9026,9 +9101,11 @@ func (c *ManagementGoalsUpdateCall) Do(opts ...googleapi.CallOption) (*Goal, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.goals.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9083,12 +9160,11 @@ func (c *ManagementProfileFilterLinksDeleteCall) Header() http.Header {
 
 func (c *ManagementProfileFilterLinksDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9099,6 +9175,7 @@ func (c *ManagementProfileFilterLinksDeleteCall) doRequest(alt string) (*http.Re
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9113,6 +9190,7 @@ func (c *ManagementProfileFilterLinksDeleteCall) Do(opts ...googleapi.CallOption
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -9179,12 +9257,11 @@ func (c *ManagementProfileFilterLinksGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks/{linkId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9195,6 +9272,7 @@ func (c *ManagementProfileFilterLinksGetCall) doRequest(alt string) (*http.Respo
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9230,9 +9308,11 @@ func (c *ManagementProfileFilterLinksGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9286,8 +9366,7 @@ func (c *ManagementProfileFilterLinksInsertCall) Header() http.Header {
 
 func (c *ManagementProfileFilterLinksInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profilefilterlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.profilefilterlink)
 	if err != nil {
 		return nil, err
 	}
@@ -9305,6 +9384,7 @@ func (c *ManagementProfileFilterLinksInsertCall) doRequest(alt string) (*http.Re
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9340,9 +9420,11 @@ func (c *ManagementProfileFilterLinksInsertCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9425,12 +9507,11 @@ func (c *ManagementProfileFilterLinksListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/profileFilterLinks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9440,6 +9521,7 @@ func (c *ManagementProfileFilterLinksListCall) doRequest(alt string) (*http.Resp
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9475,9 +9557,11 @@ func (c *ManagementProfileFilterLinksListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9535,8 +9619,7 @@ func (c *ManagementProfileFilterLinksPatchCall) Header() http.Header {
 
 func (c *ManagementProfileFilterLinksPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profilefilterlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.profilefilterlink)
 	if err != nil {
 		return nil, err
 	}
@@ -9555,6 +9638,7 @@ func (c *ManagementProfileFilterLinksPatchCall) doRequest(alt string) (*http.Res
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9590,9 +9674,11 @@ func (c *ManagementProfileFilterLinksPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9649,8 +9735,7 @@ func (c *ManagementProfileFilterLinksUpdateCall) Header() http.Header {
 
 func (c *ManagementProfileFilterLinksUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profilefilterlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.profilefilterlink)
 	if err != nil {
 		return nil, err
 	}
@@ -9669,6 +9754,7 @@ func (c *ManagementProfileFilterLinksUpdateCall) doRequest(alt string) (*http.Re
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9704,9 +9790,11 @@ func (c *ManagementProfileFilterLinksUpdateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileFilterLinks.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9761,12 +9849,11 @@ func (c *ManagementProfileUserLinksDeleteCall) Header() http.Header {
 
 func (c *ManagementProfileUserLinksDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks/{linkId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9777,6 +9864,7 @@ func (c *ManagementProfileUserLinksDeleteCall) doRequest(alt string) (*http.Resp
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileUserLinks.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9791,6 +9879,7 @@ func (c *ManagementProfileUserLinksDeleteCall) Do(opts ...googleapi.CallOption) 
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileUserLinks.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -9844,8 +9933,7 @@ func (c *ManagementProfileUserLinksInsertCall) Header() http.Header {
 
 func (c *ManagementProfileUserLinksInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityuserlink)
 	if err != nil {
 		return nil, err
 	}
@@ -9863,6 +9951,7 @@ func (c *ManagementProfileUserLinksInsertCall) doRequest(alt string) (*http.Resp
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileUserLinks.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9897,9 +9986,11 @@ func (c *ManagementProfileUserLinksInsertCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileUserLinks.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9982,12 +10073,11 @@ func (c *ManagementProfileUserLinksListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/entityUserLinks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9997,6 +10087,7 @@ func (c *ManagementProfileUserLinksListCall) doRequest(alt string) (*http.Respon
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileUserLinks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10032,9 +10123,11 @@ func (c *ManagementProfileUserLinksListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileUserLinks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10092,8 +10185,7 @@ func (c *ManagementProfileUserLinksUpdateCall) Header() http.Header {
 
 func (c *ManagementProfileUserLinksUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityuserlink)
 	if err != nil {
 		return nil, err
 	}
@@ -10112,6 +10204,7 @@ func (c *ManagementProfileUserLinksUpdateCall) doRequest(alt string) (*http.Resp
 		"profileId":     c.profileId,
 		"linkId":        c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profileUserLinks.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10146,9 +10239,11 @@ func (c *ManagementProfileUserLinksUpdateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profileUserLinks.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10200,12 +10295,11 @@ func (c *ManagementProfilesDeleteCall) Header() http.Header {
 
 func (c *ManagementProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10215,6 +10309,7 @@ func (c *ManagementProfilesDeleteCall) doRequest(alt string) (*http.Response, er
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10229,6 +10324,7 @@ func (c *ManagementProfilesDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profiles.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -10292,12 +10388,11 @@ func (c *ManagementProfilesGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10307,6 +10402,7 @@ func (c *ManagementProfilesGetCall) doRequest(alt string) (*http.Response, error
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10341,9 +10437,11 @@ func (c *ManagementProfilesGetCall) Do(opts ...googleapi.CallOption) (*Profile, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10394,8 +10492,7 @@ func (c *ManagementProfilesInsertCall) Header() http.Header {
 
 func (c *ManagementProfilesInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.profile)
 	if err != nil {
 		return nil, err
 	}
@@ -10412,6 +10509,7 @@ func (c *ManagementProfilesInsertCall) doRequest(alt string) (*http.Response, er
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profiles.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10446,9 +10544,11 @@ func (c *ManagementProfilesInsertCall) Do(opts ...googleapi.CallOption) (*Profil
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profiles.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10528,12 +10628,11 @@ func (c *ManagementProfilesListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10542,6 +10641,7 @@ func (c *ManagementProfilesListCall) doRequest(alt string) (*http.Response, erro
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10576,9 +10676,11 @@ func (c *ManagementProfilesListCall) Do(opts ...googleapi.CallOption) (*Profiles
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10633,8 +10735,7 @@ func (c *ManagementProfilesPatchCall) Header() http.Header {
 
 func (c *ManagementProfilesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.profile)
 	if err != nil {
 		return nil, err
 	}
@@ -10652,6 +10753,7 @@ func (c *ManagementProfilesPatchCall) doRequest(alt string) (*http.Response, err
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profiles.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10686,9 +10788,11 @@ func (c *ManagementProfilesPatchCall) Do(opts ...googleapi.CallOption) (*Profile
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profiles.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10742,8 +10846,7 @@ func (c *ManagementProfilesUpdateCall) Header() http.Header {
 
 func (c *ManagementProfilesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.profile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.profile)
 	if err != nil {
 		return nil, err
 	}
@@ -10761,6 +10864,7 @@ func (c *ManagementProfilesUpdateCall) doRequest(alt string) (*http.Response, er
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.profiles.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10795,9 +10899,11 @@ func (c *ManagementProfilesUpdateCall) Do(opts ...googleapi.CallOption) (*Profil
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.profiles.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10849,12 +10955,11 @@ func (c *ManagementRemarketingAudienceDeleteCall) Header() http.Header {
 
 func (c *ManagementRemarketingAudienceDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/remarketingAudiences/{remarketingAudienceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10864,6 +10969,7 @@ func (c *ManagementRemarketingAudienceDeleteCall) doRequest(alt string) (*http.R
 		"webPropertyId":         c.webPropertyId,
 		"remarketingAudienceId": c.remarketingAudienceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10878,6 +10984,7 @@ func (c *ManagementRemarketingAudienceDeleteCall) Do(opts ...googleapi.CallOptio
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -10942,12 +11049,11 @@ func (c *ManagementRemarketingAudienceGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/remarketingAudiences/{remarketingAudienceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10957,6 +11063,7 @@ func (c *ManagementRemarketingAudienceGetCall) doRequest(alt string) (*http.Resp
 		"webPropertyId":         c.webPropertyId,
 		"remarketingAudienceId": c.remarketingAudienceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10992,9 +11099,11 @@ func (c *ManagementRemarketingAudienceGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11046,8 +11155,7 @@ func (c *ManagementRemarketingAudienceInsertCall) Header() http.Header {
 
 func (c *ManagementRemarketingAudienceInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.remarketingaudience)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.remarketingaudience)
 	if err != nil {
 		return nil, err
 	}
@@ -11064,6 +11172,7 @@ func (c *ManagementRemarketingAudienceInsertCall) doRequest(alt string) (*http.R
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11099,9 +11208,11 @@ func (c *ManagementRemarketingAudienceInsertCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11184,12 +11295,11 @@ func (c *ManagementRemarketingAudienceListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/remarketingAudiences")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11198,6 +11308,7 @@ func (c *ManagementRemarketingAudienceListCall) doRequest(alt string) (*http.Res
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11233,9 +11344,11 @@ func (c *ManagementRemarketingAudienceListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11290,8 +11403,7 @@ func (c *ManagementRemarketingAudiencePatchCall) Header() http.Header {
 
 func (c *ManagementRemarketingAudiencePatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.remarketingaudience)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.remarketingaudience)
 	if err != nil {
 		return nil, err
 	}
@@ -11309,6 +11421,7 @@ func (c *ManagementRemarketingAudiencePatchCall) doRequest(alt string) (*http.Re
 		"webPropertyId":         c.webPropertyId,
 		"remarketingAudienceId": c.remarketingAudienceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11344,9 +11457,11 @@ func (c *ManagementRemarketingAudiencePatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11400,8 +11515,7 @@ func (c *ManagementRemarketingAudienceUpdateCall) Header() http.Header {
 
 func (c *ManagementRemarketingAudienceUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.remarketingaudience)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.remarketingaudience)
 	if err != nil {
 		return nil, err
 	}
@@ -11419,6 +11533,7 @@ func (c *ManagementRemarketingAudienceUpdateCall) doRequest(alt string) (*http.R
 		"webPropertyId":         c.webPropertyId,
 		"remarketingAudienceId": c.remarketingAudienceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11454,9 +11569,11 @@ func (c *ManagementRemarketingAudienceUpdateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.remarketingAudience.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11525,16 +11642,16 @@ func (c *ManagementSegmentsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/segments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.segments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11569,9 +11686,11 @@ func (c *ManagementSegmentsListCall) Do(opts ...googleapi.CallOption) (*Segments
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.segments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11626,12 +11745,11 @@ func (c *ManagementUnsampledReportsDeleteCall) Header() http.Header {
 
 func (c *ManagementUnsampledReportsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports/{unsampledReportId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11642,6 +11760,7 @@ func (c *ManagementUnsampledReportsDeleteCall) doRequest(alt string) (*http.Resp
 		"profileId":         c.profileId,
 		"unsampledReportId": c.unsampledReportId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.unsampledReports.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11656,6 +11775,7 @@ func (c *ManagementUnsampledReportsDeleteCall) Do(opts ...googleapi.CallOption) 
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.unsampledReports.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -11722,12 +11842,11 @@ func (c *ManagementUnsampledReportsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports/{unsampledReportId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11738,6 +11857,7 @@ func (c *ManagementUnsampledReportsGetCall) doRequest(alt string) (*http.Respons
 		"profileId":         c.profileId,
 		"unsampledReportId": c.unsampledReportId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.unsampledReports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11773,9 +11893,11 @@ func (c *ManagementUnsampledReportsGetCall) Do(opts ...googleapi.CallOption) (*U
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.unsampledReports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11829,8 +11951,7 @@ func (c *ManagementUnsampledReportsInsertCall) Header() http.Header {
 
 func (c *ManagementUnsampledReportsInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.unsampledreport)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.unsampledreport)
 	if err != nil {
 		return nil, err
 	}
@@ -11848,6 +11969,7 @@ func (c *ManagementUnsampledReportsInsertCall) doRequest(alt string) (*http.Resp
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.unsampledReports.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11883,9 +12005,11 @@ func (c *ManagementUnsampledReportsInsertCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.unsampledReports.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11967,12 +12091,11 @@ func (c *ManagementUnsampledReportsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/profiles/{profileId}/unsampledReports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11982,6 +12105,7 @@ func (c *ManagementUnsampledReportsListCall) doRequest(alt string) (*http.Respon
 		"webPropertyId": c.webPropertyId,
 		"profileId":     c.profileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.unsampledReports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12017,9 +12141,11 @@ func (c *ManagementUnsampledReportsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.unsampledReports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12073,8 +12199,7 @@ func (c *ManagementUploadsDeleteUploadDataCall) Header() http.Header {
 
 func (c *ManagementUploadsDeleteUploadDataCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.analyticsdataimportdeleteuploaddatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.analyticsdataimportdeleteuploaddatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12092,6 +12217,7 @@ func (c *ManagementUploadsDeleteUploadDataCall) doRequest(alt string) (*http.Res
 		"webPropertyId":      c.webPropertyId,
 		"customDataSourceId": c.customDataSourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.uploads.deleteUploadData", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12106,6 +12232,7 @@ func (c *ManagementUploadsDeleteUploadDataCall) Do(opts ...googleapi.CallOption)
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.uploads.deleteUploadData", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -12172,12 +12299,11 @@ func (c *ManagementUploadsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads/{uploadId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12188,6 +12314,7 @@ func (c *ManagementUploadsGetCall) doRequest(alt string) (*http.Response, error)
 		"customDataSourceId": c.customDataSourceId,
 		"uploadId":           c.uploadId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.uploads.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12222,9 +12349,11 @@ func (c *ManagementUploadsGetCall) Do(opts ...googleapi.CallOption) (*Upload, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.uploads.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12303,12 +12432,11 @@ func (c *ManagementUploadsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12318,6 +12446,7 @@ func (c *ManagementUploadsListCall) doRequest(alt string) (*http.Response, error
 		"webPropertyId":      c.webPropertyId,
 		"customDataSourceId": c.customDataSourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.uploads.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12352,9 +12481,11 @@ func (c *ManagementUploadsListCall) Do(opts ...googleapi.CallOption) (*Uploads, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.uploads.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12445,8 +12576,7 @@ func (c *ManagementUploadsUploadDataCall) Header() http.Header {
 }
 
 func (c *ManagementUploadsUploadDataCall) doRequest(alt string) (*http.Response, error) {
-	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads")
@@ -12454,14 +12584,10 @@ func (c *ManagementUploadsUploadDataCall) doRequest(alt string) (*http.Response,
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/analytics/v3/management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, nil)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -12472,6 +12598,7 @@ func (c *ManagementUploadsUploadDataCall) doRequest(alt string) (*http.Response,
 		"webPropertyId":      c.webPropertyId,
 		"customDataSourceId": c.customDataSourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.uploads.uploadData", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12523,9 +12650,11 @@ func (c *ManagementUploadsUploadDataCall) Do(opts ...googleapi.CallOption) (*Upl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.uploads.uploadData", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12577,12 +12706,11 @@ func (c *ManagementWebPropertyAdWordsLinksDeleteCall) Header() http.Header {
 
 func (c *ManagementWebPropertyAdWordsLinksDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12592,6 +12720,7 @@ func (c *ManagementWebPropertyAdWordsLinksDeleteCall) doRequest(alt string) (*ht
 		"webPropertyId":            c.webPropertyId,
 		"webPropertyAdWordsLinkId": c.webPropertyAdWordsLinkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12606,6 +12735,7 @@ func (c *ManagementWebPropertyAdWordsLinksDeleteCall) Do(opts ...googleapi.CallO
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -12669,12 +12799,11 @@ func (c *ManagementWebPropertyAdWordsLinksGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks/{webPropertyAdWordsLinkId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12684,6 +12813,7 @@ func (c *ManagementWebPropertyAdWordsLinksGetCall) doRequest(alt string) (*http.
 		"webPropertyId":            c.webPropertyId,
 		"webPropertyAdWordsLinkId": c.webPropertyAdWordsLinkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12719,9 +12849,11 @@ func (c *ManagementWebPropertyAdWordsLinksGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12772,8 +12904,7 @@ func (c *ManagementWebPropertyAdWordsLinksInsertCall) Header() http.Header {
 
 func (c *ManagementWebPropertyAdWordsLinksInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityadwordslink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityadwordslink)
 	if err != nil {
 		return nil, err
 	}
@@ -12790,6 +12921,7 @@ func (c *ManagementWebPropertyAdWordsLinksInsertCall) doRequest(alt string) (*ht
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12825,9 +12957,11 @@ func (c *ManagementWebPropertyAdWordsLinksInsertCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12903,12 +13037,11 @@ func (c *ManagementWebPropertyAdWordsLinksListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityAdWordsLinks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12917,6 +13050,7 @@ func (c *ManagementWebPropertyAdWordsLinksListCall) doRequest(alt string) (*http
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12952,9 +13086,11 @@ func (c *ManagementWebPropertyAdWordsLinksListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13009,8 +13145,7 @@ func (c *ManagementWebPropertyAdWordsLinksPatchCall) Header() http.Header {
 
 func (c *ManagementWebPropertyAdWordsLinksPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityadwordslink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityadwordslink)
 	if err != nil {
 		return nil, err
 	}
@@ -13028,6 +13163,7 @@ func (c *ManagementWebPropertyAdWordsLinksPatchCall) doRequest(alt string) (*htt
 		"webPropertyId":            c.webPropertyId,
 		"webPropertyAdWordsLinkId": c.webPropertyAdWordsLinkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13063,9 +13199,11 @@ func (c *ManagementWebPropertyAdWordsLinksPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13119,8 +13257,7 @@ func (c *ManagementWebPropertyAdWordsLinksUpdateCall) Header() http.Header {
 
 func (c *ManagementWebPropertyAdWordsLinksUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityadwordslink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityadwordslink)
 	if err != nil {
 		return nil, err
 	}
@@ -13138,6 +13275,7 @@ func (c *ManagementWebPropertyAdWordsLinksUpdateCall) doRequest(alt string) (*ht
 		"webPropertyId":            c.webPropertyId,
 		"webPropertyAdWordsLinkId": c.webPropertyAdWordsLinkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13173,9 +13311,11 @@ func (c *ManagementWebPropertyAdWordsLinksUpdateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webPropertyAdWordsLinks.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13236,12 +13376,11 @@ func (c *ManagementWebpropertiesGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13250,6 +13389,7 @@ func (c *ManagementWebpropertiesGetCall) doRequest(alt string) (*http.Response, 
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webproperties.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13284,9 +13424,11 @@ func (c *ManagementWebpropertiesGetCall) Do(opts ...googleapi.CallOption) (*Webp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webproperties.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13336,8 +13478,7 @@ func (c *ManagementWebpropertiesInsertCall) Header() http.Header {
 
 func (c *ManagementWebpropertiesInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webproperty)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.webproperty)
 	if err != nil {
 		return nil, err
 	}
@@ -13353,6 +13494,7 @@ func (c *ManagementWebpropertiesInsertCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webproperties.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13387,9 +13529,11 @@ func (c *ManagementWebpropertiesInsertCall) Do(opts ...googleapi.CallOption) (*W
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webproperties.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13464,12 +13608,11 @@ func (c *ManagementWebpropertiesListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13477,6 +13620,7 @@ func (c *ManagementWebpropertiesListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webproperties.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13511,9 +13655,11 @@ func (c *ManagementWebpropertiesListCall) Do(opts ...googleapi.CallOption) (*Web
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webproperties.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13565,8 +13711,7 @@ func (c *ManagementWebpropertiesPatchCall) Header() http.Header {
 
 func (c *ManagementWebpropertiesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webproperty)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.webproperty)
 	if err != nil {
 		return nil, err
 	}
@@ -13583,6 +13728,7 @@ func (c *ManagementWebpropertiesPatchCall) doRequest(alt string) (*http.Response
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webproperties.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13617,9 +13763,11 @@ func (c *ManagementWebpropertiesPatchCall) Do(opts ...googleapi.CallOption) (*We
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webproperties.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13670,8 +13818,7 @@ func (c *ManagementWebpropertiesUpdateCall) Header() http.Header {
 
 func (c *ManagementWebpropertiesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.webproperty)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.webproperty)
 	if err != nil {
 		return nil, err
 	}
@@ -13688,6 +13835,7 @@ func (c *ManagementWebpropertiesUpdateCall) doRequest(alt string) (*http.Respons
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webproperties.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13722,9 +13870,11 @@ func (c *ManagementWebpropertiesUpdateCall) Do(opts ...googleapi.CallOption) (*W
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webproperties.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13776,12 +13926,11 @@ func (c *ManagementWebpropertyUserLinksDeleteCall) Header() http.Header {
 
 func (c *ManagementWebpropertyUserLinksDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks/{linkId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13791,6 +13940,7 @@ func (c *ManagementWebpropertyUserLinksDeleteCall) doRequest(alt string) (*http.
 		"webPropertyId": c.webPropertyId,
 		"linkId":        c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webpropertyUserLinks.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13805,6 +13955,7 @@ func (c *ManagementWebpropertyUserLinksDeleteCall) Do(opts ...googleapi.CallOpti
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webpropertyUserLinks.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -13855,8 +14006,7 @@ func (c *ManagementWebpropertyUserLinksInsertCall) Header() http.Header {
 
 func (c *ManagementWebpropertyUserLinksInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityuserlink)
 	if err != nil {
 		return nil, err
 	}
@@ -13873,6 +14023,7 @@ func (c *ManagementWebpropertyUserLinksInsertCall) doRequest(alt string) (*http.
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webpropertyUserLinks.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13907,9 +14058,11 @@ func (c *ManagementWebpropertyUserLinksInsertCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webpropertyUserLinks.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13987,12 +14140,11 @@ func (c *ManagementWebpropertyUserLinksListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/entityUserLinks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14001,6 +14153,7 @@ func (c *ManagementWebpropertyUserLinksListCall) doRequest(alt string) (*http.Re
 		"accountId":     c.accountId,
 		"webPropertyId": c.webPropertyId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webpropertyUserLinks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14036,9 +14189,11 @@ func (c *ManagementWebpropertyUserLinksListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webpropertyUserLinks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14092,8 +14247,7 @@ func (c *ManagementWebpropertyUserLinksUpdateCall) Header() http.Header {
 
 func (c *ManagementWebpropertyUserLinksUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.entityuserlink)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.entityuserlink)
 	if err != nil {
 		return nil, err
 	}
@@ -14111,6 +14265,7 @@ func (c *ManagementWebpropertyUserLinksUpdateCall) doRequest(alt string) (*http.
 		"webPropertyId": c.webPropertyId,
 		"linkId":        c.linkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.management.webpropertyUserLinks.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14145,9 +14300,11 @@ func (c *ManagementWebpropertyUserLinksUpdateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.management.webpropertyUserLinks.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14206,12 +14363,11 @@ func (c *MetadataColumnsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "metadata/{reportType}/columns")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14219,6 +14375,7 @@ func (c *MetadataColumnsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"reportType": c.reportType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.metadata.columns.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14253,9 +14410,11 @@ func (c *MetadataColumnsListCall) Do(opts ...googleapi.CallOption) (*Columns, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.metadata.columns.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14299,8 +14458,7 @@ func (c *ProvisioningCreateAccountTicketCall) Header() http.Header {
 
 func (c *ProvisioningCreateAccountTicketCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accountticket)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.accountticket)
 	if err != nil {
 		return nil, err
 	}
@@ -14313,6 +14471,7 @@ func (c *ProvisioningCreateAccountTicketCall) doRequest(alt string) (*http.Respo
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.provisioning.createAccountTicket", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14347,9 +14506,11 @@ func (c *ProvisioningCreateAccountTicketCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.provisioning.createAccountTicket", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14393,8 +14554,7 @@ func (c *ProvisioningCreateAccountTreeCall) Header() http.Header {
 
 func (c *ProvisioningCreateAccountTreeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.accounttreerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.accounttreerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14407,6 +14567,7 @@ func (c *ProvisioningCreateAccountTreeCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.provisioning.createAccountTree", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14442,9 +14603,11 @@ func (c *ProvisioningCreateAccountTreeCall) Do(opts ...googleapi.CallOption) (*A
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.provisioning.createAccountTree", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14488,8 +14651,7 @@ func (c *UserDeletionUserDeletionRequestUpsertCall) Header() http.Header {
 
 func (c *UserDeletionUserDeletionRequestUpsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userdeletionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userdeletionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14502,6 +14664,7 @@ func (c *UserDeletionUserDeletionRequestUpsertCall) doRequest(alt string) (*http
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analytics.userDeletion.userDeletionRequest.upsert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14537,8 +14700,10 @@ func (c *UserDeletionUserDeletionRequestUpsertCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analytics.userDeletion.userDeletionRequest.upsert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

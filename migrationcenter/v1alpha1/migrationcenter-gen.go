@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "migrationcenter:v1alpha1"
 const apiName = "migrationcenter"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -175,6 +178,7 @@ func NewProjectsLocationsService(s *Service) *ProjectsLocationsService {
 	rs.ImportJobs = NewProjectsLocationsImportJobsService(s)
 	rs.Operations = NewProjectsLocationsOperationsService(s)
 	rs.PreferenceSets = NewProjectsLocationsPreferenceSetsService(s)
+	rs.Relations = NewProjectsLocationsRelationsService(s)
 	rs.ReportConfigs = NewProjectsLocationsReportConfigsService(s)
 	rs.Sources = NewProjectsLocationsSourcesService(s)
 	return rs
@@ -196,6 +200,8 @@ type ProjectsLocationsService struct {
 	Operations *ProjectsLocationsOperationsService
 
 	PreferenceSets *ProjectsLocationsPreferenceSetsService
+
+	Relations *ProjectsLocationsRelationsService
 
 	ReportConfigs *ProjectsLocationsReportConfigsService
 
@@ -277,6 +283,15 @@ type ProjectsLocationsPreferenceSetsService struct {
 	s *Service
 }
 
+func NewProjectsLocationsRelationsService(s *Service) *ProjectsLocationsRelationsService {
+	rs := &ProjectsLocationsRelationsService{s: s}
+	return rs
+}
+
+type ProjectsLocationsRelationsService struct {
+	s *Service
+}
+
 func NewProjectsLocationsReportConfigsService(s *Service) *ProjectsLocationsReportConfigsService {
 	rs := &ProjectsLocationsReportConfigsService{s: s}
 	rs.Reports = NewProjectsLocationsReportConfigsReportsService(s)
@@ -354,9 +369,9 @@ type AddAssetsToGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddAssetsToGroupRequest) MarshalJSON() ([]byte, error) {
+func (s AddAssetsToGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddAssetsToGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregateAssetsValuesRequest: A request to aggregate one or more values.
@@ -383,9 +398,9 @@ type AggregateAssetsValuesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregateAssetsValuesRequest) MarshalJSON() ([]byte, error) {
+func (s AggregateAssetsValuesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregateAssetsValuesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregateAssetsValuesResponse: A response to a request to aggregated assets
@@ -409,9 +424,9 @@ type AggregateAssetsValuesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregateAssetsValuesResponse) MarshalJSON() ([]byte, error) {
+func (s AggregateAssetsValuesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregateAssetsValuesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Aggregation: Message describing an aggregation. The message includes the
@@ -441,9 +456,9 @@ type Aggregation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Aggregation) MarshalJSON() ([]byte, error) {
+func (s Aggregation) MarshalJSON() ([]byte, error) {
 	type NoMethod Aggregation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationCount: Object count.
@@ -477,9 +492,9 @@ type AggregationHistogram struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationHistogram) MarshalJSON() ([]byte, error) {
+func (s AggregationHistogram) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationHistogram
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *AggregationHistogram) UnmarshalJSON(data []byte) error {
@@ -519,9 +534,9 @@ type AggregationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResult) MarshalJSON() ([]byte, error) {
+func (s AggregationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationResultCount: The result of a count aggregation.
@@ -540,9 +555,9 @@ type AggregationResultCount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResultCount) MarshalJSON() ([]byte, error) {
+func (s AggregationResultCount) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResultCount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationResultFrequency: The result of a frequency distribution
@@ -562,9 +577,9 @@ type AggregationResultFrequency struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResultFrequency) MarshalJSON() ([]byte, error) {
+func (s AggregationResultFrequency) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResultFrequency
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationResultHistogram: The result of a bucketed histogram aggregation.
@@ -587,9 +602,9 @@ type AggregationResultHistogram struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResultHistogram) MarshalJSON() ([]byte, error) {
+func (s AggregationResultHistogram) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResultHistogram
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AggregationResultHistogramBucket: A histogram bucket with a lower and upper
@@ -616,9 +631,9 @@ type AggregationResultHistogramBucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResultHistogramBucket) MarshalJSON() ([]byte, error) {
+func (s AggregationResultHistogramBucket) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResultHistogramBucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *AggregationResultHistogramBucket) UnmarshalJSON(data []byte) error {
@@ -653,9 +668,9 @@ type AggregationResultSum struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AggregationResultSum) MarshalJSON() ([]byte, error) {
+func (s AggregationResultSum) MarshalJSON() ([]byte, error) {
 	type NoMethod AggregationResultSum
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *AggregationResultSum) UnmarshalJSON(data []byte) error {
@@ -702,9 +717,12 @@ type Asset struct {
 	InsightList *InsightList `json:"insightList,omitempty"`
 	// Labels: Labels as key value pairs.
 	Labels map[string]string `json:"labels,omitempty"`
+	// MachineDetails: Output only. Asset information specific for virtual
+	// machines.
+	MachineDetails *MachineDetails `json:"machineDetails,omitempty"`
 	// Name: Output only. The full name of the asset.
 	Name string `json:"name,omitempty"`
-	// PerformanceData: Output only. Performance data for the asset.
+	// PerformanceData: Performance data for the asset.
 	PerformanceData *AssetPerformanceData `json:"performanceData,omitempty"`
 	// Sources: Output only. The list of sources contributing to the asset.
 	Sources []string `json:"sources,omitempty"`
@@ -731,9 +749,9 @@ type Asset struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Asset) MarshalJSON() ([]byte, error) {
+func (s Asset) MarshalJSON() ([]byte, error) {
 	type NoMethod Asset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetFrame: Contains data reported from an inventory source on an asset.
@@ -759,6 +777,9 @@ type AssetFrame struct {
 	DatabaseDetails *DatabaseDetails `json:"databaseDetails,omitempty"`
 	// Labels: Labels as key value pairs.
 	Labels map[string]string `json:"labels,omitempty"`
+	// MachineDetails: Asset information specific for virtual and physical
+	// machines.
+	MachineDetails *MachineDetails `json:"machineDetails,omitempty"`
 	// PerformanceSamples: Asset performance data samples. Samples that are from
 	// more than 40 days ago or after tomorrow are ignored.
 	PerformanceSamples []*PerformanceSample `json:"performanceSamples,omitempty"`
@@ -782,9 +803,9 @@ type AssetFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetFrame) MarshalJSON() ([]byte, error) {
+func (s AssetFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetList: Lists the asset IDs of all assets.
@@ -804,9 +825,9 @@ type AssetList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetList) MarshalJSON() ([]byte, error) {
+func (s AssetList) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetPerformanceData: Performance data for an asset.
@@ -829,9 +850,9 @@ type AssetPerformanceData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetPerformanceData) MarshalJSON() ([]byte, error) {
+func (s AssetPerformanceData) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetPerformanceData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetsExportJob: Assets export job message.
@@ -840,6 +861,8 @@ type AssetsExportJob struct {
 	Condition *AssetsExportJobExportCondition `json:"condition,omitempty"`
 	// CreateTime: Output only. Resource creation time.
 	CreateTime string `json:"createTime,omitempty"`
+	// Inventory: Export asset inventory details.
+	Inventory *AssetsExportJobInventory `json:"inventory,omitempty"`
 	// Labels: Optional. Labels as key value pairs. Labels must meet the following
 	// constraints: * Keys and values can contain only lowercase letters, numeric
 	// characters, underscores, and dashes. * All characters must use UTF-8
@@ -852,8 +875,13 @@ type AssetsExportJob struct {
 	Name string `json:"name,omitempty"`
 	// NetworkDependencies: Export data regarding asset network dependencies.
 	NetworkDependencies *AssetsExportJobNetworkDependencies `json:"networkDependencies,omitempty"`
+	// PerformanceData: Export asset with performance data.
+	PerformanceData *AssetsExportJobPerformanceData `json:"performanceData,omitempty"`
 	// RecentExecutions: Output only. Recent non expired executions of the job.
 	RecentExecutions []*AssetsExportJobExecution `json:"recentExecutions,omitempty"`
+	// ShowHidden: Optional. When this value is set to 'true' the response will
+	// include all assets, including those that are hidden.
+	ShowHidden bool `json:"showHidden,omitempty"`
 	// SignedUriDestination: Export to Cloud Storage files downloadable using
 	// signed URIs.
 	SignedUriDestination *SignedUriDestination `json:"signedUriDestination,omitempty"`
@@ -875,9 +903,9 @@ type AssetsExportJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetsExportJob) MarshalJSON() ([]byte, error) {
+func (s AssetsExportJob) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetsExportJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetsExportJobExecution: Execution status of assets export job.
@@ -888,6 +916,9 @@ type AssetsExportJobExecution struct {
 	ExecutionId string `json:"executionId,omitempty"`
 	// ExpireTime: Output only. Expiration time for the export and artifacts.
 	ExpireTime string `json:"expireTime,omitempty"`
+	// RequestedAssetCount: Output only. Number of assets requested for export
+	// after resolving the requested filters.
+	RequestedAssetCount int64 `json:"requestedAssetCount,omitempty"`
 	// Result: Output only. Result of the export execution.
 	Result *AssetsExportJobExecutionResult `json:"result,omitempty"`
 	// StartTime: Output only. Execution timestamp.
@@ -905,15 +936,17 @@ type AssetsExportJobExecution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetsExportJobExecution) MarshalJSON() ([]byte, error) {
+func (s AssetsExportJobExecution) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetsExportJobExecution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetsExportJobExecutionResult: Contains the result of the assets export.
 type AssetsExportJobExecutionResult struct {
 	// Error: Output only. Error encountered during export.
 	Error *Status `json:"error,omitempty"`
+	// OutputFiles: Output only. List of output files.
+	OutputFiles *OutputFileList `json:"outputFiles,omitempty"`
 	// SignedUris: Output only. Signed URLs for downloading export artifacts.
 	SignedUris *SignedUris `json:"signedUris,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Error") to unconditionally
@@ -929,9 +962,9 @@ type AssetsExportJobExecutionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetsExportJobExecutionResult) MarshalJSON() ([]byte, error) {
+func (s AssetsExportJobExecutionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetsExportJobExecutionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssetsExportJobExportCondition: Conditions for selecting assets to export.
@@ -951,9 +984,13 @@ type AssetsExportJobExportCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetsExportJobExportCondition) MarshalJSON() ([]byte, error) {
+func (s AssetsExportJobExportCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetsExportJobExportCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AssetsExportJobInventory: Configuration for asset inventory details exports.
+type AssetsExportJobInventory struct {
 }
 
 // AssetsExportJobNetworkDependencies: Configuration for network dependencies
@@ -977,59 +1014,107 @@ type AssetsExportJobNetworkDependencies struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssetsExportJobNetworkDependencies) MarshalJSON() ([]byte, error) {
+func (s AssetsExportJobNetworkDependencies) MarshalJSON() ([]byte, error) {
 	type NoMethod AssetsExportJobNetworkDependencies
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// AwsEc2PlatformDetails: AWS EC2 specific details.
-type AwsEc2PlatformDetails struct {
-	// Location: The location of the machine in the AWS format.
-	Location string `json:"location,omitempty"`
-	// MachineTypeLabel: AWS platform's machine type label.
-	MachineTypeLabel string `json:"machineTypeLabel,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Location") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+// AssetsExportJobPerformanceData: Configuration for performance data exports.
+type AssetsExportJobPerformanceData struct {
+	// MaxDays: Optional. When this value is set to a positive integer, performance
+	// data will be returned for the most recent days for which data is available.
+	// When this value is unset (or set to zero), all available data is returned.
+	// The maximum value is 420; values above 420 will be coerced to 420. If unset
+	// (0 value) a default value of 40 will be used.
+	MaxDays int64 `json:"maxDays,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "MaxDays") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Location") to include in API
+	// NullFields is a list of field names (e.g. "MaxDays") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *AwsEc2PlatformDetails) MarshalJSON() ([]byte, error) {
+func (s AssetsExportJobPerformanceData) MarshalJSON() ([]byte, error) {
+	type NoMethod AssetsExportJobPerformanceData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AwsEc2PlatformDetails: AWS EC2 specific details.
+type AwsEc2PlatformDetails struct {
+	// Hyperthreading: Optional. Whether the machine is hyperthreaded.
+	//
+	// Possible values:
+	//   "HYPERTHREADING_STATUS_UNSPECIFIED" - Simultaneous Multithreading status
+	// unknown.
+	//   "HYPERTHREADING_STATUS_DISABLED" - Simultaneous Multithreading is disabled
+	// or unavailable.
+	//   "HYPERTHREADING_STATUS_ENABLED" - Simultaneous Multithreading is enabled.
+	Hyperthreading string `json:"hyperthreading,omitempty"`
+	// Location: The location of the machine in the AWS format.
+	Location string `json:"location,omitempty"`
+	// MachineTypeLabel: AWS platform's machine type label.
+	MachineTypeLabel string `json:"machineTypeLabel,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Hyperthreading") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Hyperthreading") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AwsEc2PlatformDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AwsEc2PlatformDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AwsRds: Specific details for an AWS RDS database deployment.
+type AwsRds struct {
 }
 
 // AzureVmPlatformDetails: Azure VM specific details.
 type AzureVmPlatformDetails struct {
+	// Hyperthreading: Whether the machine is hyperthreaded.
+	//
+	// Possible values:
+	//   "HYPERTHREADING_STATUS_UNSPECIFIED" - Simultaneous Multithreading status
+	// unknown.
+	//   "HYPERTHREADING_STATUS_DISABLED" - Simultaneous Multithreading is disabled
+	// or unavailable.
+	//   "HYPERTHREADING_STATUS_ENABLED" - Simultaneous Multithreading is enabled.
+	Hyperthreading string `json:"hyperthreading,omitempty"`
 	// Location: The location of the machine in the Azure format.
 	Location string `json:"location,omitempty"`
 	// MachineTypeLabel: Azure platform's machine type label.
 	MachineTypeLabel string `json:"machineTypeLabel,omitempty"`
 	// ProvisioningState: Azure platform's provisioning state.
 	ProvisioningState string `json:"provisioningState,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Location") to
+	// ForceSendFields is a list of field names (e.g. "Hyperthreading") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Location") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "Hyperthreading") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *AzureVmPlatformDetails) MarshalJSON() ([]byte, error) {
+func (s AzureVmPlatformDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod AzureVmPlatformDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeleteAssetsRequest: A request to delete a list of asset.
@@ -1039,6 +1124,9 @@ type BatchDeleteAssetsRequest struct {
 	// https://google.aip.dev/135#delete-if-existing for additional details.
 	// Default value is `false`.
 	AllowMissing bool `json:"allowMissing,omitempty"`
+	// CascadingRules: Optional. Optional cascading rules for deleting related
+	// assets.
+	CascadingRules []*CascadingRule `json:"cascadingRules,omitempty"`
 	// Names: Required. The IDs of the assets to delete. A maximum of 1000 assets
 	// can be deleted in a batch. Format:
 	// projects/{project}/locations/{location}/assets/{name}.
@@ -1056,9 +1144,9 @@ type BatchDeleteAssetsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeleteAssetsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchDeleteAssetsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeleteAssetsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateAssetsRequest: A request to update a list of assets.
@@ -1079,9 +1167,9 @@ type BatchUpdateAssetsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateAssetsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateAssetsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateAssetsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateAssetsResponse: Response for updating a list of assets.
@@ -1105,9 +1193,9 @@ type BatchUpdateAssetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateAssetsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateAssetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateAssetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BiosDetails: Details about the BIOS.
@@ -1135,20 +1223,46 @@ type BiosDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BiosDetails) MarshalJSON() ([]byte, error) {
+func (s BiosDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod BiosDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
 type CancelOperationRequest struct {
 }
 
+// CascadeLogicalDBsRule: Cascading rule for related logical DBs.
+type CascadeLogicalDBsRule struct {
+}
+
+// CascadingRule: Specifies cascading rules for traversing relations.
+type CascadingRule struct {
+	// CascadeLogicalDbs: Cascading rule for related logical DBs.
+	CascadeLogicalDbs *CascadeLogicalDBsRule `json:"cascadeLogicalDbs,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CascadeLogicalDbs") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CascadeLogicalDbs") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CascadingRule) MarshalJSON() ([]byte, error) {
+	type NoMethod CascadingRule
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // CloudDatabaseMigrationTarget: Cloud database migration target.
 type CloudDatabaseMigrationTarget struct {
 	// CloudSqlForMysqlShape: Cloud SQL for MySQL database shape.
 	CloudSqlForMysqlShape *CloudSqlForMySqlShape `json:"cloudSqlForMysqlShape,omitempty"`
-	// CloudSqlForPostgresqlShape: Cloud SQL for Postgres database shape.
+	// CloudSqlForPostgresqlShape: Cloud SQL for PostgreSQL database shape.
 	CloudSqlForPostgresqlShape *CloudSqlForPostgreSqlShape `json:"cloudSqlForPostgresqlShape,omitempty"`
 	// CloudSqlShape: Cloud SQL for SQL Server database shape.
 	CloudSqlShape *CloudSqlForSqlServerShape `json:"cloudSqlShape,omitempty"`
@@ -1165,9 +1279,9 @@ type CloudDatabaseMigrationTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudDatabaseMigrationTarget) MarshalJSON() ([]byte, error) {
+func (s CloudDatabaseMigrationTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudDatabaseMigrationTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudSqlForMySqlShape: Cloud SQL for MySQL database shape.
@@ -1229,12 +1343,12 @@ type CloudSqlForMySqlShape struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudSqlForMySqlShape) MarshalJSON() ([]byte, error) {
+func (s CloudSqlForMySqlShape) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudSqlForMySqlShape
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// CloudSqlForPostgreSqlShape: Cloud SQL for Postgres database shape.
+// CloudSqlForPostgreSqlShape: Cloud SQL for PostgreSQL database shape.
 type CloudSqlForPostgreSqlShape struct {
 	// BackupStorageGb: Output only. Predicted backup storage size in GiB.
 	BackupStorageGb int64 `json:"backupStorageGb,omitempty"`
@@ -1297,9 +1411,9 @@ type CloudSqlForPostgreSqlShape struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudSqlForPostgreSqlShape) MarshalJSON() ([]byte, error) {
+func (s CloudSqlForPostgreSqlShape) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudSqlForPostgreSqlShape
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudSqlForSqlServerShape: Cloud SQL for SQL Server database shape.
@@ -1325,6 +1439,9 @@ type CloudSqlForSqlServerShape struct {
 	LogicalCoreCount int64 `json:"logicalCoreCount,omitempty"`
 	// MemoryMb: Output only. Predicted amount of memory in MiB.
 	MemoryMb int64 `json:"memoryMb,omitempty"`
+	// SmtEnabled: Output only. Whether simultaneous multithreading is enabled (see
+	// https://cloud.google.com/sql/docs/sqlserver/create-instance#smt-create-instance).
+	SmtEnabled bool `json:"smtEnabled,omitempty"`
 	// Storage: Output only. Predicted storage shape.
 	Storage *ComputeStorageDescriptor `json:"storage,omitempty"`
 	// Version: Output only. Microsoft SQL Server version to be used on the Cloud
@@ -1382,9 +1499,9 @@ type CloudSqlForSqlServerShape struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudSqlForSqlServerShape) MarshalJSON() ([]byte, error) {
+func (s CloudSqlForSqlServerShape) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudSqlForSqlServerShape
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComputeEngineMigrationTarget: Compute engine migration target.
@@ -1404,36 +1521,46 @@ type ComputeEngineMigrationTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputeEngineMigrationTarget) MarshalJSON() ([]byte, error) {
+func (s ComputeEngineMigrationTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputeEngineMigrationTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComputeEnginePreferences: The user preferences relating to Compute Engine
 // target platform.
 type ComputeEnginePreferences struct {
-	// LicenseType: If os_pricing_preferences is specified, it overrides this
-	// field. License type to consider when calculating costs for virtual machine
-	// insights and recommendations. If unspecified, costs are calculated based on
-	// the default licensing plan.
+	// LicenseType: License type to consider when calculating costs for operating
+	// systems. If unspecified, costs are calculated based on the default licensing
+	// plan. If os_pricing_preferences is specified, it overrides this field.
 	//
 	// Possible values:
 	//   "LICENSE_TYPE_UNSPECIFIED" - Unspecified (default value).
 	//   "LICENSE_TYPE_DEFAULT" - Default Google Cloud licensing plan. Licensing is
 	// charged per usage. This a good value to start with.
 	//   "LICENSE_TYPE_BRING_YOUR_OWN_LICENSE" - Bring-your-own-license (BYOL)
-	// plan. User provides the OS license.
+	// plan. User provides the license.
 	LicenseType string `json:"licenseType,omitempty"`
 	// MachinePreferences: Preferences concerning the machine types to consider on
 	// Compute Engine.
 	MachinePreferences *MachinePreferences `json:"machinePreferences,omitempty"`
+	// Multithreading: Optional. Preferences for multithreading support on Windows
+	// Server.
+	//
+	// Possible values:
+	//   "MULTITHREADING_UNSPECIFIED" - Same as MULTITHREADING_AUTO.
+	//   "MULTITHREADING_DISABLED" - Disable simultaneous multithreading.
+	//   "MULTITHREADING_ENABLED" - Enable simultaneous multithreading.
+	//   "MULTITHREADING_DISABLED_WITH_COMPENSATION" - Disable simultaneous
+	// multithreading and increase number of VCPUs to compensate.
+	Multithreading string `json:"multithreading,omitempty"`
+	// OsPricingPreferences: Optional. Pricing options for OS images.
+	OsPricingPreferences *OperatingSystemPricingPreferences `json:"osPricingPreferences,omitempty"`
 	// PersistentDiskType: Persistent disk type to use. If unspecified (default),
 	// all types are considered, based on available usage data.
 	//
 	// Possible values:
-	//   "PERSISTENT_DISK_TYPE_UNSPECIFIED" - Unspecified (default value).
-	// Selecting this value allows the system to use any disk type according to
-	// reported usage. This a good value to start with.
+	//   "PERSISTENT_DISK_TYPE_UNSPECIFIED" - Unspecified. Fallback to default
+	// value based on context.
 	//   "PERSISTENT_DISK_TYPE_STANDARD" - Standard HDD Persistent Disk.
 	//   "PERSISTENT_DISK_TYPE_BALANCED" - Balanced Persistent Disk.
 	//   "PERSISTENT_DISK_TYPE_SSD" - SSD Persistent Disk.
@@ -1451,9 +1578,9 @@ type ComputeEnginePreferences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputeEnginePreferences) MarshalJSON() ([]byte, error) {
+func (s ComputeEnginePreferences) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputeEnginePreferences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComputeEngineShapeDescriptor: Compute Engine target shape descriptor.
@@ -1468,6 +1595,9 @@ type ComputeEngineShapeDescriptor struct {
 	PhysicalCoreCount int64 `json:"physicalCoreCount,omitempty"`
 	// Series: Output only. Compute Engine machine series.
 	Series string `json:"series,omitempty"`
+	// SmtEnabled: Output only. Whether simultaneous multithreading is enabled (see
+	// https://cloud.google.com/compute/docs/instances/set-threads-per-core).
+	SmtEnabled bool `json:"smtEnabled,omitempty"`
 	// Storage: Output only. Compute Engine storage. Never empty.
 	Storage []*ComputeStorageDescriptor `json:"storage,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "LogicalCoreCount") to
@@ -1483,9 +1613,9 @@ type ComputeEngineShapeDescriptor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputeEngineShapeDescriptor) MarshalJSON() ([]byte, error) {
+func (s ComputeEngineShapeDescriptor) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputeEngineShapeDescriptor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComputeEngineSoleTenantMigrationTarget: Compute engine sole tenant migration
@@ -1497,12 +1627,11 @@ type ComputeEngineSoleTenantMigrationTarget struct {
 type ComputeStorageDescriptor struct {
 	// SizeGb: Disk size in GiB.
 	SizeGb int64 `json:"sizeGb,omitempty"`
-	// Type: Disk type backing the storage.
+	// Type: Output only. Disk type backing the storage.
 	//
 	// Possible values:
-	//   "PERSISTENT_DISK_TYPE_UNSPECIFIED" - Unspecified (default value).
-	// Selecting this value allows the system to use any disk type according to
-	// reported usage. This a good value to start with.
+	//   "PERSISTENT_DISK_TYPE_UNSPECIFIED" - Unspecified. Fallback to default
+	// value based on context.
 	//   "PERSISTENT_DISK_TYPE_STANDARD" - Standard HDD Persistent Disk.
 	//   "PERSISTENT_DISK_TYPE_BALANCED" - Balanced Persistent Disk.
 	//   "PERSISTENT_DISK_TYPE_SSD" - SSD Persistent Disk.
@@ -1520,9 +1649,9 @@ type ComputeStorageDescriptor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputeStorageDescriptor) MarshalJSON() ([]byte, error) {
+func (s ComputeStorageDescriptor) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputeStorageDescriptor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CpuUsageSample: CPU usage sample.
@@ -1544,9 +1673,9 @@ type CpuUsageSample struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CpuUsageSample) MarshalJSON() ([]byte, error) {
+func (s CpuUsageSample) MarshalJSON() ([]byte, error) {
 	type NoMethod CpuUsageSample
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *CpuUsageSample) UnmarshalJSON(data []byte) error {
@@ -1561,6 +1690,32 @@ func (s *CpuUsageSample) UnmarshalJSON(data []byte) error {
 	}
 	s.UtilizedPercentage = float64(s1.UtilizedPercentage)
 	return nil
+}
+
+// CsvOutputFile: Contains a single output file of type CSV.
+type CsvOutputFile struct {
+	// ColumnsCount: Output only. Number of columns in the file.
+	ColumnsCount int64 `json:"columnsCount,omitempty"`
+	// RowCount: Output only. Number of rows in the file.
+	RowCount int64 `json:"rowCount,omitempty"`
+	// SignedUri: Output only. Signed URI destination.
+	SignedUri *SignedUri `json:"signedUri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ColumnsCount") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ColumnsCount") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CsvOutputFile) MarshalJSON() ([]byte, error) {
+	type NoMethod CsvOutputFile
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DailyResourceUsageAggregation: Usage data aggregation for a single day.
@@ -1588,9 +1743,9 @@ type DailyResourceUsageAggregation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DailyResourceUsageAggregation) MarshalJSON() ([]byte, error) {
+func (s DailyResourceUsageAggregation) MarshalJSON() ([]byte, error) {
 	type NoMethod DailyResourceUsageAggregation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DailyResourceUsageAggregationCPU: Statistical aggregation of CPU usage.
@@ -1610,9 +1765,9 @@ type DailyResourceUsageAggregationCPU struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DailyResourceUsageAggregationCPU) MarshalJSON() ([]byte, error) {
+func (s DailyResourceUsageAggregationCPU) MarshalJSON() ([]byte, error) {
 	type NoMethod DailyResourceUsageAggregationCPU
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DailyResourceUsageAggregationDisk: Statistical aggregation of disk usage.
@@ -1636,9 +1791,9 @@ type DailyResourceUsageAggregationDisk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DailyResourceUsageAggregationDisk) MarshalJSON() ([]byte, error) {
+func (s DailyResourceUsageAggregationDisk) MarshalJSON() ([]byte, error) {
 	type NoMethod DailyResourceUsageAggregationDisk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DailyResourceUsageAggregationMemory: Statistical aggregation of memory
@@ -1659,9 +1814,9 @@ type DailyResourceUsageAggregationMemory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DailyResourceUsageAggregationMemory) MarshalJSON() ([]byte, error) {
+func (s DailyResourceUsageAggregationMemory) MarshalJSON() ([]byte, error) {
 	type NoMethod DailyResourceUsageAggregationMemory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DailyResourceUsageAggregationNetwork: Statistical aggregation of network
@@ -1684,9 +1839,9 @@ type DailyResourceUsageAggregationNetwork struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DailyResourceUsageAggregationNetwork) MarshalJSON() ([]byte, error) {
+func (s DailyResourceUsageAggregationNetwork) MarshalJSON() ([]byte, error) {
 	type NoMethod DailyResourceUsageAggregationNetwork
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DailyResourceUsageAggregationStats: Statistical aggregation of samples for a
@@ -1713,9 +1868,9 @@ type DailyResourceUsageAggregationStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DailyResourceUsageAggregationStats) MarshalJSON() ([]byte, error) {
+func (s DailyResourceUsageAggregationStats) MarshalJSON() ([]byte, error) {
 	type NoMethod DailyResourceUsageAggregationStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DailyResourceUsageAggregationStats) UnmarshalJSON(data []byte) error {
@@ -1742,6 +1897,8 @@ func (s *DailyResourceUsageAggregationStats) UnmarshalJSON(data []byte) error {
 type DatabaseDeploymentDetails struct {
 	// AggregatedStats: Output only. Aggregated stats for the database deployment.
 	AggregatedStats *DatabaseDeploymentDetailsAggregatedStats `json:"aggregatedStats,omitempty"`
+	// AwsRds: Optional. Details of an AWS RDS instance.
+	AwsRds *AwsRds `json:"awsRds,omitempty"`
 	// Edition: The database deployment edition.
 	Edition string `json:"edition,omitempty"`
 	// GeneratedId: The database deployment generated ID.
@@ -1771,9 +1928,9 @@ type DatabaseDeploymentDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseDeploymentDetails) MarshalJSON() ([]byte, error) {
+func (s DatabaseDeploymentDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseDeploymentDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseDeploymentDetailsAggregatedStats: Aggregated stats for the database
@@ -1794,9 +1951,9 @@ type DatabaseDeploymentDetailsAggregatedStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseDeploymentDetailsAggregatedStats) MarshalJSON() ([]byte, error) {
+func (s DatabaseDeploymentDetailsAggregatedStats) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseDeploymentDetailsAggregatedStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseDeploymentTopology: Details of database deployment's topology.
@@ -1815,6 +1972,11 @@ type DatabaseDeploymentTopology struct {
 	MemoryBytes int64 `json:"memoryBytes,omitempty,string"`
 	// MemoryLimitBytes: Optional. Total memory in bytes limited by db deployment.
 	MemoryLimitBytes int64 `json:"memoryLimitBytes,omitempty,string"`
+	// PhysicalCoreCount: Optional. Number of total physical cores.
+	PhysicalCoreCount int64 `json:"physicalCoreCount,omitempty"`
+	// PhysicalCoreLimit: Optional. Number of total physical cores limited by db
+	// deployment.
+	PhysicalCoreLimit int64 `json:"physicalCoreLimit,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CoreCount") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1828,9 +1990,9 @@ type DatabaseDeploymentTopology struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseDeploymentTopology) MarshalJSON() ([]byte, error) {
+func (s DatabaseDeploymentTopology) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseDeploymentTopology
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseDetails: Details of a logical database.
@@ -1857,9 +2019,9 @@ type DatabaseDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseDetails) MarshalJSON() ([]byte, error) {
+func (s DatabaseDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseDetailsParentDatabaseDeployment: The identifiers of the parent
@@ -1883,15 +2045,17 @@ type DatabaseDetailsParentDatabaseDeployment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseDetailsParentDatabaseDeployment) MarshalJSON() ([]byte, error) {
+func (s DatabaseDetailsParentDatabaseDeployment) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseDetailsParentDatabaseDeployment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseInstance: Details of a database instance.
 type DatabaseInstance struct {
 	// InstanceName: The instance's name.
 	InstanceName string `json:"instanceName,omitempty"`
+	// Network: Optional. Networking details.
+	Network *DatabaseInstanceNetwork `json:"network,omitempty"`
 	// Role: The instance role in the database engine.
 	//
 	// Possible values:
@@ -1913,9 +2077,35 @@ type DatabaseInstance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseInstance) MarshalJSON() ([]byte, error) {
+func (s DatabaseInstance) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseInstance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DatabaseInstanceNetwork: Network details of a database instance.
+type DatabaseInstanceNetwork struct {
+	// HostNames: Optional. The instance's host names.
+	HostNames []string `json:"hostNames,omitempty"`
+	// IpAddresses: Optional. The instance's IP addresses.
+	IpAddresses []string `json:"ipAddresses,omitempty"`
+	// PrimaryMacAddress: Optional. The instance's primary MAC address.
+	PrimaryMacAddress string `json:"primaryMacAddress,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "HostNames") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "HostNames") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DatabaseInstanceNetwork) MarshalJSON() ([]byte, error) {
+	type NoMethod DatabaseInstanceNetwork
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseObjects: Details of a group of database objects.
@@ -1946,9 +2136,9 @@ type DatabaseObjects struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseObjects) MarshalJSON() ([]byte, error) {
+func (s DatabaseObjects) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseObjects
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabasePreferences: DatabasePreferences enables you to create sets of
@@ -1978,9 +2168,9 @@ type DatabasePreferences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabasePreferences) MarshalJSON() ([]byte, error) {
+func (s DatabasePreferences) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabasePreferences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabasePreferencesCloudSqlCommon: Preferences common to Cloud SQL
@@ -1996,9 +2186,14 @@ type DatabasePreferencesCloudSqlCommon struct {
 	//   "COMMITMENT_PLAN_NONE" - No commitment plan.
 	//   "COMMITMENT_PLAN_ONE_YEAR" - 1-year regular committed use discount.
 	//   "COMMITMENT_PLAN_THREE_YEARS" - 3-year regular committed use discount.
+	//   "COMMITMENT_PLAN_FLEXIBLE_ONE_YEAR" - 1-year flexible committed use
+	// discount. While not supported in the v1 API, this value is converted to
+	// UNSPECIFIED in conversions to the v1 API.
+	//   "COMMITMENT_PLAN_FLEXIBLE_THREE_YEARS" - 3-year flexible committed use
+	// discount. While not supported in the v1 API, this value is converted to
+	// UNSPECIFIED in conversions to the v1 API.
 	CommitmentPlan string `json:"commitmentPlan,omitempty"`
-	// Edition: Optional. Cloud SQL edition. For SQL Server, only Enterprise is
-	// available.
+	// Edition: Optional. Preferred Cloud SQL edition.
 	//
 	// Possible values:
 	//   "CLOUD_SQL_EDITION_UNSPECIFIED" - An unspecified Cloud SQL edition.
@@ -2017,9 +2212,8 @@ type DatabasePreferencesCloudSqlCommon struct {
 	// types are available.
 	//
 	// Possible values:
-	//   "PERSISTENT_DISK_TYPE_UNSPECIFIED" - Unspecified (default value).
-	// Selecting this value allows the system to use any disk type according to
-	// reported usage. This a good value to start with.
+	//   "PERSISTENT_DISK_TYPE_UNSPECIFIED" - Unspecified. Fallback to default
+	// value based on context.
 	//   "PERSISTENT_DISK_TYPE_STANDARD" - Standard HDD Persistent Disk.
 	//   "PERSISTENT_DISK_TYPE_BALANCED" - Balanced Persistent Disk.
 	//   "PERSISTENT_DISK_TYPE_SSD" - SSD Persistent Disk.
@@ -2071,14 +2265,14 @@ type DatabasePreferencesCloudSqlCommon struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabasePreferencesCloudSqlCommon) MarshalJSON() ([]byte, error) {
+func (s DatabasePreferencesCloudSqlCommon) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabasePreferencesCloudSqlCommon
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabasePreferencesCloudSqlCommonBackup: Preferences for database backups.
 type DatabasePreferencesCloudSqlCommonBackup struct {
-	// BackupMode: Optional. Mode of automated backups.
+	// BackupMode: Optional. Automated backup mode.
 	//
 	// Possible values:
 	//   "BACKUP_MODE_UNSPECIFIED" - An unspecified database backup mode.
@@ -2100,9 +2294,9 @@ type DatabasePreferencesCloudSqlCommonBackup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabasePreferencesCloudSqlCommonBackup) MarshalJSON() ([]byte, error) {
+func (s DatabasePreferencesCloudSqlCommonBackup) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabasePreferencesCloudSqlCommonBackup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabasePreferencesCloudSqlMySql: Preferences for MySQL on Cloud SQL.
@@ -2122,9 +2316,9 @@ type DatabasePreferencesCloudSqlMySql struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabasePreferencesCloudSqlMySql) MarshalJSON() ([]byte, error) {
+func (s DatabasePreferencesCloudSqlMySql) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabasePreferencesCloudSqlMySql
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabasePreferencesCloudSqlPostgreSql: Preferences for PostgreSQL on Cloud
@@ -2145,9 +2339,9 @@ type DatabasePreferencesCloudSqlPostgreSql struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabasePreferencesCloudSqlPostgreSql) MarshalJSON() ([]byte, error) {
+func (s DatabasePreferencesCloudSqlPostgreSql) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabasePreferencesCloudSqlPostgreSql
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabasePreferencesCloudSqlSqlServer: Preferences for SQL Server on Cloud
@@ -2158,11 +2352,11 @@ type DatabasePreferencesCloudSqlSqlServer struct {
 	// Multithreading: Optional. Preferences for multithreading support.
 	//
 	// Possible values:
-	//   "MULTITHREADING_UNSPECIFIED" - Same as MULTITHREADING_AUTO_SELECT.
-	//   "MULTITHREADING_DISABLED" - No multithreading support.
-	//   "MULTITHREADING_ENABLED" - Allow multithreading support.
-	//   "MULTITHREADING_AUTO_SELECT" - Choose to enable/disable multithreading
-	// according to which is lowest cost for your workload.
+	//   "MULTITHREADING_UNSPECIFIED" - Same as MULTITHREADING_AUTO.
+	//   "MULTITHREADING_DISABLED" - Disable simultaneous multithreading.
+	//   "MULTITHREADING_ENABLED" - Enable simultaneous multithreading.
+	//   "MULTITHREADING_DISABLED_WITH_COMPENSATION" - Disable simultaneous
+	// multithreading and increase number of VCPUs to compensate.
 	Multithreading string `json:"multithreading,omitempty"`
 	// VersionType: Optional. Edition of Microsoft SQL version that is used on a
 	// Cloud SQL for SQL server instance.
@@ -2188,9 +2382,9 @@ type DatabasePreferencesCloudSqlSqlServer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabasePreferencesCloudSqlSqlServer) MarshalJSON() ([]byte, error) {
+func (s DatabasePreferencesCloudSqlSqlServer) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabasePreferencesCloudSqlSqlServer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseSchema: Details of a database schema.
@@ -2220,9 +2414,9 @@ type DatabaseSchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseSchema) MarshalJSON() ([]byte, error) {
+func (s DatabaseSchema) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseSchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -2258,9 +2452,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DateTime: Represents civil time (or occasionally physical time). This type
@@ -2321,9 +2515,9 @@ type DateTime struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DateTime) MarshalJSON() ([]byte, error) {
+func (s DateTime) MarshalJSON() ([]byte, error) {
 	type NoMethod DateTime
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetectedSoftware: Information about software detected on an asset.
@@ -2346,9 +2540,9 @@ type DetectedSoftware struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectedSoftware) MarshalJSON() ([]byte, error) {
+func (s DetectedSoftware) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectedSoftware
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiscoveryClient: Represents an installed Migration Center Discovery Client
@@ -2420,9 +2614,9 @@ type DiscoveryClient struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiscoveryClient) MarshalJSON() ([]byte, error) {
+func (s DiscoveryClient) MarshalJSON() ([]byte, error) {
 	type NoMethod DiscoveryClient
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiskEntry: Single disk entry.
@@ -2458,9 +2652,9 @@ type DiskEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiskEntry) MarshalJSON() ([]byte, error) {
+func (s DiskEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod DiskEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiskEntryList: VM disks.
@@ -2480,9 +2674,9 @@ type DiskEntryList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiskEntryList) MarshalJSON() ([]byte, error) {
+func (s DiskEntryList) MarshalJSON() ([]byte, error) {
 	type NoMethod DiskEntryList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiskPartition: Disk Partition details.
@@ -2493,7 +2687,7 @@ type DiskPartition struct {
 	FileSystem string `json:"fileSystem,omitempty"`
 	// FreeBytes: Partition free space.
 	FreeBytes int64 `json:"freeBytes,omitempty,string"`
-	// MountPoint: Mount pount (Linux/Windows) or drive letter (Windows).
+	// MountPoint: Mount point (Linux/Windows) or drive letter (Windows).
 	MountPoint string `json:"mountPoint,omitempty"`
 	// SubPartitions: Sub-partitions.
 	SubPartitions *DiskPartitionList `json:"subPartitions,omitempty"`
@@ -2514,9 +2708,35 @@ type DiskPartition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiskPartition) MarshalJSON() ([]byte, error) {
+func (s DiskPartition) MarshalJSON() ([]byte, error) {
 	type NoMethod DiskPartition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DiskPartitionDetails: Disk partition details.
+type DiskPartitionDetails struct {
+	// FreeSpaceBytes: Output only. Total free space of all partitions.
+	FreeSpaceBytes int64 `json:"freeSpaceBytes,omitempty,string"`
+	// Partitions: Optional. List of partitions.
+	Partitions *DiskPartitionList `json:"partitions,omitempty"`
+	// TotalCapacityBytes: Output only. Total capacity of all partitions.
+	TotalCapacityBytes int64 `json:"totalCapacityBytes,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "FreeSpaceBytes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FreeSpaceBytes") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DiskPartitionDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod DiskPartitionDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiskPartitionList: Disk partition list.
@@ -2536,22 +2756,22 @@ type DiskPartitionList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiskPartitionList) MarshalJSON() ([]byte, error) {
+func (s DiskPartitionList) MarshalJSON() ([]byte, error) {
 	type NoMethod DiskPartitionList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiskUsageSample: Disk usage sample. Values are across all disks.
 type DiskUsageSample struct {
 	// AverageIops: Average IOPS sampled over a short window. Must be non-negative.
-	// Must be equal to the sum of read and write if one of them is positive. if
-	// both read and write are zero they are ignored.
+	// If read or write are set, the sum of read and write will override the value
+	// of the average_iops.
 	AverageIops float64 `json:"averageIops,omitempty"`
 	// AverageReadIops: Average read IOPS sampled over a short window. Must be
-	// non-negative.
+	// non-negative. If both read and write are zero they are ignored.
 	AverageReadIops float64 `json:"averageReadIops,omitempty"`
 	// AverageWriteIops: Average write IOPS sampled over a short window. Must be
-	// non-negative.
+	// non-negative. If both read and write are zero they are ignored.
 	AverageWriteIops float64 `json:"averageWriteIops,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AverageIops") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2566,9 +2786,9 @@ type DiskUsageSample struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiskUsageSample) MarshalJSON() ([]byte, error) {
+func (s DiskUsageSample) MarshalJSON() ([]byte, error) {
 	type NoMethod DiskUsageSample
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DiskUsageSample) UnmarshalJSON(data []byte) error {
@@ -2626,9 +2846,9 @@ type ErrorFrame struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ErrorFrame) MarshalJSON() ([]byte, error) {
+func (s ErrorFrame) MarshalJSON() ([]byte, error) {
 	type NoMethod ErrorFrame
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutionReport: A resource that reports result of the import job execution.
@@ -2656,9 +2876,9 @@ type ExecutionReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionReport) MarshalJSON() ([]byte, error) {
+func (s ExecutionReport) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecutionReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileValidationReport: A resource that aggregates the validation errors found
@@ -2686,15 +2906,15 @@ type FileValidationReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileValidationReport) MarshalJSON() ([]byte, error) {
+func (s FileValidationReport) MarshalJSON() ([]byte, error) {
 	type NoMethod FileValidationReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FitDescriptor: Describes the fit level of an asset for migration to a
 // specific target.
 type FitDescriptor struct {
-	// FitLevel: Fit level.
+	// FitLevel: Output only. Fit level.
 	//
 	// Possible values:
 	//   "FIT_LEVEL_UNSPECIFIED" - Not enough information.
@@ -2715,9 +2935,9 @@ type FitDescriptor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FitDescriptor) MarshalJSON() ([]byte, error) {
+func (s FitDescriptor) MarshalJSON() ([]byte, error) {
 	type NoMethod FitDescriptor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FrameViolationEntry: A resource that contains a single violation of a
@@ -2740,9 +2960,9 @@ type FrameViolationEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FrameViolationEntry) MarshalJSON() ([]byte, error) {
+func (s FrameViolationEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod FrameViolationEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Frames: Collection of frame data.
@@ -2762,9 +2982,9 @@ type Frames struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Frames) MarshalJSON() ([]byte, error) {
+func (s Frames) MarshalJSON() ([]byte, error) {
 	type NoMethod Frames
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FstabEntry: Single fstab entry.
@@ -2795,9 +3015,9 @@ type FstabEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FstabEntry) MarshalJSON() ([]byte, error) {
+func (s FstabEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod FstabEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FstabEntryList: Fstab content.
@@ -2817,9 +3037,9 @@ type FstabEntryList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FstabEntryList) MarshalJSON() ([]byte, error) {
+func (s FstabEntryList) MarshalJSON() ([]byte, error) {
 	type NoMethod FstabEntryList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GCSPayloadInfo: A resource that represents a payload hosted on Google Cloud
@@ -2859,9 +3079,9 @@ type GCSPayloadInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GCSPayloadInfo) MarshalJSON() ([]byte, error) {
+func (s GCSPayloadInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GCSPayloadInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericInsight: A generic insight about an asset.
@@ -2892,33 +3112,42 @@ type GenericInsight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericInsight) MarshalJSON() ([]byte, error) {
+func (s GenericInsight) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericInsight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericPlatformDetails: Generic platform details.
 type GenericPlatformDetails struct {
+	// Hyperthreading: Whether the machine is hyperthreaded.
+	//
+	// Possible values:
+	//   "HYPERTHREADING_STATUS_UNSPECIFIED" - Simultaneous Multithreading status
+	// unknown.
+	//   "HYPERTHREADING_STATUS_DISABLED" - Simultaneous Multithreading is disabled
+	// or unavailable.
+	//   "HYPERTHREADING_STATUS_ENABLED" - Simultaneous Multithreading is enabled.
+	Hyperthreading string `json:"hyperthreading,omitempty"`
 	// Location: Free text representation of the machine location. The format of
 	// this field should not be relied on. Different VMs in the same location may
 	// have different string values for this field.
 	Location string `json:"location,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Location") to
+	// ForceSendFields is a list of field names (e.g. "Hyperthreading") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Location") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "Hyperthreading") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericPlatformDetails) MarshalJSON() ([]byte, error) {
+func (s GenericPlatformDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericPlatformDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleKubernetesEngineMigrationTarget: GKE migration target.
@@ -2958,16 +3187,16 @@ type Group struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Group) MarshalJSON() ([]byte, error) {
+func (s Group) MarshalJSON() ([]byte, error) {
 	type NoMethod Group
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuestConfigDetails: Guest OS config information.
 type GuestConfigDetails struct {
 	// Fstab: Mount list (Linux fstab).
 	Fstab *FstabEntryList `json:"fstab,omitempty"`
-	// Hosts: Hosts file (/etc/hosts).
+	// Hosts: Output only. Hosts file (/etc/hosts).
 	Hosts *HostsEntryList `json:"hosts,omitempty"`
 	// Issue: OS issue (typically /etc/issue in Linux).
 	Issue string `json:"issue,omitempty"`
@@ -2988,9 +3217,9 @@ type GuestConfigDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuestConfigDetails) MarshalJSON() ([]byte, error) {
+func (s GuestConfigDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GuestConfigDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuestInstalledApplication: Guest installed application information.
@@ -3020,9 +3249,9 @@ type GuestInstalledApplication struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuestInstalledApplication) MarshalJSON() ([]byte, error) {
+func (s GuestInstalledApplication) MarshalJSON() ([]byte, error) {
 	type NoMethod GuestInstalledApplication
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuestInstalledApplicationList: Guest installed application list.
@@ -3042,9 +3271,9 @@ type GuestInstalledApplicationList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuestInstalledApplicationList) MarshalJSON() ([]byte, error) {
+func (s GuestInstalledApplicationList) MarshalJSON() ([]byte, error) {
 	type NoMethod GuestInstalledApplicationList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuestOsDetails: Information from Guest-level collections.
@@ -3066,9 +3295,9 @@ type GuestOsDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuestOsDetails) MarshalJSON() ([]byte, error) {
+func (s GuestOsDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GuestOsDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuestRuntimeDetails: Guest OS runtime information.
@@ -3102,9 +3331,9 @@ type GuestRuntimeDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuestRuntimeDetails) MarshalJSON() ([]byte, error) {
+func (s GuestRuntimeDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GuestRuntimeDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HostsEntry: Single /etc/hosts entry.
@@ -3126,14 +3355,14 @@ type HostsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HostsEntry) MarshalJSON() ([]byte, error) {
+func (s HostsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod HostsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HostsEntryList: Hosts content.
 type HostsEntryList struct {
-	// Entries: Hosts entries.
+	// Entries: Output only. Hosts entries.
 	Entries []*HostsEntry `json:"entries,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Entries") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -3148,9 +3377,9 @@ type HostsEntryList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HostsEntryList) MarshalJSON() ([]byte, error) {
+func (s HostsEntryList) MarshalJSON() ([]byte, error) {
 	type NoMethod HostsEntryList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportDataFile: A resource that represents a payload file in an import job.
@@ -3207,9 +3436,9 @@ type ImportDataFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportDataFile) MarshalJSON() ([]byte, error) {
+func (s ImportDataFile) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportDataFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportError: A resource that reports the errors encountered while processing
@@ -3238,9 +3467,9 @@ type ImportError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportError) MarshalJSON() ([]byte, error) {
+func (s ImportError) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportJob: A resource that represents the background job that imports asset
@@ -3301,9 +3530,9 @@ type ImportJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportJob) MarshalJSON() ([]byte, error) {
+func (s ImportJob) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportRowError: A resource that reports the import job errors at row level.
@@ -3316,8 +3545,6 @@ type ImportRowError struct {
 	CsvError *ImportRowErrorCsvErrorDetails `json:"csvError,omitempty"`
 	// Errors: The list of errors detected in the row.
 	Errors []*ImportError `json:"errors,omitempty"`
-	// JsonError: Error details for a JSON file.
-	JsonError *ImportRowErrorJsonErrorDetails `json:"jsonError,omitempty"`
 	// RowNumber: The row number where the error was detected.
 	RowNumber int64 `json:"rowNumber,omitempty"`
 	// VmName: The name of the VM in the row.
@@ -3339,9 +3566,9 @@ type ImportRowError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportRowError) MarshalJSON() ([]byte, error) {
+func (s ImportRowError) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportRowError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportRowErrorArchiveErrorDetails: Error details for an archive file.
@@ -3363,9 +3590,9 @@ type ImportRowErrorArchiveErrorDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportRowErrorArchiveErrorDetails) MarshalJSON() ([]byte, error) {
+func (s ImportRowErrorArchiveErrorDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportRowErrorArchiveErrorDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportRowErrorCsvErrorDetails: Error details for a CSV file.
@@ -3385,13 +3612,9 @@ type ImportRowErrorCsvErrorDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportRowErrorCsvErrorDetails) MarshalJSON() ([]byte, error) {
+func (s ImportRowErrorCsvErrorDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportRowErrorCsvErrorDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// ImportRowErrorJsonErrorDetails: Error details for a JSON file.
-type ImportRowErrorJsonErrorDetails struct {
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportRowErrorXlsxErrorDetails: Error details for an XLSX file.
@@ -3413,9 +3636,9 @@ type ImportRowErrorXlsxErrorDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportRowErrorXlsxErrorDetails) MarshalJSON() ([]byte, error) {
+func (s ImportRowErrorXlsxErrorDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportRowErrorXlsxErrorDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InlinePayloadInfo: A resource that represents the inline import job payload.
@@ -3454,9 +3677,9 @@ type InlinePayloadInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InlinePayloadInfo) MarshalJSON() ([]byte, error) {
+func (s InlinePayloadInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod InlinePayloadInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Insight: An insight about an asset.
@@ -3482,9 +3705,9 @@ type Insight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Insight) MarshalJSON() ([]byte, error) {
+func (s Insight) MarshalJSON() ([]byte, error) {
 	type NoMethod Insight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InsightList: Message containing insights list.
@@ -3506,9 +3729,9 @@ type InsightList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InsightList) MarshalJSON() ([]byte, error) {
+func (s InsightList) MarshalJSON() ([]byte, error) {
 	type NoMethod InsightList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Issue: An issue associated with a migration.
@@ -3532,9 +3755,9 @@ type Issue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Issue) MarshalJSON() ([]byte, error) {
+func (s Issue) MarshalJSON() ([]byte, error) {
 	type NoMethod Issue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IssueCompatibilityIssue: Details about a compatibility issue.
@@ -3576,9 +3799,9 @@ type IssueCompatibilityIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IssueCompatibilityIssue) MarshalJSON() ([]byte, error) {
+func (s IssueCompatibilityIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod IssueCompatibilityIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAssetsExportJobsResponse: Response message for listing assets export
@@ -3605,9 +3828,9 @@ type ListAssetsExportJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAssetsExportJobsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAssetsExportJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAssetsExportJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAssetsResponse: Response message for listing assets.
@@ -3635,9 +3858,9 @@ type ListAssetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAssetsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAssetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAssetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDiscoveryClientsResponse: Response message for listing discovery
@@ -3666,9 +3889,9 @@ type ListDiscoveryClientsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDiscoveryClientsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDiscoveryClientsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDiscoveryClientsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListErrorFramesResponse: A response for listing error frames.
@@ -3696,9 +3919,9 @@ type ListErrorFramesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListErrorFramesResponse) MarshalJSON() ([]byte, error) {
+func (s ListErrorFramesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListErrorFramesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGroupsResponse: A response for listing groups.
@@ -3726,9 +3949,9 @@ type ListGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListImportDataFilesResponse: Response for listing payload files of an import
@@ -3757,9 +3980,9 @@ type ListImportDataFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListImportDataFilesResponse) MarshalJSON() ([]byte, error) {
+func (s ListImportDataFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListImportDataFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListImportJobsResponse: A response for listing import jobs.
@@ -3787,9 +4010,9 @@ type ListImportJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListImportJobsResponse) MarshalJSON() ([]byte, error) {
+func (s ListImportJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListImportJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -3815,9 +4038,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -3843,9 +4066,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPreferenceSetsResponse: Response message for listing preference sets.
@@ -3873,9 +4096,37 @@ type ListPreferenceSetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPreferenceSetsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPreferenceSetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPreferenceSetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListRelationsResponse: Response message for listing relations.
+type ListRelationsResponse struct {
+	// NextPageToken: A token identifying a page of results the server should
+	// return.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// Relations: A list of relations.
+	Relations []*Relation `json:"relations,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListRelationsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListRelationsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListReportConfigsResponse: Response message for listing report configs.
@@ -3903,9 +4154,9 @@ type ListReportConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListReportConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s ListReportConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListReportConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListReportsResponse: Response message for listing Reports.
@@ -3933,9 +4184,9 @@ type ListReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListReportsResponse) MarshalJSON() ([]byte, error) {
+func (s ListReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSourcesResponse: Response message for listing sources.
@@ -3963,9 +4214,9 @@ type ListSourcesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSourcesResponse) MarshalJSON() ([]byte, error) {
+func (s ListSourcesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSourcesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -4001,14 +4252,178 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MachineArchitectureDetails: Details of the machine architecture.
+type MachineArchitectureDetails struct {
+	// Bios: BIOS Details.
+	Bios *BiosDetails `json:"bios,omitempty"`
+	// CpuArchitecture: CPU architecture, e.g., "x64-based PC", "x86_64", "i686"
+	// etc.
+	CpuArchitecture string `json:"cpuArchitecture,omitempty"`
+	// CpuName: CPU name, e.g., "Intel Xeon E5-2690", "AMD EPYC 7571" etc.
+	CpuName string `json:"cpuName,omitempty"`
+	// CpuSocketCount: Number of processor sockets allocated to the machine.
+	CpuSocketCount int64 `json:"cpuSocketCount,omitempty"`
+	// FirmwareType: Firmware type.
+	//
+	// Possible values:
+	//   "FIRMWARE_TYPE_UNSPECIFIED" - Unspecified or unknown.
+	//   "BIOS" - BIOS firmware.
+	//   "EFI" - EFI firmware.
+	FirmwareType string `json:"firmwareType,omitempty"`
+	// Hyperthreading: CPU hyper-threading support.
+	//
+	// Possible values:
+	//   "CPU_HYPER_THREADING_UNSPECIFIED" - Unspecified or unknown.
+	//   "DISABLED" - Hyper-threading is disabled.
+	//   "ENABLED" - Hyper-threading is enabled.
+	Hyperthreading string `json:"hyperthreading,omitempty"`
+	// Vendor: Hardware vendor.
+	Vendor string `json:"vendor,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Bios") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Bios") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MachineArchitectureDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod MachineArchitectureDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MachineDetails: Details of a machine.
+type MachineDetails struct {
+	// Architecture: Architecture details (vendor, CPU architecture).
+	Architecture *MachineArchitectureDetails `json:"architecture,omitempty"`
+	// CoreCount: Number of logical CPU cores in the machine. Must be non-negative.
+	CoreCount int64 `json:"coreCount,omitempty"`
+	// CreateTime: Machine creation time.
+	CreateTime string `json:"createTime,omitempty"`
+	// DiskPartitions: Optional. Disk partitions details. Note: Partitions are not
+	// necessarily mounted on local disks and therefore might not have a one-to-one
+	// correspondence with local disks.
+	DiskPartitions *DiskPartitionDetails `json:"diskPartitions,omitempty"`
+	// Disks: Disk details.
+	Disks *MachineDiskDetails `json:"disks,omitempty"`
+	// GuestOs: Guest OS information.
+	GuestOs *GuestOsDetails `json:"guestOs,omitempty"`
+	// MachineName: Machine name.
+	MachineName string `json:"machineName,omitempty"`
+	// MemoryMb: The amount of memory in the machine. Must be non-negative.
+	MemoryMb int64 `json:"memoryMb,omitempty"`
+	// Network: Network details.
+	Network *MachineNetworkDetails `json:"network,omitempty"`
+	// Platform: Platform specific information.
+	Platform *PlatformDetails `json:"platform,omitempty"`
+	// PowerState: Power state of the machine.
+	//
+	// Possible values:
+	//   "POWER_STATE_UNSPECIFIED" - Power state is unknown.
+	//   "PENDING" - The machine is preparing to enter the ACTIVE state. An
+	// instance may enter the PENDING state when it launches for the first time, or
+	// when it is started after being in the SUSPENDED state.
+	//   "ACTIVE" - The machine is active.
+	//   "SUSPENDING" - The machine is being turned off.
+	//   "SUSPENDED" - The machine is off.
+	//   "DELETING" - The machine is being deleted from the hosting platform.
+	//   "DELETED" - The machine is deleted from the hosting platform.
+	PowerState string `json:"powerState,omitempty"`
+	// Uuid: Machine unique identifier.
+	Uuid string `json:"uuid,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Architecture") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Architecture") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MachineDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod MachineDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MachineDiskDetails: Details of machine disks.
+type MachineDiskDetails struct {
+	// Disks: List of disks.
+	Disks *DiskEntryList `json:"disks,omitempty"`
+	// RawScanResult: Raw disk scan result. This field is intended for human
+	// inspection. The format of this field may be lsblk output or any another raw
+	// output. The exact format may change without notice and should not be relied
+	// upon.
+	RawScanResult string `json:"rawScanResult,omitempty"`
+	// TotalCapacityBytes: Disk total Capacity.
+	TotalCapacityBytes int64 `json:"totalCapacityBytes,omitempty,string"`
+	// TotalFreeBytes: Total disk free space.
+	TotalFreeBytes int64 `json:"totalFreeBytes,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "Disks") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Disks") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MachineDiskDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod MachineDiskDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MachineNetworkDetails: Details of network adapters and settings.
+type MachineNetworkDetails struct {
+	// DefaultGateway: Default gateway address.
+	DefaultGateway string `json:"defaultGateway,omitempty"`
+	// NetworkAdapters: List of network adapters.
+	NetworkAdapters *NetworkAdapterList `json:"networkAdapters,omitempty"`
+	// PrimaryIpAddress: The primary IP address of the machine.
+	PrimaryIpAddress string `json:"primaryIpAddress,omitempty"`
+	// PrimaryMacAddress: MAC address of the machine. This property is used to
+	// uniqly identify the machine.
+	PrimaryMacAddress string `json:"primaryMacAddress,omitempty"`
+	// PublicIpAddress: The public IP address of the machine.
+	PublicIpAddress string `json:"publicIpAddress,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DefaultGateway") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DefaultGateway") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MachineNetworkDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod MachineNetworkDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MachinePreferences: The type of machines to consider when calculating
-// virtual machine migration insights and recommendations. Not all machine
-// types are available in all zones and regions.
+// virtual machine migration insights and recommendations for GCE. Not all
+// machine types are available in all zones and regions.
 type MachinePreferences struct {
 	// AllowedMachineSeries: Compute Engine machine series to consider for insights
 	// and recommendations. If empty, no restriction is applied on the machine
@@ -4027,9 +4442,9 @@ type MachinePreferences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MachinePreferences) MarshalJSON() ([]byte, error) {
+func (s MachinePreferences) MarshalJSON() ([]byte, error) {
 	type NoMethod MachinePreferences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MachineSeries: A machine series, for a target product (e.g. Compute Engine,
@@ -4054,9 +4469,9 @@ type MachineSeries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MachineSeries) MarshalJSON() ([]byte, error) {
+func (s MachineSeries) MarshalJSON() ([]byte, error) {
 	type NoMethod MachineSeries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MemoryUsageSample: Memory usage sample.
@@ -4077,9 +4492,9 @@ type MemoryUsageSample struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MemoryUsageSample) MarshalJSON() ([]byte, error) {
+func (s MemoryUsageSample) MarshalJSON() ([]byte, error) {
 	type NoMethod MemoryUsageSample
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *MemoryUsageSample) UnmarshalJSON(data []byte) error {
@@ -4127,9 +4542,9 @@ type MigrationInsight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MigrationInsight) MarshalJSON() ([]byte, error) {
+func (s MigrationInsight) MarshalJSON() ([]byte, error) {
 	type NoMethod MigrationInsight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Money: Represents an amount of money with its currency type.
@@ -4158,9 +4573,9 @@ type Money struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Money) MarshalJSON() ([]byte, error) {
+func (s Money) MarshalJSON() ([]byte, error) {
 	type NoMethod Money
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MySqlPlugin: MySql plugin.
@@ -4184,9 +4599,9 @@ type MySqlPlugin struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MySqlPlugin) MarshalJSON() ([]byte, error) {
+func (s MySqlPlugin) MarshalJSON() ([]byte, error) {
 	type NoMethod MySqlPlugin
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MySqlProperty: MySql property.
@@ -4210,9 +4625,9 @@ type MySqlProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MySqlProperty) MarshalJSON() ([]byte, error) {
+func (s MySqlProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod MySqlProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MySqlSchemaDetails: Specific details for a Mysql database.
@@ -4232,9 +4647,9 @@ type MySqlSchemaDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MySqlSchemaDetails) MarshalJSON() ([]byte, error) {
+func (s MySqlSchemaDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod MySqlSchemaDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MySqlStorageEngineDetails: Mysql storage engine tables.
@@ -4272,9 +4687,9 @@ type MySqlStorageEngineDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MySqlStorageEngineDetails) MarshalJSON() ([]byte, error) {
+func (s MySqlStorageEngineDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod MySqlStorageEngineDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MySqlVariable: MySql variable.
@@ -4298,9 +4713,9 @@ type MySqlVariable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MySqlVariable) MarshalJSON() ([]byte, error) {
+func (s MySqlVariable) MarshalJSON() ([]byte, error) {
 	type NoMethod MySqlVariable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MysqlDatabaseDeployment: Specific details for a Mysql database deployment.
@@ -4326,9 +4741,9 @@ type MysqlDatabaseDeployment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MysqlDatabaseDeployment) MarshalJSON() ([]byte, error) {
+func (s MysqlDatabaseDeployment) MarshalJSON() ([]byte, error) {
 	type NoMethod MysqlDatabaseDeployment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkAdapterDetails: Details of network adapter.
@@ -4352,9 +4767,9 @@ type NetworkAdapterDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkAdapterDetails) MarshalJSON() ([]byte, error) {
+func (s NetworkAdapterDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkAdapterDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkAdapterList: List of network adapters.
@@ -4374,9 +4789,9 @@ type NetworkAdapterList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkAdapterList) MarshalJSON() ([]byte, error) {
+func (s NetworkAdapterList) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkAdapterList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkAddress: Details of network address.
@@ -4385,7 +4800,7 @@ type NetworkAddress struct {
 	//
 	// Possible values:
 	//   "ADDRESS_ASSIGNMENT_UNSPECIFIED" - Unknown (default value).
-	//   "ADDRESS_ASSIGNMENT_STATIC" - Staticly assigned IP.
+	//   "ADDRESS_ASSIGNMENT_STATIC" - Statically assigned IP.
 	//   "ADDRESS_ASSIGNMENT_DHCP" - Dynamically assigned IP (DHCP).
 	Assignment string `json:"assignment,omitempty"`
 	// Bcast: Broadcast address.
@@ -4409,9 +4824,9 @@ type NetworkAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkAddress) MarshalJSON() ([]byte, error) {
+func (s NetworkAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkAddressList: List of allocated/assigned network addresses.
@@ -4431,9 +4846,9 @@ type NetworkAddressList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkAddressList) MarshalJSON() ([]byte, error) {
+func (s NetworkAddressList) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkAddressList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type NetworkConnection struct {
@@ -4466,9 +4881,9 @@ type NetworkConnection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkConnection) MarshalJSON() ([]byte, error) {
+func (s NetworkConnection) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkConnection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkConnectionList: Network connection list.
@@ -4488,9 +4903,9 @@ type NetworkConnectionList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkConnectionList) MarshalJSON() ([]byte, error) {
+func (s NetworkConnectionList) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkConnectionList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkUsageSample: Network usage sample. Values are across all network
@@ -4515,9 +4930,9 @@ type NetworkUsageSample struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkUsageSample) MarshalJSON() ([]byte, error) {
+func (s NetworkUsageSample) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkUsageSample
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *NetworkUsageSample) UnmarshalJSON(data []byte) error {
@@ -4555,9 +4970,9 @@ type NfsExport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NfsExport) MarshalJSON() ([]byte, error) {
+func (s NfsExport) MarshalJSON() ([]byte, error) {
 	type NoMethod NfsExport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NfsExportList: NFS exports.
@@ -4577,9 +4992,9 @@ type NfsExportList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NfsExportList) MarshalJSON() ([]byte, error) {
+func (s NfsExportList) MarshalJSON() ([]byte, error) {
 	type NoMethod NfsExportList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OpenFileDetails: Open file Information.
@@ -4605,9 +5020,9 @@ type OpenFileDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OpenFileDetails) MarshalJSON() ([]byte, error) {
+func (s OpenFileDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod OpenFileDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OpenFileList: Open file list.
@@ -4627,9 +5042,78 @@ type OpenFileList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OpenFileList) MarshalJSON() ([]byte, error) {
+func (s OpenFileList) MarshalJSON() ([]byte, error) {
 	type NoMethod OpenFileList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OperatingSystemPricingPreferences: Pricing options for OS images.
+type OperatingSystemPricingPreferences struct {
+	// Rhel: Optional. Pricing options for RHEL images.
+	Rhel *OperatingSystemPricingPreferencesOperatingSystemPricing `json:"rhel,omitempty"`
+	// Sles: Optional. Pricing options for SLES images.
+	Sles *OperatingSystemPricingPreferencesOperatingSystemPricing `json:"sles,omitempty"`
+	// SlesForSap: Optional. Pricing options for SLES for SAP images.
+	SlesForSap *OperatingSystemPricingPreferencesOperatingSystemPricing `json:"slesForSap,omitempty"`
+	// Windows: Optional. Pricing options for Windows images. No commitment plans
+	// are available, set it to unspecified.
+	Windows *OperatingSystemPricingPreferencesOperatingSystemPricing `json:"windows,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Rhel") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Rhel") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OperatingSystemPricingPreferences) MarshalJSON() ([]byte, error) {
+	type NoMethod OperatingSystemPricingPreferences
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OperatingSystemPricingPreferencesOperatingSystemPricing: Pricing options of
+// an OS image.
+type OperatingSystemPricingPreferencesOperatingSystemPricing struct {
+	// CommitmentPlan: Optional. The plan of commitments for committed use
+	// discounts (CUD).
+	//
+	// Possible values:
+	//   "COMMITMENT_PLAN_UNSPECIFIED" - Unspecified commitment plan.
+	//   "COMMITMENT_PLAN_ON_DEMAND" - No commitment plan (on-demand usage).
+	//   "COMMITMENT_PLAN_1_YEAR" - 1-year committed use discount.
+	//   "COMMITMENT_PLAN_3_YEAR" - 3-year committed use discount.
+	CommitmentPlan string `json:"commitmentPlan,omitempty"`
+	// LicenseType: Optional. License type for premium images (RHEL, RHEL for SAP,
+	// SLES, SLES for SAP, Windows Server).
+	//
+	// Possible values:
+	//   "LICENSE_TYPE_UNSPECIFIED" - Unspecified (default value).
+	//   "LICENSE_TYPE_DEFAULT" - Default Google Cloud licensing plan. Licensing is
+	// charged per usage. This a good value to start with.
+	//   "LICENSE_TYPE_BRING_YOUR_OWN_LICENSE" - Bring-your-own-license (BYOL)
+	// plan. User provides the license.
+	LicenseType string `json:"licenseType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CommitmentPlan") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CommitmentPlan") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OperatingSystemPricingPreferencesOperatingSystemPricing) MarshalJSON() ([]byte, error) {
+	type NoMethod OperatingSystemPricingPreferencesOperatingSystemPricing
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -4674,9 +5158,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of the long-running operation.
@@ -4712,9 +5196,57 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OutputFile: Contains a single output file.
+type OutputFile struct {
+	// CsvOutputFile: Output only. CSV output file.
+	CsvOutputFile *CsvOutputFile `json:"csvOutputFile,omitempty"`
+	// FileSizeBytes: Output only. File size in bytes.
+	FileSizeBytes int64 `json:"fileSizeBytes,omitempty"`
+	// XlsxOutputFile: Output only. XLSX output file.
+	XlsxOutputFile *XlsxOutputFile `json:"xlsxOutputFile,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CsvOutputFile") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CsvOutputFile") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OutputFile) MarshalJSON() ([]byte, error) {
+	type NoMethod OutputFile
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OutputFileList: Contains a list of output files.
+type OutputFileList struct {
+	// Entries: List of output files.
+	Entries []*OutputFile `json:"entries,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Entries") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Entries") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OutputFileList) MarshalJSON() ([]byte, error) {
+	type NoMethod OutputFileList
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PayloadFile: Payload file for inline import job payload.
@@ -4736,9 +5268,9 @@ type PayloadFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PayloadFile) MarshalJSON() ([]byte, error) {
+func (s PayloadFile) MarshalJSON() ([]byte, error) {
 	type NoMethod PayloadFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerformanceSample: Performance data sample.
@@ -4767,33 +5299,42 @@ type PerformanceSample struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerformanceSample) MarshalJSON() ([]byte, error) {
+func (s PerformanceSample) MarshalJSON() ([]byte, error) {
 	type NoMethod PerformanceSample
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PhysicalPlatformDetails: Platform specific details for Physical Machines.
 type PhysicalPlatformDetails struct {
+	// Hyperthreading: Whether the machine is hyperthreaded.
+	//
+	// Possible values:
+	//   "HYPERTHREADING_STATUS_UNSPECIFIED" - Simultaneous Multithreading status
+	// unknown.
+	//   "HYPERTHREADING_STATUS_DISABLED" - Simultaneous Multithreading is disabled
+	// or unavailable.
+	//   "HYPERTHREADING_STATUS_ENABLED" - Simultaneous Multithreading is enabled.
+	Hyperthreading string `json:"hyperthreading,omitempty"`
 	// Location: Free text representation of the machine location. The format of
 	// this field should not be relied on. Different machines in the same location
 	// may have different string values for this field.
 	Location string `json:"location,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Location") to
+	// ForceSendFields is a list of field names (e.g. "Hyperthreading") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Location") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "Hyperthreading") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *PhysicalPlatformDetails) MarshalJSON() ([]byte, error) {
+func (s PhysicalPlatformDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod PhysicalPlatformDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlatformDetails: Information about the platform.
@@ -4821,9 +5362,9 @@ type PlatformDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlatformDetails) MarshalJSON() ([]byte, error) {
+func (s PlatformDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod PlatformDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostgreSqlDatabaseDeployment: Specific details for a PostgreSQL database
@@ -4846,9 +5387,9 @@ type PostgreSqlDatabaseDeployment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostgreSqlDatabaseDeployment) MarshalJSON() ([]byte, error) {
+func (s PostgreSqlDatabaseDeployment) MarshalJSON() ([]byte, error) {
 	type NoMethod PostgreSqlDatabaseDeployment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostgreSqlExtension: PostgreSql extension.
@@ -4870,9 +5411,9 @@ type PostgreSqlExtension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostgreSqlExtension) MarshalJSON() ([]byte, error) {
+func (s PostgreSqlExtension) MarshalJSON() ([]byte, error) {
 	type NoMethod PostgreSqlExtension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostgreSqlProperty: PostgreSql property.
@@ -4896,9 +5437,9 @@ type PostgreSqlProperty struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostgreSqlProperty) MarshalJSON() ([]byte, error) {
+func (s PostgreSqlProperty) MarshalJSON() ([]byte, error) {
 	type NoMethod PostgreSqlProperty
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostgreSqlSchemaDetails: Specific details for a PostgreSql schema.
@@ -4920,9 +5461,9 @@ type PostgreSqlSchemaDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostgreSqlSchemaDetails) MarshalJSON() ([]byte, error) {
+func (s PostgreSqlSchemaDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod PostgreSqlSchemaDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostgreSqlSetting: PostgreSql setting.
@@ -4955,9 +5496,9 @@ type PostgreSqlSetting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostgreSqlSetting) MarshalJSON() ([]byte, error) {
+func (s PostgreSqlSetting) MarshalJSON() ([]byte, error) {
 	type NoMethod PostgreSqlSetting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *PostgreSqlSetting) UnmarshalJSON(data []byte) error {
@@ -4985,7 +5526,7 @@ type PreferenceSet struct {
 	Description string `json:"description,omitempty"`
 	// DisplayName: User-friendly display name. Maximum length is 63 characters.
 	DisplayName string `json:"displayName,omitempty"`
-	// Name: Output only. Name of the preference set.
+	// Name: Output only. Name of the PreferenceSet.
 	Name string `json:"name,omitempty"`
 	// RegionPreferences: Optional. Region preferences for assets using this
 	// preference set. If you are unsure which value to set, the migration service
@@ -5014,9 +5555,9 @@ type PreferenceSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PreferenceSet) MarshalJSON() ([]byte, error) {
+func (s PreferenceSet) MarshalJSON() ([]byte, error) {
 	type NoMethod PreferenceSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RegionPreferences: The user preferences relating to target regions.
@@ -5038,9 +5579,48 @@ type RegionPreferences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegionPreferences) MarshalJSON() ([]byte, error) {
+func (s RegionPreferences) MarshalJSON() ([]byte, error) {
 	type NoMethod RegionPreferences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Relation: Message representing a relation between 2 resource.
+type Relation struct {
+	// CreateTime: Output only. The timestamp when the relation was created.
+	CreateTime string `json:"createTime,omitempty"`
+	// DstAsset: Output only. The destination asset name in the relation.
+	DstAsset string `json:"dstAsset,omitempty"`
+	// Name: Output only. Identifier. The identifier of the relation.
+	Name string `json:"name,omitempty"`
+	// SrcAsset: Output only. The source asset name in the relation.
+	SrcAsset string `json:"srcAsset,omitempty"`
+	// Type: Optional. The type of the relation.
+	//
+	// Possible values:
+	//   "TYPE_UNSPECIFIED" - Default value.
+	//   "LOGICAL_DATABASE" - DBDeployment -> Database
+	//   "DATABASE_DEPLOYMENT_HOSTING_SERVER" - A relation between a machine/VM and
+	// the database deployment it hosts.
+	Type string `json:"type,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "CreateTime") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CreateTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Relation) MarshalJSON() ([]byte, error) {
+	type NoMethod Relation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveAssetsFromGroupRequest: A request to remove assets from a group.
@@ -5078,9 +5658,9 @@ type RemoveAssetsFromGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveAssetsFromGroupRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveAssetsFromGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveAssetsFromGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Report: Report represents a point-in-time rendering of the ReportConfig
@@ -5128,9 +5708,9 @@ type Report struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Report) MarshalJSON() ([]byte, error) {
+func (s Report) MarshalJSON() ([]byte, error) {
 	type NoMethod Report
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportAssetFramesResponse: A response to a call to `ReportAssetFrame`.
@@ -5171,9 +5751,9 @@ type ReportConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportConfig) MarshalJSON() ([]byte, error) {
+func (s ReportConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportConfigGroupPreferenceSetAssignment: Represents a combination of a
@@ -5196,9 +5776,9 @@ type ReportConfigGroupPreferenceSetAssignment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportConfigGroupPreferenceSetAssignment) MarshalJSON() ([]byte, error) {
+func (s ReportConfigGroupPreferenceSetAssignment) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportConfigGroupPreferenceSetAssignment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummary: Describes the Summary view of a Report, which contains
@@ -5229,9 +5809,9 @@ type ReportSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummary) MarshalJSON() ([]byte, error) {
+func (s ReportSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryAssetAggregateStats: Aggregate statistics for a collection of
@@ -5239,7 +5819,8 @@ func (s *ReportSummary) MarshalJSON() ([]byte, error) {
 type ReportSummaryAssetAggregateStats struct {
 	// AssetAge: Count of assets grouped by age.
 	AssetAge *ReportSummaryChartData `json:"assetAge,omitempty"`
-	// CoreCountHistogram: Histogram showing a distribution of CPU core counts.
+	// CoreCountHistogram: Histogram showing a distribution of logical CPU core
+	// counts.
 	CoreCountHistogram *ReportSummaryHistogramChartData `json:"coreCountHistogram,omitempty"`
 	// DatabaseTypes: Output only. Count of assets grouped by database type. Keys
 	// here are taken from DatabaseType enum. Only present for databases.
@@ -5282,9 +5863,9 @@ type ReportSummaryAssetAggregateStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryAssetAggregateStats) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryAssetAggregateStats) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryAssetAggregateStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryChartData: Describes a collection of data points rendered as a
@@ -5306,9 +5887,9 @@ type ReportSummaryChartData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryChartData) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryChartData) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryChartData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryChartDataDataPoint: Describes a single data point in the Chart.
@@ -5330,9 +5911,9 @@ type ReportSummaryChartDataDataPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryChartDataDataPoint) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryChartDataDataPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryChartDataDataPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ReportSummaryChartDataDataPoint) UnmarshalJSON(data []byte) error {
@@ -5370,9 +5951,9 @@ type ReportSummaryDatabaseFinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryDatabaseFinding) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryDatabaseFinding) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryDatabaseFinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryGroupFinding: Summary Findings for a specific Group.
@@ -5393,7 +5974,7 @@ type ReportSummaryGroupFinding struct {
 	//   "DATABASE_TYPE_UNSPECIFIED" - Unknown database type.
 	//   "SQL_SERVER" - SQL Server database.
 	//   "MYSQL" - MySQL database.
-	//   "POSTGRES" - Postgres database.
+	//   "POSTGRES" - PostgreSQL database.
 	DatabaseType string `json:"databaseType,omitempty"`
 	// Description: Description for this group finding.
 	Description string `json:"description,omitempty"`
@@ -5420,9 +6001,9 @@ type ReportSummaryGroupFinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryGroupFinding) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryGroupFinding) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryGroupFinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryGroupPreferenceSetFinding: Summary Findings for a specific
@@ -5441,26 +6022,36 @@ type ReportSummaryGroupPreferenceSetFinding struct {
 	// MachinePreferences: A set of preferences that applies to all machines in the
 	// context.
 	MachinePreferences *VirtualMachinePreferences `json:"machinePreferences,omitempty"`
-	// MonthlyCostCompute: Compute monthly cost for this preference set.
+	// MonthlyCostCompute: Output only. Compute monthly cost for this preference
+	// set.
 	MonthlyCostCompute *Money `json:"monthlyCostCompute,omitempty"`
 	// MonthlyCostDatabaseBackup: Output only. Backup monthly cost for this
 	// preference set. Only present for databases.
 	MonthlyCostDatabaseBackup *Money `json:"monthlyCostDatabaseBackup,omitempty"`
 	// MonthlyCostDatabaseLicensing: Output only. Database licensing monthly cost
-	// for this preference set. For virtual machines denotes the cost of licenses
-	// for hosted databases.
+	// for this preference set. Only present for databases.
 	MonthlyCostDatabaseLicensing *Money `json:"monthlyCostDatabaseLicensing,omitempty"`
-	// MonthlyCostNetworkEgress: Network Egress monthly cost for this preference
-	// set. Only present for virtual machines.
-	MonthlyCostNetworkEgress *Money `json:"monthlyCostNetworkEgress,omitempty"`
-	// MonthlyCostOsLicense: Operating system licensing monthly cost for this
+	// MonthlyCostGcveProtected: Output only. GCVE Protected nodes cost for this
+	// preference set.
+	MonthlyCostGcveProtected *Money `json:"monthlyCostGcveProtected,omitempty"`
+	// MonthlyCostNetworkEgress: Output only. Network Egress monthly cost for this
 	// preference set. Only present for virtual machines.
+	MonthlyCostNetworkEgress *Money `json:"monthlyCostNetworkEgress,omitempty"`
+	// MonthlyCostOsLicense: Output only. All operating systems licensing monthly
+	// cost for this preference set. Only present for virtual machines.
 	MonthlyCostOsLicense *Money `json:"monthlyCostOsLicense,omitempty"`
-	// MonthlyCostOther: Miscellaneous monthly cost for this preference set.
+	// MonthlyCostOther: Output only. Miscellaneous monthly cost for this
+	// preference set.
 	MonthlyCostOther *Money `json:"monthlyCostOther,omitempty"`
-	// MonthlyCostStorage: Storage monthly cost for this preference set.
+	// MonthlyCostPortableVmwareLicense: Output only. VMware portable license
+	// monthly cost for this preference set. Only present for VMware target with
+	// portable license service type. This cost is not paid to google, but is an
+	// estimate of license costs paid to VMware.
+	MonthlyCostPortableVmwareLicense *Money `json:"monthlyCostPortableVmwareLicense,omitempty"`
+	// MonthlyCostStorage: Output only. Storage monthly cost for this preference
+	// set.
 	MonthlyCostStorage *Money `json:"monthlyCostStorage,omitempty"`
-	// MonthlyCostTotal: Total monthly cost for this preference set.
+	// MonthlyCostTotal: Output only. Total monthly cost for this preference set.
 	MonthlyCostTotal *Money `json:"monthlyCostTotal,omitempty"`
 	// PreferenceSet: Output only. A copy of the preference set used for this
 	// finding.
@@ -5492,9 +6083,9 @@ type ReportSummaryGroupPreferenceSetFinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryGroupPreferenceSetFinding) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryGroupPreferenceSetFinding) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryGroupPreferenceSetFinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryHistogramChartData: A Histogram Chart shows a distribution of
@@ -5518,9 +6109,9 @@ type ReportSummaryHistogramChartData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryHistogramChartData) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryHistogramChartData) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryHistogramChartData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryHistogramChartDataBucket: A histogram bucket with a lower and
@@ -5547,9 +6138,9 @@ type ReportSummaryHistogramChartDataBucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryHistogramChartDataBucket) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryHistogramChartDataBucket) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryHistogramChartDataBucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryMachineFinding: A set of findings that applies to assets of
@@ -5560,9 +6151,8 @@ type ReportSummaryMachineFinding struct {
 	// AllocatedDiskTypes: Set of disk types allocated to assets.
 	//
 	// Possible values:
-	//   "PERSISTENT_DISK_TYPE_UNSPECIFIED" - Unspecified (default value).
-	// Selecting this value allows the system to use any disk type according to
-	// reported usage. This a good value to start with.
+	//   "PERSISTENT_DISK_TYPE_UNSPECIFIED" - Unspecified. Fallback to default
+	// value based on context.
 	//   "PERSISTENT_DISK_TYPE_STANDARD" - Standard HDD Persistent Disk.
 	//   "PERSISTENT_DISK_TYPE_BALANCED" - Balanced Persistent Disk.
 	//   "PERSISTENT_DISK_TYPE_SSD" - SSD Persistent Disk.
@@ -5585,9 +6175,9 @@ type ReportSummaryMachineFinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryMachineFinding) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryMachineFinding) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryMachineFinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryMachineSeriesAllocation: Represents a data point tracking the
@@ -5610,9 +6200,9 @@ type ReportSummaryMachineSeriesAllocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryMachineSeriesAllocation) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryMachineSeriesAllocation) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryMachineSeriesAllocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummarySoleTenantFinding: A set of findings that applies to assets
@@ -5637,9 +6227,9 @@ type ReportSummarySoleTenantFinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummarySoleTenantFinding) MarshalJSON() ([]byte, error) {
+func (s ReportSummarySoleTenantFinding) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummarySoleTenantFinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummarySoleTenantNodeAllocation: Represents the assets allocated to a
@@ -5664,9 +6254,9 @@ type ReportSummarySoleTenantNodeAllocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummarySoleTenantNodeAllocation) MarshalJSON() ([]byte, error) {
+func (s ReportSummarySoleTenantNodeAllocation) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummarySoleTenantNodeAllocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryUtilizationChartData: Utilization Chart is a specific type of
@@ -5690,9 +6280,9 @@ type ReportSummaryUtilizationChartData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryUtilizationChartData) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryUtilizationChartData) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryUtilizationChartData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryVMWareEngineFinding: A set of findings that applies to assets
@@ -5717,9 +6307,9 @@ type ReportSummaryVMWareEngineFinding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryVMWareEngineFinding) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryVMWareEngineFinding) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryVMWareEngineFinding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryVMWareNode: A VMWare Engine Node
@@ -5742,9 +6332,9 @@ type ReportSummaryVMWareNode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryVMWareNode) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryVMWareNode) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryVMWareNode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportSummaryVMWareNodeAllocation: Represents assets allocated to a specific
@@ -5769,9 +6359,9 @@ type ReportSummaryVMWareNodeAllocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportSummaryVMWareNodeAllocation) MarshalJSON() ([]byte, error) {
+func (s ReportSummaryVMWareNodeAllocation) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportSummaryVMWareNodeAllocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunAssetsExportJobRequest: A request to run an assets export job.
@@ -5801,9 +6391,9 @@ type RunAssetsExportJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunAssetsExportJobRequest) MarshalJSON() ([]byte, error) {
+func (s RunAssetsExportJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunAssetsExportJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunAssetsExportJobResponse: Response message for running an assets export
@@ -5825,9 +6415,9 @@ type RunAssetsExportJobResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunAssetsExportJobResponse) MarshalJSON() ([]byte, error) {
+func (s RunAssetsExportJobResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunAssetsExportJobResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunImportJobRequest: A request to run an import job.
@@ -5857,9 +6447,9 @@ type RunImportJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunImportJobRequest) MarshalJSON() ([]byte, error) {
+func (s RunImportJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunImportJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunningProcess: Guest OS running process details.
@@ -5887,9 +6477,9 @@ type RunningProcess struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunningProcess) MarshalJSON() ([]byte, error) {
+func (s RunningProcess) MarshalJSON() ([]byte, error) {
 	type NoMethod RunningProcess
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunningProcessList: List of running guest OS processes.
@@ -5909,9 +6499,9 @@ type RunningProcessList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunningProcessList) MarshalJSON() ([]byte, error) {
+func (s RunningProcessList) MarshalJSON() ([]byte, error) {
 	type NoMethod RunningProcessList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunningService: Guest OS running service details.
@@ -5943,9 +6533,9 @@ type RunningService struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunningService) MarshalJSON() ([]byte, error) {
+func (s RunningService) MarshalJSON() ([]byte, error) {
 	type NoMethod RunningService
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunningServiceList: List of running guest OS services.
@@ -5965,9 +6555,9 @@ type RunningServiceList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunningServiceList) MarshalJSON() ([]byte, error) {
+func (s RunningServiceList) MarshalJSON() ([]byte, error) {
 	type NoMethod RunningServiceList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuntimeNetworkInfo: Runtime networking information.
@@ -5991,9 +6581,9 @@ type RuntimeNetworkInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuntimeNetworkInfo) MarshalJSON() ([]byte, error) {
+func (s RuntimeNetworkInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RuntimeNetworkInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Selinux: SELinux details.
@@ -6015,9 +6605,9 @@ type Selinux struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Selinux) MarshalJSON() ([]byte, error) {
+func (s Selinux) MarshalJSON() ([]byte, error) {
 	type NoMethod Selinux
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SendDiscoveryClientHeartbeatRequest: A request to send a discovery client
@@ -6040,13 +6630,16 @@ type SendDiscoveryClientHeartbeatRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SendDiscoveryClientHeartbeatRequest) MarshalJSON() ([]byte, error) {
+func (s SendDiscoveryClientHeartbeatRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SendDiscoveryClientHeartbeatRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Settings: Describes the Migration Center settings related to the project.
 type Settings struct {
+	// CustomerConsentForGoogleSalesToAccessMigrationCenter: Customer consent for
+	// Google sales to access their Cloud Migration Center project.
+	CustomerConsentForGoogleSalesToAccessMigrationCenter bool `json:"customerConsentForGoogleSalesToAccessMigrationCenter,omitempty"`
 	// DisableCloudLogging: Disable Cloud Logging for the Migration Center API.
 	// Users are billed for the logs.
 	DisableCloudLogging bool `json:"disableCloudLogging,omitempty"`
@@ -6057,22 +6650,24 @@ type Settings struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "DisableCloudLogging") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g.
+	// "CustomerConsentForGoogleSalesToAccessMigrationCenter") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "DisableCloudLogging") to include
-	// in API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. See
+	// NullFields is a list of field names (e.g.
+	// "CustomerConsentForGoogleSalesToAccessMigrationCenter") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *Settings) MarshalJSON() ([]byte, error) {
+func (s Settings) MarshalJSON() ([]byte, error) {
 	type NoMethod Settings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SignedUri: Contains a signed URI.
@@ -6094,13 +6689,37 @@ type SignedUri struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SignedUri) MarshalJSON() ([]byte, error) {
+func (s SignedUri) MarshalJSON() ([]byte, error) {
 	type NoMethod SignedUri
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SignedUriDestination: Signed URI destination configuration.
 type SignedUriDestination struct {
+	// FileFormat: Required. The file format to export.
+	//
+	// Possible values:
+	//   "FILE_FORMAT_UNSPECIFIED" - Unspecified file format will be treated as
+	// CSV.
+	//   "CSV" - CSV file format.
+	//   "XLSX" - XLSX file format which used in Excel.
+	FileFormat string `json:"fileFormat,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FileFormat") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FileFormat") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SignedUriDestination) MarshalJSON() ([]byte, error) {
+	type NoMethod SignedUriDestination
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SignedUris: Contains a list of Signed URIs.
@@ -6120,9 +6739,9 @@ type SignedUris struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SignedUris) MarshalJSON() ([]byte, error) {
+func (s SignedUris) MarshalJSON() ([]byte, error) {
 	type NoMethod SignedUris
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareInsight: An insight regarding software detected on an asset.
@@ -6142,9 +6761,9 @@ type SoftwareInsight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareInsight) MarshalJSON() ([]byte, error) {
+func (s SoftwareInsight) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareInsight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoleTenancyPreferences: Preferences concerning Sole Tenancy nodes and VMs.
@@ -6158,6 +6777,12 @@ type SoleTenancyPreferences struct {
 	//   "ON_DEMAND" - No commitment plan (on-demand usage).
 	//   "COMMITMENT_1_YEAR" - 1-year regular committed use discount.
 	//   "COMMITMENT_3_YEAR" - 3-year regular committed use discount.
+	//   "COMMITMENT_FLEXIBLE_1_YEAR" - 1-year flexible committed use discount.
+	// While not supported in the v1 API, this value is converted to UNSPECIFIED in
+	// conversions to the v1 API.
+	//   "COMMITMENT_FLEXIBLE_3_YEAR" - 3-year flexible committed use discount.
+	// While not supported in the v1 API, this value is converted to UNSPECIFIED in
+	// conversions to the v1 API.
 	CommitmentPlan string `json:"commitmentPlan,omitempty"`
 	// CpuOvercommitRatio: CPU overcommit ratio. Acceptable values are between 1.0
 	// and 2.0 inclusive.
@@ -6176,6 +6801,8 @@ type SoleTenancyPreferences struct {
 	// NodeTypes: A list of sole tenant node types. An empty list means that all
 	// possible node types will be considered.
 	NodeTypes []*SoleTenantNodeType `json:"nodeTypes,omitempty"`
+	// OsPricingPreferences: Optional. Pricing options for OS images.
+	OsPricingPreferences *OperatingSystemPricingPreferences `json:"osPricingPreferences,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CommitmentPlan") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -6189,9 +6816,9 @@ type SoleTenancyPreferences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoleTenancyPreferences) MarshalJSON() ([]byte, error) {
+func (s SoleTenancyPreferences) MarshalJSON() ([]byte, error) {
 	type NoMethod SoleTenancyPreferences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *SoleTenancyPreferences) UnmarshalJSON(data []byte) error {
@@ -6226,9 +6853,9 @@ type SoleTenantNodeType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoleTenantNodeType) MarshalJSON() ([]byte, error) {
+func (s SoleTenantNodeType) MarshalJSON() ([]byte, error) {
 	type NoMethod SoleTenantNodeType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Source: Source represents an object from which asset information is streamed
@@ -6290,9 +6917,9 @@ type Source struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Source) MarshalJSON() ([]byte, error) {
+func (s Source) MarshalJSON() ([]byte, error) {
 	type NoMethod Source
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerDatabaseDeployment: Specific details for a Microsoft SQL Server
@@ -6317,9 +6944,9 @@ type SqlServerDatabaseDeployment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerDatabaseDeployment) MarshalJSON() ([]byte, error) {
+func (s SqlServerDatabaseDeployment) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerDatabaseDeployment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerFeature: SQL Server feature details.
@@ -6342,13 +6969,31 @@ type SqlServerFeature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerFeature) MarshalJSON() ([]byte, error) {
+func (s SqlServerFeature) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerFeature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerSchemaDetails: Specific details for a SqlServer database.
 type SqlServerSchemaDetails struct {
+	// ClrObjectCount: Optional. SqlServer number of CLR objects.
+	ClrObjectCount int64 `json:"clrObjectCount,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ClrObjectCount") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ClrObjectCount") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SqlServerSchemaDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod SqlServerSchemaDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerServerFlag: SQL Server server flag details.
@@ -6375,9 +7020,9 @@ type SqlServerServerFlag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerServerFlag) MarshalJSON() ([]byte, error) {
+func (s SqlServerServerFlag) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerServerFlag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerTraceFlag: SQL Server trace flag details.
@@ -6405,9 +7050,9 @@ type SqlServerTraceFlag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerTraceFlag) MarshalJSON() ([]byte, error) {
+func (s SqlServerTraceFlag) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerTraceFlag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -6439,17 +7084,18 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeZone: Represents a time zone from the IANA Time Zone Database
 // (https://www.iana.org/time-zones).
 type TimeZone struct {
-	// Id: IANA Time Zone Database time zone, e.g. "America/New_York".
+	// Id: IANA Time Zone Database time zone. For example "America/New_York".
 	Id string `json:"id,omitempty"`
-	// Version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+	// Version: Optional. IANA Time Zone Database version number. For example
+	// "2019a".
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -6464,9 +7110,9 @@ type TimeZone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeZone) MarshalJSON() ([]byte, error) {
+func (s TimeZone) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeZone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateAssetRequest: A request to update an asset.
@@ -6504,9 +7150,9 @@ type UpdateAssetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateAssetRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateAssetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateAssetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadFileInfo: A resource that contains a URI to which a data file can be
@@ -6531,9 +7177,53 @@ type UploadFileInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadFileInfo) MarshalJSON() ([]byte, error) {
+func (s UploadFileInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadFileInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// VMwareEngineMachinePreferences: The type of machines to consider when
+// calculating virtual machine migration insights and recommendations for
+// VMware Engine. Not all machine types are available in all zones and regions.
+type VMwareEngineMachinePreferences struct {
+	// AllowedMachineSeries: Optional. VMware Engine on Google Cloud machine series
+	// to consider for insights and recommendations. If empty, no restriction is
+	// applied on the machine series.
+	AllowedMachineSeries []*MachineSeries `json:"allowedMachineSeries,omitempty"`
+	// ProtectedNodes: Optional. Whether to use VMware Engine Protected offering.
+	//
+	// Possible values:
+	//   "PROTECTED_NODES_UNSPECIFIED" - Unspecified protected nodes preference.
+	//   "PROTECTED_NODES_ENABLED" - Use only protected nodes for the selected
+	// allowed_machine_series.
+	//   "PROTECTED_NODES_DISABLED" - Do not use protected nodes.
+	ProtectedNodes string `json:"protectedNodes,omitempty"`
+	// StorageOnlyNodes: Optional. Whether to use storage-only nodes, if those are
+	// available.
+	//
+	// Possible values:
+	//   "STORAGE_ONLY_NODES_UNSPECIFIED" - Unspecified storage-only nodes
+	// preference.
+	//   "STORAGE_ONLY_NODES_ENABLED" - Use storage-only nodes for selected
+	// allowed_machine_series, if available.
+	//   "STORAGE_ONLY_NODES_DISABLED" - Do not use storage-only nodes.
+	StorageOnlyNodes string `json:"storageOnlyNodes,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AllowedMachineSeries") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AllowedMachineSeries") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s VMwareEngineMachinePreferences) MarshalJSON() ([]byte, error) {
+	type NoMethod VMwareEngineMachinePreferences
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidateImportJobRequest: A request to validate an import job.
@@ -6563,9 +7253,9 @@ type ValidateImportJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValidateImportJobRequest) MarshalJSON() ([]byte, error) {
+func (s ValidateImportJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ValidateImportJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidationReport: A resource that aggregates errors across import job files.
@@ -6587,9 +7277,9 @@ type ValidationReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValidationReport) MarshalJSON() ([]byte, error) {
+func (s ValidationReport) MarshalJSON() ([]byte, error) {
 	type NoMethod ValidationReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualMachineArchitectureDetails: Details of the VM architecture.
@@ -6605,7 +7295,8 @@ type VirtualMachineArchitectureDetails struct {
 	CpuName string `json:"cpuName,omitempty"`
 	// CpuSocketCount: Number of processor sockets allocated to the machine.
 	CpuSocketCount int64 `json:"cpuSocketCount,omitempty"`
-	// CpuThreadCount: Number of CPU threads allocated to the machine.
+	// CpuThreadCount: Deprecated: use VirtualMachineDetails.core_count instead.
+	// Number of CPU threads allocated to the machine.
 	CpuThreadCount int64 `json:"cpuThreadCount,omitempty"`
 	// Firmware: Firmware (BIOS/efi).
 	Firmware string `json:"firmware,omitempty"`
@@ -6631,17 +7322,22 @@ type VirtualMachineArchitectureDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualMachineArchitectureDetails) MarshalJSON() ([]byte, error) {
+func (s VirtualMachineArchitectureDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualMachineArchitectureDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualMachineDetails: Details of a VirtualMachine.
 type VirtualMachineDetails struct {
-	// CoreCount: Number of CPU cores in the VirtualMachine. Must be non-negative.
+	// CoreCount: Number of logical CPU cores in the VirtualMachine. Must be
+	// non-negative.
 	CoreCount int64 `json:"coreCount,omitempty"`
 	// CreateTime: VM creation timestamp.
 	CreateTime string `json:"createTime,omitempty"`
+	// DiskPartitions: Optional. Disk partitions details. Note: Partitions are not
+	// necessarily mounted on local disks and therefore might not have a one-to-one
+	// correspondence with local disks.
+	DiskPartitions *DiskPartitionDetails `json:"diskPartitions,omitempty"`
 	// GuestOs: Guest OS information.
 	GuestOs *GuestOsDetails `json:"guestOs,omitempty"`
 	// MemoryMb: The amount of memory in the VirtualMachine. Must be non-negative.
@@ -6692,9 +7388,9 @@ type VirtualMachineDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualMachineDetails) MarshalJSON() ([]byte, error) {
+func (s VirtualMachineDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualMachineDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualMachineDiskDetails: Details of VM disks.
@@ -6720,9 +7416,9 @@ type VirtualMachineDiskDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualMachineDiskDetails) MarshalJSON() ([]byte, error) {
+func (s VirtualMachineDiskDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualMachineDiskDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualMachineNetworkDetails: Details of network adapters and settings.
@@ -6751,9 +7447,9 @@ type VirtualMachineNetworkDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualMachineNetworkDetails) MarshalJSON() ([]byte, error) {
+func (s VirtualMachineNetworkDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualMachineNetworkDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualMachinePreferences: VirtualMachinePreferences enables you to create
@@ -6770,9 +7466,15 @@ type VirtualMachinePreferences struct {
 	//   "COMMITMENT_PLAN_NONE" - No commitment plan.
 	//   "COMMITMENT_PLAN_ONE_YEAR" - 1-year regular committed use discount.
 	//   "COMMITMENT_PLAN_THREE_YEARS" - 3-year regular committed use discount.
+	//   "COMMITMENT_PLAN_FLEXIBLE_ONE_YEAR" - 1-year flexible committed use
+	// discount. While not supported in the v1 API, this value is converted to
+	// UNSPECIFIED in conversions to the v1 API.
+	//   "COMMITMENT_PLAN_FLEXIBLE_THREE_YEARS" - 3-year flexible committed use
+	// discount. While not supported in the v1 API, this value is converted to
+	// UNSPECIFIED in conversions to the v1 API.
 	CommitmentPlan string `json:"commitmentPlan,omitempty"`
-	// ComputeEnginePreferences: Compute Engine preferences concern insights and
-	// recommendations for Compute Engine target.
+	// ComputeEnginePreferences: Optional. Compute Engine preferences concern
+	// insights and recommendations for Compute Engine target.
 	ComputeEnginePreferences *ComputeEnginePreferences `json:"computeEnginePreferences,omitempty"`
 	// NetworkCostParameters: Optional. Parameters that affect network cost
 	// estimations. If not set, default values will be used for the parameters.
@@ -6838,9 +7540,9 @@ type VirtualMachinePreferences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualMachinePreferences) MarshalJSON() ([]byte, error) {
+func (s VirtualMachinePreferences) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualMachinePreferences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualMachinePreferencesNetworkCostParameters: Parameters that affect
@@ -6865,9 +7567,9 @@ type VirtualMachinePreferencesNetworkCostParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualMachinePreferencesNetworkCostParameters) MarshalJSON() ([]byte, error) {
+func (s VirtualMachinePreferencesNetworkCostParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualMachinePreferencesNetworkCostParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualMachinePreferencesSizingOptimizationCustomParameters: Custom data to
@@ -6908,9 +7610,9 @@ type VirtualMachinePreferencesSizingOptimizationCustomParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualMachinePreferencesSizingOptimizationCustomParameters) MarshalJSON() ([]byte, error) {
+func (s VirtualMachinePreferencesSizingOptimizationCustomParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualMachinePreferencesSizingOptimizationCustomParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VirtualMachinePreferencesSizingOptimizationCustomParameters) UnmarshalJSON(data []byte) error {
@@ -6963,9 +7665,9 @@ type VmwareDiskConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VmwareDiskConfig) MarshalJSON() ([]byte, error) {
+func (s VmwareDiskConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod VmwareDiskConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VmwareEngineMigrationTarget: VMWare engine migration target.
@@ -6989,13 +7691,34 @@ type VmwareEnginePreferences struct {
 	//   "COMMITMENT_1_YEAR_UPFRONT_PAYMENT" - 1 year commitment (upfront payment).
 	//   "COMMITMENT_3_YEAR_UPFRONT_PAYMENT" - 3 years commitment (upfront
 	// payment).
+	//   "COMMITMENT_FLEXIBLE_3_YEAR_MONTHLY_PAYMENTS" - 3-year flexible commitment
+	// (monthly payments). While not supported in the v1 API, this value is
+	// converted to UNSPECIFIED in conversions to the v1 API.
+	//   "COMMITMENT_FLEXIBLE_3_YEAR_UPFRONT_PAYMENT" - 3-year flexible commitment
+	// (upfront payment). While not supported in the v1 API, this value is
+	// converted to UNSPECIFIED in conversions to the v1 API.
 	CommitmentPlan string `json:"commitmentPlan,omitempty"`
 	// CpuOvercommitRatio: CPU overcommit ratio. Acceptable values are between 1.0
 	// and 8.0, with 0.1 increment.
 	CpuOvercommitRatio float64 `json:"cpuOvercommitRatio,omitempty"`
+	// LicenseDiscountPercentage: Optional. Discount percentage for the license
+	// type offered to you by Broadcom. Must be between 0 and 100. Only valid when
+	// service_type is set to SERVICE_TYPE_PORTABLE_LICENSE.
+	LicenseDiscountPercentage float64 `json:"licenseDiscountPercentage,omitempty"`
+	// MachinePreferences: Optional. Preferences concerning the machine types to
+	// consider on Google Cloud VMware Engine.
+	MachinePreferences *VMwareEngineMachinePreferences `json:"machinePreferences,omitempty"`
 	// MemoryOvercommitRatio: Memory overcommit ratio. Acceptable values are 1.0,
 	// 1.25, 1.5, 1.75 and 2.0.
 	MemoryOvercommitRatio float64 `json:"memoryOvercommitRatio,omitempty"`
+	// ServiceType: Optional. VMWare Service Type (Fully Licensed or Portable
+	// License).
+	//
+	// Possible values:
+	//   "SERVICE_TYPE_UNSPECIFIED" - Same as SERVICE_TYPE_FULLY_LICENSED.
+	//   "SERVICE_TYPE_FULLY_LICENSED" - Google provided VCF license.
+	//   "SERVICE_TYPE_PORTABLE_LICENSE" - Bring Your Own License.
+	ServiceType string `json:"serviceType,omitempty"`
 	// StorageDeduplicationCompressionRatio: The Deduplication and Compression
 	// ratio is based on the logical (Used Before) space required to store data
 	// before applying deduplication and compression, in relation to the physical
@@ -7018,15 +7741,16 @@ type VmwareEnginePreferences struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VmwareEnginePreferences) MarshalJSON() ([]byte, error) {
+func (s VmwareEnginePreferences) MarshalJSON() ([]byte, error) {
 	type NoMethod VmwareEnginePreferences
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VmwareEnginePreferences) UnmarshalJSON(data []byte) error {
 	type NoMethod VmwareEnginePreferences
 	var s1 struct {
 		CpuOvercommitRatio                   gensupport.JSONFloat64 `json:"cpuOvercommitRatio"`
+		LicenseDiscountPercentage            gensupport.JSONFloat64 `json:"licenseDiscountPercentage"`
 		MemoryOvercommitRatio                gensupport.JSONFloat64 `json:"memoryOvercommitRatio"`
 		StorageDeduplicationCompressionRatio gensupport.JSONFloat64 `json:"storageDeduplicationCompressionRatio"`
 		*NoMethod
@@ -7036,6 +7760,7 @@ func (s *VmwareEnginePreferences) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	s.CpuOvercommitRatio = float64(s1.CpuOvercommitRatio)
+	s.LicenseDiscountPercentage = float64(s1.LicenseDiscountPercentage)
 	s.MemoryOvercommitRatio = float64(s1.MemoryOvercommitRatio)
 	s.StorageDeduplicationCompressionRatio = float64(s1.StorageDeduplicationCompressionRatio)
 	return nil
@@ -7043,6 +7768,15 @@ func (s *VmwareEnginePreferences) UnmarshalJSON(data []byte) error {
 
 // VmwarePlatformDetails: VMware specific details.
 type VmwarePlatformDetails struct {
+	// EsxHyperthreading: Whether the ESX is hyperthreaded.
+	//
+	// Possible values:
+	//   "HYPERTHREADING_STATUS_UNSPECIFIED" - Simultaneous Multithreading status
+	// unknown.
+	//   "HYPERTHREADING_STATUS_DISABLED" - Simultaneous Multithreading is disabled
+	// or unavailable.
+	//   "HYPERTHREADING_STATUS_ENABLED" - Simultaneous Multithreading is enabled.
+	EsxHyperthreading string `json:"esxHyperthreading,omitempty"`
 	// EsxVersion: ESX version.
 	EsxVersion string `json:"esxVersion,omitempty"`
 	// Osid: VMware os enum -
@@ -7050,22 +7784,44 @@ type VmwarePlatformDetails struct {
 	Osid string `json:"osid,omitempty"`
 	// VcenterVersion: vCenter version.
 	VcenterVersion string `json:"vcenterVersion,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "EsxVersion") to
+	// ForceSendFields is a list of field names (e.g. "EsxHyperthreading") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "EsxVersion") to include in API
+	// NullFields is a list of field names (e.g. "EsxHyperthreading") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s VmwarePlatformDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod VmwarePlatformDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// XlsxOutputFile: Contains a single output file of type XLSX.
+type XlsxOutputFile struct {
+	// SignedUri: Output only. Signed URI destination.
+	SignedUri *SignedUri `json:"signedUri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SignedUri") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SignedUri") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *VmwarePlatformDetails) MarshalJSON() ([]byte, error) {
-	type NoMethod VmwarePlatformDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+func (s XlsxOutputFile) MarshalJSON() ([]byte, error) {
+	type NoMethod XlsxOutputFile
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -7122,12 +7878,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7135,6 +7890,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7169,9 +7925,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7229,12 +7987,11 @@ func (c *ProjectsLocationsGetSettingsCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7242,6 +7999,7 @@ func (c *ProjectsLocationsGetSettingsCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.getSettings", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7276,9 +8034,11 @@ func (c *ProjectsLocationsGetSettingsCall) Do(opts ...googleapi.CallOption) (*Se
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.getSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7360,12 +8120,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7373,6 +8132,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7408,9 +8168,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7505,8 +8267,7 @@ func (c *ProjectsLocationsUpdateSettingsCall) Header() http.Header {
 
 func (c *ProjectsLocationsUpdateSettingsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.settings)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.settings)
 	if err != nil {
 		return nil, err
 	}
@@ -7522,6 +8283,7 @@ func (c *ProjectsLocationsUpdateSettingsCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.updateSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7556,9 +8318,11 @@ func (c *ProjectsLocationsUpdateSettingsCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.updateSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7606,8 +8370,7 @@ func (c *ProjectsLocationsAssetsAggregateValuesCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsAggregateValuesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.aggregateassetsvaluesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.aggregateassetsvaluesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7623,6 +8386,7 @@ func (c *ProjectsLocationsAssetsAggregateValuesCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.aggregateValues", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7658,9 +8422,11 @@ func (c *ProjectsLocationsAssetsAggregateValuesCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.aggregateValues", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7708,8 +8474,7 @@ func (c *ProjectsLocationsAssetsBatchDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchdeleteassetsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchdeleteassetsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7725,6 +8490,7 @@ func (c *ProjectsLocationsAssetsBatchDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7759,9 +8525,11 @@ func (c *ProjectsLocationsAssetsBatchDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7809,8 +8577,7 @@ func (c *ProjectsLocationsAssetsBatchUpdateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdateassetsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdateassetsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7826,6 +8593,7 @@ func (c *ProjectsLocationsAssetsBatchUpdateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7861,9 +8629,11 @@ func (c *ProjectsLocationsAssetsBatchUpdateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7925,12 +8695,11 @@ func (c *ProjectsLocationsAssetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7938,6 +8707,7 @@ func (c *ProjectsLocationsAssetsDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7972,9 +8742,11 @@ func (c *ProjectsLocationsAssetsDeleteCall) Do(opts ...googleapi.CallOption) (*E
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8057,12 +8829,11 @@ func (c *ProjectsLocationsAssetsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8070,6 +8841,7 @@ func (c *ProjectsLocationsAssetsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8104,9 +8876,11 @@ func (c *ProjectsLocationsAssetsGetCall) Do(opts ...googleapi.CallOption) (*Asse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8225,12 +8999,11 @@ func (c *ProjectsLocationsAssetsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/assets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8238,6 +9011,7 @@ func (c *ProjectsLocationsAssetsListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8273,9 +9047,11 @@ func (c *ProjectsLocationsAssetsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8370,8 +9146,7 @@ func (c *ProjectsLocationsAssetsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.asset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.asset)
 	if err != nil {
 		return nil, err
 	}
@@ -8387,6 +9162,7 @@ func (c *ProjectsLocationsAssetsPatchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8421,9 +9197,11 @@ func (c *ProjectsLocationsAssetsPatchCall) Do(opts ...googleapi.CallOption) (*As
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8478,8 +9256,7 @@ func (c *ProjectsLocationsAssetsReportAssetFramesCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsReportAssetFramesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.frames)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.frames)
 	if err != nil {
 		return nil, err
 	}
@@ -8495,6 +9272,7 @@ func (c *ProjectsLocationsAssetsReportAssetFramesCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.reportAssetFrames", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8530,9 +9308,11 @@ func (c *ProjectsLocationsAssetsReportAssetFramesCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assets.reportAssetFrames", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8603,8 +9383,7 @@ func (c *ProjectsLocationsAssetsExportJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsExportJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assetsexportjob)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.assetsexportjob)
 	if err != nil {
 		return nil, err
 	}
@@ -8620,6 +9399,7 @@ func (c *ProjectsLocationsAssetsExportJobsCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8654,9 +9434,11 @@ func (c *ProjectsLocationsAssetsExportJobsCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8702,12 +9484,11 @@ func (c *ProjectsLocationsAssetsExportJobsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsExportJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8715,6 +9496,7 @@ func (c *ProjectsLocationsAssetsExportJobsDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8749,9 +9531,11 @@ func (c *ProjectsLocationsAssetsExportJobsDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8809,12 +9593,11 @@ func (c *ProjectsLocationsAssetsExportJobsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8822,6 +9605,7 @@ func (c *ProjectsLocationsAssetsExportJobsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8857,9 +9641,11 @@ func (c *ProjectsLocationsAssetsExportJobsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8932,12 +9718,11 @@ func (c *ProjectsLocationsAssetsExportJobsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/assetsExportJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8945,6 +9730,7 @@ func (c *ProjectsLocationsAssetsExportJobsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8980,9 +9766,11 @@ func (c *ProjectsLocationsAssetsExportJobsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9051,8 +9839,7 @@ func (c *ProjectsLocationsAssetsExportJobsRunCall) Header() http.Header {
 
 func (c *ProjectsLocationsAssetsExportJobsRunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runassetsexportjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runassetsexportjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9068,6 +9855,7 @@ func (c *ProjectsLocationsAssetsExportJobsRunCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.run", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9102,9 +9890,11 @@ func (c *ProjectsLocationsAssetsExportJobsRunCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.assetsExportJobs.run", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9179,8 +9969,7 @@ func (c *ProjectsLocationsDiscoveryClientsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDiscoveryClientsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.discoveryclient)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.discoveryclient)
 	if err != nil {
 		return nil, err
 	}
@@ -9196,6 +9985,7 @@ func (c *ProjectsLocationsDiscoveryClientsCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9230,9 +10020,11 @@ func (c *ProjectsLocationsDiscoveryClientsCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9294,12 +10086,11 @@ func (c *ProjectsLocationsDiscoveryClientsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDiscoveryClientsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9307,6 +10098,7 @@ func (c *ProjectsLocationsDiscoveryClientsDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9341,9 +10133,11 @@ func (c *ProjectsLocationsDiscoveryClientsDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9401,12 +10195,11 @@ func (c *ProjectsLocationsDiscoveryClientsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9414,6 +10207,7 @@ func (c *ProjectsLocationsDiscoveryClientsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9449,9 +10243,11 @@ func (c *ProjectsLocationsDiscoveryClientsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9539,12 +10335,11 @@ func (c *ProjectsLocationsDiscoveryClientsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/discoveryClients")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9552,6 +10347,7 @@ func (c *ProjectsLocationsDiscoveryClientsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9587,9 +10383,11 @@ func (c *ProjectsLocationsDiscoveryClientsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9685,8 +10483,7 @@ func (c *ProjectsLocationsDiscoveryClientsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDiscoveryClientsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.discoveryclient)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.discoveryclient)
 	if err != nil {
 		return nil, err
 	}
@@ -9702,6 +10499,7 @@ func (c *ProjectsLocationsDiscoveryClientsPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9736,9 +10534,11 @@ func (c *ProjectsLocationsDiscoveryClientsPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9787,8 +10587,7 @@ func (c *ProjectsLocationsDiscoveryClientsSendHeartbeatCall) Header() http.Heade
 
 func (c *ProjectsLocationsDiscoveryClientsSendHeartbeatCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.senddiscoveryclientheartbeatrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.senddiscoveryclientheartbeatrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9804,6 +10603,7 @@ func (c *ProjectsLocationsDiscoveryClientsSendHeartbeatCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.sendHeartbeat", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9838,9 +10638,11 @@ func (c *ProjectsLocationsDiscoveryClientsSendHeartbeatCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.discoveryClients.sendHeartbeat", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9888,8 +10690,7 @@ func (c *ProjectsLocationsGroupsAddAssetsCall) Header() http.Header {
 
 func (c *ProjectsLocationsGroupsAddAssetsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addassetstogrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addassetstogrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9905,6 +10706,7 @@ func (c *ProjectsLocationsGroupsAddAssetsCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"group": c.group,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.addAssets", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9939,9 +10741,11 @@ func (c *ProjectsLocationsGroupsAddAssetsCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.addAssets", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10015,8 +10819,7 @@ func (c *ProjectsLocationsGroupsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsGroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.group)
 	if err != nil {
 		return nil, err
 	}
@@ -10032,6 +10835,7 @@ func (c *ProjectsLocationsGroupsCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10066,9 +10870,11 @@ func (c *ProjectsLocationsGroupsCreateCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10130,12 +10936,11 @@ func (c *ProjectsLocationsGroupsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsGroupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10143,6 +10948,7 @@ func (c *ProjectsLocationsGroupsDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10177,9 +10983,11 @@ func (c *ProjectsLocationsGroupsDeleteCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10237,12 +11045,11 @@ func (c *ProjectsLocationsGroupsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10250,6 +11057,7 @@ func (c *ProjectsLocationsGroupsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10284,9 +11092,11 @@ func (c *ProjectsLocationsGroupsGetCall) Do(opts ...googleapi.CallOption) (*Grou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10372,12 +11182,11 @@ func (c *ProjectsLocationsGroupsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/groups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10385,6 +11194,7 @@ func (c *ProjectsLocationsGroupsListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10420,9 +11230,11 @@ func (c *ProjectsLocationsGroupsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10517,8 +11329,7 @@ func (c *ProjectsLocationsGroupsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsGroupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.group)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.group)
 	if err != nil {
 		return nil, err
 	}
@@ -10534,6 +11345,7 @@ func (c *ProjectsLocationsGroupsPatchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10568,9 +11380,11 @@ func (c *ProjectsLocationsGroupsPatchCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10618,8 +11432,7 @@ func (c *ProjectsLocationsGroupsRemoveAssetsCall) Header() http.Header {
 
 func (c *ProjectsLocationsGroupsRemoveAssetsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removeassetsfromgrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removeassetsfromgrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10635,6 +11448,7 @@ func (c *ProjectsLocationsGroupsRemoveAssetsCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"group": c.group,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.removeAssets", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10669,9 +11483,11 @@ func (c *ProjectsLocationsGroupsRemoveAssetsCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.groups.removeAssets", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10742,8 +11558,7 @@ func (c *ProjectsLocationsImportJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsImportJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importjob)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importjob)
 	if err != nil {
 		return nil, err
 	}
@@ -10759,6 +11574,7 @@ func (c *ProjectsLocationsImportJobsCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10793,9 +11609,11 @@ func (c *ProjectsLocationsImportJobsCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10865,12 +11683,11 @@ func (c *ProjectsLocationsImportJobsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsImportJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10878,6 +11695,7 @@ func (c *ProjectsLocationsImportJobsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10912,9 +11730,11 @@ func (c *ProjectsLocationsImportJobsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10993,12 +11813,11 @@ func (c *ProjectsLocationsImportJobsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11006,6 +11825,7 @@ func (c *ProjectsLocationsImportJobsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11040,9 +11860,11 @@ func (c *ProjectsLocationsImportJobsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11149,12 +11971,11 @@ func (c *ProjectsLocationsImportJobsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/importJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11162,6 +11983,7 @@ func (c *ProjectsLocationsImportJobsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11197,9 +12019,11 @@ func (c *ProjectsLocationsImportJobsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11294,8 +12118,7 @@ func (c *ProjectsLocationsImportJobsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsImportJobsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importjob)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importjob)
 	if err != nil {
 		return nil, err
 	}
@@ -11311,6 +12134,7 @@ func (c *ProjectsLocationsImportJobsPatchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11345,9 +12169,11 @@ func (c *ProjectsLocationsImportJobsPatchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11395,8 +12221,7 @@ func (c *ProjectsLocationsImportJobsRunCall) Header() http.Header {
 
 func (c *ProjectsLocationsImportJobsRunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runimportjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runimportjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11412,6 +12237,7 @@ func (c *ProjectsLocationsImportJobsRunCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.run", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11446,9 +12272,11 @@ func (c *ProjectsLocationsImportJobsRunCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.run", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11496,8 +12324,7 @@ func (c *ProjectsLocationsImportJobsValidateCall) Header() http.Header {
 
 func (c *ProjectsLocationsImportJobsValidateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.validateimportjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.validateimportjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11513,6 +12340,7 @@ func (c *ProjectsLocationsImportJobsValidateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.validate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11547,9 +12375,11 @@ func (c *ProjectsLocationsImportJobsValidateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.validate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11620,8 +12450,7 @@ func (c *ProjectsLocationsImportJobsImportDataFilesCreateCall) Header() http.Hea
 
 func (c *ProjectsLocationsImportJobsImportDataFilesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importdatafile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importdatafile)
 	if err != nil {
 		return nil, err
 	}
@@ -11637,6 +12466,7 @@ func (c *ProjectsLocationsImportJobsImportDataFilesCreateCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.importDataFiles.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11671,9 +12501,11 @@ func (c *ProjectsLocationsImportJobsImportDataFilesCreateCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.importDataFiles.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11735,12 +12567,11 @@ func (c *ProjectsLocationsImportJobsImportDataFilesDeleteCall) Header() http.Hea
 
 func (c *ProjectsLocationsImportJobsImportDataFilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11748,6 +12579,7 @@ func (c *ProjectsLocationsImportJobsImportDataFilesDeleteCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.importDataFiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11782,9 +12614,11 @@ func (c *ProjectsLocationsImportJobsImportDataFilesDeleteCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.importDataFiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11842,12 +12676,11 @@ func (c *ProjectsLocationsImportJobsImportDataFilesGetCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11855,6 +12688,7 @@ func (c *ProjectsLocationsImportJobsImportDataFilesGetCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.importDataFiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11889,9 +12723,11 @@ func (c *ProjectsLocationsImportJobsImportDataFilesGetCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.importDataFiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11980,12 +12816,11 @@ func (c *ProjectsLocationsImportJobsImportDataFilesListCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/importDataFiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11993,6 +12828,7 @@ func (c *ProjectsLocationsImportJobsImportDataFilesListCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.importDataFiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12028,9 +12864,11 @@ func (c *ProjectsLocationsImportJobsImportDataFilesListCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.importJobs.importDataFiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12071,7 +12909,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -12107,8 +12945,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12124,6 +12961,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12158,9 +12996,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12209,12 +13049,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12222,6 +13061,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12256,9 +13096,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12318,12 +13160,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12331,6 +13172,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12365,9 +13207,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12446,12 +13290,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12459,6 +13302,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12494,9 +13338,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12587,8 +13433,7 @@ func (c *ProjectsLocationsPreferenceSetsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsPreferenceSetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.preferenceset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.preferenceset)
 	if err != nil {
 		return nil, err
 	}
@@ -12604,6 +13449,7 @@ func (c *ProjectsLocationsPreferenceSetsCreateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12638,9 +13484,11 @@ func (c *ProjectsLocationsPreferenceSetsCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12702,12 +13550,11 @@ func (c *ProjectsLocationsPreferenceSetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsPreferenceSetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12715,6 +13562,7 @@ func (c *ProjectsLocationsPreferenceSetsDeleteCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12749,9 +13597,11 @@ func (c *ProjectsLocationsPreferenceSetsDeleteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12809,12 +13659,11 @@ func (c *ProjectsLocationsPreferenceSetsGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12822,6 +13671,7 @@ func (c *ProjectsLocationsPreferenceSetsGetCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12856,9 +13706,11 @@ func (c *ProjectsLocationsPreferenceSetsGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12939,12 +13791,11 @@ func (c *ProjectsLocationsPreferenceSetsListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/preferenceSets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12952,6 +13803,7 @@ func (c *ProjectsLocationsPreferenceSetsListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12987,9 +13839,11 @@ func (c *ProjectsLocationsPreferenceSetsListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13025,7 +13879,7 @@ type ProjectsLocationsPreferenceSetsPatchCall struct {
 
 // Patch: Updates the parameters of a preference set.
 //
-// - name: Output only. Name of the preference set.
+// - name: Output only. Name of the PreferenceSet.
 func (r *ProjectsLocationsPreferenceSetsService) Patch(name string, preferenceset *PreferenceSet) *ProjectsLocationsPreferenceSetsPatchCall {
 	c := &ProjectsLocationsPreferenceSetsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -13084,8 +13938,7 @@ func (c *ProjectsLocationsPreferenceSetsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsPreferenceSetsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.preferenceset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.preferenceset)
 	if err != nil {
 		return nil, err
 	}
@@ -13101,6 +13954,7 @@ func (c *ProjectsLocationsPreferenceSetsPatchCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13135,10 +13989,280 @@ func (c *ProjectsLocationsPreferenceSetsPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.preferenceSets.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
+}
+
+type ProjectsLocationsRelationsGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets the details of an relation.
+//
+// - name: Name of the resource.
+func (r *ProjectsLocationsRelationsService) Get(name string) *ProjectsLocationsRelationsGetCall {
+	c := &ProjectsLocationsRelationsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRelationsGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsRelationsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsRelationsGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsRelationsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRelationsGetCall) Context(ctx context.Context) *ProjectsLocationsRelationsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRelationsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRelationsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.relations.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "migrationcenter.projects.locations.relations.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Relation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsRelationsGetCall) Do(opts ...googleapi.CallOption) (*Relation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Relation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.relations.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRelationsListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists all the relations in a given project and location.
+//
+// - parent: Parent value for `ListRelationsRequest`.
+func (r *ProjectsLocationsRelationsService) List(parent string) *ProjectsLocationsRelationsListCall {
+	c := &ProjectsLocationsRelationsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": Filtering results.
+func (c *ProjectsLocationsRelationsListCall) Filter(filter string) *ProjectsLocationsRelationsListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// OrderBy sets the optional parameter "orderBy": Field to sort by. See
+// https://google.aip.dev/132#ordering for more details.
+func (c *ProjectsLocationsRelationsListCall) OrderBy(orderBy string) *ProjectsLocationsRelationsListCall {
+	c.urlParams_.Set("orderBy", orderBy)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Requested page size. Server
+// may return fewer items than requested. If unspecified, server will pick an
+// appropriate default.
+func (c *ProjectsLocationsRelationsListCall) PageSize(pageSize int64) *ProjectsLocationsRelationsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A token identifying a
+// page of results the server should return.
+func (c *ProjectsLocationsRelationsListCall) PageToken(pageToken string) *ProjectsLocationsRelationsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRelationsListCall) Fields(s ...googleapi.Field) *ProjectsLocationsRelationsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsRelationsListCall) IfNoneMatch(entityTag string) *ProjectsLocationsRelationsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRelationsListCall) Context(ctx context.Context) *ProjectsLocationsRelationsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRelationsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRelationsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/relations")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.relations.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "migrationcenter.projects.locations.relations.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListRelationsResponse.ServerResponse.Header or (if a response was returned
+// at all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsRelationsListCall) Do(opts ...googleapi.CallOption) (*ListRelationsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListRelationsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.relations.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsRelationsListCall) Pages(ctx context.Context, f func(*ListRelationsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
 }
 
 type ProjectsLocationsReportConfigsCreateCall struct {
@@ -13212,8 +14336,7 @@ func (c *ProjectsLocationsReportConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsReportConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reportconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -13229,6 +14352,7 @@ func (c *ProjectsLocationsReportConfigsCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13263,9 +14387,11 @@ func (c *ProjectsLocationsReportConfigsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13335,12 +14461,11 @@ func (c *ProjectsLocationsReportConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsReportConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13348,6 +14473,7 @@ func (c *ProjectsLocationsReportConfigsDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13382,9 +14508,11 @@ func (c *ProjectsLocationsReportConfigsDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13442,12 +14570,11 @@ func (c *ProjectsLocationsReportConfigsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13455,6 +14582,7 @@ func (c *ProjectsLocationsReportConfigsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13489,9 +14617,11 @@ func (c *ProjectsLocationsReportConfigsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13577,12 +14707,11 @@ func (c *ProjectsLocationsReportConfigsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/reportConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13590,6 +14719,7 @@ func (c *ProjectsLocationsReportConfigsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13625,9 +14755,11 @@ func (c *ProjectsLocationsReportConfigsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13722,8 +14854,7 @@ func (c *ProjectsLocationsReportConfigsReportsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsReportConfigsReportsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.report)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.report)
 	if err != nil {
 		return nil, err
 	}
@@ -13739,6 +14870,7 @@ func (c *ProjectsLocationsReportConfigsReportsCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.reports.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13773,9 +14905,11 @@ func (c *ProjectsLocationsReportConfigsReportsCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.reports.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13837,12 +14971,11 @@ func (c *ProjectsLocationsReportConfigsReportsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsReportConfigsReportsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13850,6 +14983,7 @@ func (c *ProjectsLocationsReportConfigsReportsDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.reports.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13884,9 +15018,11 @@ func (c *ProjectsLocationsReportConfigsReportsDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.reports.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13969,12 +15105,11 @@ func (c *ProjectsLocationsReportConfigsReportsGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13982,6 +15117,7 @@ func (c *ProjectsLocationsReportConfigsReportsGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.reports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14016,9 +15152,11 @@ func (c *ProjectsLocationsReportConfigsReportsGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.reports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14129,12 +15267,11 @@ func (c *ProjectsLocationsReportConfigsReportsListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/reports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14142,6 +15279,7 @@ func (c *ProjectsLocationsReportConfigsReportsListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.reports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14177,9 +15315,11 @@ func (c *ProjectsLocationsReportConfigsReportsListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.reportConfigs.reports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14274,8 +15414,7 @@ func (c *ProjectsLocationsSourcesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsSourcesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.source)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.source)
 	if err != nil {
 		return nil, err
 	}
@@ -14291,6 +15430,7 @@ func (c *ProjectsLocationsSourcesCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14325,9 +15465,11 @@ func (c *ProjectsLocationsSourcesCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14389,12 +15531,11 @@ func (c *ProjectsLocationsSourcesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsSourcesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14402,6 +15543,7 @@ func (c *ProjectsLocationsSourcesDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14436,9 +15578,11 @@ func (c *ProjectsLocationsSourcesDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14496,12 +15640,11 @@ func (c *ProjectsLocationsSourcesGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14509,6 +15652,7 @@ func (c *ProjectsLocationsSourcesGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14543,9 +15687,11 @@ func (c *ProjectsLocationsSourcesGetCall) Do(opts ...googleapi.CallOption) (*Sou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14631,12 +15777,11 @@ func (c *ProjectsLocationsSourcesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/sources")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14644,6 +15789,7 @@ func (c *ProjectsLocationsSourcesListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14679,9 +15825,11 @@ func (c *ProjectsLocationsSourcesListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14776,8 +15924,7 @@ func (c *ProjectsLocationsSourcesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsSourcesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.source)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.source)
 	if err != nil {
 		return nil, err
 	}
@@ -14793,6 +15940,7 @@ func (c *ProjectsLocationsSourcesPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14827,9 +15975,11 @@ func (c *ProjectsLocationsSourcesPatchCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14908,12 +16058,11 @@ func (c *ProjectsLocationsSourcesErrorFramesGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14921,6 +16070,7 @@ func (c *ProjectsLocationsSourcesErrorFramesGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.errorFrames.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14955,9 +16105,11 @@ func (c *ProjectsLocationsSourcesErrorFramesGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.errorFrames.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15049,12 +16201,11 @@ func (c *ProjectsLocationsSourcesErrorFramesListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+parent}/errorFrames")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15062,6 +16213,7 @@ func (c *ProjectsLocationsSourcesErrorFramesListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.errorFrames.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15097,9 +16249,11 @@ func (c *ProjectsLocationsSourcesErrorFramesListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "migrationcenter.projects.locations.sources.errorFrames.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

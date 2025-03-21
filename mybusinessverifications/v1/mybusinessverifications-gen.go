@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "mybusinessverifications:v1"
 const apiName = "mybusinessverifications"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Locations = NewLocationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Locations = NewLocationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -185,9 +188,9 @@ type AddressVerificationData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddressVerificationData) MarshalJSON() ([]byte, error) {
+func (s AddressVerificationData) MarshalJSON() ([]byte, error) {
 	type NoMethod AddressVerificationData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompleteVerificationRequest: Request message for
@@ -209,9 +212,9 @@ type CompleteVerificationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompleteVerificationRequest) MarshalJSON() ([]byte, error) {
+func (s CompleteVerificationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CompleteVerificationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompleteVerificationResponse: Response message for
@@ -235,9 +238,9 @@ type CompleteVerificationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompleteVerificationResponse) MarshalJSON() ([]byte, error) {
+func (s CompleteVerificationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CompleteVerificationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComplyWithGuidelines: Indicates that the location fails to comply with our
@@ -268,9 +271,9 @@ type ComplyWithGuidelines struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComplyWithGuidelines) MarshalJSON() ([]byte, error) {
+func (s ComplyWithGuidelines) MarshalJSON() ([]byte, error) {
 	type NoMethod ComplyWithGuidelines
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EmailVerificationData: Display data for verifications through email.
@@ -295,9 +298,9 @@ type EmailVerificationData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EmailVerificationData) MarshalJSON() ([]byte, error) {
+func (s EmailVerificationData) MarshalJSON() ([]byte, error) {
 	type NoMethod EmailVerificationData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchVerificationOptionsRequest: Request message for
@@ -326,9 +329,9 @@ type FetchVerificationOptionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchVerificationOptionsRequest) MarshalJSON() ([]byte, error) {
+func (s FetchVerificationOptionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchVerificationOptionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchVerificationOptionsResponse: Response message for
@@ -352,9 +355,9 @@ type FetchVerificationOptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchVerificationOptionsResponse) MarshalJSON() ([]byte, error) {
+func (s FetchVerificationOptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchVerificationOptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVerificationsResponse: Response message for
@@ -383,47 +386,48 @@ type ListVerificationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVerificationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListVerificationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVerificationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// PostalAddress: Represents a postal address, e.g. for postal delivery or
-// payments addresses. Given a postal address, a postal service can deliver
+// PostalAddress: Represents a postal address. For example for postal delivery
+// or payments addresses. Given a postal address, a postal service can deliver
 // items to a premise, P.O. Box or similar. It is not intended to model
 // geographical locations (roads, towns, mountains). In typical usage an
-// address would be created via user input or from importing existing data,
+// address would be created by user input or from importing existing data,
 // depending on the type of process. Advice on address input / editing: - Use
 // an internationalization-ready address widget such as
 // https://github.com/google/libaddressinput) - Users should not be presented
 // with UI elements for input or editing of fields outside countries where that
-// field is used. For more guidance on how to use this schema, please see:
+// field is used. For more guidance on how to use this schema, see:
 // https://support.google.com/business/answer/6397478
 type PostalAddress struct {
 	// AddressLines: Unstructured address lines describing the lower levels of an
 	// address. Because values in address_lines do not have type information and
-	// may sometimes contain multiple values in a single field (e.g. "Austin, TX"),
-	// it is important that the line order is clear. The order of address lines
-	// should be "envelope order" for the country/region of the address. In places
-	// where this can vary (e.g. Japan), address_language is used to make it
-	// explicit (e.g. "ja" for large-to-small ordering and "ja-Latn" or "en" for
-	// small-to-large). This way, the most specific line of an address can be
-	// selected based on the language. The minimum permitted structural
-	// representation of an address consists of a region_code with all remaining
-	// information placed in the address_lines. It would be possible to format such
-	// an address very approximately without geocoding, but no semantic reasoning
-	// could be made about any of the address components until it was at least
-	// partially resolved. Creating an address only containing a region_code and
-	// address_lines, and then geocoding is the recommended way to handle
+	// may sometimes contain multiple values in a single field (For example
+	// "Austin, TX"), it is important that the line order is clear. The order of
+	// address lines should be "envelope order" for the country/region of the
+	// address. In places where this can vary (For example Japan), address_language
+	// is used to make it explicit (For example "ja" for large-to-small ordering
+	// and "ja-Latn" or "en" for small-to-large). This way, the most specific line
+	// of an address can be selected based on the language. The minimum permitted
+	// structural representation of an address consists of a region_code with all
+	// remaining information placed in the address_lines. It would be possible to
+	// format such an address very approximately without geocoding, but no semantic
+	// reasoning could be made about any of the address components until it was at
+	// least partially resolved. Creating an address only containing a region_code
+	// and address_lines, and then geocoding is the recommended way to handle
 	// completely unstructured addresses (as opposed to guessing which parts of the
 	// address should be localities or administrative areas).
 	AddressLines []string `json:"addressLines,omitempty"`
 	// AdministrativeArea: Optional. Highest administrative subdivision which is
 	// used for postal addresses of a country or region. For example, this can be a
 	// state, a province, an oblast, or a prefecture. Specifically, for Spain this
-	// is the province and not the autonomous community (e.g. "Barcelona" and not
-	// "Catalonia"). Many countries don't use an administrative area in postal
-	// addresses. E.g. in Switzerland this should be left unpopulated.
+	// is the province and not the autonomous community (For example "Barcelona"
+	// and not "Catalonia"). Many countries don't use an administrative area in
+	// postal addresses. For example in Switzerland this should be left
+	// unpopulated.
 	AdministrativeArea string `json:"administrativeArea,omitempty"`
 	// LanguageCode: Optional. BCP-47 language code of the contents of this address
 	// (if known). This is often the UI language of the input form or is expected
@@ -443,7 +447,7 @@ type PostalAddress struct {
 	Organization string `json:"organization,omitempty"`
 	// PostalCode: Optional. Postal code of the address. Not all countries use or
 	// require postal codes to be present, but where they are used, they may
-	// trigger additional validation with other parts of the address (e.g.
+	// trigger additional validation with other parts of the address (For example
 	// state/zip validation in the U.S.A.).
 	PostalCode string `json:"postalCode,omitempty"`
 	// Recipients: Optional. The recipient at the address. This field may, under
@@ -462,9 +466,10 @@ type PostalAddress struct {
 	Revision int64 `json:"revision,omitempty"`
 	// SortingCode: Optional. Additional, country-specific, sorting code. This is
 	// not used in most regions. Where it is used, the value is either a string
-	// like "CEDEX", optionally followed by a number (e.g. "CEDEX 7"), or just a
-	// number alone, representing the "sector code" (Jamaica), "delivery area
-	// indicator" (Malawi) or "post office indicator" (e.g. Côte d'Ivoire).
+	// like "CEDEX", optionally followed by a number (For example "CEDEX 7"), or
+	// just a number alone, representing the "sector code" (Jamaica), "delivery
+	// area indicator" (Malawi) or "post office indicator" (For example Côte
+	// d'Ivoire).
 	SortingCode string `json:"sortingCode,omitempty"`
 	// Sublocality: Optional. Sublocality of the address. For example, this can be
 	// neighborhoods, boroughs, districts.
@@ -482,9 +487,9 @@ type PostalAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostalAddress) MarshalJSON() ([]byte, error) {
+func (s PostalAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod PostalAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResolveOwnershipConflict: Indicates that the location duplicates another
@@ -510,9 +515,9 @@ type ServiceBusinessContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServiceBusinessContext) MarshalJSON() ([]byte, error) {
+func (s ServiceBusinessContext) MarshalJSON() ([]byte, error) {
 	type NoMethod ServiceBusinessContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Verification: A verification represents a verification attempt on a
@@ -562,9 +567,9 @@ type Verification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Verification) MarshalJSON() ([]byte, error) {
+func (s Verification) MarshalJSON() ([]byte, error) {
 	type NoMethod Verification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerificationOption: The verification option represents how to verify the
@@ -609,9 +614,9 @@ type VerificationOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerificationOption) MarshalJSON() ([]byte, error) {
+func (s VerificationOption) MarshalJSON() ([]byte, error) {
 	type NoMethod VerificationOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerificationToken: Token generated by a vetted partner
@@ -632,9 +637,9 @@ type VerificationToken struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerificationToken) MarshalJSON() ([]byte, error) {
+func (s VerificationToken) MarshalJSON() ([]byte, error) {
 	type NoMethod VerificationToken
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Verify: Indicates that the location requires verification. Contains
@@ -657,9 +662,9 @@ type Verify struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Verify) MarshalJSON() ([]byte, error) {
+func (s Verify) MarshalJSON() ([]byte, error) {
 	type NoMethod Verify
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerifyLocationRequest: Request message for Verifications.VerifyLocation.
@@ -721,9 +726,9 @@ type VerifyLocationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerifyLocationRequest) MarshalJSON() ([]byte, error) {
+func (s VerifyLocationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod VerifyLocationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerifyLocationResponse: Response message for Verifications.VerifyLocation.
@@ -746,9 +751,9 @@ type VerifyLocationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerifyLocationResponse) MarshalJSON() ([]byte, error) {
+func (s VerifyLocationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod VerifyLocationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoiceOfMerchantState: Response message for
@@ -795,9 +800,9 @@ type VoiceOfMerchantState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoiceOfMerchantState) MarshalJSON() ([]byte, error) {
+func (s VoiceOfMerchantState) MarshalJSON() ([]byte, error) {
 	type NoMethod VoiceOfMerchantState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WaitForVoiceOfMerchant: Indicates that the location will gain voice of
@@ -850,8 +855,7 @@ func (c *LocationsFetchVerificationOptionsCall) Header() http.Header {
 
 func (c *LocationsFetchVerificationOptionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.fetchverificationoptionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.fetchverificationoptionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -867,6 +871,7 @@ func (c *LocationsFetchVerificationOptionsCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"location": c.location,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.fetchVerificationOptions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -902,9 +907,11 @@ func (c *LocationsFetchVerificationOptionsCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.fetchVerificationOptions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -962,12 +969,11 @@ func (c *LocationsGetVoiceOfMerchantStateCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/VoiceOfMerchantState")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -975,6 +981,7 @@ func (c *LocationsGetVoiceOfMerchantStateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.getVoiceOfMerchantState", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1010,9 +1017,11 @@ func (c *LocationsGetVoiceOfMerchantStateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.getVoiceOfMerchantState", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1060,8 +1069,7 @@ func (c *LocationsVerifyCall) Header() http.Header {
 
 func (c *LocationsVerifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.verifylocationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.verifylocationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1077,6 +1085,7 @@ func (c *LocationsVerifyCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.verify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1112,9 +1121,11 @@ func (c *LocationsVerifyCall) Do(opts ...googleapi.CallOption) (*VerifyLocationR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.verify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1164,8 +1175,7 @@ func (c *LocationsVerificationsCompleteCall) Header() http.Header {
 
 func (c *LocationsVerificationsCompleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.completeverificationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.completeverificationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1181,6 +1191,7 @@ func (c *LocationsVerificationsCompleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.verifications.complete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1216,9 +1227,11 @@ func (c *LocationsVerificationsCompleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.verifications.complete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1292,12 +1305,11 @@ func (c *LocationsVerificationsListCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/verifications")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1305,6 +1317,7 @@ func (c *LocationsVerificationsListCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.verifications.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1340,9 +1353,11 @@ func (c *LocationsVerificationsListCall) Do(opts ...googleapi.CallOption) (*List
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "mybusinessverifications.locations.verifications.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

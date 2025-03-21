@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "localservices:v1"
 const apiName = "localservices"
@@ -114,7 +117,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.AccountReports = NewAccountReportsService(s)
+	s.DetailedLeadReports = NewDetailedLeadReportsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.AccountReports = NewAccountReportsService(s)
-	s.DetailedLeadReports = NewDetailedLeadReportsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -238,9 +241,9 @@ type GoogleAdsHomeservicesLocalservicesV1AccountReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAdsHomeservicesLocalservicesV1AccountReport) MarshalJSON() ([]byte, error) {
+func (s GoogleAdsHomeservicesLocalservicesV1AccountReport) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAdsHomeservicesLocalservicesV1AccountReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleAdsHomeservicesLocalservicesV1AccountReport) UnmarshalJSON(data []byte) error {
@@ -284,9 +287,9 @@ type GoogleAdsHomeservicesLocalservicesV1AggregatorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAdsHomeservicesLocalservicesV1AggregatorInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleAdsHomeservicesLocalservicesV1AggregatorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAdsHomeservicesLocalservicesV1AggregatorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAdsHomeservicesLocalservicesV1BookingLead: Container for booking lead
@@ -316,9 +319,9 @@ type GoogleAdsHomeservicesLocalservicesV1BookingLead struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAdsHomeservicesLocalservicesV1BookingLead) MarshalJSON() ([]byte, error) {
+func (s GoogleAdsHomeservicesLocalservicesV1BookingLead) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAdsHomeservicesLocalservicesV1BookingLead
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAdsHomeservicesLocalservicesV1DetailedLeadReport: A Detailed Lead
@@ -384,9 +387,9 @@ type GoogleAdsHomeservicesLocalservicesV1DetailedLeadReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAdsHomeservicesLocalservicesV1DetailedLeadReport) MarshalJSON() ([]byte, error) {
+func (s GoogleAdsHomeservicesLocalservicesV1DetailedLeadReport) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAdsHomeservicesLocalservicesV1DetailedLeadReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleAdsHomeservicesLocalservicesV1DetailedLeadReport) UnmarshalJSON(data []byte) error {
@@ -427,9 +430,9 @@ type GoogleAdsHomeservicesLocalservicesV1MessageLead struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAdsHomeservicesLocalservicesV1MessageLead) MarshalJSON() ([]byte, error) {
+func (s GoogleAdsHomeservicesLocalservicesV1MessageLead) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAdsHomeservicesLocalservicesV1MessageLead
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAdsHomeservicesLocalservicesV1PhoneLead: Container for phone lead
@@ -456,9 +459,9 @@ type GoogleAdsHomeservicesLocalservicesV1PhoneLead struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAdsHomeservicesLocalservicesV1PhoneLead) MarshalJSON() ([]byte, error) {
+func (s GoogleAdsHomeservicesLocalservicesV1PhoneLead) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAdsHomeservicesLocalservicesV1PhoneLead
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAdsHomeservicesLocalservicesV1SearchAccountReportsResponse: A page of
@@ -489,9 +492,9 @@ type GoogleAdsHomeservicesLocalservicesV1SearchAccountReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAdsHomeservicesLocalservicesV1SearchAccountReportsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAdsHomeservicesLocalservicesV1SearchAccountReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAdsHomeservicesLocalservicesV1SearchAccountReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAdsHomeservicesLocalservicesV1SearchDetailedLeadReportsResponse: A
@@ -523,17 +526,18 @@ type GoogleAdsHomeservicesLocalservicesV1SearchDetailedLeadReportsResponse struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAdsHomeservicesLocalservicesV1SearchDetailedLeadReportsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAdsHomeservicesLocalservicesV1SearchDetailedLeadReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAdsHomeservicesLocalservicesV1SearchDetailedLeadReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeTimeZone: Represents a time zone from the IANA Time Zone Database
 // (https://www.iana.org/time-zones).
 type GoogleTypeTimeZone struct {
-	// Id: IANA Time Zone Database time zone, e.g. "America/New_York".
+	// Id: IANA Time Zone Database time zone. For example "America/New_York".
 	Id string `json:"id,omitempty"`
-	// Version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+	// Version: Optional. IANA Time Zone Database version number. For example
+	// "2019a".
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -548,9 +552,9 @@ type GoogleTypeTimeZone struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeTimeZone) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeTimeZone
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountReportsSearchCall struct {
@@ -679,16 +683,16 @@ func (c *AccountReportsSearchCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/accountReports:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "localservices.accountReports.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -724,9 +728,11 @@ func (c *AccountReportsSearchCall) Do(opts ...googleapi.CallOption) (*GoogleAdsH
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "localservices.accountReports.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -877,16 +883,16 @@ func (c *DetailedLeadReportsSearchCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/detailedLeadReports:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "localservices.detailedLeadReports.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -922,9 +928,11 @@ func (c *DetailedLeadReportsSearchCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "localservices.detailedLeadReports.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

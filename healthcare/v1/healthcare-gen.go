@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "healthcare:v1"
 const apiName = "healthcare"
@@ -124,7 +127,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -143,13 +147,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -324,10 +327,22 @@ type ProjectsLocationsDatasetsDicomStoresDicomWebStudiesService struct {
 
 func NewProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesService(s *Service) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesService {
 	rs := &ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesService{s: s}
+	rs.Instances = NewProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesService(s)
 	return rs
 }
 
 type ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesService struct {
+	s *Service
+
+	Instances *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesService
+}
+
+func NewProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesService(s *Service) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesService {
+	rs := &ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesService{s: s}
+	return rs
+}
+
+type ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesService struct {
 	s *Service
 }
 
@@ -379,6 +394,7 @@ type ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesService str
 func NewProjectsLocationsDatasetsFhirStoresService(s *Service) *ProjectsLocationsDatasetsFhirStoresService {
 	rs := &ProjectsLocationsDatasetsFhirStoresService{s: s}
 	rs.Fhir = NewProjectsLocationsDatasetsFhirStoresFhirService(s)
+	rs.Operations = NewProjectsLocationsDatasetsFhirStoresOperationsService(s)
 	return rs
 }
 
@@ -386,6 +402,8 @@ type ProjectsLocationsDatasetsFhirStoresService struct {
 	s *Service
 
 	Fhir *ProjectsLocationsDatasetsFhirStoresFhirService
+
+	Operations *ProjectsLocationsDatasetsFhirStoresOperationsService
 }
 
 func NewProjectsLocationsDatasetsFhirStoresFhirService(s *Service) *ProjectsLocationsDatasetsFhirStoresFhirService {
@@ -394,6 +412,15 @@ func NewProjectsLocationsDatasetsFhirStoresFhirService(s *Service) *ProjectsLoca
 }
 
 type ProjectsLocationsDatasetsFhirStoresFhirService struct {
+	s *Service
+}
+
+func NewProjectsLocationsDatasetsFhirStoresOperationsService(s *Service) *ProjectsLocationsDatasetsFhirStoresOperationsService {
+	rs := &ProjectsLocationsDatasetsFhirStoresOperationsService{s: s}
+	return rs
+}
+
+type ProjectsLocationsDatasetsFhirStoresOperationsService struct {
 	s *Service
 }
 
@@ -448,6 +475,50 @@ type ProjectsLocationsServicesNlpService struct {
 	s *Service
 }
 
+// AccessDeterminationLogConfig: Configures consent audit log config for FHIR
+// create, read, update, and delete (CRUD) operations. Cloud audit log for
+// healthcare API must be enabled
+// (https://cloud.google.com/logging/docs/audit/configure-data-access#config-console-enable).
+// The consent-related logs are included as part of `protoPayload.metadata`.
+type AccessDeterminationLogConfig struct {
+	// LogLevel: Optional. Controls the amount of detail to include as part of the
+	// audit logs.
+	//
+	// Possible values:
+	//   "LOG_LEVEL_UNSPECIFIED" - No log level specified. This value is unused.
+	//   "DISABLED" - No additional consent-related logging is added to audit logs.
+	//   "MINIMUM" - The following information is included: * One of the following
+	// [`consentMode`](https://cloud.google.com/healthcare-api/docs/fhir-consent#aud
+	// it_logs) fields: (`off`|`emptyScope`|`enforced`|`btg`|`bypass`). * The
+	// accessor's request headers * The `log_level` of the
+	// AccessDeterminationLogConfig * The final consent evaluation (`PERMIT`,
+	// `DENY`, or `NO_CONSENT`) * A human-readable summary of the evaluation
+	//   "VERBOSE" - Includes `MINIMUM` and, for each resource owner, returns: *
+	// The resource owner's name * Most specific part of the `X-Consent-Scope`
+	// resulting in consensual determination * Timestamp of the applied enforcement
+	// leading to the decision * Enforcement version at the time the applicable
+	// consents were applied * The Consent resource name * The timestamp of the
+	// Consent resource used for enforcement * Policy type (`PATIENT` or `ADMIN`)
+	// Note that this mode adds some overhead to CRUD operations.
+	LogLevel string `json:"logLevel,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "LogLevel") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "LogLevel") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessDeterminationLogConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessDeterminationLogConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // ActivateConsentRequest: Activates the latest revision of the specified
 // Consent by committing a new revision with `state` updated to `ACTIVE`. If
 // the latest revision of the given Consent is in the `ACTIVE` state, no new
@@ -477,9 +548,37 @@ type ActivateConsentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActivateConsentRequest) MarshalJSON() ([]byte, error) {
+func (s ActivateConsentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ActivateConsentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AdminConsents: List of admin Consent resources to be applied.
+type AdminConsents struct {
+	// Names: Optional. The versioned names of the admin Consent resource(s), in
+	// the format
+	// `projects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores/
+	// {fhir_store_id}/fhir/Consent/{resource_id}/_history/{version_id}`. For FHIR
+	// stores with `disable_resource_versioning=true`, the format is
+	// `projects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores/
+	// {fhir_store_id}/fhir/Consent/{resource_id}`.
+	Names []string `json:"names,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Names") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Names") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AdminConsents) MarshalJSON() ([]byte, error) {
+	type NoMethod AdminConsents
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyzeEntitiesRequest: The request to analyze healthcare entities in a
@@ -516,9 +615,9 @@ type AnalyzeEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyzeEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s AnalyzeEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyzeEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyzeEntitiesResponse: Includes recognized entity mentions and
@@ -554,9 +653,196 @@ type AnalyzeEntitiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyzeEntitiesResponse) MarshalJSON() ([]byte, error) {
+func (s AnalyzeEntitiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyzeEntitiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ApplyAdminConsentsErrorDetail: Contains the error details of the unsupported
+// admin Consent resources for when the ApplyAdminConsents method fails to
+// apply one or more Consent resources.
+type ApplyAdminConsentsErrorDetail struct {
+	// ConsentErrors: The list of Consent resources that are unsupported or cannot
+	// be applied and the error associated with each of them.
+	ConsentErrors []*ConsentErrors `json:"consentErrors,omitempty"`
+	// ExistingOperationId: The currently in progress non-validate-only
+	// ApplyAdminConsents operation ID if exist.
+	ExistingOperationId uint64 `json:"existingOperationId,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "ConsentErrors") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ConsentErrors") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ApplyAdminConsentsErrorDetail) MarshalJSON() ([]byte, error) {
+	type NoMethod ApplyAdminConsentsErrorDetail
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ApplyAdminConsentsRequest: Request to apply the admin Consent resources for
+// the specified FHIR store.
+type ApplyAdminConsentsRequest struct {
+	// NewConsentsList: A new list of admin Consent resources to be applied. Any
+	// existing enforced Consents, which are specified in
+	// `consent_config.enforced_admin_consents` of the FhirStore, that are not part
+	// of this list will be disabled. An empty list is equivalent to clearing or
+	// disabling all Consents enforced on the FHIR store. When a FHIR store has
+	// `disable_resource_versioning=true` and this list contains a Consent resource
+	// that exists in `consent_config.enforced_admin_consents`, the method enforces
+	// any updates to the existing resource since the last enforcement. If the
+	// existing resource hasn't been updated since the last enforcement, the
+	// resource is unaffected. After the method finishes, the resulting consent
+	// enforcement model is determined by the contents of the Consent resource(s)
+	// when the method was called: * When `disable_resource_versioning=true`, the
+	// result is identical to the current resource(s) in the FHIR store. * When
+	// `disable_resource_versioning=false`, the result is based on the historical
+	// version(s) of the Consent resource(s) at the point in time when the method
+	// was called. At most 200 Consents can be specified.
+	NewConsentsList *AdminConsents `json:"newConsentsList,omitempty"`
+	// ValidateOnly: Optional. If true, the method only validates Consent resources
+	// to make sure they are supported. Otherwise, the method applies the aggregate
+	// consent information to update the enforcement model and reindex the FHIR
+	// resources. If all Consent resources can be applied successfully, the
+	// ApplyAdminConsentsResponse is returned containing the following fields: *
+	// `consent_apply_success` to indicate the number of Consent resources applied.
+	// * `affected_resources` to indicate the number of resources that might have
+	// had their consent access changed. If, however, one or more Consent resources
+	// are unsupported or cannot be applied, the method fails and
+	// ApplyAdminConsentsErrorDetail is is returned with details about the
+	// unsupported Consent resources.
+	ValidateOnly bool `json:"validateOnly,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "NewConsentsList") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NewConsentsList") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ApplyAdminConsentsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ApplyAdminConsentsRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ApplyAdminConsentsResponse: Response when all admin Consent resources in
+// scope were processed and all affected resources were reindexed successfully.
+// This structure will be included in the response when the operation finishes
+// successfully.
+type ApplyAdminConsentsResponse struct {
+	// AffectedResources: The number of resources (including the Consent resources)
+	// that may have consent access change.
+	AffectedResources int64 `json:"affectedResources,omitempty,string"`
+	// ConsentApplySuccess: If `validate_only=false` in ApplyAdminConsentsRequest,
+	// this counter contains the number of Consent resources that were successfully
+	// applied. Otherwise, it is the number of Consent resources that are
+	// supported.
+	ConsentApplySuccess int64 `json:"consentApplySuccess,omitempty,string"`
+	// FailedResources: The number of resources (including the Consent resources)
+	// that ApplyAdminConsents failed to re-index.
+	FailedResources int64 `json:"failedResources,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "AffectedResources") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AffectedResources") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ApplyAdminConsentsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ApplyAdminConsentsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ApplyConsentsRequest: Request to apply the Consent resources for the
+// specified FHIR store.
+type ApplyConsentsRequest struct {
+	// PatientScope: Optional. Scope down to a list of patients.
+	PatientScope *PatientScope `json:"patientScope,omitempty"`
+	// TimeRange: Optional. Scope down to patients whose most recent consent
+	// changes are in the time range. Can only be used with a versioning store
+	// (i.e. when disable_resource_versioning is set to false).
+	TimeRange *TimeRange `json:"timeRange,omitempty"`
+	// ValidateOnly: Optional. If true, the method only validates Consent resources
+	// to make sure they are supported. When the operation completes,
+	// ApplyConsentsResponse is returned where `consent_apply_success` and
+	// `consent_apply_failure` indicate supported and unsupported (or invalid)
+	// Consent resources, respectively. Otherwise, the method propagates the
+	// aggregate consensual information to the patient's resources. Upon success,
+	// `affected_resources` in the ApplyConsentsResponse indicates the number of
+	// resources that may have consensual access changed.
+	ValidateOnly bool `json:"validateOnly,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PatientScope") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PatientScope") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ApplyConsentsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ApplyConsentsRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ApplyConsentsResponse: Response when all Consent resources in scope were
+// processed and all affected resources were reindexed successfully. This
+// structure is included in the response when the operation finishes
+// successfully.
+type ApplyConsentsResponse struct {
+	// AffectedResources: The number of resources (including the Consent resources)
+	// that may have consensual access change.
+	AffectedResources int64 `json:"affectedResources,omitempty,string"`
+	// ConsentApplyFailure: If `validate_only = false` in ApplyConsentsRequest,
+	// this counter is the number of Consent resources that were failed to apply.
+	// Otherwise, it is the number of Consent resources that are not supported or
+	// invalid.
+	ConsentApplyFailure int64 `json:"consentApplyFailure,omitempty,string"`
+	// ConsentApplySuccess: If `validate_only = false` in ApplyConsentsRequest,
+	// this counter is the number of Consent resources that were successfully
+	// applied. Otherwise, it is the number of Consent resources that are
+	// supported.
+	ConsentApplySuccess int64 `json:"consentApplySuccess,omitempty,string"`
+	// FailedResources: The number of resources (including the Consent resources)
+	// that ApplyConsents failed to re-index.
+	FailedResources int64 `json:"failedResources,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "AffectedResources") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AffectedResources") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ApplyConsentsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ApplyConsentsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ArchiveUserDataMappingRequest: Archives the specified User data mapping.
@@ -595,9 +881,9 @@ type Attribute struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Attribute) MarshalJSON() ([]byte, error) {
+func (s Attribute) MarshalJSON() ([]byte, error) {
 	type NoMethod Attribute
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttributeDefinition: A client-defined consent attribute.
@@ -648,9 +934,9 @@ type AttributeDefinition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttributeDefinition) MarshalJSON() ([]byte, error) {
+func (s AttributeDefinition) MarshalJSON() ([]byte, error) {
 	type NoMethod AttributeDefinition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -689,9 +975,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -724,9 +1010,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -823,9 +1109,114 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BlobStorageInfo: BlobStorageInfo contains details about the data stored in
+// Blob Storage for the referenced resource. Note: Storage class is only valid
+// for DICOM and hence will only be populated for DICOM resources.
+type BlobStorageInfo struct {
+	// SizeBytes: Size in bytes of data stored in Blob Storage.
+	SizeBytes int64 `json:"sizeBytes,omitempty,string"`
+	// StorageClass: The storage class in which the Blob data is stored.
+	//
+	// Possible values:
+	//   "BLOB_STORAGE_CLASS_UNSPECIFIED" - If unspecified in CreateDataset, the
+	// StorageClass defaults to STANDARD. If unspecified in UpdateDataset and the
+	// StorageClass is set in the field mask, an InvalidRequest error is thrown.
+	//   "STANDARD" - This stores the Object in Blob Standard Storage:
+	// https://cloud.google.com/storage/docs/storage-classes#standard
+	//   "NEARLINE" - This stores the Object in Blob Nearline Storage:
+	// https://cloud.google.com/storage/docs/storage-classes#nearline
+	//   "COLDLINE" - This stores the Object in Blob Coldline Storage:
+	// https://cloud.google.com/storage/docs/storage-classes#coldline
+	//   "ARCHIVE" - This stores the Object in Blob Archive Storage:
+	// https://cloud.google.com/storage/docs/storage-classes#archive
+	StorageClass string `json:"storageClass,omitempty"`
+	// StorageClassUpdateTime: The time at which the storage class was updated.
+	// This is used to compute early deletion fees of the resource.
+	StorageClassUpdateTime string `json:"storageClassUpdateTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SizeBytes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SizeBytes") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BlobStorageInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod BlobStorageInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BlobStorageSettings: Settings for data stored in Blob storage.
+type BlobStorageSettings struct {
+	// BlobStorageClass: The Storage class in which the Blob data is stored.
+	//
+	// Possible values:
+	//   "BLOB_STORAGE_CLASS_UNSPECIFIED" - If unspecified in CreateDataset, the
+	// StorageClass defaults to STANDARD. If unspecified in UpdateDataset and the
+	// StorageClass is set in the field mask, an InvalidRequest error is thrown.
+	//   "STANDARD" - This stores the Object in Blob Standard Storage:
+	// https://cloud.google.com/storage/docs/storage-classes#standard
+	//   "NEARLINE" - This stores the Object in Blob Nearline Storage:
+	// https://cloud.google.com/storage/docs/storage-classes#nearline
+	//   "COLDLINE" - This stores the Object in Blob Coldline Storage:
+	// https://cloud.google.com/storage/docs/storage-classes#coldline
+	//   "ARCHIVE" - This stores the Object in Blob Archive Storage:
+	// https://cloud.google.com/storage/docs/storage-classes#archive
+	BlobStorageClass string `json:"blobStorageClass,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BlobStorageClass") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BlobStorageClass") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BlobStorageSettings) MarshalJSON() ([]byte, error) {
+	type NoMethod BlobStorageSettings
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BulkExportGcsDestination: The configuration for exporting to Cloud Storage
+// using the bulk export API.
+type BulkExportGcsDestination struct {
+	// UriPrefix: Optional. URI for a Cloud Storage directory where the server
+	// writes result files, in the format
+	// `gs://{bucket-id}/{path/to/destination/dir}`. If there is no trailing slash,
+	// the service appends one when composing the object path. The user is
+	// responsible for creating the Cloud Storage bucket referenced in
+	// `uri_prefix`.
+	UriPrefix string `json:"uriPrefix,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "UriPrefix") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "UriPrefix") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BulkExportGcsDestination) MarshalJSON() ([]byte, error) {
+	type NoMethod BulkExportGcsDestination
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -835,8 +1226,8 @@ type CancelOperationRequest struct {
 // CharacterMaskConfig: Mask a string by replacing its characters with a fixed
 // character.
 type CharacterMaskConfig struct {
-	// MaskingCharacter: Character to mask the sensitive values. If not supplied,
-	// defaults to "*".
+	// MaskingCharacter: Optional. Character to mask the sensitive values. If not
+	// supplied, defaults to "*".
 	MaskingCharacter string `json:"maskingCharacter,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "MaskingCharacter") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -851,9 +1242,9 @@ type CharacterMaskConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CharacterMaskConfig) MarshalJSON() ([]byte, error) {
+func (s CharacterMaskConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CharacterMaskConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckDataAccessRequest: Checks if a particular data_id of a User data
@@ -900,9 +1291,9 @@ type CheckDataAccessRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckDataAccessRequest) MarshalJSON() ([]byte, error) {
+func (s CheckDataAccessRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckDataAccessRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckDataAccessResponse: Checks if a particular data_id of a User data
@@ -929,9 +1320,9 @@ type CheckDataAccessResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckDataAccessResponse) MarshalJSON() ([]byte, error) {
+func (s CheckDataAccessResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckDataAccessResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Consent: Represents a user's consent.
@@ -1004,9 +1395,41 @@ type Consent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Consent) MarshalJSON() ([]byte, error) {
+func (s Consent) MarshalJSON() ([]byte, error) {
 	type NoMethod Consent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ConsentAccessorScope: The accessor scope that describes who can access, for
+// what purpose, in which environment.
+type ConsentAccessorScope struct {
+	// Actor: An individual, group, or access role that identifies the accessor or
+	// a characteristic of the accessor. This can be a resource ID (such as
+	// `{resourceType}/{id}`) or an external URI. This value must be present.
+	Actor string `json:"actor,omitempty"`
+	// Environment: An abstract identifier that describes the environment or
+	// conditions under which the accessor is acting. If it's not specified, it
+	// applies to all environments.
+	Environment string `json:"environment,omitempty"`
+	// Purpose: The intent of data use. If it's not specified, it applies to all
+	// purposes.
+	Purpose string `json:"purpose,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Actor") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Actor") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ConsentAccessorScope) MarshalJSON() ([]byte, error) {
+	type NoMethod ConsentAccessorScope
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConsentArtifact: Documentation of a user's consent.
@@ -1049,9 +1472,92 @@ type ConsentArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConsentArtifact) MarshalJSON() ([]byte, error) {
+func (s ConsentArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod ConsentArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ConsentConfig: Configures whether to enforce consent for the FHIR store and
+// which consent enforcement version is being used.
+type ConsentConfig struct {
+	// AccessDeterminationLogConfig: Optional. Specifies how the server logs the
+	// consent-aware requests. If not specified, the
+	// `AccessDeterminationLogConfig.LogLevel.MINIMUM` option is used.
+	AccessDeterminationLogConfig *AccessDeterminationLogConfig `json:"accessDeterminationLogConfig,omitempty"`
+	// AccessEnforced: Optional. The default value is false. If set to true, when
+	// accessing FHIR resources, the consent headers will be verified against
+	// consents given by patients. See the ConsentEnforcementVersion for the
+	// supported consent headers.
+	AccessEnforced bool `json:"accessEnforced,omitempty"`
+	// ConsentHeaderHandling: Optional. Different options to configure the
+	// behaviour of the server when handling the `X-Consent-Scope` header.
+	ConsentHeaderHandling *ConsentHeaderHandling `json:"consentHeaderHandling,omitempty"`
+	// EnforcedAdminConsents: Output only. The versioned names of the enforced
+	// admin Consent resource(s), in the format
+	// `projects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores/
+	// {fhir_store_id}/fhir/Consent/{resource_id}/_history/{version_id}`. For FHIR
+	// stores with `disable_resource_versioning=true`, the format is
+	// `projects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores/
+	// {fhir_store_id}/fhir/Consent/{resource_id}`. This field can only be updated
+	// using ApplyAdminConsents.
+	EnforcedAdminConsents []string `json:"enforcedAdminConsents,omitempty"`
+	// Version: Required. Specifies which consent enforcement version is being used
+	// for this FHIR store. This field can only be set once by either
+	// CreateFhirStore or UpdateFhirStore. After that, you must call ApplyConsents
+	// to change the version.
+	//
+	// Possible values:
+	//   "CONSENT_ENFORCEMENT_VERSION_UNSPECIFIED" - Users must specify an
+	// enforcement version or an error is returned.
+	//   "V1" - Enforcement version 1. See the [FHIR Consent resources in the Cloud
+	// Healthcare API](https://cloud.google.com/healthcare-api/docs/fhir-consent)
+	// guide for more details.
+	Version string `json:"version,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "AccessDeterminationLogConfig") to unconditionally include in API requests.
+	// By default, fields with empty or default values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields
+	// for more details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccessDeterminationLogConfig") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ConsentConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod ConsentConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ConsentErrors: The Consent resource name and error.
+type ConsentErrors struct {
+	// Error: The error code and message.
+	Error *Status `json:"error,omitempty"`
+	// Name: The versioned name of the admin Consent resource, in the format
+	// `projects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores/
+	// {fhir_store_id}/fhir/Consent/{resource_id}/_history/{version_id}`. For FHIR
+	// stores with `disable_resource_versioning=true`, the format is
+	// `projects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores/
+	// {fhir_store_id}/fhir/Consent/{resource_id}`.
+	Name string `json:"name,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Error") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Error") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ConsentErrors) MarshalJSON() ([]byte, error) {
+	type NoMethod ConsentErrors
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConsentEvaluation: The detailed evaluation of a particular Consent.
@@ -1087,9 +1593,48 @@ type ConsentEvaluation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConsentEvaluation) MarshalJSON() ([]byte, error) {
+func (s ConsentEvaluation) MarshalJSON() ([]byte, error) {
 	type NoMethod ConsentEvaluation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ConsentHeaderHandling: How the server handles the consent header.
+type ConsentHeaderHandling struct {
+	// Profile: Optional. Specifies the default server behavior when the header is
+	// empty. If not specified, the `ScopeProfile.PERMIT_EMPTY_SCOPE` option is
+	// used.
+	//
+	// Possible values:
+	//   "SCOPE_PROFILE_UNSPECIFIED" - If not specified, the default value
+	// `PERMIT_EMPTY_SCOPE` is used.
+	//   "PERMIT_EMPTY_SCOPE" - When no consent scopes are provided (for example,
+	// if there's an empty or missing header), then consent check is disabled,
+	// similar to when `access_enforced` is `false`. You can use audit logs to
+	// differentiate these two cases by looking at the value of
+	// `protopayload.metadata.consentMode`. If consents scopes are present, they
+	// must be valid and within the allowed limits, otherwise the request will be
+	// rejected with a `4xx` code.
+	//   "REQUIRED_ON_READ" - The consent header must be non-empty when performing
+	// read and search operations, otherwise the request is rejected with a `4xx`
+	// code. Additionally, invalid consent scopes or scopes exceeding the allowed
+	// limits are rejected.
+	Profile string `json:"profile,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Profile") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Profile") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ConsentHeaderHandling) MarshalJSON() ([]byte, error) {
+	type NoMethod ConsentHeaderHandling
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConsentList: List of resource names of Consent resources.
@@ -1112,9 +1657,9 @@ type ConsentList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConsentList) MarshalJSON() ([]byte, error) {
+func (s ConsentList) MarshalJSON() ([]byte, error) {
 	type NoMethod ConsentList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConsentStore: Represents a consent store.
@@ -1156,9 +1701,9 @@ type ConsentStore struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConsentStore) MarshalJSON() ([]byte, error) {
+func (s ConsentStore) MarshalJSON() ([]byte, error) {
 	type NoMethod ConsentStore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateMessageRequest: Creates a new message.
@@ -1178,9 +1723,9 @@ type CreateMessageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateMessageRequest) MarshalJSON() ([]byte, error) {
+func (s CreateMessageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateMessageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CryptoHashConfig: Pseudonymization method that generates surrogates via
@@ -1208,9 +1753,9 @@ type CryptoHashConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CryptoHashConfig) MarshalJSON() ([]byte, error) {
+func (s CryptoHashConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CryptoHashConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Dataset: A message representing a health dataset. A health dataset
@@ -1218,33 +1763,42 @@ func (s *CryptoHashConfig) MarshalJSON() ([]byte, error) {
 // patients. This may include multiple modalities of healthcare data, such as
 // electronic medical records or medical imaging data.
 type Dataset struct {
+	// EncryptionSpec: Optional. Customer-managed encryption key spec for a
+	// Dataset. If set, this Dataset and all of its sub-resources will be secured
+	// by this key. If empty, the Dataset is secured by the default Google
+	// encryption key.
+	EncryptionSpec *EncryptionSpec `json:"encryptionSpec,omitempty"`
 	// Name: Identifier. Resource name of the dataset, of the form
 	// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}`.
 	Name string `json:"name,omitempty"`
-	// TimeZone: The default timezone used by this dataset. Must be a either a
-	// valid IANA time zone name such as "America/New_York" or empty, which
-	// defaults to UTC. This is used for parsing times in resources, such as HL7
-	// messages, where no explicit timezone is specified.
+	// SatisfiesPzi: Output only. For future use.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
+	// SatisfiesPzs: Output only. For future use.
+	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
+	// TimeZone: Optional. The default timezone used by this dataset. Must be a
+	// either a valid IANA time zone name such as "America/New_York" or empty,
+	// which defaults to UTC. This is used for parsing times in resources, such as
+	// HL7 messages, where no explicit timezone is specified.
 	TimeZone string `json:"timeZone,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "Name") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "EncryptionSpec") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Name") to include in API requests
-	// with the JSON null value. By default, fields with empty values are omitted
-	// from API requests. See
+	// NullFields is a list of field names (e.g. "EncryptionSpec") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *Dataset) MarshalJSON() ([]byte, error) {
+func (s Dataset) MarshalJSON() ([]byte, error) {
 	type NoMethod Dataset
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DateShiftConfig: Shift a date forward or backward in time by a random amount
@@ -1275,18 +1829,19 @@ type DateShiftConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DateShiftConfig) MarshalJSON() ([]byte, error) {
+func (s DateShiftConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DateShiftConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeidentifiedStoreDestination: Contains configuration for streaming
 // de-identified FHIR export.
 type DeidentifiedStoreDestination struct {
-	// Config: The configuration to use when de-identifying resources that are
-	// added to this store.
+	// Config: Optional. The configuration to use when de-identifying resources
+	// that are added to this store.
 	Config *DeidentifyConfig `json:"config,omitempty"`
-	// Store: The full resource name of a Cloud Healthcare FHIR store, for example,
+	// Store: Optional. The full resource name of a Cloud Healthcare FHIR store,
+	// for example,
 	// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirStor
 	// es/{fhir_store_id}`.
 	Store string `json:"store,omitempty"`
@@ -1303,9 +1858,9 @@ type DeidentifiedStoreDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeidentifiedStoreDestination) MarshalJSON() ([]byte, error) {
+func (s DeidentifiedStoreDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod DeidentifiedStoreDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeidentifyConfig: Configures de-id options specific to different types of
@@ -1313,22 +1868,22 @@ func (s *DeidentifiedStoreDestination) MarshalJSON() ([]byte, error) {
 // https://tools.ietf.org/html/rfc6838 media type or subtype. Configs are
 // applied in a nested manner at runtime.
 type DeidentifyConfig struct {
-	// Dicom: Configures de-id of application/DICOM content.
+	// Dicom: Optional. Configures de-id of application/DICOM content.
 	Dicom *DicomConfig `json:"dicom,omitempty"`
-	// Fhir: Configures de-id of application/FHIR content.
+	// Fhir: Optional. Configures de-id of application/FHIR content.
 	Fhir *FhirConfig `json:"fhir,omitempty"`
-	// Image: Configures de-identification of image pixels wherever they are found
-	// in the source_dataset.
+	// Image: Optional. Configures de-identification of image pixels wherever they
+	// are found in the source_dataset.
 	Image *ImageConfig `json:"image,omitempty"`
-	// Text: Configures de-identification of text wherever it is found in the
-	// source_dataset.
+	// Text: Optional. Configures de-identification of text wherever it is found in
+	// the source_dataset.
 	Text *TextConfig `json:"text,omitempty"`
-	// UseRegionalDataProcessing: Ensures in-flight data remains in the region of
-	// origin during de-identification. Using this option results in a significant
-	// reduction of throughput, and is not compatible with `LOCATION` or
-	// `ORGANIZATION_NAME` infoTypes. `LOCATION` must be excluded within
-	// TextConfig, and must also be excluded within ImageConfig if image redaction
-	// is required.
+	// UseRegionalDataProcessing: Optional. Ensures in-flight data remains in the
+	// region of origin during de-identification. The default value is false. Using
+	// this option results in a significant reduction of throughput, and is not
+	// compatible with `LOCATION` or `ORGANIZATION_NAME` infoTypes. `LOCATION` must
+	// be excluded within TextConfig, and must also be excluded within ImageConfig
+	// if image redaction is required.
 	UseRegionalDataProcessing bool `json:"useRegionalDataProcessing,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Dicom") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1343,9 +1898,9 @@ type DeidentifyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeidentifyConfig) MarshalJSON() ([]byte, error) {
+func (s DeidentifyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DeidentifyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeidentifyDatasetRequest: Redacts identifying information from the specified
@@ -1379,9 +1934,9 @@ type DeidentifyDatasetRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeidentifyDatasetRequest) MarshalJSON() ([]byte, error) {
+func (s DeidentifyDatasetRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DeidentifyDatasetRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeidentifyDicomStoreRequest: Creates a new DICOM store with sensitive
@@ -1421,9 +1976,9 @@ type DeidentifyDicomStoreRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeidentifyDicomStoreRequest) MarshalJSON() ([]byte, error) {
+func (s DeidentifyDicomStoreRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DeidentifyDicomStoreRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeidentifyFhirStoreRequest: Creates a new FHIR store with sensitive
@@ -1468,9 +2023,9 @@ type DeidentifyFhirStoreRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeidentifyFhirStoreRequest) MarshalJSON() ([]byte, error) {
+func (s DeidentifyFhirStoreRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DeidentifyFhirStoreRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeidentifySummary: Contains a summary of the Deidentify operation.
@@ -1502,7 +2057,7 @@ type DicomConfig struct {
 	KeepList *TagFilterList `json:"keepList,omitempty"`
 	// RemoveList: List of tags to remove. Keep all other tags.
 	RemoveList *TagFilterList `json:"removeList,omitempty"`
-	// SkipIdRedaction: If true, skip replacing StudyInstanceUID,
+	// SkipIdRedaction: Optional. If true, skip replacing StudyInstanceUID,
 	// SeriesInstanceUID, SOPInstanceUID, and MediaStorageSOPInstanceUID and leave
 	// them untouched. The Cloud Healthcare API regenerates these UIDs by default
 	// based on the DICOM Standard's reasoning: "Whilst these UIDs cannot be mapped
@@ -1524,9 +2079,9 @@ type DicomConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DicomConfig) MarshalJSON() ([]byte, error) {
+func (s DicomConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DicomConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DicomFilterConfig: Specifies the filter configuration for DICOM resources.
@@ -1552,9 +2107,9 @@ type DicomFilterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DicomFilterConfig) MarshalJSON() ([]byte, error) {
+func (s DicomFilterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DicomFilterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DicomStore: Represents a DICOM store.
@@ -1572,8 +2127,8 @@ type DicomStore struct {
 	// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/dicomSto
 	// res/{dicom_store_id}`.
 	Name string `json:"name,omitempty"`
-	// NotificationConfig: Notification destination for new DICOM instances.
-	// Supplied by the client.
+	// NotificationConfig: Optional. Notification destination for new DICOM
+	// instances. Supplied by the client.
 	NotificationConfig *NotificationConfig `json:"notificationConfig,omitempty"`
 	// StreamConfigs: Optional. A list of streaming configs used to configure the
 	// destination of streaming exports for every DICOM instance insertion in this
@@ -1598,9 +2153,9 @@ type DicomStore struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DicomStore) MarshalJSON() ([]byte, error) {
+func (s DicomStore) MarshalJSON() ([]byte, error) {
 	type NoMethod DicomStore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DicomStoreMetrics: DicomStoreMetrics contains metrics describing a DICOM
@@ -1638,9 +2193,9 @@ type DicomStoreMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DicomStoreMetrics) MarshalJSON() ([]byte, error) {
+func (s DicomStoreMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod DicomStoreMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1650,6 +2205,33 @@ func (s *DicomStoreMetrics) MarshalJSON() ([]byte, error) {
 type Empty struct {
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
+}
+
+// EncryptionSpec: Represents a customer-managed encryption key spec that can
+// be applied to a resource.
+type EncryptionSpec struct {
+	// KmsKeyName: Required. The resource name of customer-managed encryption key
+	// that is used to secure a resource and its sub-resources. Only the key in the
+	// same location as this Dataset is allowed to be used for encryption. Format
+	// is:
+	// `projects/{project}/locations/{location}/keyRings/{keyRing}/cryptoKeys/{key}`
+	KmsKeyName string `json:"kmsKeyName,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "KmsKeyName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "KmsKeyName") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s EncryptionSpec) MarshalJSON() ([]byte, error) {
+	type NoMethod EncryptionSpec
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Entity: The candidate entities that an entity mention could link to.
@@ -1681,9 +2263,9 @@ type Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Entity) MarshalJSON() ([]byte, error) {
+func (s Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityMention: An entity mention in the document.
@@ -1732,9 +2314,9 @@ type EntityMention struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityMention) MarshalJSON() ([]byte, error) {
+func (s EntityMention) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityMention
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *EntityMention) UnmarshalJSON(data []byte) error {
@@ -1774,9 +2356,9 @@ type EntityMentionRelationship struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityMentionRelationship) MarshalJSON() ([]byte, error) {
+func (s EntityMentionRelationship) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityMentionRelationship
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *EntityMentionRelationship) UnmarshalJSON(data []byte) error {
@@ -1846,9 +2428,9 @@ type EvaluateUserConsentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EvaluateUserConsentsRequest) MarshalJSON() ([]byte, error) {
+func (s EvaluateUserConsentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EvaluateUserConsentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EvaluateUserConsentsResponse struct {
@@ -1874,9 +2456,133 @@ type EvaluateUserConsentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EvaluateUserConsentsResponse) MarshalJSON() ([]byte, error) {
+func (s EvaluateUserConsentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EvaluateUserConsentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ExplainDataAccessConsentInfo: The enforcing consent's metadata.
+type ExplainDataAccessConsentInfo struct {
+	// CascadeOrigins: The compartment base resources that matched a cascading
+	// policy. Each resource has the following format:
+	// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirStor
+	// es/{fhir_store_id}/fhir/{resource_type}/{resource_id}`
+	CascadeOrigins []string `json:"cascadeOrigins,omitempty"`
+	// ConsentResource: The resource name of this consent resource, in the format:
+	// `projects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores/
+	// {fhir_store_id}/fhir/Consent/{resource_id}`.
+	ConsentResource string `json:"consentResource,omitempty"`
+	// EnforcementTime: Last enforcement timestamp of this consent resource.
+	EnforcementTime string `json:"enforcementTime,omitempty"`
+	// MatchingAccessorScopes: A list of all the matching accessor scopes of this
+	// consent policy that enforced ExplainDataAccessConsentScope.accessor_scope.
+	MatchingAccessorScopes []*ConsentAccessorScope `json:"matchingAccessorScopes,omitempty"`
+	// PatientConsentOwner: The patient owning the consent (only applicable for
+	// patient consents), in the format:
+	// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirStor
+	// es/{fhir_store_id}/fhir/Patient/{patient_id}`
+	PatientConsentOwner string `json:"patientConsentOwner,omitempty"`
+	// Type: The policy type of consent resource (e.g. PATIENT, ADMIN).
+	//
+	// Possible values:
+	//   "CONSENT_POLICY_TYPE_UNSPECIFIED" - Unspecified policy type.
+	//   "CONSENT_POLICY_TYPE_PATIENT" - Consent represent a patient consent.
+	//   "CONSENT_POLICY_TYPE_ADMIN" - Consent represent an admin consent.
+	Type string `json:"type,omitempty"`
+	// Variants: The consent's variant combinations. A single consent may have
+	// multiple variants.
+	//
+	// Possible values:
+	//   "CONSENT_VARIANT_UNSPECIFIED" - Consent variant unspecified.
+	//   "CONSENT_VARIANT_STANDARD" - Consent is a standard patient or admin
+	// consent.
+	//   "CONSENT_VARIANT_CASCADE" - Consent is a cascading consent.
+	Variants []string `json:"variants,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CascadeOrigins") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CascadeOrigins") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExplainDataAccessConsentInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod ExplainDataAccessConsentInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ExplainDataAccessConsentScope: A single consent scope that provides info on
+// who has access to the requested resource scope for a particular purpose and
+// environment, enforced by which consent.
+type ExplainDataAccessConsentScope struct {
+	// AccessorScope: The accessor scope that describes who can access, for what
+	// purpose, and in which environment.
+	AccessorScope *ConsentAccessorScope `json:"accessorScope,omitempty"`
+	// Decision: Whether the current consent scope is permitted or denied access on
+	// the requested resource.
+	//
+	// Possible values:
+	//   "CONSENT_DECISION_TYPE_UNSPECIFIED" - Unspecified consent decision type.
+	//   "CONSENT_DECISION_TYPE_PERMIT" - Consent permitted access.
+	//   "CONSENT_DECISION_TYPE_DENY" - Consent denied access.
+	Decision string `json:"decision,omitempty"`
+	// EnforcingConsents: Metadata of the consent resources that enforce the
+	// consent scope's access.
+	EnforcingConsents []*ExplainDataAccessConsentInfo `json:"enforcingConsents,omitempty"`
+	// Exceptions: Other consent scopes that created exceptions within this scope.
+	Exceptions []*ExplainDataAccessConsentScope `json:"exceptions,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccessorScope") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccessorScope") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExplainDataAccessConsentScope) MarshalJSON() ([]byte, error) {
+	type NoMethod ExplainDataAccessConsentScope
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ExplainDataAccessResponse: List of consent scopes that are applicable to the
+// explained access on a given resource.
+type ExplainDataAccessResponse struct {
+	// ConsentScopes: List of applicable consent scopes. Sorted in order of actor
+	// such that scopes belonging to the same actor will be adjacent to each other
+	// in the list.
+	ConsentScopes []*ExplainDataAccessConsentScope `json:"consentScopes,omitempty"`
+	// Warning: Warnings associated with this response. It inform user with
+	// exceeded scope limit errors.
+	Warning string `json:"warning,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ConsentScopes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ConsentScopes") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExplainDataAccessResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ExplainDataAccessResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExportDicomDataRequest: Exports data from the specified DICOM store. If a
@@ -1908,9 +2614,9 @@ type ExportDicomDataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExportDicomDataRequest) MarshalJSON() ([]byte, error) {
+func (s ExportDicomDataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ExportDicomDataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExportDicomDataResponse: Returns additional information in regards to a
@@ -1991,9 +2697,9 @@ type ExportMessagesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExportMessagesRequest) MarshalJSON() ([]byte, error) {
+func (s ExportMessagesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ExportMessagesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExportMessagesResponse: Final response for the export operation. This
@@ -2036,9 +2742,9 @@ type ExportResourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExportResourcesRequest) MarshalJSON() ([]byte, error) {
+func (s ExportResourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ExportResourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExportResourcesResponse: Response when all resources export successfully.
@@ -2090,9 +2796,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Feature: A feature of an entity mention.
@@ -2116,9 +2822,9 @@ type Feature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Feature) MarshalJSON() ([]byte, error) {
+func (s Feature) MarshalJSON() ([]byte, error) {
 	type NoMethod Feature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Feature) UnmarshalJSON(data []byte) error {
@@ -2137,15 +2843,15 @@ func (s *Feature) UnmarshalJSON(data []byte) error {
 
 // FhirConfig: Specifies how to handle de-identification of a FHIR store.
 type FhirConfig struct {
-	// DefaultKeepExtensions: The behaviour for handling FHIR extensions that
-	// aren't otherwise specified for de-identification. If true, all extensions
-	// are preserved during de-identification by default. If false or unspecified,
-	// all extensions are removed during de-identification by default.
+	// DefaultKeepExtensions: Optional. The behaviour for handling FHIR extensions
+	// that aren't otherwise specified for de-identification. If true, all
+	// extensions are preserved during de-identification by default. If false or
+	// unspecified, all extensions are removed during de-identification by default.
 	DefaultKeepExtensions bool `json:"defaultKeepExtensions,omitempty"`
-	// FieldMetadataList: Specifies FHIR paths to match and how to transform them.
-	// Any field that is not matched by a FieldMetadata is passed through to the
-	// output dataset unmodified. All extensions will be processed according to
-	// `default_keep_extensions`.
+	// FieldMetadataList: Optional. Specifies FHIR paths to match and how to
+	// transform them. Any field that is not matched by a FieldMetadata is passed
+	// through to the output dataset unmodified. All extensions will be processed
+	// according to `default_keep_extensions`.
 	FieldMetadataList []*FieldMetadata `json:"fieldMetadataList,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DefaultKeepExtensions") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2160,9 +2866,9 @@ type FhirConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FhirConfig) MarshalJSON() ([]byte, error) {
+func (s FhirConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod FhirConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FhirFilter: Filter configuration.
@@ -2183,16 +2889,16 @@ type FhirFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FhirFilter) MarshalJSON() ([]byte, error) {
+func (s FhirFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod FhirFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FhirNotificationConfig: Contains the configuration for FHIR notifications.
 type FhirNotificationConfig struct {
-	// PubsubTopic: The Pub/Sub (https://cloud.google.com/pubsub/docs/) topic that
-	// notifications of changes are published on. Supplied by the client. The
-	// notification is a `PubsubMessage` with the following fields: *
+	// PubsubTopic: Optional. The Pub/Sub (https://cloud.google.com/pubsub/docs/)
+	// topic that notifications of changes are published on. Supplied by the
+	// client. The notification is a `PubsubMessage` with the following fields: *
 	// `PubsubMessage.Data` contains the resource name. * `PubsubMessage.MessageId`
 	// is the ID of this notification. It is guaranteed to be unique within the
 	// topic. * `PubsubMessage.PublishTime` is the time when the message was
@@ -2207,15 +2913,17 @@ type FhirNotificationConfig struct {
 	// Logging. For more information, see Viewing error logs in Cloud Logging
 	// (https://cloud.google.com/healthcare-api/docs/how-tos/logging).
 	PubsubTopic string `json:"pubsubTopic,omitempty"`
-	// SendFullResource: Whether to send full FHIR resource to this Pub/Sub topic.
+	// SendFullResource: Optional. Whether to send full FHIR resource to this
+	// Pub/Sub topic. The default value is false.
 	SendFullResource bool `json:"sendFullResource,omitempty"`
-	// SendPreviousResourceOnDelete: Whether to send full FHIR resource to this
-	// Pub/Sub topic for deleting FHIR resource. Note that setting this to true
-	// does not guarantee that all previous resources will be sent in the format of
-	// full FHIR resource. When a resource change is too large or during heavy
-	// traffic, only the resource name will be sent. Clients should always check
-	// the "payloadType" label from a Pub/Sub message to determine whether it needs
-	// to fetch the full previous resource as a separate operation.
+	// SendPreviousResourceOnDelete: Optional. Whether to send full FHIR resource
+	// to this Pub/Sub topic for deleting FHIR resource. The default value is
+	// false. Note that setting this to true does not guarantee that all previous
+	// resources will be sent in the format of full FHIR resource. When a resource
+	// change is too large or during heavy traffic, only the resource name will be
+	// sent. Clients should always check the "payloadType" label from a Pub/Sub
+	// message to determine whether it needs to fetch the full previous resource as
+	// a separate operation.
 	SendPreviousResourceOnDelete bool `json:"sendPreviousResourceOnDelete,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "PubsubTopic") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2230,21 +2938,29 @@ type FhirNotificationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FhirNotificationConfig) MarshalJSON() ([]byte, error) {
+func (s FhirNotificationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod FhirNotificationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FhirStore: Represents a FHIR store.
 type FhirStore struct {
-	// ComplexDataTypeReferenceParsing: Enable parsing of references within complex
-	// FHIR data types such as Extensions. If this value is set to ENABLED, then
-	// features like referential integrity and Bundle reference rewriting apply to
-	// all references. If this flag has not been specified the behavior of the FHIR
-	// store will not change, references in complex data types will not be parsed.
-	// New stores will have this value set to ENABLED after a notification period.
-	// Warning: turning on this flag causes processing existing resources to fail
-	// if they contain references to non-existent resources.
+	// BulkExportGcsDestination: Optional. FHIR bulk export exports resources to
+	// the specified Cloud Storage destination. A Cloud Storage destination is a
+	// URI for a Cloud Storage directory where result files will be written. Only
+	// used in the spec-defined bulk $export methods. The Cloud Healthcare Service
+	// Agent requires the `roles/storage.objectAdmin` Cloud IAM role on the
+	// destination.
+	BulkExportGcsDestination *BulkExportGcsDestination `json:"bulkExportGcsDestination,omitempty"`
+	// ComplexDataTypeReferenceParsing: Optional. Enable parsing of references
+	// within complex FHIR data types such as Extensions. If this value is set to
+	// ENABLED, then features like referential integrity and Bundle reference
+	// rewriting apply to all references. If this flag has not been specified the
+	// behavior of the FHIR store will not change, references in complex data types
+	// will not be parsed. New stores will have this value set to ENABLED after a
+	// notification period. Warning: turning on this flag causes processing
+	// existing resources to fail if they contain references to non-existent
+	// resources.
 	//
 	// Possible values:
 	//   "COMPLEX_DATA_TYPE_REFERENCE_PARSING_UNSPECIFIED" - No parsing behavior
@@ -2252,13 +2968,17 @@ type FhirStore struct {
 	//   "DISABLED" - References in complex data types are ignored.
 	//   "ENABLED" - References in complex data types are parsed.
 	ComplexDataTypeReferenceParsing string `json:"complexDataTypeReferenceParsing,omitempty"`
-	// DefaultSearchHandlingStrict: If true, overrides the default search behavior
-	// for this FHIR store to `handling=strict` which returns an error for
+	// ConsentConfig: Optional. Specifies whether this store has consent
+	// enforcement. Not available for DSTU2 FHIR version due to absence of Consent
+	// resources.
+	ConsentConfig *ConsentConfig `json:"consentConfig,omitempty"`
+	// DefaultSearchHandlingStrict: Optional. If true, overrides the default search
+	// behavior for this FHIR store to `handling=strict` which returns an error for
 	// unrecognized search parameters. If false, uses the FHIR specification
 	// default `handling=lenient` which ignores unrecognized search parameters. The
 	// handling can always be changed from the default on an individual API call by
 	// setting the HTTP header `Prefer: handling=strict` or `Prefer:
-	// handling=lenient`.
+	// handling=lenient`. Defaults to false.
 	DefaultSearchHandlingStrict bool `json:"defaultSearchHandlingStrict,omitempty"`
 	// DisableReferentialIntegrity: Immutable. Whether to disable referential
 	// integrity in this FHIR store. This field is immutable after FHIR store
@@ -2271,13 +2991,14 @@ type FhirStore struct {
 	DisableReferentialIntegrity bool `json:"disableReferentialIntegrity,omitempty"`
 	// DisableResourceVersioning: Immutable. Whether to disable resource versioning
 	// for this FHIR store. This field can not be changed after the creation of
-	// FHIR store. If set to false, which is the default behavior, all write
-	// operations cause historical versions to be recorded automatically. The
-	// historical versions can be fetched through the history APIs, but cannot be
-	// updated. If set to true, no historical versions are kept. The server sends
-	// errors for attempts to read the historical versions.
+	// FHIR store. If set to false, all write operations cause historical versions
+	// to be recorded automatically. The historical versions can be fetched through
+	// the history APIs, but cannot be updated. If set to true, no historical
+	// versions are kept. The server sends errors for attempts to read the
+	// historical versions. Defaults to false.
 	DisableResourceVersioning bool `json:"disableResourceVersioning,omitempty"`
-	// EnableUpdateCreate: Whether this FHIR store has the updateCreate capability
+	// EnableUpdateCreate: Optional. Whether this FHIR store has the updateCreate
+	// capability
 	// (https://www.hl7.org/fhir/capabilitystatement-definitions.html#CapabilityStatement.rest.resource.updateCreate).
 	// This determines if the client can use an Update operation to create a new
 	// resource with a client-specified ID. If false, all IDs are server-assigned
@@ -2286,7 +3007,7 @@ type FhirStore struct {
 	// data such as patient identifiers in client-specified resource IDs. Those IDs
 	// are part of the FHIR resource path recorded in Cloud audit logs and Pub/Sub
 	// notifications. Those IDs can also be contained in reference fields within
-	// other resources.
+	// other resources. Defaults to false.
 	EnableUpdateCreate bool `json:"enableUpdateCreate,omitempty"`
 	// Labels: User-supplied key-value pairs used to organize FHIR stores. Label
 	// keys must be between 1 and 63 characters long, have a UTF-8 encoding of
@@ -2307,15 +3028,15 @@ type FhirStore struct {
 	// describing the action that has triggered the notification. For example,
 	// "action":"CreateResource".
 	NotificationConfig *NotificationConfig `json:"notificationConfig,omitempty"`
-	// NotificationConfigs: Specifies where and whether to send notifications upon
-	// changes to a FHIR store.
+	// NotificationConfigs: Optional. Specifies where and whether to send
+	// notifications upon changes to a FHIR store.
 	NotificationConfigs []*FhirNotificationConfig `json:"notificationConfigs,omitempty"`
-	// StreamConfigs: A list of streaming configs that configure the destinations
-	// of streaming export for every resource mutation in this FHIR store. Each
-	// store is allowed to have up to 10 streaming configs. After a new config is
-	// added, the next resource mutation is streamed to the new location in
-	// addition to the existing ones. When a location is removed from the list, the
-	// server stops streaming to that location. Before adding a new config, you
+	// StreamConfigs: Optional. A list of streaming configs that configure the
+	// destinations of streaming export for every resource mutation in this FHIR
+	// store. Each store is allowed to have up to 10 streaming configs. After a new
+	// config is added, the next resource mutation is streamed to the new location
+	// in addition to the existing ones. When a location is removed from the list,
+	// the server stops streaming to that location. Before adding a new config, you
 	// must add the required `bigquery.dataEditor`
 	// (https://cloud.google.com/bigquery/docs/access-control#bigquery.dataEditor)
 	// role to your project's **Cloud Healthcare Service Agent** service account
@@ -2323,8 +3044,8 @@ type FhirStore struct {
 	// the order of dozens of seconds) is expected before the results show up in
 	// the streaming destination.
 	StreamConfigs []*StreamConfig `json:"streamConfigs,omitempty"`
-	// ValidationConfig: Configuration for how to validate incoming FHIR resources
-	// against configured profiles.
+	// ValidationConfig: Optional. Configuration for how to validate incoming FHIR
+	// resources against configured profiles.
 	ValidationConfig *ValidationConfig `json:"validationConfig,omitempty"`
 	// Version: Required. Immutable. The FHIR specification version that this FHIR
 	// store supports natively. This field is immutable after store creation.
@@ -2343,23 +3064,22 @@ type FhirStore struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g.
-	// "ComplexDataTypeReferenceParsing") to unconditionally include in API
-	// requests. By default, fields with empty or default values are omitted from
-	// API requests. See
+	// ForceSendFields is a list of field names (e.g. "BulkExportGcsDestination")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ComplexDataTypeReferenceParsing")
-	// to include in API requests with the JSON null value. By default, fields with
+	// NullFields is a list of field names (e.g. "BulkExportGcsDestination") to
+	// include in API requests with the JSON null value. By default, fields with
 	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *FhirStore) MarshalJSON() ([]byte, error) {
+func (s FhirStore) MarshalJSON() ([]byte, error) {
 	type NoMethod FhirStore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FhirStoreMetric: Count of resources and total storage size by type for a
@@ -2385,9 +3105,9 @@ type FhirStoreMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FhirStoreMetric) MarshalJSON() ([]byte, error) {
+func (s FhirStoreMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod FhirStoreMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FhirStoreMetrics: List of metrics for a given FHIR store.
@@ -2413,9 +3133,9 @@ type FhirStoreMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FhirStoreMetrics) MarshalJSON() ([]byte, error) {
+func (s FhirStoreMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod FhirStoreMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Field: A (sub) field of a type.
@@ -2446,23 +3166,23 @@ type Field struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Field) MarshalJSON() ([]byte, error) {
+func (s Field) MarshalJSON() ([]byte, error) {
 	type NoMethod Field
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FieldMetadata: Specifies FHIR paths to match, and how to handle
 // de-identification of matching fields.
 type FieldMetadata struct {
-	// Action: Deidentify action for one field.
+	// Action: Optional. Deidentify action for one field.
 	//
 	// Possible values:
-	//   "ACTION_UNSPECIFIED" - No action specified.
+	//   "ACTION_UNSPECIFIED" - No action specified. Defaults to DO_NOT_TRANSFORM.
 	//   "TRANSFORM" - Transform the entire field.
 	//   "INSPECT_AND_TRANSFORM" - Inspect and transform any found PHI.
 	//   "DO_NOT_TRANSFORM" - Do not transform.
 	Action string `json:"action,omitempty"`
-	// Paths: List of paths to FHIR fields to be redacted. Each path is a
+	// Paths: Optional. List of paths to FHIR fields to be redacted. Each path is a
 	// period-separated list where each component is either a field name or FHIR
 	// type name, for example: Patient, HumanName. For "choice" types (those
 	// defined in the FHIR spec with the form: field[x]) we use two separate
@@ -2485,9 +3205,9 @@ type FieldMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FieldMetadata) MarshalJSON() ([]byte, error) {
+func (s FieldMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod FieldMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsDestination: The Cloud Storage output destination. The Cloud Healthcare
@@ -2534,9 +3254,9 @@ type GcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsDestination) MarshalJSON() ([]byte, error) {
+func (s GcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsSource: Specifies the configuration for importing data from Cloud
@@ -2568,9 +3288,9 @@ type GcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsSource) MarshalJSON() ([]byte, error) {
+func (s GcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1ConsentGcsDestination: The Cloud Storage location for
@@ -2595,9 +3315,9 @@ type GoogleCloudHealthcareV1ConsentGcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1ConsentGcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1ConsentGcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1ConsentGcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1ConsentPolicy: Represents a user's consent in terms
@@ -2625,9 +3345,9 @@ type GoogleCloudHealthcareV1ConsentPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1ConsentPolicy) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1ConsentPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1ConsentPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1DeidentifyDeidentifyDicomStoreSummary: Contains a
@@ -2643,17 +3363,17 @@ type GoogleCloudHealthcareV1DeidentifyDeidentifyFhirStoreSummary struct {
 // GoogleCloudHealthcareV1DicomBigQueryDestination: The BigQuery table where
 // the server writes the output.
 type GoogleCloudHealthcareV1DicomBigQueryDestination struct {
-	// Force: Use `write_disposition` instead. If `write_disposition` is specified,
-	// this parameter is ignored. force=false is equivalent to
+	// Force: Optional. Use `write_disposition` instead. If `write_disposition` is
+	// specified, this parameter is ignored. force=false is equivalent to
 	// write_disposition=WRITE_EMPTY and force=true is equivalent to
 	// write_disposition=WRITE_TRUNCATE.
 	Force bool `json:"force,omitempty"`
-	// TableUri: BigQuery URI to a table, up to 2000 characters long, in the format
-	// `bq://projectId.bqDatasetId.tableId`
+	// TableUri: Optional. BigQuery URI to a table, up to 2000 characters long, in
+	// the format `bq://projectId.bqDatasetId.tableId`
 	TableUri string `json:"tableUri,omitempty"`
-	// WriteDisposition: Determines whether the existing table in the destination
-	// is to be overwritten or appended to. If a write_disposition is specified,
-	// the `force` parameter is ignored.
+	// WriteDisposition: Optional. Determines whether the existing table in the
+	// destination is to be overwritten or appended to. If a write_disposition is
+	// specified, the `force` parameter is ignored.
 	//
 	// Possible values:
 	//   "WRITE_DISPOSITION_UNSPECIFIED" - Default behavior is the same as
@@ -2676,9 +3396,9 @@ type GoogleCloudHealthcareV1DicomBigQueryDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1DicomBigQueryDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1DicomBigQueryDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1DicomBigQueryDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1DicomGcsDestination: The Cloud Storage location where
@@ -2727,9 +3447,9 @@ type GoogleCloudHealthcareV1DicomGcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1DicomGcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1DicomGcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1DicomGcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1DicomGcsSource: Specifies the configuration for
@@ -2761,9 +3481,9 @@ type GoogleCloudHealthcareV1DicomGcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1DicomGcsSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1DicomGcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1DicomGcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1DicomStreamConfig: StreamConfig specifies
@@ -2804,29 +3524,30 @@ type GoogleCloudHealthcareV1DicomStreamConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1DicomStreamConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1DicomStreamConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1DicomStreamConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1FhirBigQueryDestination: The configuration for
 // exporting to BigQuery.
 type GoogleCloudHealthcareV1FhirBigQueryDestination struct {
-	// DatasetUri: BigQuery URI to an existing dataset, up to 2000 characters long,
-	// in the format `bq://projectId.bqDatasetId`.
+	// DatasetUri: Optional. BigQuery URI to an existing dataset, up to 2000
+	// characters long, in the format `bq://projectId.bqDatasetId`.
 	DatasetUri string `json:"datasetUri,omitempty"`
-	// Force: If this flag is `TRUE`, all tables are deleted from the dataset
-	// before the new exported tables are written. If the flag is not set and the
-	// destination dataset contains tables, the export call returns an error. If
-	// `write_disposition` is specified, this parameter is ignored. force=false is
-	// equivalent to write_disposition=WRITE_EMPTY and force=true is equivalent to
+	// Force: Optional. The default value is false. If this flag is `TRUE`, all
+	// tables are deleted from the dataset before the new exported tables are
+	// written. If the flag is not set and the destination dataset contains tables,
+	// the export call returns an error. If `write_disposition` is specified, this
+	// parameter is ignored. force=false is equivalent to
+	// write_disposition=WRITE_EMPTY and force=true is equivalent to
 	// write_disposition=WRITE_TRUNCATE.
 	Force bool `json:"force,omitempty"`
-	// SchemaConfig: The configuration for the exported BigQuery schema.
+	// SchemaConfig: Optional. The configuration for the exported BigQuery schema.
 	SchemaConfig *SchemaConfig `json:"schemaConfig,omitempty"`
-	// WriteDisposition: Determines if existing data in the destination dataset is
-	// overwritten, appended to, or not written if the tables contain data. If a
-	// write_disposition is specified, the `force` parameter is ignored.
+	// WriteDisposition: Optional. Determines if existing data in the destination
+	// dataset is overwritten, appended to, or not written if the tables contain
+	// data. If a write_disposition is specified, the `force` parameter is ignored.
 	//
 	// Possible values:
 	//   "WRITE_DISPOSITION_UNSPECIFIED" - Default behavior is the same as
@@ -2849,9 +3570,9 @@ type GoogleCloudHealthcareV1FhirBigQueryDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1FhirBigQueryDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1FhirBigQueryDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1FhirBigQueryDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1FhirGcsDestination: The configuration for exporting
@@ -2876,9 +3597,9 @@ type GoogleCloudHealthcareV1FhirGcsDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1FhirGcsDestination) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1FhirGcsDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1FhirGcsDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudHealthcareV1FhirGcsSource: Specifies the configuration for
@@ -2910,9 +3631,9 @@ type GoogleCloudHealthcareV1FhirGcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudHealthcareV1FhirGcsSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudHealthcareV1FhirGcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudHealthcareV1FhirGcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GroupOrSegment: Construct representing a logical group or a segment.
@@ -2932,9 +3653,9 @@ type GroupOrSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GroupOrSegment) MarshalJSON() ([]byte, error) {
+func (s GroupOrSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod GroupOrSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Hl7SchemaConfig: Root config message for HL7v2 schema. This contains a
@@ -2960,9 +3681,9 @@ type Hl7SchemaConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Hl7SchemaConfig) MarshalJSON() ([]byte, error) {
+func (s Hl7SchemaConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod Hl7SchemaConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Hl7TypesConfig: Root config for HL7v2 datatype definitions for a specific
@@ -2986,22 +3707,22 @@ type Hl7TypesConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Hl7TypesConfig) MarshalJSON() ([]byte, error) {
+func (s Hl7TypesConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod Hl7TypesConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Hl7V2NotificationConfig: Specifies where and whether to send notifications
 // upon changes to a data store.
 type Hl7V2NotificationConfig struct {
-	// Filter: Restricts notifications sent for messages matching a filter. If this
-	// is empty, all messages are matched. The following syntax is available: * A
-	// string field value can be written as text inside quotation marks, for
-	// example "query text". The only valid relational operation for text fields
-	// is equality (`=`), where text is searched within the field, rather than
-	// having the field be equal to the text. For example, "Comment = great"
-	// returns messages with `great` in the comment field. * A number field value
-	// can be written as an integer, a decimal, or an exponential. The valid
+	// Filter: Optional. Restricts notifications sent for messages matching a
+	// filter. If this is empty, all messages are matched. The following syntax is
+	// available: * A string field value can be written as text inside quotation
+	// marks, for example "query text". The only valid relational operation for
+	// text fields is equality (`=`), where text is searched within the field,
+	// rather than having the field be equal to the text. For example, "Comment =
+	// great" returns messages with `great` in the comment field. * A number field
+	// value can be written as an integer, a decimal, or an exponential. The valid
 	// relational operators for number fields are the equality operator (`=`),
 	// along with the less than/greater than operators (`<`, `<=`, `>`, `>=`). Note
 	// that there is no inequality (`!=`) operator. You can prepend the `NOT`
@@ -3064,9 +3785,9 @@ type Hl7V2NotificationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Hl7V2NotificationConfig) MarshalJSON() ([]byte, error) {
+func (s Hl7V2NotificationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod Hl7V2NotificationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Hl7V2Store: Represents an HL7v2 store.
@@ -3084,23 +3805,24 @@ type Hl7V2Store struct {
 	// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/hl7V2Sto
 	// res/{hl7v2_store_id}`.
 	Name string `json:"name,omitempty"`
-	// NotificationConfigs: A list of notification configs. Each configuration uses
-	// a filter to determine whether to publish a message (both Ingest & Create) on
-	// the corresponding notification destination. Only the message name is sent as
-	// part of the notification. Supplied by the client.
+	// NotificationConfigs: Optional. A list of notification configs. Each
+	// configuration uses a filter to determine whether to publish a message (both
+	// Ingest & Create) on the corresponding notification destination. Only the
+	// message name is sent as part of the notification. Supplied by the client.
 	NotificationConfigs []*Hl7V2NotificationConfig `json:"notificationConfigs,omitempty"`
-	// ParserConfig: The configuration for the parser. It determines how the server
-	// parses the messages.
+	// ParserConfig: Optional. The configuration for the parser. It determines how
+	// the server parses the messages.
 	ParserConfig *ParserConfig `json:"parserConfig,omitempty"`
-	// RejectDuplicateMessage: Determines whether to reject duplicate messages. A
-	// duplicate message is a message with the same raw bytes as a message that has
-	// already been ingested/created in this HL7v2 store. The default value is
-	// false, meaning that the store accepts the duplicate messages and it also
-	// returns the same ACK message in the IngestMessageResponse as has been
-	// returned previously. Note that only one resource is created in the store.
-	// When this field is set to true, CreateMessage/IngestMessage requests with a
-	// duplicate message will be rejected by the store, and
-	// IngestMessageErrorDetail returns a NACK message upon rejection.
+	// RejectDuplicateMessage: Optional. Determines whether to reject duplicate
+	// messages. A duplicate message is a message with the same raw bytes as a
+	// message that has already been ingested/created in this HL7v2 store. The
+	// default value is false, meaning that the store accepts the duplicate
+	// messages and it also returns the same ACK message in the
+	// IngestMessageResponse as has been returned previously. Note that only one
+	// resource is created in the store. When this field is set to true,
+	// CreateMessage/IngestMessage requests with a duplicate message will be
+	// rejected by the store, and IngestMessageErrorDetail returns a NACK message
+	// upon rejection.
 	RejectDuplicateMessage bool `json:"rejectDuplicateMessage,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -3118,9 +3840,9 @@ type Hl7V2Store struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Hl7V2Store) MarshalJSON() ([]byte, error) {
+func (s Hl7V2Store) MarshalJSON() ([]byte, error) {
 	type NoMethod Hl7V2Store
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Hl7V2StoreMetric: Count of messages and total storage size by type for a
@@ -3148,9 +3870,9 @@ type Hl7V2StoreMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Hl7V2StoreMetric) MarshalJSON() ([]byte, error) {
+func (s Hl7V2StoreMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod Hl7V2StoreMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Hl7V2StoreMetrics: List of metrics for a given HL7v2 store.
@@ -3176,9 +3898,9 @@ type Hl7V2StoreMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Hl7V2StoreMetrics) MarshalJSON() ([]byte, error) {
+func (s Hl7V2StoreMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod Hl7V2StoreMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HttpBody: Message that represents an arbitrary HTTP body. It should only be
@@ -3223,9 +3945,9 @@ type HttpBody struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HttpBody) MarshalJSON() ([]byte, error) {
+func (s HttpBody) MarshalJSON() ([]byte, error) {
 	type NoMethod HttpBody
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Image: Raw bytes representing consent artifact content.
@@ -3255,14 +3977,14 @@ type Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Image) MarshalJSON() ([]byte, error) {
+func (s Image) MarshalJSON() ([]byte, error) {
 	type NoMethod Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageConfig: Specifies how to handle de-identification of image pixels.
 type ImageConfig struct {
-	// TextRedactionMode: Determines how to redact text from image.
+	// TextRedactionMode: Optional. Determines how to redact text from image.
 	//
 	// Possible values:
 	//   "TEXT_REDACTION_MODE_UNSPECIFIED" - No text redaction specified. Same as
@@ -3287,9 +4009,9 @@ type ImageConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageConfig) MarshalJSON() ([]byte, error) {
+func (s ImageConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportDicomDataRequest: Imports data into the specified DICOM store. Returns
@@ -3297,26 +4019,29 @@ func (s *ImageConfig) MarshalJSON() ([]byte, error) {
 // duplicate DICOM instances by ignoring the newly-pushed instance. It does not
 // overwrite.
 type ImportDicomDataRequest struct {
+	// BlobStorageSettings: Optional. The blob storage settings for the data
+	// imported by this operation.
+	BlobStorageSettings *BlobStorageSettings `json:"blobStorageSettings,omitempty"`
 	// GcsSource: Cloud Storage source data location and import configuration. The
 	// Cloud Healthcare Service Agent requires the `roles/storage.objectViewer`
 	// Cloud IAM roles on the Cloud Storage location.
 	GcsSource *GoogleCloudHealthcareV1DicomGcsSource `json:"gcsSource,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "GcsSource") to
+	// ForceSendFields is a list of field names (e.g. "BlobStorageSettings") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "GcsSource") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "BlobStorageSettings") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportDicomDataRequest) MarshalJSON() ([]byte, error) {
+func (s ImportDicomDataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportDicomDataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportDicomDataResponse: Returns additional information in regards to a
@@ -3343,9 +4068,9 @@ type ImportMessagesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportMessagesRequest) MarshalJSON() ([]byte, error) {
+func (s ImportMessagesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportMessagesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportMessagesResponse: Final response of importing messages. This structure
@@ -3389,9 +4114,9 @@ type ImportResourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportResourcesRequest) MarshalJSON() ([]byte, error) {
+func (s ImportResourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportResourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportResourcesResponse: Final response of importing resources. This
@@ -3409,8 +4134,8 @@ type InfoTypeTransformation struct {
 	CryptoHashConfig *CryptoHashConfig `json:"cryptoHashConfig,omitempty"`
 	// DateShiftConfig: Config for date shift.
 	DateShiftConfig *DateShiftConfig `json:"dateShiftConfig,omitempty"`
-	// InfoTypes: InfoTypes to apply this transformation to. If this is not
-	// specified, the transformation applies to any info_type.
+	// InfoTypes: Optional. InfoTypes to apply this transformation to. If this is
+	// not specified, the transformation applies to any info_type.
 	InfoTypes []string `json:"infoTypes,omitempty"`
 	// RedactConfig: Config for text redaction.
 	RedactConfig *RedactConfig `json:"redactConfig,omitempty"`
@@ -3429,9 +4154,9 @@ type InfoTypeTransformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InfoTypeTransformation) MarshalJSON() ([]byte, error) {
+func (s InfoTypeTransformation) MarshalJSON() ([]byte, error) {
 	type NoMethod InfoTypeTransformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IngestMessageRequest: Ingests a message into the specified HL7v2 store.
@@ -3451,9 +4176,9 @@ type IngestMessageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IngestMessageRequest) MarshalJSON() ([]byte, error) {
+func (s IngestMessageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod IngestMessageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IngestMessageResponse: Acknowledges that a message has been ingested into
@@ -3479,9 +4204,9 @@ type IngestMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IngestMessageResponse) MarshalJSON() ([]byte, error) {
+func (s IngestMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod IngestMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KmsWrappedCryptoKey: Include to use an existing data crypto key wrapped by
@@ -3511,9 +4236,9 @@ type KmsWrappedCryptoKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KmsWrappedCryptoKey) MarshalJSON() ([]byte, error) {
+func (s KmsWrappedCryptoKey) MarshalJSON() ([]byte, error) {
 	type NoMethod KmsWrappedCryptoKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LinkedEntity: EntityMentions can be linked to multiple entities using a
@@ -3538,9 +4263,9 @@ type LinkedEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LinkedEntity) MarshalJSON() ([]byte, error) {
+func (s LinkedEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod LinkedEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListAttributeDefinitionsResponse struct {
@@ -3567,9 +4292,9 @@ type ListAttributeDefinitionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAttributeDefinitionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAttributeDefinitionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAttributeDefinitionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListConsentArtifactsResponse struct {
@@ -3596,9 +4321,9 @@ type ListConsentArtifactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConsentArtifactsResponse) MarshalJSON() ([]byte, error) {
+func (s ListConsentArtifactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConsentArtifactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListConsentRevisionsResponse struct {
@@ -3625,9 +4350,9 @@ type ListConsentRevisionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConsentRevisionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListConsentRevisionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConsentRevisionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListConsentStoresResponse struct {
@@ -3654,9 +4379,9 @@ type ListConsentStoresResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConsentStoresResponse) MarshalJSON() ([]byte, error) {
+func (s ListConsentStoresResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConsentStoresResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListConsentsResponse struct {
@@ -3682,9 +4407,9 @@ type ListConsentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConsentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListConsentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConsentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDatasetsResponse: Lists the available datasets.
@@ -3710,9 +4435,9 @@ type ListDatasetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDatasetsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDatasetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDatasetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDicomStoresResponse: Lists the DICOM stores in the given dataset.
@@ -3739,9 +4464,9 @@ type ListDicomStoresResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDicomStoresResponse) MarshalJSON() ([]byte, error) {
+func (s ListDicomStoresResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDicomStoresResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFhirStoresResponse: Lists the FHIR stores in the given dataset.
@@ -3768,9 +4493,9 @@ type ListFhirStoresResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFhirStoresResponse) MarshalJSON() ([]byte, error) {
+func (s ListFhirStoresResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFhirStoresResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListHl7V2StoresResponse: Lists the HL7v2 stores in the given dataset.
@@ -3797,9 +4522,9 @@ type ListHl7V2StoresResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListHl7V2StoresResponse) MarshalJSON() ([]byte, error) {
+func (s ListHl7V2StoresResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListHl7V2StoresResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -3825,9 +4550,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMessagesResponse: Lists the messages in the specified HL7v2 store.
@@ -3854,9 +4579,9 @@ type ListMessagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMessagesResponse) MarshalJSON() ([]byte, error) {
+func (s ListMessagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMessagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -3882,9 +4607,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListUserDataMappingsResponse struct {
@@ -3911,9 +4636,9 @@ type ListUserDataMappingsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUserDataMappingsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUserDataMappingsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUserDataMappingsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -3949,9 +4674,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Message: A complete HL7v2 message. See [Introduction to HL7 Standards]
@@ -3972,23 +4697,24 @@ type Message struct {
 	// [\p{Ll}\p{Lo}\p{N}_-]{0,63} No more than 64 labels can be associated with a
 	// given store.
 	Labels map[string]string `json:"labels,omitempty"`
-	// MessageType: The message type for this message. MSH-9.1.
+	// MessageType: Output only. The message type for this message. MSH-9.1.
 	MessageType string `json:"messageType,omitempty"`
 	// Name: Output only. Resource name of the Message, of the form
 	// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/hl7V2Sto
-	// res/{hl7_v2_store_id}/messages/{message_id}`. Assigned by the server.
+	// res/{hl7_v2_store_id}/messages/{message_id}`.
 	Name string `json:"name,omitempty"`
 	// ParsedData: Output only. The parsed version of the raw message data.
 	ParsedData *ParsedData `json:"parsedData,omitempty"`
-	// PatientIds: All patient IDs listed in the PID-2, PID-3, and PID-4 segments
-	// of this message.
+	// PatientIds: Output only. All patient IDs listed in the PID-2, PID-3, and
+	// PID-4 segments of this message.
 	PatientIds []*PatientId `json:"patientIds,omitempty"`
-	// SchematizedData: The parsed version of the raw message data schematized
-	// according to this store's schemas and type definitions.
+	// SchematizedData: Output only. The parsed version of the raw message data
+	// schematized according to this store's schemas and type definitions.
 	SchematizedData *SchematizedData `json:"schematizedData,omitempty"`
-	// SendFacility: The hospital that this message came from. MSH-4.
+	// SendFacility: Output only. The hospital that this message came from. MSH-4.
 	SendFacility string `json:"sendFacility,omitempty"`
-	// SendTime: The datetime the sending application sent this message. MSH-7.
+	// SendTime: Output only. The datetime the sending application sent this
+	// message. MSH-7.
 	SendTime string `json:"sendTime,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -4006,9 +4732,9 @@ type Message struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Message) MarshalJSON() ([]byte, error) {
+func (s Message) MarshalJSON() ([]byte, error) {
 	type NoMethod Message
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NotificationConfig: Specifies where to send notifications upon changes to a
@@ -4048,9 +4774,9 @@ type NotificationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NotificationConfig) MarshalJSON() ([]byte, error) {
+func (s NotificationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod NotificationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -4095,9 +4821,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: OperationMetadata provides information about the
@@ -4130,9 +4856,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParsedData: The content of a HL7v2 message in a structured format.
@@ -4151,22 +4877,23 @@ type ParsedData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParsedData) MarshalJSON() ([]byte, error) {
+func (s ParsedData) MarshalJSON() ([]byte, error) {
 	type NoMethod ParsedData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParserConfig: The configuration for the parser. It determines how the server
 // parses the messages.
 type ParserConfig struct {
-	// AllowNullHeader: Determines whether messages with no header are allowed.
+	// AllowNullHeader: Optional. Determines whether messages with no header are
+	// allowed.
 	AllowNullHeader bool `json:"allowNullHeader,omitempty"`
-	// Schema: Schemas used to parse messages in this store, if schematized parsing
-	// is desired.
+	// Schema: Optional. Schemas used to parse messages in this store, if
+	// schematized parsing is desired.
 	Schema *SchemaPackage `json:"schema,omitempty"`
-	// SegmentTerminator: Byte(s) to use as the segment terminator. If this is
-	// unset, '\r' is used as segment terminator, matching the HL7 version 2
-	// specification.
+	// SegmentTerminator: Optional. Byte(s) to use as the segment terminator. If
+	// this is unset, '\r' is used as segment terminator, matching the HL7 version
+	// 2 specification.
 	SegmentTerminator string `json:"segmentTerminator,omitempty"`
 	// Version: Immutable. Determines the version of both the default parser to be
 	// used when `schema` is not given, as well as the schematized parser used when
@@ -4200,9 +4927,9 @@ type ParserConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParserConfig) MarshalJSON() ([]byte, error) {
+func (s ParserConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ParserConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PatientId: A patient identifier and associated type.
@@ -4224,9 +4951,33 @@ type PatientId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PatientId) MarshalJSON() ([]byte, error) {
+func (s PatientId) MarshalJSON() ([]byte, error) {
 	type NoMethod PatientId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PatientScope: Apply consents given by a list of patients.
+type PatientScope struct {
+	// PatientIds: Optional. The list of patient IDs whose Consent resources will
+	// be enforced. At most 10,000 patients can be specified. An empty list is
+	// equivalent to all patients (meaning the entire FHIR store).
+	PatientIds []string `json:"patientIds,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "PatientIds") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PatientIds") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PatientScope) MarshalJSON() ([]byte, error) {
+	type NoMethod PatientScope
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -4316,9 +5067,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProgressCounter: ProgressCounter provides counters to describe an
@@ -4343,9 +5094,9 @@ type ProgressCounter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProgressCounter) MarshalJSON() ([]byte, error) {
+func (s ProgressCounter) MarshalJSON() ([]byte, error) {
 	type NoMethod ProgressCounter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PubsubDestination: The Pub/Sub output destination. The Cloud Healthcare
@@ -4377,9 +5128,9 @@ type PubsubDestination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PubsubDestination) MarshalJSON() ([]byte, error) {
+func (s PubsubDestination) MarshalJSON() ([]byte, error) {
 	type NoMethod PubsubDestination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryAccessibleDataRequest: Queries all data_ids that are consented for a
@@ -4414,9 +5165,9 @@ type QueryAccessibleDataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryAccessibleDataRequest) MarshalJSON() ([]byte, error) {
+func (s QueryAccessibleDataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryAccessibleDataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryAccessibleDataResponse: Response for successful QueryAccessibleData
@@ -4439,9 +5190,9 @@ type QueryAccessibleDataResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryAccessibleDataResponse) MarshalJSON() ([]byte, error) {
+func (s QueryAccessibleDataResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryAccessibleDataResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RedactConfig: Define how to redact sensitive values. Default behaviour is
@@ -4474,9 +5225,9 @@ type RejectConsentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RejectConsentRequest) MarshalJSON() ([]byte, error) {
+func (s RejectConsentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RejectConsentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReplaceWithInfoTypeConfig: When using the INSPECT_AND_TRANSFORM action, each
@@ -4503,9 +5254,9 @@ type Resources struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Resources) MarshalJSON() ([]byte, error) {
+func (s Resources) MarshalJSON() ([]byte, error) {
 	type NoMethod Resources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Result: The consent evaluation result for a single `data_id`.
@@ -4530,9 +5281,9 @@ type Result struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Result) MarshalJSON() ([]byte, error) {
+func (s Result) MarshalJSON() ([]byte, error) {
 	type NoMethod Result
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevokeConsentRequest: Revokes the latest revision of the specified Consent
@@ -4558,9 +5309,9 @@ type RevokeConsentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevokeConsentRequest) MarshalJSON() ([]byte, error) {
+func (s RevokeConsentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RevokeConsentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RollbackFhirResourceFilteringFields struct {
@@ -4587,9 +5338,9 @@ type RollbackFhirResourceFilteringFields struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackFhirResourceFilteringFields) MarshalJSON() ([]byte, error) {
+func (s RollbackFhirResourceFilteringFields) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackFhirResourceFilteringFields
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RollbackFhirResourcesRequest struct {
@@ -4632,9 +5383,9 @@ type RollbackFhirResourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackFhirResourcesRequest) MarshalJSON() ([]byte, error) {
+func (s RollbackFhirResourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackFhirResourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackFhirResourcesResponse: Final response of rollback FIHR resources
@@ -4657,9 +5408,101 @@ type RollbackFhirResourcesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RollbackFhirResourcesResponse) MarshalJSON() ([]byte, error) {
+func (s RollbackFhirResourcesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RollbackFhirResourcesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RollbackHL7MessagesFilteringFields: Filtering fields for an HL7v2 rollback.
+// Currently only supports a list of operation ids to roll back.
+type RollbackHL7MessagesFilteringFields struct {
+	// OperationIds: Optional. A list of operation IDs to roll back.
+	OperationIds googleapi.Uint64s `json:"operationIds,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "OperationIds") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "OperationIds") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RollbackHL7MessagesFilteringFields) MarshalJSON() ([]byte, error) {
+	type NoMethod RollbackHL7MessagesFilteringFields
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RollbackHl7V2MessagesRequest: Point in time recovery rollback request.
+type RollbackHl7V2MessagesRequest struct {
+	// ChangeType: Optional. CREATE/UPDATE/DELETE/ALL for reverting all txns of a
+	// certain type.
+	//
+	// Possible values:
+	//   "CHANGE_TYPE_UNSPECIFIED" - When unspecified, revert all transactions
+	//   "ALL" - All transactions
+	//   "CREATE" - Revert only CREATE transactions
+	//   "UPDATE" - Revert only Update transactions
+	//   "DELETE" - Revert only Delete transactions
+	ChangeType string `json:"changeType,omitempty"`
+	// ExcludeRollbacks: Optional. Specifies whether to exclude earlier rollbacks.
+	ExcludeRollbacks bool `json:"excludeRollbacks,omitempty"`
+	// FilteringFields: Optional. Parameters for filtering.
+	FilteringFields *RollbackHL7MessagesFilteringFields `json:"filteringFields,omitempty"`
+	// Force: Optional. When enabled, changes will be reverted without explicit
+	// confirmation.
+	Force bool `json:"force,omitempty"`
+	// InputGcsObject: Optional. Cloud storage object containing list of
+	// {resourceId} lines, identifying resources to be reverted
+	InputGcsObject string `json:"inputGcsObject,omitempty"`
+	// ResultGcsBucket: Required. Bucket to deposit result
+	ResultGcsBucket string `json:"resultGcsBucket,omitempty"`
+	// RollbackTime: Required. Times point to rollback to.
+	RollbackTime string `json:"rollbackTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ChangeType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ChangeType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RollbackHl7V2MessagesRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod RollbackHl7V2MessagesRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RollbackHl7V2MessagesResponse: Final response of rollback HL7v2 messages
+// request.
+type RollbackHl7V2MessagesResponse struct {
+	// Hl7v2Store: The name of the HL7v2 store to rollback, in the format of
+	// "projects/{project_id}/locations/{location_id}/datasets/{dataset_id}
+	// /hl7v2Stores/{hl7v2_store_id}".
+	Hl7v2Store string `json:"hl7v2Store,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Hl7v2Store") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Hl7v2Store") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RollbackHl7V2MessagesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod RollbackHl7V2MessagesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchemaConfig: Configuration for the FHIR BigQuery schema. Determines how the
@@ -4711,9 +5554,9 @@ type SchemaConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchemaConfig) MarshalJSON() ([]byte, error) {
+func (s SchemaConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SchemaConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchemaGroup: An HL7v2 logical group construct.
@@ -4743,25 +5586,25 @@ type SchemaGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchemaGroup) MarshalJSON() ([]byte, error) {
+func (s SchemaGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod SchemaGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchemaPackage: A schema package contains a set of schemas and type
 // definitions.
 type SchemaPackage struct {
-	// IgnoreMinOccurs: Flag to ignore all min_occurs restrictions in the schema.
-	// This means that incoming messages can omit any group, segment, field,
-	// component, or subcomponent.
+	// IgnoreMinOccurs: Optional. Flag to ignore all min_occurs restrictions in the
+	// schema. This means that incoming messages can omit any group, segment,
+	// field, component, or subcomponent.
 	IgnoreMinOccurs bool `json:"ignoreMinOccurs,omitempty"`
-	// Schemas: Schema configs that are layered based on their VersionSources that
-	// match the incoming message. Schema configs present in higher indices
-	// override those in lower indices with the same message type and trigger event
-	// if their VersionSources all match an incoming message.
+	// Schemas: Optional. Schema configs that are layered based on their
+	// VersionSources that match the incoming message. Schema configs present in
+	// higher indices override those in lower indices with the same message type
+	// and trigger event if their VersionSources all match an incoming message.
 	Schemas []*Hl7SchemaConfig `json:"schemas,omitempty"`
-	// SchematizedParsingType: Determines how messages that fail to parse are
-	// handled.
+	// SchematizedParsingType: Optional. Determines how messages that fail to parse
+	// are handled.
 	//
 	// Possible values:
 	//   "SCHEMATIZED_PARSING_TYPE_UNSPECIFIED" - Unspecified schematized parsing
@@ -4771,13 +5614,13 @@ type SchemaPackage struct {
 	//   "HARD_FAIL" - Messages that fail to parse are rejected from
 	// ingestion/insertion and return an error code.
 	SchematizedParsingType string `json:"schematizedParsingType,omitempty"`
-	// Types: Schema type definitions that are layered based on their
+	// Types: Optional. Schema type definitions that are layered based on their
 	// VersionSources that match the incoming message. Type definitions present in
 	// higher indices override those in lower indices with the same type name if
 	// their VersionSources all match an incoming message.
 	Types []*Hl7TypesConfig `json:"types,omitempty"`
-	// UnexpectedSegmentHandling: Determines how unexpected segments (segments not
-	// matched to the schema) are handled.
+	// UnexpectedSegmentHandling: Optional. Determines how unexpected segments
+	// (segments not matched to the schema) are handled.
 	//
 	// Possible values:
 	//   "UNEXPECTED_SEGMENT_HANDLING_MODE_UNSPECIFIED" - Unspecified handling
@@ -4801,9 +5644,9 @@ type SchemaPackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchemaPackage) MarshalJSON() ([]byte, error) {
+func (s SchemaPackage) MarshalJSON() ([]byte, error) {
 	type NoMethod SchemaPackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchemaSegment: An HL7v2 Segment.
@@ -4829,9 +5672,9 @@ type SchemaSegment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchemaSegment) MarshalJSON() ([]byte, error) {
+func (s SchemaSegment) MarshalJSON() ([]byte, error) {
 	type NoMethod SchemaSegment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchematizedData: The content of an HL7v2 message in a structured format as
@@ -4854,15 +5697,15 @@ type SchematizedData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchematizedData) MarshalJSON() ([]byte, error) {
+func (s SchematizedData) MarshalJSON() ([]byte, error) {
 	type NoMethod SchematizedData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchResourcesRequest: Request to search the resources in the specified
 // FHIR store.
 type SearchResourcesRequest struct {
-	// ResourceType: Required. The FHIR resource type to search, such as Patient or
+	// ResourceType: Optional. The FHIR resource type to search, such as Patient or
 	// Observation. For a complete list, see the FHIR Resource Index (DSTU2
 	// (http://hl7.org/implement/standards/fhir/DSTU2/resourcelist.html), STU3
 	// (http://hl7.org/implement/standards/fhir/STU3/resourcelist.html), R4
@@ -4881,9 +5724,9 @@ type SearchResourcesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchResourcesRequest) MarshalJSON() ([]byte, error) {
+func (s SearchResourcesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchResourcesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Segment: A segment in a structured format.
@@ -4917,9 +5760,9 @@ type Segment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Segment) MarshalJSON() ([]byte, error) {
+func (s Segment) MarshalJSON() ([]byte, error) {
 	type NoMethod Segment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SeriesMetrics: SeriesMetrics contains metrics describing a DICOM series.
@@ -4952,9 +5795,44 @@ type SeriesMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeriesMetrics) MarshalJSON() ([]byte, error) {
+func (s SeriesMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod SeriesMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SetBlobStorageSettingsRequest: Request message for `SetBlobStorageSettings`
+// method.
+type SetBlobStorageSettingsRequest struct {
+	// BlobStorageSettings: The blob storage settings to update for the specified
+	// resources. Only fields listed in `update_mask` are applied.
+	BlobStorageSettings *BlobStorageSettings `json:"blobStorageSettings,omitempty"`
+	// FilterConfig: Optional. A filter configuration. If `filter_config` is
+	// specified, set the value of `resource` to the resource name of a DICOM store
+	// in the format
+	// `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStores
+	// /{dicomStoreID}`.
+	FilterConfig *DicomFilterConfig `json:"filterConfig,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BlobStorageSettings") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BlobStorageSettings") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SetBlobStorageSettingsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod SetBlobStorageSettingsRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SetBlobStorageSettingsResponse: Returns additional info in regards to a
+// completed set blob storage settings API.
+type SetBlobStorageSettingsResponse struct {
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -4981,9 +5859,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Signature: User signature.
@@ -5010,9 +5888,9 @@ type Signature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Signature) MarshalJSON() ([]byte, error) {
+func (s Signature) MarshalJSON() ([]byte, error) {
 	type NoMethod Signature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -5044,19 +5922,54 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StorageInfo: StorageInfo encapsulates all the storage info of a resource.
+type StorageInfo struct {
+	// BlobStorageInfo: Info about the data stored in blob storage for the
+	// resource.
+	BlobStorageInfo *BlobStorageInfo `json:"blobStorageInfo,omitempty"`
+	// ReferencedResource: The resource whose storage info is returned. For
+	// example:
+	// `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStores
+	// /{dicomStoreID}/dicomWeb/studies/{studyUID}/series/{seriesUID}/instances/{ins
+	// tanceUID}`
+	ReferencedResource string `json:"referencedResource,omitempty"`
+	// StructuredStorageInfo: Info about the data stored in structured storage for
+	// the resource.
+	StructuredStorageInfo *StructuredStorageInfo `json:"structuredStorageInfo,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "BlobStorageInfo") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BlobStorageInfo") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StorageInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod StorageInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StreamConfig: Contains configuration for streaming FHIR export.
 type StreamConfig struct {
-	// BigqueryDestination: The destination BigQuery structure that contains both
-	// the dataset location and corresponding schema config. The output is
-	// organized in one table per resource type. The server reuses the existing
-	// tables (if any) that are named after the resource types. For example,
-	// "Patient", "Observation". When there is no existing table for a given
-	// resource type, the server attempts to create one. When a table schema
+	// BigqueryDestination: Optional. The destination BigQuery structure that
+	// contains both the dataset location and corresponding schema config. The
+	// output is organized in one table per resource type. The server reuses the
+	// existing tables (if any) that are named after the resource types. For
+	// example, "Patient", "Observation". When there is no existing table for a
+	// given resource type, the server attempts to create one. When a table schema
 	// doesn't align with the schema config, either because of existing
 	// incompatible schema or out of band incompatible modification, the server
 	// does not stream in new data. BigQuery imposes a 1 MB limit on streaming
@@ -5085,14 +5998,15 @@ type StreamConfig struct {
 	// DeidentifiedStoreDestination: The destination FHIR store for de-identified
 	// resources. After this field is added, all subsequent creates/updates/patches
 	// to the source store will be de-identified using the provided configuration
-	// and applied to the destination store. Importing resources to the source
-	// store will not trigger the streaming. If the source store already contains
-	// resources when this option is enabled, those resources will not be copied to
-	// the destination store unless they are subsequently updated. This may result
-	// in invalid references in the destination store. Before adding this config,
-	// you must grant the healthcare.fhirResources.update permission on the
-	// destination store to your project's **Cloud Healthcare Service Agent**
-	// service account
+	// and applied to the destination store. Resources deleted from the source
+	// store will be deleted from the destination store. Importing resources to the
+	// source store will not trigger the streaming. If the source store already
+	// contains resources when this option is enabled, those resources will not be
+	// copied to the destination store unless they are subsequently updated. This
+	// may result in invalid references in the destination store. Before adding
+	// this config, you must grant the healthcare.fhirResources.update permission
+	// on the destination store to your project's **Cloud Healthcare Service
+	// Agent** service account
 	// (https://cloud.google.com/healthcare/docs/how-tos/permissions-healthcare-api-gcp-products#the_cloud_healthcare_service_agent).
 	// The destination store must set enable_update_create to true. The destination
 	// store must have disable_referential_integrity set to true. If a resource
@@ -5100,7 +6014,7 @@ type StreamConfig struct {
 	// error logs in Cloud Logging
 	// (https://cloud.google.com/healthcare/docs/how-tos/logging)).
 	DeidentifiedStoreDestination *DeidentifiedStoreDestination `json:"deidentifiedStoreDestination,omitempty"`
-	// ResourceTypes: Supply a FHIR resource type (such as "Patient" or
+	// ResourceTypes: Optional. Supply a FHIR resource type (such as "Patient" or
 	// "Observation"). See https://www.hl7.org/fhir/valueset-resource-types.html
 	// for a list of all FHIR resource types. The server treats an empty list as an
 	// intent to stream all the supported resource types in this FHIR store.
@@ -5118,9 +6032,32 @@ type StreamConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StreamConfig) MarshalJSON() ([]byte, error) {
+func (s StreamConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod StreamConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StructuredStorageInfo: StructuredStorageInfo contains details about the data
+// stored in Structured Storage for the referenced resource.
+type StructuredStorageInfo struct {
+	// SizeBytes: Size in bytes of data stored in structured storage.
+	SizeBytes int64 `json:"sizeBytes,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "SizeBytes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SizeBytes") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StructuredStorageInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod StructuredStorageInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StudyMetrics: StudyMetrics contains metrics describing a DICOM study.
@@ -5155,15 +6092,15 @@ type StudyMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StudyMetrics) MarshalJSON() ([]byte, error) {
+func (s StudyMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod StudyMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TagFilterList: List of tags to be filtered.
 type TagFilterList struct {
-	// Tags: Tags to be filtered. Tags must be DICOM Data Elements, File Meta
-	// Elements, or Directory Structuring Elements, as defined at:
+	// Tags: Optional. Tags to be filtered. Tags must be DICOM Data Elements, File
+	// Meta Elements, or Directory Structuring Elements, as defined at:
 	// http://dicom.nema.org/medical/dicom/current/output/html/part06.html#table_6-1,.
 	// They may be provided by "Keyword" or "Tag". For example "PatientID",
 	// "00100010".
@@ -5181,9 +6118,9 @@ type TagFilterList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TagFilterList) MarshalJSON() ([]byte, error) {
+func (s TagFilterList) MarshalJSON() ([]byte, error) {
 	type NoMethod TagFilterList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -5206,9 +6143,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -5233,20 +6170,20 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TextConfig struct {
-	// AdditionalTransformations: Transformations to apply to the detected data,
-	// overridden by `exclude_info_types`.
+	// AdditionalTransformations: Optional. Transformations to apply to the
+	// detected data, overridden by `exclude_info_types`.
 	AdditionalTransformations []*InfoTypeTransformation `json:"additionalTransformations,omitempty"`
-	// ExcludeInfoTypes: InfoTypes to skip transforming, overriding
+	// ExcludeInfoTypes: Optional. InfoTypes to skip transforming, overriding
 	// `additional_transformations`.
 	ExcludeInfoTypes []string `json:"excludeInfoTypes,omitempty"`
-	// Transformations: The transformations to apply to the detected data.
-	// Deprecated. Use `additional_transformations` instead.
+	// Transformations: Optional. The transformations to apply to the detected
+	// data. Deprecated. Use `additional_transformations` instead.
 	Transformations []*InfoTypeTransformation `json:"transformations,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AdditionalTransformations")
 	// to unconditionally include in API requests. By default, fields with empty or
@@ -5261,9 +6198,9 @@ type TextConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextConfig) MarshalJSON() ([]byte, error) {
+func (s TextConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TextConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextSpan: A span of text in the provided document.
@@ -5285,9 +6222,9 @@ type TextSpan struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextSpan) MarshalJSON() ([]byte, error) {
+func (s TextSpan) MarshalJSON() ([]byte, error) {
 	type NoMethod TextSpan
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimePartitioning: Configuration for FHIR BigQuery time-partitioned tables.
@@ -5317,9 +6254,40 @@ type TimePartitioning struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimePartitioning) MarshalJSON() ([]byte, error) {
+func (s TimePartitioning) MarshalJSON() ([]byte, error) {
 	type NoMethod TimePartitioning
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TimeRange: Apply consents given by patients whose most recent consent
+// changes are in the time range. Note that after identifying these patients,
+// the server applies all Consent resources given by those patients, not just
+// the Consent resources within the timestamp in the range.
+type TimeRange struct {
+	// End: Optional. The latest consent change time, in format
+	// YYYY-MM-DDThh:mm:ss.sss+zz:zz If not specified, the system uses the time
+	// when ApplyConsents was called.
+	End string `json:"end,omitempty"`
+	// Start: Optional. The earliest consent change time, in format
+	// YYYY-MM-DDThh:mm:ss.sss+zz:zz If not specified, the system uses the FHIR
+	// store creation time.
+	Start string `json:"start,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "End") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "End") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TimeRange) MarshalJSON() ([]byte, error) {
+	type NoMethod TimeRange
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Type: A type definition for some HL7v2 type (incl. Segments and Datatypes).
@@ -5352,9 +6320,9 @@ type Type struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Type) MarshalJSON() ([]byte, error) {
+func (s Type) MarshalJSON() ([]byte, error) {
 	type NoMethod Type
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserDataMapping: Maps a resource to the associated user and Attributes.
@@ -5393,42 +6361,43 @@ type UserDataMapping struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserDataMapping) MarshalJSON() ([]byte, error) {
+func (s UserDataMapping) MarshalJSON() ([]byte, error) {
 	type NoMethod UserDataMapping
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidationConfig: Contains the configuration for FHIR profiles and
 // validation.
 type ValidationConfig struct {
-	// DisableFhirpathValidation: Whether to disable FHIRPath validation for
-	// incoming resources. Set this to true to disable checking incoming resources
-	// for conformance against FHIRPath requirement defined in the FHIR
-	// specification. This property only affects resource types that do not have
-	// profiles configured for them, any rules in enabled implementation guides
-	// will still be enforced.
+	// DisableFhirpathValidation: Optional. Whether to disable FHIRPath validation
+	// for incoming resources. The default value is false. Set this to true to
+	// disable checking incoming resources for conformance against FHIRPath
+	// requirement defined in the FHIR specification. This property only affects
+	// resource types that do not have profiles configured for them, any rules in
+	// enabled implementation guides will still be enforced.
 	DisableFhirpathValidation bool `json:"disableFhirpathValidation,omitempty"`
-	// DisableProfileValidation: Whether to disable profile validation for this
-	// FHIR store. Set this to true to disable checking incoming resources for
-	// conformance against structure definitions in this FHIR store.
+	// DisableProfileValidation: Optional. Whether to disable profile validation
+	// for this FHIR store. The default value is false. Set this to true to disable
+	// checking incoming resources for conformance against structure definitions in
+	// this FHIR store.
 	DisableProfileValidation bool `json:"disableProfileValidation,omitempty"`
-	// DisableReferenceTypeValidation: Whether to disable reference type validation
-	// for incoming resources. Set this to true to disable checking incoming
-	// resources for conformance against reference type requirement defined in the
-	// FHIR specification. This property only affects resource types that do not
-	// have profiles configured for them, any rules in enabled implementation
-	// guides will still be enforced.
+	// DisableReferenceTypeValidation: Optional. Whether to disable reference type
+	// validation for incoming resources. The default value is false. Set this to
+	// true to disable checking incoming resources for conformance against
+	// reference type requirement defined in the FHIR specification. This property
+	// only affects resource types that do not have profiles configured for them,
+	// any rules in enabled implementation guides will still be enforced.
 	DisableReferenceTypeValidation bool `json:"disableReferenceTypeValidation,omitempty"`
-	// DisableRequiredFieldValidation: Whether to disable required fields
-	// validation for incoming resources. Set this to true to disable checking
-	// incoming resources for conformance against required fields requirement
-	// defined in the FHIR specification. This property only affects resource types
-	// that do not have profiles configured for them, any rules in enabled
-	// implementation guides will still be enforced.
+	// DisableRequiredFieldValidation: Optional. Whether to disable required fields
+	// validation for incoming resources. The default value is false. Set this to
+	// true to disable checking incoming resources for conformance against required
+	// fields requirement defined in the FHIR specification. This property only
+	// affects resource types that do not have profiles configured for them, any
+	// rules in enabled implementation guides will still be enforced.
 	DisableRequiredFieldValidation bool `json:"disableRequiredFieldValidation,omitempty"`
-	// EnabledImplementationGuides: A list of implementation guide URLs in this
-	// FHIR store that are used to configure the profiles to use for validation.
-	// For example, to use the US Core profiles for validation, set
+	// EnabledImplementationGuides: Optional. A list of implementation guide URLs
+	// in this FHIR store that are used to configure the profiles to use for
+	// validation. For example, to use the US Core profiles for validation, set
 	// `enabled_implementation_guides` to
 	// `["http://hl7.org/fhir/us/core/ImplementationGuide/ig"]`. If
 	// `enabled_implementation_guides` is empty or omitted, then incoming resources
@@ -5454,9 +6423,9 @@ type ValidationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValidationConfig) MarshalJSON() ([]byte, error) {
+func (s ValidationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ValidationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VersionSource: Describes a selector for extracting and matching an MSH field
@@ -5481,9 +6450,9 @@ type VersionSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VersionSource) MarshalJSON() ([]byte, error) {
+func (s VersionSource) MarshalJSON() ([]byte, error) {
 	type NoMethod VersionSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -5540,12 +6509,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5553,6 +6521,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5587,9 +6556,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5671,12 +6642,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5684,6 +6654,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5719,9 +6690,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5802,8 +6775,7 @@ func (c *ProjectsLocationsDatasetsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -5819,6 +6791,7 @@ func (c *ProjectsLocationsDatasetsCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5853,9 +6826,11 @@ func (c *ProjectsLocationsDatasetsCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5912,8 +6887,7 @@ func (c *ProjectsLocationsDatasetsDeidentifyCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsDeidentifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deidentifydatasetrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deidentifydatasetrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5929,6 +6903,7 @@ func (c *ProjectsLocationsDatasetsDeidentifyCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"sourceDataset": c.sourceDataset,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.deidentify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5963,9 +6938,11 @@ func (c *ProjectsLocationsDatasetsDeidentifyCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.deidentify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6014,12 +6991,11 @@ func (c *ProjectsLocationsDatasetsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6027,6 +7003,7 @@ func (c *ProjectsLocationsDatasetsDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6061,9 +7038,11 @@ func (c *ProjectsLocationsDatasetsDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6122,12 +7101,11 @@ func (c *ProjectsLocationsDatasetsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6135,6 +7113,7 @@ func (c *ProjectsLocationsDatasetsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6169,9 +7148,11 @@ func (c *ProjectsLocationsDatasetsGetCall) Do(opts ...googleapi.CallOption) (*Da
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6249,12 +7230,11 @@ func (c *ProjectsLocationsDatasetsGetIamPolicyCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6262,6 +7242,7 @@ func (c *ProjectsLocationsDatasetsGetIamPolicyCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6296,9 +7277,11 @@ func (c *ProjectsLocationsDatasetsGetIamPolicyCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6371,12 +7354,11 @@ func (c *ProjectsLocationsDatasetsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/datasets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6384,6 +7366,7 @@ func (c *ProjectsLocationsDatasetsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6419,9 +7402,11 @@ func (c *ProjectsLocationsDatasetsListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6499,8 +7484,7 @@ func (c *ProjectsLocationsDatasetsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dataset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -6516,6 +7500,7 @@ func (c *ProjectsLocationsDatasetsPatchCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6550,9 +7535,11 @@ func (c *ProjectsLocationsDatasetsPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6604,8 +7591,7 @@ func (c *ProjectsLocationsDatasetsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6621,6 +7607,7 @@ func (c *ProjectsLocationsDatasetsSetIamPolicyCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6655,9 +7642,11 @@ func (c *ProjectsLocationsDatasetsSetIamPolicyCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6712,8 +7701,7 @@ func (c *ProjectsLocationsDatasetsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6729,6 +7717,7 @@ func (c *ProjectsLocationsDatasetsTestIamPermissionsCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6764,9 +7753,11 @@ func (c *ProjectsLocationsDatasetsTestIamPermissionsCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6818,8 +7809,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresCheckDataAccessCall) Header() htt
 
 func (c *ProjectsLocationsDatasetsConsentStoresCheckDataAccessCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.checkdataaccessrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.checkdataaccessrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6835,6 +7825,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresCheckDataAccessCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"consentStore": c.consentStore,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.checkDataAccess", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6870,9 +7861,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresCheckDataAccessCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.checkDataAccess", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6930,8 +7923,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresCreateCall) Header() http.Header 
 
 func (c *ProjectsLocationsDatasetsConsentStoresCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.consentstore)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.consentstore)
 	if err != nil {
 		return nil, err
 	}
@@ -6947,6 +7939,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresCreateCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6981,9 +7974,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresCreateCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7030,12 +8025,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresDeleteCall) Header() http.Header 
 
 func (c *ProjectsLocationsDatasetsConsentStoresDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7043,6 +8037,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7077,9 +8072,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresDeleteCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7131,8 +8128,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresEvaluateUserConsentsCall) Header(
 
 func (c *ProjectsLocationsDatasetsConsentStoresEvaluateUserConsentsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.evaluateuserconsentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.evaluateuserconsentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7148,6 +8144,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresEvaluateUserConsentsCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"consentStore": c.consentStore,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.evaluateUserConsents", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7183,9 +8180,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresEvaluateUserConsentsCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.evaluateUserConsents", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7264,12 +8263,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresGetCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7277,6 +8275,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresGetCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7311,9 +8310,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresGetCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7391,12 +8392,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresGetIamPolicyCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7404,6 +8404,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresGetIamPolicyCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7438,9 +8439,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresGetIamPolicyCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7521,12 +8524,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/consentStores")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7534,6 +8536,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7569,9 +8572,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7652,8 +8657,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsConsentStoresPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.consentstore)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.consentstore)
 	if err != nil {
 		return nil, err
 	}
@@ -7669,6 +8673,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresPatchCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7703,9 +8708,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresPatchCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7779,8 +8786,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresQueryAccessibleDataCall) Header()
 
 func (c *ProjectsLocationsDatasetsConsentStoresQueryAccessibleDataCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.queryaccessibledatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.queryaccessibledatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7796,6 +8802,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresQueryAccessibleDataCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"consentStore": c.consentStore,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.queryAccessibleData", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7830,9 +8837,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresQueryAccessibleDataCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.queryAccessibleData", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7884,8 +8893,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresSetIamPolicyCall) Header() http.H
 
 func (c *ProjectsLocationsDatasetsConsentStoresSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7901,6 +8909,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresSetIamPolicyCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7935,9 +8944,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresSetIamPolicyCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7992,8 +9003,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresTestIamPermissionsCall) Header() 
 
 func (c *ProjectsLocationsDatasetsConsentStoresTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8009,6 +9019,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresTestIamPermissionsCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8044,9 +9055,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresTestIamPermissionsCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8105,8 +9118,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsCreateCall) H
 
 func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.attributedefinition)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.attributedefinition)
 	if err != nil {
 		return nil, err
 	}
@@ -8122,6 +9134,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsCreateCall) d
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8157,9 +9170,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsCreateCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8209,12 +9224,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsDeleteCall) H
 
 func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8222,6 +9236,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsDeleteCall) d
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8256,9 +9271,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsDeleteCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8316,12 +9333,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsGetCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8329,6 +9345,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsGetCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8364,9 +9381,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsGetCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8447,12 +9466,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsListCall) doR
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/attributeDefinitions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8460,6 +9478,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsListCall) doR
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8495,9 +9514,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsListCall) Do(
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8580,8 +9601,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsPatchCall) He
 
 func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.attributedefinition)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.attributedefinition)
 	if err != nil {
 		return nil, err
 	}
@@ -8597,6 +9617,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsPatchCall) do
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8632,9 +9653,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresAttributeDefinitionsPatchCall) Do
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.attributeDefinitions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8682,8 +9705,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsCreateCall) Heade
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.consentartifact)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.consentartifact)
 	if err != nil {
 		return nil, err
 	}
@@ -8699,6 +9721,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsCreateCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consentArtifacts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8734,9 +9757,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsCreateCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consentArtifacts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8785,12 +9810,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsDeleteCall) Heade
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8798,6 +9822,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsDeleteCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consentArtifacts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8832,9 +9857,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsDeleteCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consentArtifacts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8892,12 +9919,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsGetCall) doReques
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8905,6 +9931,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsGetCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consentArtifacts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8940,9 +9967,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsGetCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consentArtifacts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9046,12 +10075,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsListCall) doReque
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/consentArtifacts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9059,6 +10087,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsListCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consentArtifacts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9094,9 +10123,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentArtifactsListCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consentArtifacts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9172,8 +10203,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsActivateCall) Header() ht
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentsActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.activateconsentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.activateconsentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9189,6 +10219,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsActivateCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9223,9 +10254,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsActivateCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9273,8 +10306,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsCreateCall) Header() http
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.consent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.consent)
 	if err != nil {
 		return nil, err
 	}
@@ -9290,6 +10322,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsCreateCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9324,9 +10357,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsCreateCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9378,12 +10413,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsDeleteCall) Header() http
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9391,6 +10425,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsDeleteCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9425,9 +10460,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsDeleteCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9479,12 +10516,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsDeleteRevisionCall) Heade
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentsDeleteRevisionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:deleteRevision")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9492,6 +10528,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsDeleteRevisionCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.deleteRevision", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9526,9 +10563,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsDeleteRevisionCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.deleteRevision", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9592,12 +10631,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9605,6 +10643,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsGetCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9639,9 +10678,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9747,12 +10788,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/consents")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9760,6 +10800,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsListCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9795,9 +10836,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9924,12 +10967,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsListRevisionsCall) doRequ
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:listRevisions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9937,6 +10979,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsListRevisionsCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.listRevisions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9972,9 +11015,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsListRevisionsCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.listRevisions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10059,8 +11104,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsPatchCall) Header() http.
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.consent)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.consent)
 	if err != nil {
 		return nil, err
 	}
@@ -10076,6 +11120,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsPatchCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10110,9 +11155,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsPatchCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10167,8 +11214,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsRejectCall) Header() http
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentsRejectCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rejectconsentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rejectconsentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10184,6 +11230,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsRejectCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.reject", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10218,9 +11265,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsRejectCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.reject", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10275,8 +11324,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsRevokeCall) Header() http
 
 func (c *ProjectsLocationsDatasetsConsentStoresConsentsRevokeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.revokeconsentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.revokeconsentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10292,6 +11340,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsRevokeCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.revoke", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10326,9 +11375,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresConsentsRevokeCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.consents.revoke", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10376,8 +11427,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsArchiveCall) Head
 
 func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsArchiveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.archiveuserdatamappingrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.archiveuserdatamappingrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10393,6 +11443,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsArchiveCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.archive", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10428,9 +11479,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsArchiveCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.archive", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10478,8 +11531,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsCreateCall) Heade
 
 func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userdatamapping)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userdatamapping)
 	if err != nil {
 		return nil, err
 	}
@@ -10495,6 +11547,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsCreateCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10530,9 +11583,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsCreateCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10578,12 +11633,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsDeleteCall) Heade
 
 func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10591,6 +11645,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsDeleteCall) doReq
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10625,9 +11680,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsDeleteCall) Do(op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10685,12 +11742,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsGetCall) doReques
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10698,6 +11754,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsGetCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10733,9 +11790,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsGetCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10837,12 +11896,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsListCall) doReque
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/userDataMappings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10850,6 +11908,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsListCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10885,9 +11944,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsListCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10968,8 +12029,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsPatchCall) Header
 
 func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userdatamapping)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userdatamapping)
 	if err != nil {
 		return nil, err
 	}
@@ -10985,6 +12045,7 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsPatchCall) doRequ
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11020,9 +12081,11 @@ func (c *ProjectsLocationsDatasetsConsentStoresUserDataMappingsPatchCall) Do(opt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.consentStores.userDataMappings.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11100,12 +12163,11 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesGetIamPolicyCall) doReques
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11113,6 +12175,7 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesGetIamPolicyCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dataMapperWorkspaces.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11147,9 +12210,11 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesGetIamPolicyCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dataMapperWorkspaces.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11201,8 +12266,7 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesSetIamPolicyCall) Header()
 
 func (c *ProjectsLocationsDatasetsDataMapperWorkspacesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11218,6 +12282,7 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesSetIamPolicyCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dataMapperWorkspaces.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11252,9 +12317,11 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesSetIamPolicyCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dataMapperWorkspaces.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11309,8 +12376,7 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesTestIamPermissionsCall) He
 
 func (c *ProjectsLocationsDatasetsDataMapperWorkspacesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11326,6 +12392,7 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesTestIamPermissionsCall) do
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dataMapperWorkspaces.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11361,9 +12428,11 @@ func (c *ProjectsLocationsDatasetsDataMapperWorkspacesTestIamPermissionsCall) Do
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dataMapperWorkspaces.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11419,8 +12488,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsDicomStoresCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dicomstore)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.dicomstore)
 	if err != nil {
 		return nil, err
 	}
@@ -11436,6 +12504,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11470,9 +12539,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11530,8 +12601,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresDeidentifyCall) Header() http.Heade
 
 func (c *ProjectsLocationsDatasetsDicomStoresDeidentifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deidentifydicomstorerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deidentifydicomstorerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11547,6 +12617,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresDeidentifyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"sourceStore": c.sourceStore,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.deidentify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11581,9 +12652,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresDeidentifyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.deidentify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11630,12 +12703,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsDicomStoresDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11643,6 +12715,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11677,9 +12750,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11734,8 +12809,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresExportCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsDicomStoresExportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.exportdicomdatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.exportdicomdatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11751,6 +12825,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresExportCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.export", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11785,9 +12860,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresExportCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11845,12 +12922,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11858,6 +12934,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11892,9 +12969,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11952,12 +13031,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetDICOMStoreMetricsCall) doRequest
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:getDICOMStoreMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11965,6 +13043,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetDICOMStoreMetricsCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.getDICOMStoreMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12000,9 +13079,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetDICOMStoreMetricsCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.getDICOMStoreMetrics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12080,12 +13161,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetIamPolicyCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12093,6 +13173,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetIamPolicyCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12127,9 +13208,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresGetIamPolicyCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12184,8 +13267,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresImportCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsDicomStoresImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importdicomdatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importdicomdatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12201,6 +13283,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresImportCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12235,9 +13318,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresImportCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12338,12 +13423,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomStores")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12351,6 +13435,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12386,9 +13471,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12467,8 +13554,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsDicomStoresPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.dicomstore)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.dicomstore)
 	if err != nil {
 		return nil, err
 	}
@@ -12484,6 +13570,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12518,9 +13605,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12593,12 +13682,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresSearchForInstancesCall) doRequest(a
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12607,6 +13695,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresSearchForInstancesCall) doRequest(a
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.searchForInstances", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12683,12 +13772,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresSearchForSeriesCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12697,6 +13785,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresSearchForSeriesCall) doRequest(alt 
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.searchForSeries", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12774,12 +13863,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresSearchForStudiesCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12788,6 +13876,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresSearchForStudiesCall) doRequest(alt
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.searchForStudies", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12795,6 +13884,121 @@ func (c *ProjectsLocationsDatasetsDicomStoresSearchForStudiesCall) doRequest(alt
 func (c *ProjectsLocationsDatasetsDicomStoresSearchForStudiesCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall struct {
+	s                             *Service
+	resource                      string
+	setblobstoragesettingsrequest *SetBlobStorageSettingsRequest
+	urlParams_                    gensupport.URLParams
+	ctx_                          context.Context
+	header_                       http.Header
+}
+
+// SetBlobStorageSettings: SetBlobStorageSettings sets the blob storage
+// settings of the specified resources.
+//
+//   - resource: The path of the resource to update the blob storage settings in
+//     the format of
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}/dicomWeb/studies/{studyUID}`,
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}/dicomWeb/studies/{studyUID}/series/{seriesUID}/`, or
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}/dicomWeb/studies/{studyUID}/series/{seriesUID}/instances/
+//     {instanceUID}`. If `filter_config` is specified, set the value of
+//     `resource` to the resource name of a DICOM store in the format
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}`.
+func (r *ProjectsLocationsDatasetsDicomStoresService) SetBlobStorageSettings(resource string, setblobstoragesettingsrequest *SetBlobStorageSettingsRequest) *ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall {
+	c := &ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.setblobstoragesettingsrequest = setblobstoragesettingsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall) Context(ctx context.Context) *ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setblobstoragesettingsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:setBlobStorageSettings")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.setBlobStorageSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.dicomStores.setBlobStorageSettings" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDatasetsDicomStoresSetBlobStorageSettingsCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.setBlobStorageSettings", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsLocationsDatasetsDicomStoresSetIamPolicyCall struct {
@@ -12845,8 +14049,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresSetIamPolicyCall) Header() http.Hea
 
 func (c *ProjectsLocationsDatasetsDicomStoresSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12862,6 +14065,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresSetIamPolicyCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12896,9 +14100,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresSetIamPolicyCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12959,8 +14165,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStoreInstancesCall) Header() http.H
 
 func (c *ProjectsLocationsDatasetsDicomStoresStoreInstancesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("POST", urls, body)
@@ -12972,6 +14181,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStoreInstancesCall) doRequest(alt s
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.storeInstances", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13032,8 +14242,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresTestIamPermissionsCall) Header() ht
 
 func (c *ProjectsLocationsDatasetsDicomStoresTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13049,6 +14258,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresTestIamPermissionsCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13084,9 +14294,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresTestIamPermissionsCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13146,12 +14358,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesGetStudyMetricsCall)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+study}:getStudyMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13159,6 +14370,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesGetStudyMetricsCall)
 	googleapi.Expand(req.URL, map[string]string{
 		"study": c.study,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.getStudyMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13193,9 +14405,126 @@ func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesGetStudyMetricsCall)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.getStudyMetrics", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall struct {
+	s                             *Service
+	resource                      string
+	setblobstoragesettingsrequest *SetBlobStorageSettingsRequest
+	urlParams_                    gensupport.URLParams
+	ctx_                          context.Context
+	header_                       http.Header
+}
+
+// SetBlobStorageSettings: SetBlobStorageSettings sets the blob storage
+// settings of the specified resources.
+//
+//   - resource: The path of the resource to update the blob storage settings in
+//     the format of
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}/dicomWeb/studies/{studyUID}`,
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}/dicomWeb/studies/{studyUID}/series/{seriesUID}/`, or
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}/dicomWeb/studies/{studyUID}/series/{seriesUID}/instances/
+//     {instanceUID}`. If `filter_config` is specified, set the value of
+//     `resource` to the resource name of a DICOM store in the format
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}`.
+func (r *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesService) SetBlobStorageSettings(resource string, setblobstoragesettingsrequest *SetBlobStorageSettingsRequest) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall {
+	c := &ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.setblobstoragesettingsrequest = setblobstoragesettingsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall) Context(ctx context.Context) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setblobstoragesettingsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:setBlobStorageSettings")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.setBlobStorageSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.setBlobStorageSettings" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSetBlobStorageSettingsCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.setBlobStorageSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13255,12 +14584,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesGetSeriesMetri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+series}:getSeriesMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13268,6 +14596,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesGetSeriesMetri
 	googleapi.Expand(req.URL, map[string]string{
 		"series": c.series,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.series.getSeriesMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13302,9 +14631,125 @@ func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesGetSeriesMetri
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.series.getSeriesMetrics", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall struct {
+	s            *Service
+	resource     string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetStorageInfo: GetStorageInfo returns the storage info of the specified
+// resource.
+//
+//   - resource: The path of the instance to return storage info for, in the
+//     form:
+//     `projects/{projectID}/locations/{locationID}/datasets/{datasetID}/dicomStor
+//     es/{dicomStoreID}/dicomWeb/studies/{studyUID}/series/{seriesUID}/instances/
+//     {instanceUID}`.
+func (r *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesService) GetStorageInfo(resource string) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall {
+	c := &ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall) Context(ctx context.Context) *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getStorageInfo")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.series.instances.getStorageInfo", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.series.instances.getStorageInfo" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *StorageInfo.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstancesGetStorageInfoCall) Do(opts ...googleapi.CallOption) (*StorageInfo, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &StorageInfo{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.dicomWeb.studies.series.instances.getStorageInfo", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13361,12 +14806,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesDeleteCall) Header() http.He
 
 func (c *ProjectsLocationsDatasetsDicomStoresStudiesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13375,6 +14819,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesDeleteCall) doRequest(alt st
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13409,9 +14854,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesDeleteCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13484,12 +14931,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesRetrieveMetadataCall) doRequ
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13498,6 +14944,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesRetrieveMetadataCall) doRequ
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.retrieveMetadata", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13575,12 +15022,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesRetrieveStudyCall) doRequest
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13589,6 +15035,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesRetrieveStudyCall) doRequest
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.retrieveStudy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13667,12 +15114,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSearchForInstancesCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13681,6 +15127,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSearchForInstancesCall) doRe
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.searchForInstances", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13757,12 +15204,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSearchForSeriesCall) doReque
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13771,6 +15217,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSearchForSeriesCall) doReque
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.searchForSeries", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13837,8 +15284,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesStoreInstancesCall) Header()
 
 func (c *ProjectsLocationsDatasetsDicomStoresStudiesStoreInstancesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("POST", urls, body)
@@ -13850,6 +15300,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesStoreInstancesCall) doReques
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.storeInstances", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13914,12 +15365,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesDeleteCall) Header() h
 
 func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13928,6 +15378,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesDeleteCall) doRequest(
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13962,9 +15413,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesDeleteCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14037,12 +15490,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesRetrieveMetadataCall) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14051,6 +15503,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesRetrieveMetadataCall) 
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.retrieveMetadata", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14128,12 +15581,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesRetrieveSeriesCall) do
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14142,6 +15594,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesRetrieveSeriesCall) do
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.retrieveSeries", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14220,12 +15673,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesSearchForInstancesCall
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14234,6 +15686,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesSearchForInstancesCall
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.searchForInstances", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14297,12 +15750,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesDeleteCall) H
 
 func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14311,6 +15763,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesDeleteCall) d
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.instances.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14345,9 +15798,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesDeleteCall) D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.instances.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14422,12 +15877,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveInsta
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14436,6 +15890,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveInsta
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.instances.retrieveInstance", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14516,12 +15971,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveMetad
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14530,6 +15984,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveMetad
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.instances.retrieveMetadata", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14574,6 +16029,14 @@ func (r *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesService) Retr
 	return c
 }
 
+// Viewport sets the optional parameter "viewport": The viewport setting to use
+// as specified in
+// https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_8.3.5.html#sect_8.3.5.1.3
+func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveRenderedCall) Viewport(viewport string) *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveRenderedCall {
+	c.urlParams_.Set("viewport", viewport)
+	return c
+}
+
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
 // details.
@@ -14610,12 +16073,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveRende
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14624,6 +16086,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveRende
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.instances.retrieveRendered", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14702,12 +16165,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesRetriev
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14716,6 +16178,7 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesRetriev
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.instances.frames.retrieveFrames", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14760,6 +16223,14 @@ func (r *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesService
 	return c
 }
 
+// Viewport sets the optional parameter "viewport": The viewport setting to use
+// as specified in
+// https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_8.3.5.html#sect_8.3.5.1.3
+func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesRetrieveRenderedCall) Viewport(viewport string) *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesRetrieveRenderedCall {
+	c.urlParams_.Set("viewport", viewport)
+	return c
+}
+
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
 // details.
@@ -14796,12 +16267,11 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesRetriev
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dicomWeb/{+dicomWebPath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14810,11 +16280,402 @@ func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesRetriev
 		"parent":       c.parent,
 		"dicomWebPath": c.dicomWebPath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.dicomStores.studies.series.instances.frames.retrieveRendered", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "healthcare.projects.locations.datasets.dicomStores.studies.series.instances.frames.retrieveRendered" call.
 func (c *ProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFramesRetrieveRenderedCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall struct {
+	s                         *Service
+	name                      string
+	applyadminconsentsrequest *ApplyAdminConsentsRequest
+	urlParams_                gensupport.URLParams
+	ctx_                      context.Context
+	header_                   http.Header
+}
+
+// ApplyAdminConsents: Applies the admin Consent resources for the FHIR store
+// and reindexes the underlying resources in the FHIR store according to the
+// aggregate consents. This method also updates the
+// `consent_config.enforced_admin_consents` field of the FhirStore unless
+// `validate_only=true` in ApplyAdminConsentsRequest. Any admin Consent
+// resource change after this operation execution (including deletion) requires
+// you to call ApplyAdminConsents again for the change to take effect. This
+// method returns an Operation that can be used to track the progress of the
+// resources that were reindexed, by calling GetOperation. Upon completion, the
+// ApplyAdminConsentsResponse additionally contains the number of resources
+// that were reindexed. If at least one Consent resource contains an error or
+// fails be be enforced for any reason, the method returns an error instead of
+// an Operation. No resources will be reindexed and the
+// `consent_config.enforced_admin_consents` field will be unchanged. To enforce
+// a consent check for data access, `consent_config.access_enforced` must be
+// set to true for the FhirStore.
+//
+//   - name: The name of the FHIR store to enforce, in the format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresService) ApplyAdminConsents(name string, applyadminconsentsrequest *ApplyAdminConsentsRequest) *ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall {
+	c := &ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.applyadminconsentsrequest = applyadminconsentsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.applyadminconsentsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:applyAdminConsents")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.applyAdminConsents", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.applyAdminConsents" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDatasetsFhirStoresApplyAdminConsentsCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.applyAdminConsents", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDatasetsFhirStoresApplyConsentsCall struct {
+	s                    *Service
+	name                 string
+	applyconsentsrequest *ApplyConsentsRequest
+	urlParams_           gensupport.URLParams
+	ctx_                 context.Context
+	header_              http.Header
+}
+
+// ApplyConsents: Apply the Consent resources for the FHIR store and reindex
+// the underlying resources in the FHIR store according to the aggregate
+// consent. The aggregate consent of the patient in scope in this request
+// replaces any previous call of this method. Any Consent resource change after
+// this operation execution (including deletion) requires you to call
+// ApplyConsents again to have effect. This method returns an Operation that
+// can be used to track the progress of the consent resources that were
+// processed by calling GetOperation. Upon completion, the
+// ApplyConsentsResponse additionally contains the number of resources that was
+// reindexed. Errors are logged to Cloud Logging (see Viewing error logs in
+// Cloud Logging (https://cloud.google.com/healthcare/docs/how-tos/logging)).
+// To enforce consent check for data access, `consent_config.access_enforced`
+// must be set to true for the FhirStore.
+//
+//   - name: The name of the FHIR store to enforce, in the format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresService) ApplyConsents(name string, applyconsentsrequest *ApplyConsentsRequest) *ProjectsLocationsDatasetsFhirStoresApplyConsentsCall {
+	c := &ProjectsLocationsDatasetsFhirStoresApplyConsentsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.applyconsentsrequest = applyconsentsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresApplyConsentsCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresApplyConsentsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresApplyConsentsCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresApplyConsentsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresApplyConsentsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresApplyConsentsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.applyconsentsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:applyConsents")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.applyConsents", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.applyConsents" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDatasetsFhirStoresApplyConsentsCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.applyConsents", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// BulkExportGroup: Bulk exports a Group resource and resources in the member
+// field, including related resources for each Patient member. The export for
+// each Patient is identical to a GetPatientEverything request. Implements the
+// FHIR implementation guide $export group of patients
+// (https://build.fhir.org/ig/HL7/bulk-data/export.html#endpoint---group-of-patients).
+// The following headers must be set in the request: * `Accept`: specifies the
+// format of the `OperationOutcome` response. Only `application/fhir+json` is
+// supported. * `Prefer`: specifies whether the response is immediate or
+// asynchronous. Must be to `respond-async` because only asynchronous responses
+// are supported. Specify the destination for the server to write result files
+// by setting the Cloud Storage location bulk_export_gcs_destination on the
+// FHIR store. URI of an existing Cloud Storage directory where the server
+// writes result files, in the format
+// gs://{bucket-id}/{path/to/destination/dir}. If there is no trailing slash,
+// the service appends one when composing the object path. The user is
+// responsible for creating the Cloud Storage bucket referenced. Supports the
+// following query parameters: * `_type`: string of comma-delimited FHIR
+// resource types. If provided, only resources of the specified type(s) are
+// exported. * `_since`: if provided, only resources updated after the
+// specified time are exported. * `_outputFormat`: optional, specify ndjson to
+// export data in NDJSON format. Exported file names use the format:
+// {export_id}_{resource_type}.ndjson. * `organizeOutputBy`: resource type to
+// organize the output by. Required and must be set to `Patient`. When
+// specified, output files are organized by instances of the specified resource
+// type, including the resource, referenced resources, and resources that
+// contain references to that resource. On success, the `Content-Location`
+// header of response is set to a URL that you can use to query the status of
+// the export. The URL is in the format
+// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirStor
+// es/{fhir_store_id}/operations/{export_id}`. See get-fhir-operation-status
+// for more information. Errors generated by the FHIR store contain a
+// JSON-encoded `OperationOutcome` resource describing the reason for the
+// error.
+//
+//   - name: Name of the Group resource that is exported, in format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}/fhir/Group/{group_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresService) BulkExportGroup(name string) *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall {
+	c := &ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Since sets the optional parameter "_since": If provided, only resources
+// updated after this time are exported. The time uses the format
+// YYYY-MM-DDThh:mm:ss.sss+zz:zz. For example, `2015-02-07T13:28:17.239+02:00`
+// or `2017-01-01T00:00:00Z`. The time must be specified to the second and
+// include a time zone.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) Since(Since string) *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall {
+	c.urlParams_.Set("_since", Since)
+	return c
+}
+
+// Type sets the optional parameter "_type": String of comma-delimited FHIR
+// resource types. If provided, only resources of the specified resource
+// type(s) are exported.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) Type(Type string) *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall {
+	c.urlParams_.Set("_type", Type)
+	return c
+}
+
+// OrganizeOutputBy sets the optional parameter "organizeOutputBy": Required.
+// The FHIR resource type used to organize exported resources. Only supports
+// "Patient". When organized by Patient resource, output files are grouped as
+// follows: * Patient file(s) containing the Patient resources. Each Patient is
+// sequentially followed by all resources the Patient references, and all
+// resources that reference the Patient (equivalent to a GetPatientEverything
+// request). * Individual files grouped by resource type for resources in the
+// Group's member field and the Group resource itself. Resources may be
+// duplicated across multiple Patients. For example, if two Patient resources
+// reference the same Organization resource, it will appear twice, once after
+// each Patient. The Group resource from the request does not appear in the
+// Patient files.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) OrganizeOutputBy(organizeOutputBy string) *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall {
+	c.urlParams_.Set("organizeOutputBy", organizeOutputBy)
+	return c
+}
+
+// OutputFormat sets the optional parameter "outputFormat": Output format of
+// the export. This field is optional and only `application/fhir+ndjson` is
+// supported.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) OutputFormat(outputFormat string) *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall {
+	c.urlParams_.Set("outputFormat", outputFormat)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/$export")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.bulk-export-group", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.bulk-export-group" call.
+func (c *ProjectsLocationsDatasetsFhirStoresBulkExportGroupCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	return c.doRequest("")
 }
@@ -14871,8 +16732,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsFhirStoresCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.fhirstore)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.fhirstore)
 	if err != nil {
 		return nil, err
 	}
@@ -14888,6 +16748,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresCreateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14922,9 +16783,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresCreateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14979,8 +16842,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresDeidentifyCall) Header() http.Header
 
 func (c *ProjectsLocationsDatasetsFhirStoresDeidentifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.deidentifyfhirstorerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.deidentifyfhirstorerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14996,6 +16858,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresDeidentifyCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"sourceStore": c.sourceStore,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.deidentify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15030,9 +16893,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresDeidentifyCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.deidentify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15079,12 +16944,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsFhirStoresDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15092,6 +16956,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15126,9 +16991,131 @@ func (c *ProjectsLocationsDatasetsFhirStoresDeleteCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// ExplainDataAccess: Explains all the permitted/denied actor, purpose and
+// environment for a given resource.
+//
+//   - name: The name of the FHIR store to enforce, in the format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresService) ExplainDataAccess(name string) *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall {
+	c := &ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// ResourceId sets the optional parameter "resourceId": Required. The ID
+// (`{resourceType}/{id}`) of the resource to explain data access on.
+func (c *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall) ResourceId(resourceId string) *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall {
+	c.urlParams_.Set("resourceId", resourceId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:explainDataAccess")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.explainDataAccess", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.explainDataAccess" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ExplainDataAccessResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsDatasetsFhirStoresExplainDataAccessCall) Do(opts ...googleapi.CallOption) (*ExplainDataAccessResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ExplainDataAccessResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.explainDataAccess", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15185,8 +17172,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresExportCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsFhirStoresExportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.exportresourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.exportresourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15202,6 +17188,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresExportCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.export", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15236,9 +17223,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresExportCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15296,12 +17285,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15309,6 +17297,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15343,9 +17332,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15403,12 +17394,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetFHIRStoreMetricsCall) doRequest(a
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:getFHIRStoreMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15416,6 +17406,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetFHIRStoreMetricsCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.getFHIRStoreMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15451,9 +17442,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetFHIRStoreMetricsCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.getFHIRStoreMetrics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15531,12 +17524,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetIamPolicyCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15544,6 +17536,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetIamPolicyCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15578,9 +17571,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresGetIamPolicyCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15685,8 +17680,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresImportCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsFhirStoresImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importresourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importresourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15702,6 +17696,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresImportCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15736,9 +17731,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresImportCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15839,12 +17836,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fhirStores")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15852,6 +17848,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15887,9 +17884,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15969,8 +17968,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsFhirStoresPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.fhirstore)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.fhirstore)
 	if err != nil {
 		return nil, err
 	}
@@ -15986,6 +17984,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresPatchCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16020,9 +18019,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresPatchCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16079,8 +18080,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresRollbackCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsFhirStoresRollbackCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rollbackfhirresourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rollbackfhirresourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16096,6 +18096,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresRollbackCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.rollback", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16130,9 +18131,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresRollbackCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.rollback", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16184,8 +18187,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresSetIamPolicyCall) Header() http.Head
 
 func (c *ProjectsLocationsDatasetsFhirStoresSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16201,6 +18203,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresSetIamPolicyCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16235,9 +18238,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresSetIamPolicyCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16292,8 +18297,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresTestIamPermissionsCall) Header() htt
 
 func (c *ProjectsLocationsDatasetsFhirStoresTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16309,6 +18313,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresTestIamPermissionsCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16344,10 +18349,565 @@ func (c *ProjectsLocationsDatasetsFhirStoresTestIamPermissionsCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
+}
+
+type ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall struct {
+	s          *Service
+	parent     string
+	body_      io.Reader
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// BinaryCreate: Creates a FHIR Binary resource. This method can be used to
+// create a Binary resource either by using one of the accepted FHIR JSON
+// content types, or as a raw data stream. If a resource is created with this
+// method using the FHIR content type this method's behavior is the same as
+// `fhir.create`
+// (https://cloud.google.com/healthcare-api/docs/reference/rest/v1/projects.locations.datasets.fhirStores.fhir/create).
+// If a resource type other than Binary is used in the request it's treated in
+// the same way as non-FHIR data (e.g., images, zip archives, pdf files,
+// documents). When a non-FHIR content type is used in the request, a Binary
+// resource will be generated, and the uploaded data will be stored in the
+// `content` field (`DSTU2` and `STU3`), or the `data` field (`R4`). The Binary
+// resource's `contentType` will be filled in using the value of the
+// `Content-Type` header, and the `securityContext` field (not present in
+// `DSTU2`) will be populated from the `X-Security-Context` header if it
+// exists. At this time `securityContext` has no special behavior in the Cloud
+// Healthcare API. Note: the limit on data ingested through this method is 1
+// GB. For best performance, use a non-FHIR data type instead of wrapping the
+// data in a Binary resource. Some of the Healthcare API features, such as
+// exporting to BigQuery
+// (https://cloud.google.com/healthcare-api/docs/how-tos/fhir-export-bigquery)
+// or Pub/Sub notifications
+// (https://cloud.google.com/healthcare-api/docs/fhir-pubsub#behavior_when_a_fhir_resource_is_too_large_or_traffic_is_high)
+// with full resource content, do not support Binary resources that are larger
+// than 10 MB. In these cases the resource's `data` field will be omitted.
+// Instead, the "http://hl7.org/fhir/StructureDefinition/data-absent-reason"
+// extension will be present to indicate that including the data is
+// `unsupported`. On success, an empty `201 Created` response is returned. The
+// newly created resource's ID and version are returned in the Location header.
+// Using `Prefer: representation=resource` is not allowed for this method. The
+// definition of the Binary REST API can be found at
+// https://hl7.org/fhir/binary.html#rest.
+//
+// - parent: The name of the FHIR store this resource belongs to.
+func (r *ProjectsLocationsDatasetsFhirStoresFhirService) BinaryCreate(parent string, body_ io.Reader) *ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall {
+	c := &ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.body_ = body_
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fhir/Binary")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Binary-create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.Binary-create" call.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryCreateCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// BinaryRead: Gets the contents of a FHIR Binary resource. This method can be
+// used to retrieve a Binary resource either by using the FHIR JSON mimetype as
+// the value for the Accept header, or as a raw data stream. If the FHIR Accept
+// type is used this method will return a Binary resource with the data
+// base64-encoded, regardless of how the resource was created. The resource
+// data can be retrieved in base64-decoded form if the Accept type of the
+// request matches the value of the resource's `contentType` field. The
+// definition of the Binary REST API can be found at
+// https://hl7.org/fhir/binary.html#rest.
+//
+// - name: The name of the Binary resource to retrieve.
+func (r *ProjectsLocationsDatasetsFhirStoresFhirService) BinaryRead(name string) *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall {
+	c := &ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Binary-read", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.Binary-read" call.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryReadCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall struct {
+	s          *Service
+	name       string
+	body_      io.Reader
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// BinaryUpdate: Updates the entire contents of a Binary resource. If the
+// specified resource does not exist and the FHIR store has
+// enable_update_create set, creates the resource with the client-specified ID.
+// It is strongly advised not to include or encode any sensitive data such as
+// patient identifiers in client-specified resource IDs. Those IDs are part of
+// the FHIR resource path recorded in Cloud Audit Logs and Pub/Sub
+// notifications. Those IDs can also be contained in reference fields within
+// other resources. This method can be used to update a Binary resource either
+// by using one of the accepted FHIR JSON content types, or as a raw data
+// stream. If a resource is updated with this method using the FHIR content
+// type this method's behavior is the same as `update`. If a resource type
+// other than Binary is used in the request it will be treated in the same way
+// as non-FHIR data. When a non-FHIR content type is used in the request, a
+// Binary resource will be generated using the ID from the resource path, and
+// the uploaded data will be stored in the `content` field (`DSTU2` and
+// `STU3`), or the `data` field (`R4`). The Binary resource's `contentType`
+// will be filled in using the value of the `Content-Type` header, and the
+// `securityContext` field (not present in `DSTU2`) will be populated from the
+// `X-Security-Context` header if it exists. At this time `securityContext` has
+// no special behavior in the Cloud Healthcare API. Note: the limit on data
+// ingested through this method is 2 GB. For best performance, use a non-FHIR
+// data type instead of wrapping the data in a Binary resource. Some of the
+// Healthcare API features, such as exporting to BigQuery
+// (https://cloud.google.com/healthcare-api/docs/how-tos/fhir-export-bigquery)
+// or Pub/Sub notifications
+// (https://cloud.google.com/healthcare-api/docs/fhir-pubsub#behavior_when_a_fhir_resource_is_too_large_or_traffic_is_high)
+// with full resource content, do not support Binary resources that are larger
+// than 10 MB. In these cases the resource's `data` field will be omitted.
+// Instead, the "http://hl7.org/fhir/StructureDefinition/data-absent-reason"
+// extension will be present to indicate that including the data is
+// `unsupported`. On success, an empty 200 OK response will be returned, or a
+// 201 Created if the resource did not exit. The resource's ID and version are
+// returned in the Location header. Using `Prefer: representation=resource` is
+// not allowed for this method. The definition of the Binary REST API can be
+// found at https://hl7.org/fhir/binary.html#rest.
+//
+// - name: The name of the resource to update.
+func (r *ProjectsLocationsDatasetsFhirStoresFhirService) BinaryUpdate(name string, body_ io.Reader) *ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall {
+	c := &ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.body_ = body_
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PUT", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Binary-update", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.Binary-update" call.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// BinaryVread: Gets the contents of a version (current or historical) of a
+// FHIR Binary resource by version ID. This method can be used to retrieve a
+// Binary resource version either by using the FHIR JSON mimetype as the value
+// for the Accept header, or as a raw data stream. If the FHIR Accept type is
+// used this method will return a Binary resource with the data base64-encoded,
+// regardless of how the resource version was created. The resource data can be
+// retrieved in base64-decoded form if the Accept type of the request matches
+// the value of the resource version's `contentType` field. The definition of
+// the Binary REST API can be found at https://hl7.org/fhir/binary.html#rest.
+//
+// - name: The name of the Binary resource version to retrieve.
+func (r *ProjectsLocationsDatasetsFhirStoresFhirService) BinaryVread(name string) *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall {
+	c := &ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Binary-vread", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.Binary-vread" call.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBinaryVreadCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// ConsentEnforcementStatus: Returns the consent enforcement status of a single
+// consent resource. On success, the response body contains a JSON-encoded
+// representation of a `Parameters` (http://hl7.org/fhir/parameters.html) FHIR
+// resource, containing the current enforcement status. Does not support DSTU2.
+//
+//   - name: The name of the consent resource to find enforcement status, in the
+//     format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}/fhir/Consent/{consent_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresFhirService) ConsentEnforcementStatus(name string) *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall {
+	c := &ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/$consent-enforcement-status")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Consent-enforcement-status", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.Consent-enforcement-status" call.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirConsentEnforcementStatusCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// PatientConsentEnforcementStatus: Returns the consent enforcement status of
+// all consent resources for a patient. On success, the response body contains
+// a JSON-encoded representation of a bundle of `Parameters`
+// (http://hl7.org/fhir/parameters.html) FHIR resources, containing the current
+// enforcement status for each consent resource of the patient. Does not
+// support DSTU2.
+//
+//   - name: The name of the patient to find enforcement statuses, in the format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}/fhir/Patient/{patient_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresFhirService) PatientConsentEnforcementStatus(name string) *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall {
+	c := &ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Count sets the optional parameter "_count": The maximum number of results on
+// a page. If not specified, 100 is used. May not be larger than 1000.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall) Count(Count int64) *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall {
+	c.urlParams_.Set("_count", fmt.Sprint(Count))
+	return c
+}
+
+// PageToken sets the optional parameter "_page_token": Used to retrieve the
+// first, previous, next, or last page of consent enforcement statuses when
+// using pagination. Value should be set to the value of `_page_token` set in
+// next or previous page links' URLs. Next and previous page are returned in
+// the response bundle's links field, where `link.relation` is "previous" or
+// "next". Omit `_page_token` if no previous request has been made.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall) PageToken(PageToken string) *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall {
+	c.urlParams_.Set("_page_token", PageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/$consent-enforcement-status")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Patient-consent-enforcement-status", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.Patient-consent-enforcement-status" call.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientConsentEnforcementStatusCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
 }
 
 type ProjectsLocationsDatasetsFhirStoresFhirPatientEverythingCall struct {
@@ -16483,12 +19043,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientEverythingCall) doRequest
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/$everything")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16496,6 +19055,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirPatientEverythingCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Patient-everything", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16552,12 +19112,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirResourcePurgeCall) Header() http
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirResourcePurgeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/$purge")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16565,6 +19124,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirResourcePurgeCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Resource-purge", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16599,9 +19159,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirResourcePurgeCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Resource-purge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16649,8 +19211,8 @@ func (r *ProjectsLocationsDatasetsFhirStoresFhirService) ResourceValidate(parent
 	return c
 }
 
-// Profile sets the optional parameter "profile": Required. The canonical URL
-// of a profile that this resource should be validated against. For example, to
+// Profile sets the optional parameter "profile": The canonical URL of a
+// profile that this resource should be validated against. For example, to
 // validate a Patient resource against the US Core Patient profile this
 // parameter would be
 // `http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient`. A
@@ -16685,8 +19247,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirResourceValidateCall) Header() h
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirResourceValidateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fhir/{+type}/$validate")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("POST", urls, body)
@@ -16698,11 +19263,142 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirResourceValidateCall) doRequest(
 		"parent": c.parent,
 		"type":   c.type_,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.Resource-validate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.Resource-validate" call.
 func (c *ProjectsLocationsDatasetsFhirStoresFhirResourceValidateCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// BulkExport: Bulk exports all resources from the FHIR store to the specified
+// destination. Implements the FHIR implementation guide system level $export
+// (https://build.fhir.org/ig/HL7/bulk-data/export.html#endpoint---system-level-export.
+// The following headers must be set in the request: * `Accept`: specifies the
+// format of the `OperationOutcome` response. Only `application/fhir+json` is
+// supported. * `Prefer`: specifies whether the response is immediate or
+// asynchronous. Must be to `respond-async` because only asynchronous responses
+// are supported. Specify the destination for the server to write result files
+// by setting the Cloud Storage location bulk_export_gcs_destination on the
+// FHIR store. URI of an existing Cloud Storage directory where the server
+// writes result files, in the format
+// gs://{bucket-id}/{path/to/destination/dir}. If there is no trailing slash,
+// the service appends one when composing the object path. The user is
+// responsible for creating the Cloud Storage bucket referenced. Supports the
+// following query parameters: * `_type`: string of comma-delimited FHIR
+// resource types. If provided, only the resources of the specified type(s) are
+// exported. * `_since`: if provided, only the resources that are updated after
+// the specified time are exported. * `_outputFormat`: optional, specify ndjson
+// to export data in NDJSON format. Exported file names use the format:
+// {export_id}_{resource_type}.ndjson. On success, the `Content-Location`
+// header of the response is set to a URL that the user can use to query the
+// status of the export. The URL is in the format:
+// `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirStor
+// es/{fhir_store_id}/operations/{export_id}`. See get-fhir-operation-status
+// for more information. Errors generated by the FHIR store contain a
+// JSON-encoded `OperationOutcome` resource describing the reason for the
+// error.
+//
+//   - name: The name of the FHIR store to export resources from, in the format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresFhirService) BulkExport(name string) *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall {
+	c := &ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Since sets the optional parameter "_since": If provided, only resources
+// updated after this time are exported. The time uses the format
+// YYYY-MM-DDThh:mm:ss.sss+zz:zz. For example, `2015-02-07T13:28:17.239+02:00`
+// or `2017-01-01T00:00:00Z`. The time must be specified to the second and
+// include a time zone.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) Since(Since string) *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall {
+	c.urlParams_.Set("_since", Since)
+	return c
+}
+
+// Type sets the optional parameter "_type": String of comma-delimited FHIR
+// resource types. If provided, only resources of the specified resource
+// type(s) are exported.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) Type(Type string) *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall {
+	c.urlParams_.Set("_type", Type)
+	return c
+}
+
+// OutputFormat sets the optional parameter "outputFormat": Output format of
+// the export. This field is optional and only `application/fhir+ndjson` is
+// supported.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) OutputFormat(outputFormat string) *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall {
+	c.urlParams_.Set("outputFormat", outputFormat)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/fhir/$export")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.bulk-export", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.bulk-export" call.
+func (c *ProjectsLocationsDatasetsFhirStoresFhirBulkExportCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	return c.doRequest("")
 }
@@ -16774,12 +19470,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirCapabilitiesCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/fhir/metadata")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16787,6 +19482,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirCapabilitiesCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.capabilities", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16857,12 +19553,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalDeleteCall) Header() 
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fhir/{+type}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16871,6 +19566,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalDeleteCall) doRequest
 		"parent": c.parent,
 		"type":   c.type_,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.conditionalDelete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16905,9 +19601,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalDeleteCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.conditionalDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16980,8 +19678,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalPatchCall) Header() h
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fhir/{+type}")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("PATCH", urls, body)
@@ -16993,6 +19694,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalPatchCall) doRequest(
 		"parent": c.parent,
 		"type":   c.type_,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.conditionalPatch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17079,8 +19781,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalUpdateCall) Header() 
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fhir/{+type}")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("PUT", urls, body)
@@ -17092,6 +19797,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirConditionalUpdateCall) doRequest
 		"parent": c.parent,
 		"type":   c.type_,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.conditionalUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17178,8 +19884,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirCreateCall) Header() http.Header
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fhir/{+type}")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("POST", urls, body)
@@ -17191,6 +19900,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirCreateCall) doRequest(alt string
 		"parent": c.parent,
 		"type":   c.type_,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17252,12 +19962,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirDeleteCall) Header() http.Header
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17265,6 +19974,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirDeleteCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17353,8 +20063,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirExecuteBundleCall) Header() http
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirExecuteBundleCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/fhir")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("POST", urls, body)
@@ -17365,6 +20078,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirExecuteBundleCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.executeBundle", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17481,12 +20195,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirHistoryCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/_history")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17494,6 +20207,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirHistoryCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.history", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17562,8 +20276,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirPatchCall) Header() http.Header 
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("PATCH", urls, body)
@@ -17574,6 +20291,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirPatchCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17653,12 +20371,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirReadCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17666,6 +20383,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirReadCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.read", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17786,8 +20504,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirSearchCall) Header() http.Header
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirSearchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchresourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.searchresourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17803,6 +20520,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirSearchCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.search", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17892,8 +20610,8 @@ type ProjectsLocationsDatasetsFhirStoresFhirSearchTypeCall struct {
 // (https://cloud.google.com/healthcare/docs/how-tos/fhir-advanced-search).
 //
 //   - parent: Name of the FHIR store to retrieve resources from.
-//   - resourceType: The FHIR resource type to search, such as Patient or
-//     Observation. For a complete list, see the FHIR Resource Index (DSTU2
+//   - resourceType: Optional. The FHIR resource type to search, such as Patient
+//     or Observation. For a complete list, see the FHIR Resource Index (DSTU2
 //     (http://hl7.org/implement/standards/fhir/DSTU2/resourcelist.html), STU3
 //     (http://hl7.org/implement/standards/fhir/STU3/resourcelist.html), R4
 //     (http://hl7.org/implement/standards/fhir/R4/resourcelist.html)).
@@ -17930,8 +20648,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirSearchTypeCall) Header() http.He
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirSearchTypeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchresourcesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.searchresourcesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17948,6 +20665,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirSearchTypeCall) doRequest(alt st
 		"parent":       c.parent,
 		"resourceType": c.resourceType,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.search-type", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18022,8 +20740,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirUpdateCall) Header() http.Header
 
 func (c *ProjectsLocationsDatasetsFhirStoresFhirUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
-	body = c.body_
+	body := bytes.NewBuffer(nil)
+	_, err := body.ReadFrom(c.body_)
+	if err != nil {
+		return nil, err
+	}
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
 	req, err := http.NewRequest("PUT", urls, body)
@@ -18034,6 +20755,7 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirUpdateCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18108,12 +20830,11 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirVreadCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18121,11 +20842,173 @@ func (c *ProjectsLocationsDatasetsFhirStoresFhirVreadCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.fhir.vread", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
 // Do executes the "healthcare.projects.locations.datasets.fhirStores.fhir.vread" call.
 func (c *ProjectsLocationsDatasetsFhirStoresFhirVreadCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// DeleteFhirOperation: Deletes operations as defined in the FHIR
+// specification. Implements the FHIR implementation guide bulk data delete
+// request
+// (https://build.fhir.org/ig/HL7/bulk-data/export.html#bulk-data-delete-request).
+// Returns success if the operation was successfully cancelled. If the
+// operation is complete, or has already been cancelled, returns an error
+// response.
+//
+//   - name: Name of the operation to be deleted, in the format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}/operations/{operation_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresOperationsService) DeleteFhirOperation(name string) *ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall {
+	c := &ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.operations.delete-fhir-operation", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.operations.delete-fhir-operation" call.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	return c.doRequest("")
+}
+
+type ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetFhirOperationStatus: Gets the status of operations as defined in the FHIR
+// specification. Implements the FHIR implementation guide bulk data status
+// request
+// (https://build.fhir.org/ig/HL7/bulk-data/export.html#bulk-data-status-request).
+// Operations can have one of these states: * in-progress: response status code
+// is `202` and `X-Progress` header is set to `in progress`. * complete:
+// response status code is `200` and the body is a JSON-encoded operation
+// response as defined by the spec. For a bulk export, this response is defined
+// in
+// https://build.fhir.org/ig/HL7/bulk-data/export.html#response---complete-status.
+// * error: response status code is `5XX`, and the body is a JSON-encoded
+// `OperationOutcome` resource describing the reason for the error.
+//
+//   - name: Name of the operation to query, in the format
+//     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirSt
+//     ores/{fhir_store_id}/operations/{operation_id}`.
+func (r *ProjectsLocationsDatasetsFhirStoresOperationsService) GetFhirOperationStatus(name string) *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall {
+	c := &ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall) IfNoneMatch(entityTag string) *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall) Context(ctx context.Context) *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.fhirStores.operations.get-fhir-operation-status", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.fhirStores.operations.get-fhir-operation-status" call.
+func (c *ProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusCall) Do(opts ...googleapi.CallOption) (*http.Response, error) {
 	gensupport.SetOptions(c.urlParams_, opts...)
 	return c.doRequest("")
 }
@@ -18182,8 +21065,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.hl7v2store)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.hl7v2store)
 	if err != nil {
 		return nil, err
 	}
@@ -18199,6 +21081,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18233,9 +21116,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18282,12 +21167,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18295,6 +21179,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18329,9 +21214,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18387,8 +21274,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresExportCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresExportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.exportmessagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.exportmessagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18404,6 +21290,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresExportCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.export", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18438,9 +21325,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresExportCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18498,12 +21387,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18511,6 +21399,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18545,9 +21434,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18608,12 +21499,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetHL7v2StoreMetricsCall) doRequest
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:getHL7v2StoreMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18621,6 +21511,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetHL7v2StoreMetricsCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.getHL7v2StoreMetrics", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18656,9 +21547,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetHL7v2StoreMetricsCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.getHL7v2StoreMetrics", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18736,12 +21629,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetIamPolicyCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -18749,6 +21641,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetIamPolicyCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18783,9 +21676,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresGetIamPolicyCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -18859,8 +21754,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresImportCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importmessagesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importmessagesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -18876,6 +21770,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresImportCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -18910,9 +21805,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresImportCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19013,12 +21910,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/hl7V2Stores")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19026,6 +21922,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19061,9 +21958,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19142,8 +22041,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.hl7v2store)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.hl7v2store)
 	if err != nil {
 		return nil, err
 	}
@@ -19159,6 +22057,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19193,9 +22092,123 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsDatasetsHl7V2StoresRollbackCall struct {
+	s                            *Service
+	name                         string
+	rollbackhl7v2messagesrequest *RollbackHl7V2MessagesRequest
+	urlParams_                   gensupport.URLParams
+	ctx_                         context.Context
+	header_                      http.Header
+}
+
+// Rollback: Rolls back messages from the HL7v2 store to the specified time.
+// This method returns an Operation that can be used to track the status of the
+// rollback by calling GetOperation. Immediate fatal errors appear in the error
+// field, errors are also logged to Cloud Logging (see Viewing error logs in
+// Cloud Logging (https://cloud.google.com/healthcare/docs/how-tos/logging)).
+// Otherwise, when the operation finishes, a detailed response of type
+// RollbackHl7V2MessagesResponse is returned in the response field. The
+// metadata field type for this operation is OperationMetadata.
+//
+//   - name: The name of the HL7v2 store to rollback, in the format of
+//     "projects/{project_id}/locations/{location_id}/datasets/{dataset_id}
+//     /hl7V2Stores/{hl7v2_store_id}".
+func (r *ProjectsLocationsDatasetsHl7V2StoresService) Rollback(name string, rollbackhl7v2messagesrequest *RollbackHl7V2MessagesRequest) *ProjectsLocationsDatasetsHl7V2StoresRollbackCall {
+	c := &ProjectsLocationsDatasetsHl7V2StoresRollbackCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.rollbackhl7v2messagesrequest = rollbackhl7v2messagesrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsDatasetsHl7V2StoresRollbackCall) Fields(s ...googleapi.Field) *ProjectsLocationsDatasetsHl7V2StoresRollbackCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsDatasetsHl7V2StoresRollbackCall) Context(ctx context.Context) *ProjectsLocationsDatasetsHl7V2StoresRollbackCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsDatasetsHl7V2StoresRollbackCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsDatasetsHl7V2StoresRollbackCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rollbackhl7v2messagesrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:rollback")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.rollback", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "healthcare.projects.locations.datasets.hl7V2Stores.rollback" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsDatasetsHl7V2StoresRollbackCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.rollback", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19247,8 +22260,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresSetIamPolicyCall) Header() http.Hea
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -19264,6 +22276,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresSetIamPolicyCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19298,9 +22311,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresSetIamPolicyCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19355,8 +22370,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresTestIamPermissionsCall) Header() ht
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -19372,6 +22386,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresTestIamPermissionsCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19407,9 +22422,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresTestIamPermissionsCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19461,8 +22478,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesCreateCall) Header() http.H
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -19478,6 +22494,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesCreateCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19512,9 +22529,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesCreateCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19560,12 +22579,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesDeleteCall) Header() http.H
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19573,6 +22591,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesDeleteCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19607,9 +22626,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesDeleteCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19693,12 +22714,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesGetCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -19706,6 +22726,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesGetCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19740,9 +22761,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesGetCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -19798,8 +22821,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesIngestCall) Header() http.H
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesIngestCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.ingestmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.ingestmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -19815,6 +22837,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesIngestCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.ingest", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -19850,9 +22873,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesIngestCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.ingest", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20008,12 +23033,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/messages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20021,6 +23045,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesListCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20056,9 +23081,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20100,7 +23127,7 @@ type ProjectsLocationsDatasetsHl7V2StoresMessagesPatchCall struct {
 //
 //   - name: Output only. Resource name of the Message, of the form
 //     `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/hl7V2S
-//     tores/{hl7_v2_store_id}/messages/{message_id}`. Assigned by the server.
+//     tores/{hl7_v2_store_id}/messages/{message_id}`.
 func (r *ProjectsLocationsDatasetsHl7V2StoresMessagesService) Patch(name string, message *Message) *ProjectsLocationsDatasetsHl7V2StoresMessagesPatchCall {
 	c := &ProjectsLocationsDatasetsHl7V2StoresMessagesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -20141,8 +23168,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesPatchCall) Header() http.He
 
 func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.message)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.message)
 	if err != nil {
 		return nil, err
 	}
@@ -20158,6 +23184,7 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesPatchCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20192,9 +23219,11 @@ func (c *ProjectsLocationsDatasetsHl7V2StoresMessagesPatchCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.hl7V2Stores.messages.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20214,7 +23243,7 @@ type ProjectsLocationsDatasetsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -20250,8 +23279,7 @@ func (c *ProjectsLocationsDatasetsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsDatasetsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20267,6 +23295,7 @@ func (c *ProjectsLocationsDatasetsOperationsCancelCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20301,9 +23330,11 @@ func (c *ProjectsLocationsDatasetsOperationsCancelCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20363,12 +23394,11 @@ func (c *ProjectsLocationsDatasetsOperationsGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20376,6 +23406,7 @@ func (c *ProjectsLocationsDatasetsOperationsGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20410,9 +23441,11 @@ func (c *ProjectsLocationsDatasetsOperationsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20491,12 +23524,11 @@ func (c *ProjectsLocationsDatasetsOperationsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -20504,6 +23536,7 @@ func (c *ProjectsLocationsDatasetsOperationsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20539,9 +23572,11 @@ func (c *ProjectsLocationsDatasetsOperationsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.datasets.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -20613,8 +23648,7 @@ func (c *ProjectsLocationsServicesNlpAnalyzeEntitiesCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesNlpAnalyzeEntitiesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.analyzeentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.analyzeentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -20630,6 +23664,7 @@ func (c *ProjectsLocationsServicesNlpAnalyzeEntitiesCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"nlpService": c.nlpService,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "healthcare.projects.locations.services.nlp.analyzeEntities", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -20665,8 +23700,10 @@ func (c *ProjectsLocationsServicesNlpAnalyzeEntitiesCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "healthcare.projects.locations.services.nlp.analyzeEntities", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

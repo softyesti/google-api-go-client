@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "datapipelines:v1"
 const apiName = "datapipelines"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -225,9 +228,9 @@ type GoogleCloudDatapipelinesV1DataflowJobDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1DataflowJobDetails) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1DataflowJobDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1DataflowJobDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1FlexTemplateRuntimeEnvironment: The environment
@@ -318,9 +321,9 @@ type GoogleCloudDatapipelinesV1FlexTemplateRuntimeEnvironment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1FlexTemplateRuntimeEnvironment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1FlexTemplateRuntimeEnvironment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1FlexTemplateRuntimeEnvironment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1Job: Definition of the job information maintained
@@ -364,9 +367,9 @@ type GoogleCloudDatapipelinesV1Job struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1Job) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1Job) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1Job
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1LaunchFlexTemplateParameter: Launch Flex Template
@@ -407,9 +410,9 @@ type GoogleCloudDatapipelinesV1LaunchFlexTemplateParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1LaunchFlexTemplateParameter) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1LaunchFlexTemplateParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1LaunchFlexTemplateParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1LaunchFlexTemplateRequest: A request to launch a
@@ -440,9 +443,9 @@ type GoogleCloudDatapipelinesV1LaunchFlexTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1LaunchFlexTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1LaunchFlexTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1LaunchFlexTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1LaunchTemplateParameters: Parameters to provide to
@@ -474,9 +477,9 @@ type GoogleCloudDatapipelinesV1LaunchTemplateParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1LaunchTemplateParameters) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1LaunchTemplateParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1LaunchTemplateParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1LaunchTemplateRequest: A request to launch a
@@ -511,9 +514,9 @@ type GoogleCloudDatapipelinesV1LaunchTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1LaunchTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1LaunchTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1LaunchTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1ListJobsResponse: Response message for ListJobs
@@ -540,9 +543,9 @@ type GoogleCloudDatapipelinesV1ListJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1ListJobsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1ListJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1ListJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1ListPipelinesResponse: Response message for
@@ -571,9 +574,9 @@ type GoogleCloudDatapipelinesV1ListPipelinesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1ListPipelinesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1ListPipelinesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1ListPipelinesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1Pipeline: The main pipeline entity and all the
@@ -667,9 +670,9 @@ type GoogleCloudDatapipelinesV1Pipeline struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1Pipeline) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1Pipeline) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1Pipeline
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1RunPipelineRequest: Request message for
@@ -698,9 +701,9 @@ type GoogleCloudDatapipelinesV1RunPipelineResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1RunPipelineResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1RunPipelineResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1RunPipelineResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1RuntimeEnvironment: The environment values to set
@@ -786,9 +789,9 @@ type GoogleCloudDatapipelinesV1RuntimeEnvironment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1RuntimeEnvironment) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1RuntimeEnvironment) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1RuntimeEnvironment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1ScheduleSpec: Details of the schedule the pipeline
@@ -815,9 +818,9 @@ type GoogleCloudDatapipelinesV1ScheduleSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1ScheduleSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1ScheduleSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1ScheduleSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1SdkVersion: The version of the SDK used to run the
@@ -851,9 +854,9 @@ type GoogleCloudDatapipelinesV1SdkVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1SdkVersion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1SdkVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1SdkVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatapipelinesV1StopPipelineRequest: Request message for
@@ -883,9 +886,9 @@ type GoogleCloudDatapipelinesV1Workload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatapipelinesV1Workload) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatapipelinesV1Workload) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatapipelinesV1Workload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -927,9 +930,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsPipelinesCreateCall struct {
@@ -980,8 +983,7 @@ func (c *ProjectsLocationsPipelinesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsPipelinesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatapipelinesv1pipeline)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatapipelinesv1pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -997,6 +999,7 @@ func (c *ProjectsLocationsPipelinesCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1032,9 +1035,11 @@ func (c *ProjectsLocationsPipelinesCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1082,12 +1087,11 @@ func (c *ProjectsLocationsPipelinesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsPipelinesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1095,6 +1099,7 @@ func (c *ProjectsLocationsPipelinesDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1130,9 +1135,11 @@ func (c *ProjectsLocationsPipelinesDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1193,12 +1200,11 @@ func (c *ProjectsLocationsPipelinesGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1206,6 +1212,7 @@ func (c *ProjectsLocationsPipelinesGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1241,9 +1248,11 @@ func (c *ProjectsLocationsPipelinesGetCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1334,12 +1343,11 @@ func (c *ProjectsLocationsPipelinesListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/pipelines")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1347,6 +1355,7 @@ func (c *ProjectsLocationsPipelinesListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1382,9 +1391,11 @@ func (c *ProjectsLocationsPipelinesListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1476,8 +1487,7 @@ func (c *ProjectsLocationsPipelinesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsPipelinesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatapipelinesv1pipeline)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatapipelinesv1pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -1493,6 +1503,7 @@ func (c *ProjectsLocationsPipelinesPatchCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1528,9 +1539,11 @@ func (c *ProjectsLocationsPipelinesPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1583,8 +1596,7 @@ func (c *ProjectsLocationsPipelinesRunCall) Header() http.Header {
 
 func (c *ProjectsLocationsPipelinesRunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatapipelinesv1runpipelinerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatapipelinesv1runpipelinerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1600,6 +1612,7 @@ func (c *ProjectsLocationsPipelinesRunCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.run", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1635,9 +1648,11 @@ func (c *ProjectsLocationsPipelinesRunCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.run", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1688,8 +1703,7 @@ func (c *ProjectsLocationsPipelinesStopCall) Header() http.Header {
 
 func (c *ProjectsLocationsPipelinesStopCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatapipelinesv1stoppipelinerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatapipelinesv1stoppipelinerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1705,6 +1719,7 @@ func (c *ProjectsLocationsPipelinesStopCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.stop", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1740,9 +1755,11 @@ func (c *ProjectsLocationsPipelinesStopCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.stop", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1820,12 +1837,11 @@ func (c *ProjectsLocationsPipelinesJobsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/jobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1833,6 +1849,7 @@ func (c *ProjectsLocationsPipelinesJobsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.jobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1868,9 +1885,11 @@ func (c *ProjectsLocationsPipelinesJobsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datapipelines.projects.locations.pipelines.jobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

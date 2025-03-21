@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "addressvalidation:v1"
 const apiName = "addressvalidation"
@@ -125,7 +128,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.V1 = NewV1Service(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,13 +148,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.V1 = NewV1Service(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -207,9 +210,9 @@ type GoogleGeoTypeViewport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleGeoTypeViewport) MarshalJSON() ([]byte, error) {
+func (s GoogleGeoTypeViewport) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleGeoTypeViewport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1Address: Details of the post-processed address.
@@ -224,7 +227,11 @@ type GoogleMapsAddressvalidationV1Address struct {
 	AddressComponents []*GoogleMapsAddressvalidationV1AddressComponent `json:"addressComponents,omitempty"`
 	// FormattedAddress: The post-processed address, formatted as a single-line
 	// address following the address formatting rules of the region where the
-	// address is located.
+	// address is located. Note: the format of this address may not match the
+	// format of the address in the `postal_address` field. For example, the
+	// `postal_address` always represents the country as a 2 letter `region_code`,
+	// such as "US" or "NZ". By contrast, this field uses a longer form of the
+	// country name, such as "USA" or "New Zealand".
 	FormattedAddress string `json:"formattedAddress,omitempty"`
 	// MissingComponentTypes: The types of components that were expected to be
 	// present in a correctly formatted mailing address but were not found in the
@@ -245,10 +252,10 @@ type GoogleMapsAddressvalidationV1Address struct {
 	// (https://developers.google.com/maps/documentation/geocoding/requests-geocoding#Types).
 	UnconfirmedComponentTypes []string `json:"unconfirmedComponentTypes,omitempty"`
 	// UnresolvedTokens: Any tokens in the input that could not be resolved. This
-	// might be an input that was not recognized as a valid part of an address (for
-	// example in an input like "123235253253 Main St, San Francisco, CA, 94105",
-	// the unresolved tokens may look like `["123235253253"]` since that does not
-	// look like a valid street number.
+	// might be an input that was not recognized as a valid part of an address. For
+	// example, for an input such as "Parcel 0000123123 & 0000456456 Str # Guthrie
+	// Center IA 50115 US", the unresolved tokens might look like `["Parcel",
+	// "0000123123", "&", "0000456456"]`.
 	UnresolvedTokens []string `json:"unresolvedTokens,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AddressComponents") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -263,9 +270,9 @@ type GoogleMapsAddressvalidationV1Address struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1Address) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1Address) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1Address
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1AddressComponent: Represents an address
@@ -325,9 +332,9 @@ type GoogleMapsAddressvalidationV1AddressComponent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1AddressComponent) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1AddressComponent) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1AddressComponent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1AddressMetadata: The metadata for the address.
@@ -356,9 +363,9 @@ type GoogleMapsAddressvalidationV1AddressMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1AddressMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1AddressMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1AddressMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1ComponentName: A wrapper for the name of the
@@ -383,9 +390,9 @@ type GoogleMapsAddressvalidationV1ComponentName struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1ComponentName) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1ComponentName) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1ComponentName
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1Geocode: Contains information about the place
@@ -429,9 +436,9 @@ type GoogleMapsAddressvalidationV1Geocode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1Geocode) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1Geocode) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1Geocode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleMapsAddressvalidationV1Geocode) UnmarshalJSON(data []byte) error {
@@ -476,9 +483,9 @@ type GoogleMapsAddressvalidationV1LanguageOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1LanguageOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1LanguageOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1LanguageOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1PlusCode: Plus code (http://plus.codes) is a
@@ -506,9 +513,9 @@ type GoogleMapsAddressvalidationV1PlusCode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1PlusCode) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1PlusCode) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1PlusCode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1ProvideValidationFeedbackRequest: The request
@@ -549,9 +556,9 @@ type GoogleMapsAddressvalidationV1ProvideValidationFeedbackRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1ProvideValidationFeedbackRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1ProvideValidationFeedbackRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1ProvideValidationFeedbackRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1ProvideValidationFeedbackResponse: The response
@@ -596,9 +603,9 @@ type GoogleMapsAddressvalidationV1UspsAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1UspsAddress) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1UspsAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1UspsAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1UspsData: The USPS data for the address.
@@ -669,11 +676,11 @@ type GoogleMapsAddressvalidationV1UspsData struct {
 	// confirmed for primary and any secondary numbers. * `N`: Primary and any
 	// secondary number information failed to DPV confirm. * `S`: Address was DPV
 	// confirmed for the primary number only, and the secondary number information
-	// was present by not confirmed, or a single trailing alpha on a primary number
-	// was dropped to make a DPV match and secondary information required. * `D`:
-	// Address was DPV confirmed for the primary number only, and the secondary
-	// number information was missing. * `R`: Address confirmed but assigned to
-	// phantom route R777 and R779 and USPS delivery is not provided.
+	// was present but not confirmed, or a single trailing alpha on a primary
+	// number was dropped to make a DPV match and secondary information required. *
+	// `D`: Address was DPV confirmed for the primary number only, and the
+	// secondary number information was missing. * `R`: Address confirmed but
+	// assigned to phantom route R777 and R779 and USPS delivery is not provided.
 	DpvEnhancedDeliveryCode string `json:"dpvEnhancedDeliveryCode,omitempty"`
 	// DpvFootnote: The footnotes from delivery point validation. Multiple
 	// footnotes may be strung together in the same string. * `AA`: Input address
@@ -783,9 +790,9 @@ type GoogleMapsAddressvalidationV1UspsData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1UspsData) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1UspsData) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1UspsData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1ValidateAddressRequest: The request for
@@ -861,9 +868,9 @@ type GoogleMapsAddressvalidationV1ValidateAddressRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1ValidateAddressRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1ValidateAddressRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1ValidateAddressRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1ValidateAddressResponse: The response to an
@@ -890,9 +897,9 @@ type GoogleMapsAddressvalidationV1ValidateAddressResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1ValidateAddressResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1ValidateAddressResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1ValidateAddressResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1ValidationResult: The result of validating an
@@ -949,9 +956,9 @@ type GoogleMapsAddressvalidationV1ValidationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1ValidationResult) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1ValidationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1ValidationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleMapsAddressvalidationV1Verdict: High level overview of the address
@@ -1047,9 +1054,9 @@ type GoogleMapsAddressvalidationV1Verdict struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleMapsAddressvalidationV1Verdict) MarshalJSON() ([]byte, error) {
+func (s GoogleMapsAddressvalidationV1Verdict) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleMapsAddressvalidationV1Verdict
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeLatLng: An object that represents a latitude/longitude pair. This
@@ -1075,9 +1082,9 @@ type GoogleTypeLatLng struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeLatLng) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeLatLng) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeLatLng
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleTypeLatLng) UnmarshalJSON(data []byte) error {
@@ -1096,42 +1103,43 @@ func (s *GoogleTypeLatLng) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// GoogleTypePostalAddress: Represents a postal address, e.g. for postal
-// delivery or payments addresses. Given a postal address, a postal service can
-// deliver items to a premise, P.O. Box or similar. It is not intended to model
-// geographical locations (roads, towns, mountains). In typical usage an
-// address would be created via user input or from importing existing data,
-// depending on the type of process. Advice on address input / editing: - Use
-// an internationalization-ready address widget such as
-// https://github.com/google/libaddressinput) - Users should not be presented
+// GoogleTypePostalAddress: Represents a postal address (for example, for
+// postal delivery or payments addresses). Given a postal address, a postal
+// service can deliver items to a premise, P.O. box or similar. It is not
+// intended to model geographical locations (roads, towns, mountains). In
+// typical usage, an address would be created by user input or from importing
+// existing data, depending on the type of process. Advice on address input or
+// editing: - Use an internationalization-ready address widget such as
+// https://github.com/google/libaddressinput. - Users should not be presented
 // with UI elements for input or editing of fields outside countries where that
-// field is used. For more guidance on how to use this schema, please see:
-// https://support.google.com/business/answer/6397478
+// field is used. For more guidance on how to use this schema, see:
+// https://support.google.com/business/answer/6397478.
 type GoogleTypePostalAddress struct {
 	// AddressLines: Unstructured address lines describing the lower levels of an
-	// address. Because values in address_lines do not have type information and
-	// may sometimes contain multiple values in a single field (e.g. "Austin, TX"),
-	// it is important that the line order is clear. The order of address lines
-	// should be "envelope order" for the country/region of the address. In places
-	// where this can vary (e.g. Japan), address_language is used to make it
-	// explicit (e.g. "ja" for large-to-small ordering and "ja-Latn" or "en" for
-	// small-to-large). This way, the most specific line of an address can be
-	// selected based on the language. The minimum permitted structural
-	// representation of an address consists of a region_code with all remaining
-	// information placed in the address_lines. It would be possible to format such
-	// an address very approximately without geocoding, but no semantic reasoning
-	// could be made about any of the address components until it was at least
-	// partially resolved. Creating an address only containing a region_code and
-	// address_lines, and then geocoding is the recommended way to handle
+	// address. Because values in `address_lines` do not have type information and
+	// may sometimes contain multiple values in a single field (for example,
+	// "Austin, TX"), it is important that the line order is clear. The order of
+	// address lines should be "envelope order" for the country or region of the
+	// address. In places where this can vary (for example, Japan),
+	// `address_language` is used to make it explicit (for example, "ja" for
+	// large-to-small ordering and "ja-Latn" or "en" for small-to-large). In this
+	// way, the most specific line of an address can be selected based on the
+	// language. The minimum permitted structural representation of an address
+	// consists of a `region_code` with all remaining information placed in the
+	// `address_lines`. It would be possible to format such an address very
+	// approximately without geocoding, but no semantic reasoning could be made
+	// about any of the address components until it was at least partially
+	// resolved. Creating an address only containing a `region_code` and
+	// `address_lines` and then geocoding is the recommended way to handle
 	// completely unstructured addresses (as opposed to guessing which parts of the
 	// address should be localities or administrative areas).
 	AddressLines []string `json:"addressLines,omitempty"`
 	// AdministrativeArea: Optional. Highest administrative subdivision which is
 	// used for postal addresses of a country or region. For example, this can be a
-	// state, a province, an oblast, or a prefecture. Specifically, for Spain this
-	// is the province and not the autonomous community (e.g. "Barcelona" and not
+	// state, a province, an oblast, or a prefecture. For Spain, this is the
+	// province and not the autonomous community (for example, "Barcelona" and not
 	// "Catalonia"). Many countries don't use an administrative area in postal
-	// addresses. E.g. in Switzerland this should be left unpopulated.
+	// addresses. For example, in Switzerland, this should be left unpopulated.
 	AdministrativeArea string `json:"administrativeArea,omitempty"`
 	// LanguageCode: Optional. BCP-47 language code of the contents of this address
 	// (if known). This is often the UI language of the input form or is expected
@@ -1142,17 +1150,17 @@ type GoogleTypePostalAddress struct {
 	// known, it should be omitted (rather than specifying a possibly incorrect
 	// default). Examples: "zh-Hant", "ja", "ja-Latn", "en".
 	LanguageCode string `json:"languageCode,omitempty"`
-	// Locality: Optional. Generally refers to the city/town portion of the
+	// Locality: Optional. Generally refers to the city or town portion of the
 	// address. Examples: US city, IT comune, UK post town. In regions of the world
 	// where localities are not well defined or do not fit into this structure
-	// well, leave locality empty and use address_lines.
+	// well, leave `locality` empty and use `address_lines`.
 	Locality string `json:"locality,omitempty"`
 	// Organization: Optional. The name of the organization at the address.
 	Organization string `json:"organization,omitempty"`
 	// PostalCode: Optional. Postal code of the address. Not all countries use or
 	// require postal codes to be present, but where they are used, they may
-	// trigger additional validation with other parts of the address (e.g.
-	// state/zip validation in the U.S.A.).
+	// trigger additional validation with other parts of the address (for example,
+	// state or zip code validation in the United States).
 	PostalCode string `json:"postalCode,omitempty"`
 	// Recipients: Optional. The recipient at the address. This field may, under
 	// certain circumstances, contain multiline information. For example, it might
@@ -1170,12 +1178,12 @@ type GoogleTypePostalAddress struct {
 	Revision int64 `json:"revision,omitempty"`
 	// SortingCode: Optional. Additional, country-specific, sorting code. This is
 	// not used in most regions. Where it is used, the value is either a string
-	// like "CEDEX", optionally followed by a number (e.g. "CEDEX 7"), or just a
-	// number alone, representing the "sector code" (Jamaica), "delivery area
-	// indicator" (Malawi) or "post office indicator" (e.g. Côte d'Ivoire).
+	// like "CEDEX", optionally followed by a number (for example, "CEDEX 7"), or
+	// just a number alone, representing the "sector code" (Jamaica), "delivery
+	// area indicator" (Malawi) or "post office indicator" (Côte d'Ivoire).
 	SortingCode string `json:"sortingCode,omitempty"`
 	// Sublocality: Optional. Sublocality of the address. For example, this can be
-	// neighborhoods, boroughs, districts.
+	// a neighborhood, borough, or district.
 	Sublocality string `json:"sublocality,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AddressLines") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1190,9 +1198,9 @@ type GoogleTypePostalAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypePostalAddress) MarshalJSON() ([]byte, error) {
+func (s GoogleTypePostalAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypePostalAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type V1ProvideValidationFeedbackCall struct {
@@ -1239,8 +1247,7 @@ func (c *V1ProvideValidationFeedbackCall) Header() http.Header {
 
 func (c *V1ProvideValidationFeedbackCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlemapsaddressvalidationv1providevalidationfeedbackrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlemapsaddressvalidationv1providevalidationfeedbackrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1253,6 +1260,7 @@ func (c *V1ProvideValidationFeedbackCall) doRequest(alt string) (*http.Response,
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "addressvalidation.provideValidationFeedback", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1288,9 +1296,11 @@ func (c *V1ProvideValidationFeedbackCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "addressvalidation.provideValidationFeedback", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1334,8 +1344,7 @@ func (c *V1ValidateAddressCall) Header() http.Header {
 
 func (c *V1ValidateAddressCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlemapsaddressvalidationv1validateaddressrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlemapsaddressvalidationv1validateaddressrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1348,6 +1357,7 @@ func (c *V1ValidateAddressCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "addressvalidation.validateAddress", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1383,8 +1393,10 @@ func (c *V1ValidateAddressCall) Do(opts ...googleapi.CallOption) (*GoogleMapsAdd
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "addressvalidation.validateAddress", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

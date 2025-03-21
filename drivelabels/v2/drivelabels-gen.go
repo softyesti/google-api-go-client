@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "drivelabels:v2"
 const apiName = "drivelabels"
@@ -133,7 +136,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Labels = NewLabelsService(s)
+	s.Limits = NewLimitsService(s)
+	s.Users = NewUsersService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -152,15 +158,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Labels = NewLabelsService(s)
-	s.Limits = NewLimitsService(s)
-	s.Users = NewUsersService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -290,9 +293,9 @@ type GoogleAppsDriveLabelsV2BadgeColors struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2BadgeColors) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2BadgeColors) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2BadgeColors
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2BadgeConfig: Badge status of the label.
@@ -317,9 +320,9 @@ type GoogleAppsDriveLabelsV2BadgeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2BadgeConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2BadgeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2BadgeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2BatchDeleteLabelPermissionsRequest: Deletes one of
@@ -346,9 +349,9 @@ type GoogleAppsDriveLabelsV2BatchDeleteLabelPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2BatchDeleteLabelPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2BatchDeleteLabelPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2BatchDeleteLabelPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsRequest: Updates one or
@@ -375,9 +378,9 @@ type GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsResponse: Response for
@@ -401,9 +404,9 @@ type GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2BatchUpdateLabelPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DateLimits: Limits for date Field type.
@@ -425,9 +428,9 @@ type GoogleAppsDriveLabelsV2DateLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DateLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DateLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DateLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeleteLabelPermissionRequest: Deletes a Label
@@ -453,9 +456,9 @@ type GoogleAppsDriveLabelsV2DeleteLabelPermissionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeleteLabelPermissionRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeleteLabelPermissionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeleteLabelPermissionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequest: The set of requests for
@@ -495,9 +498,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateFieldRequest: Request to
@@ -518,9 +521,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateFieldRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateFieldRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateFieldRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateFieldRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateSelectionChoiceRequest:
@@ -543,9 +546,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateSelectionChoiceRequest 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateSelectionChoiceRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateSelectionChoiceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestCreateSelectionChoiceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteFieldRequest: Request to
@@ -566,9 +569,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteFieldRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteFieldRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteFieldRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteFieldRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteSelectionChoiceRequest:
@@ -591,9 +594,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteSelectionChoiceRequest 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteSelectionChoiceRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteSelectionChoiceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDeleteSelectionChoiceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableFieldRequest: Request
@@ -620,9 +623,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableFieldRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableFieldRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableFieldRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableFieldRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableSelectionChoiceRequest:
@@ -651,9 +654,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableSelectionChoiceRequest
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableSelectionChoiceRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableSelectionChoiceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestDisableSelectionChoiceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableFieldRequest: Request to
@@ -674,9 +677,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableFieldRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableFieldRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableFieldRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableFieldRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableSelectionChoiceRequest:
@@ -699,9 +702,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableSelectionChoiceRequest 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableSelectionChoiceRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableSelectionChoiceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestEnableSelectionChoiceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestRequest: A single kind of
@@ -745,9 +748,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldPropertiesRequest:
@@ -774,9 +777,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldPropertiesRequest 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldPropertiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldPropertiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldPropertiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldTypeRequest:
@@ -811,9 +814,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldTypeRequest struct
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldTypeRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldTypeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateFieldTypeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateLabelPropertiesRequest:
@@ -838,9 +841,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateLabelPropertiesRequest 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateLabelPropertiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateLabelPropertiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateLabelPropertiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateSelectionChoiceProperties
@@ -869,9 +872,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateSelectionChoiceProperti
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateSelectionChoicePropertiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateSelectionChoicePropertiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelRequestUpdateSelectionChoicePropertiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelResponse: Response for Label update.
@@ -899,9 +902,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateFieldResponse: Response
@@ -926,9 +929,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateFieldResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateFieldResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateFieldResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateFieldResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateSelectionChoiceResponse:
@@ -952,9 +955,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateSelectionChoiceRespons
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateSelectionChoiceResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateSelectionChoiceResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseCreateSelectionChoiceResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseDeleteFieldResponse: Response
@@ -1030,9 +1033,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateFieldPropertiesResponse:
@@ -1055,9 +1058,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateFieldPropertiesRespons
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateFieldPropertiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateFieldPropertiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateFieldPropertiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateFieldTypeResponse:
@@ -1090,9 +1093,9 @@ type GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateSelectionChoicePropert
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateSelectionChoicePropertiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateSelectionChoicePropertiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DeltaUpdateLabelResponseUpdateSelectionChoicePropertiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2DisableLabelRequest: Request to deprecate a published
@@ -1128,9 +1131,9 @@ type GoogleAppsDriveLabelsV2DisableLabelRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2DisableLabelRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2DisableLabelRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2DisableLabelRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2EnableLabelRequest: Request to enable a label.
@@ -1159,9 +1162,9 @@ type GoogleAppsDriveLabelsV2EnableLabelRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2EnableLabelRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2EnableLabelRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2EnableLabelRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2Field: Defines a field that has a display name, data
@@ -1229,9 +1232,9 @@ type GoogleAppsDriveLabelsV2Field struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2Field) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2Field) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2Field
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldAppliedCapabilities: The capabilities related to
@@ -1257,9 +1260,9 @@ type GoogleAppsDriveLabelsV2FieldAppliedCapabilities struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldAppliedCapabilities) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldAppliedCapabilities) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldAppliedCapabilities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldDateOptions: Options for the date field type.
@@ -1293,9 +1296,9 @@ type GoogleAppsDriveLabelsV2FieldDateOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldDateOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldDateOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldDateOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldDisplayHints: UI display hints for rendering a
@@ -1324,9 +1327,9 @@ type GoogleAppsDriveLabelsV2FieldDisplayHints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldDisplayHints) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldDisplayHints) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldDisplayHints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldIntegerOptions: Options for the Integer field
@@ -1349,9 +1352,9 @@ type GoogleAppsDriveLabelsV2FieldIntegerOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldIntegerOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldIntegerOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldIntegerOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldLimits: Field constants governing the structure
@@ -1390,9 +1393,9 @@ type GoogleAppsDriveLabelsV2FieldLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldListOptions: Options for a multi-valued variant
@@ -1413,9 +1416,9 @@ type GoogleAppsDriveLabelsV2FieldListOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldListOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldListOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldListOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldProperties: The basic properties of the field.
@@ -1441,9 +1444,9 @@ type GoogleAppsDriveLabelsV2FieldProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldSchemaCapabilities: The capabilities related to
@@ -1473,9 +1476,9 @@ type GoogleAppsDriveLabelsV2FieldSchemaCapabilities struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldSchemaCapabilities) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldSchemaCapabilities) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldSchemaCapabilities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldSelectionOptions: Options for the selection
@@ -1500,9 +1503,9 @@ type GoogleAppsDriveLabelsV2FieldSelectionOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldSelectionOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldSelectionOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldSelectionOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldSelectionOptionsChoice: Selection field choice.
@@ -1557,9 +1560,9 @@ type GoogleAppsDriveLabelsV2FieldSelectionOptionsChoice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldSelectionOptionsChoice) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldSelectionOptionsChoice) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldSelectionOptionsChoice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceAppliedCapabilities: The
@@ -1584,9 +1587,9 @@ type GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceAppliedCapabilities struc
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceAppliedCapabilities) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceAppliedCapabilities) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceAppliedCapabilities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceDisplayHints: UI display
@@ -1625,9 +1628,9 @@ type GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceDisplayHints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceDisplayHints) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceDisplayHints) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceDisplayHints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceProperties: Basic
@@ -1657,9 +1660,9 @@ type GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceSchemaCapabilities: The
@@ -1686,9 +1689,9 @@ type GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceSchemaCapabilities struct
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceSchemaCapabilities) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceSchemaCapabilities) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldSelectionOptionsChoiceSchemaCapabilities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldTextOptions: Options for the Text field type.
@@ -1712,9 +1715,9 @@ type GoogleAppsDriveLabelsV2FieldTextOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldTextOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldTextOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldTextOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2FieldUserOptions: Options for the user field type.
@@ -1735,9 +1738,9 @@ type GoogleAppsDriveLabelsV2FieldUserOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2FieldUserOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2FieldUserOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2FieldUserOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2IntegerLimits: Limits for integer Field type.
@@ -1759,9 +1762,9 @@ type GoogleAppsDriveLabelsV2IntegerLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2IntegerLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2IntegerLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2IntegerLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2Label: A label defines a taxonomy that can be applied
@@ -1854,9 +1857,9 @@ type GoogleAppsDriveLabelsV2Label struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2Label) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2Label) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2Label
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelAppliedCapabilities: The capabilities a user has
@@ -1881,9 +1884,9 @@ type GoogleAppsDriveLabelsV2LabelAppliedCapabilities struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelAppliedCapabilities) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelAppliedCapabilities) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelAppliedCapabilities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelAppliedLabelPolicy: Behavior of this label when
@@ -1914,9 +1917,9 @@ type GoogleAppsDriveLabelsV2LabelAppliedLabelPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelAppliedLabelPolicy) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelAppliedLabelPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelAppliedLabelPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelDisplayHints: UI display hints for rendering the
@@ -1945,9 +1948,9 @@ type GoogleAppsDriveLabelsV2LabelDisplayHints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelDisplayHints) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelDisplayHints) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelDisplayHints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelLimits: Label constraints governing the
@@ -1987,9 +1990,9 @@ type GoogleAppsDriveLabelsV2LabelLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelLock: A Lock that can be applied to a Label,
@@ -2036,9 +2039,9 @@ type GoogleAppsDriveLabelsV2LabelLock struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelLock) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelLock) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelLock
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelLockCapabilities: A description of a user's
@@ -2059,9 +2062,9 @@ type GoogleAppsDriveLabelsV2LabelLockCapabilities struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelLockCapabilities) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelLockCapabilities) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelLockCapabilities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelPermission: The permission that applies to a
@@ -2111,9 +2114,9 @@ type GoogleAppsDriveLabelsV2LabelPermission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelPermission) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelPermission) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelPermission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelProperties: Basic properties of the label.
@@ -2135,9 +2138,9 @@ type GoogleAppsDriveLabelsV2LabelProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LabelSchemaCapabilities: The capabilities related to
@@ -2167,9 +2170,9 @@ type GoogleAppsDriveLabelsV2LabelSchemaCapabilities struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LabelSchemaCapabilities) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LabelSchemaCapabilities) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LabelSchemaCapabilities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2Lifecycle: The lifecycle state of an object, such as
@@ -2217,9 +2220,9 @@ type GoogleAppsDriveLabelsV2Lifecycle struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2Lifecycle) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2Lifecycle) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2Lifecycle
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LifecycleDisabledPolicy: The policy that governs how
@@ -2249,9 +2252,9 @@ type GoogleAppsDriveLabelsV2LifecycleDisabledPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LifecycleDisabledPolicy) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LifecycleDisabledPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LifecycleDisabledPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2ListLabelLocksResponse: The response to a
@@ -2277,9 +2280,9 @@ type GoogleAppsDriveLabelsV2ListLabelLocksResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2ListLabelLocksResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2ListLabelLocksResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2ListLabelLocksResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2ListLabelPermissionsResponse: Response for listing
@@ -2305,9 +2308,9 @@ type GoogleAppsDriveLabelsV2ListLabelPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2ListLabelPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2ListLabelPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2ListLabelPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2ListLabelsResponse: Response for listing Labels.
@@ -2332,9 +2335,9 @@ type GoogleAppsDriveLabelsV2ListLabelsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2ListLabelsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2ListLabelsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2ListLabelsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2ListLimits: Limits for list-variant of a Field type.
@@ -2354,9 +2357,9 @@ type GoogleAppsDriveLabelsV2ListLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2ListLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2ListLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2ListLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LockStatus: Contains information about whether a
@@ -2380,9 +2383,9 @@ type GoogleAppsDriveLabelsV2LockStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LockStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LockStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LockStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2LongTextLimits: Limits for long text Field type.
@@ -2404,9 +2407,9 @@ type GoogleAppsDriveLabelsV2LongTextLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2LongTextLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2LongTextLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2LongTextLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2PublishLabelRequest: Request to publish a label.
@@ -2435,9 +2438,9 @@ type GoogleAppsDriveLabelsV2PublishLabelRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2PublishLabelRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2PublishLabelRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2PublishLabelRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2SelectionLimits: Limits for selection Field type.
@@ -2465,9 +2468,9 @@ type GoogleAppsDriveLabelsV2SelectionLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2SelectionLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2SelectionLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2SelectionLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2TextLimits: Limits for text Field type.
@@ -2489,9 +2492,9 @@ type GoogleAppsDriveLabelsV2TextLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2TextLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2TextLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2TextLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2UpdateLabelCopyModeRequest: Request to update the
@@ -2539,9 +2542,9 @@ type GoogleAppsDriveLabelsV2UpdateLabelCopyModeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2UpdateLabelCopyModeRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2UpdateLabelCopyModeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2UpdateLabelCopyModeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2UpdateLabelPermissionRequest: Updates a Label
@@ -2569,9 +2572,9 @@ type GoogleAppsDriveLabelsV2UpdateLabelPermissionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2UpdateLabelPermissionRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2UpdateLabelPermissionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2UpdateLabelPermissionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2UserCapabilities: The capabilities of a user.
@@ -2606,9 +2609,9 @@ type GoogleAppsDriveLabelsV2UserCapabilities struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2UserCapabilities) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2UserCapabilities) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2UserCapabilities
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2UserInfo: Information about a user.
@@ -2629,9 +2632,9 @@ type GoogleAppsDriveLabelsV2UserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2UserInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2UserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2UserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2UserLimits: Limits for Field.Type.USER.
@@ -2651,9 +2654,9 @@ type GoogleAppsDriveLabelsV2UserLimits struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2UserLimits) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2UserLimits) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2UserLimits
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleAppsDriveLabelsV2WriteControl: Provides control over how write
@@ -2676,9 +2679,9 @@ type GoogleAppsDriveLabelsV2WriteControl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleAppsDriveLabelsV2WriteControl) MarshalJSON() ([]byte, error) {
+func (s GoogleAppsDriveLabelsV2WriteControl) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsDriveLabelsV2WriteControl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -2769,9 +2772,9 @@ type GoogleTypeColor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeColor) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeColor) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeColor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleTypeColor) UnmarshalJSON(data []byte) error {
@@ -2827,9 +2830,9 @@ type GoogleTypeDate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeDate) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeDate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LabelsCreateCall struct {
@@ -2888,8 +2891,7 @@ func (c *LabelsCreateCall) Header() http.Header {
 
 func (c *LabelsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2label)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2label)
 	if err != nil {
 		return nil, err
 	}
@@ -2902,6 +2904,7 @@ func (c *LabelsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2937,9 +2940,11 @@ func (c *LabelsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDriveLab
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3005,12 +3010,11 @@ func (c *LabelsDeleteCall) Header() http.Header {
 
 func (c *LabelsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3018,6 +3022,7 @@ func (c *LabelsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3053,9 +3058,11 @@ func (c *LabelsDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProtobufEmpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3106,8 +3113,7 @@ func (c *LabelsDeltaCall) Header() http.Header {
 
 func (c *LabelsDeltaCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2deltaupdatelabelrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2deltaupdatelabelrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3123,6 +3129,7 @@ func (c *LabelsDeltaCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.delta", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3158,9 +3165,11 @@ func (c *LabelsDeltaCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDriveLabe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.delta", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3212,8 +3221,7 @@ func (c *LabelsDisableCall) Header() http.Header {
 
 func (c *LabelsDisableCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2disablelabelrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2disablelabelrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3229,6 +3237,7 @@ func (c *LabelsDisableCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.disable", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3264,9 +3273,11 @@ func (c *LabelsDisableCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDriveLa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.disable", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3317,8 +3328,7 @@ func (c *LabelsEnableCall) Header() http.Header {
 
 func (c *LabelsEnableCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2enablelabelrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2enablelabelrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3334,6 +3344,7 @@ func (c *LabelsEnableCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.enable", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3369,9 +3380,11 @@ func (c *LabelsEnableCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDriveLab
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.enable", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3466,12 +3479,11 @@ func (c *LabelsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3479,6 +3491,7 @@ func (c *LabelsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3514,9 +3527,11 @@ func (c *LabelsGetCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDriveLabels
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3662,16 +3677,16 @@ func (c *LabelsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/labels")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3707,9 +3722,11 @@ func (c *LabelsListCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDriveLabel
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3790,8 +3807,7 @@ func (c *LabelsPublishCall) Header() http.Header {
 
 func (c *LabelsPublishCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2publishlabelrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2publishlabelrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3807,6 +3823,7 @@ func (c *LabelsPublishCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.publish", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3842,9 +3859,11 @@ func (c *LabelsPublishCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDriveLa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.publish", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3893,8 +3912,7 @@ func (c *LabelsUpdateLabelCopyModeCall) Header() http.Header {
 
 func (c *LabelsUpdateLabelCopyModeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2updatelabelcopymoderequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2updatelabelcopymoderequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3910,6 +3928,7 @@ func (c *LabelsUpdateLabelCopyModeCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.updateLabelCopyMode", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3945,9 +3964,11 @@ func (c *LabelsUpdateLabelCopyModeCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.updateLabelCopyMode", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4006,8 +4027,7 @@ func (c *LabelsUpdatePermissionsCall) Header() http.Header {
 
 func (c *LabelsUpdatePermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2labelpermission)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2labelpermission)
 	if err != nil {
 		return nil, err
 	}
@@ -4023,6 +4043,7 @@ func (c *LabelsUpdatePermissionsCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.updatePermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4058,9 +4079,11 @@ func (c *LabelsUpdatePermissionsCall) Do(opts ...googleapi.CallOption) (*GoogleA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.updatePermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4132,12 +4155,11 @@ func (c *LabelsLocksListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/locks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4145,6 +4167,7 @@ func (c *LabelsLocksListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.locks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4180,9 +4203,11 @@ func (c *LabelsLocksListCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDrive
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.locks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4255,8 +4280,7 @@ func (c *LabelsPermissionsBatchDeleteCall) Header() http.Header {
 
 func (c *LabelsPermissionsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2batchdeletelabelpermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2batchdeletelabelpermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4272,6 +4296,7 @@ func (c *LabelsPermissionsBatchDeleteCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4307,9 +4332,11 @@ func (c *LabelsPermissionsBatchDeleteCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4363,8 +4390,7 @@ func (c *LabelsPermissionsBatchUpdateCall) Header() http.Header {
 
 func (c *LabelsPermissionsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2batchupdatelabelpermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2batchupdatelabelpermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4380,6 +4406,7 @@ func (c *LabelsPermissionsBatchUpdateCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4415,9 +4442,11 @@ func (c *LabelsPermissionsBatchUpdateCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4477,8 +4506,7 @@ func (c *LabelsPermissionsCreateCall) Header() http.Header {
 
 func (c *LabelsPermissionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2labelpermission)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2labelpermission)
 	if err != nil {
 		return nil, err
 	}
@@ -4494,6 +4522,7 @@ func (c *LabelsPermissionsCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4529,9 +4558,11 @@ func (c *LabelsPermissionsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleA
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4586,12 +4617,11 @@ func (c *LabelsPermissionsDeleteCall) Header() http.Header {
 
 func (c *LabelsPermissionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4599,6 +4629,7 @@ func (c *LabelsPermissionsDeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4634,9 +4665,11 @@ func (c *LabelsPermissionsDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4717,12 +4750,11 @@ func (c *LabelsPermissionsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/permissions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4730,6 +4762,7 @@ func (c *LabelsPermissionsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4765,9 +4798,11 @@ func (c *LabelsPermissionsListCall) Do(opts ...googleapi.CallOption) (*GoogleApp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.permissions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4847,8 +4882,7 @@ func (c *LabelsRevisionsUpdatePermissionsCall) Header() http.Header {
 
 func (c *LabelsRevisionsUpdatePermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2labelpermission)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2labelpermission)
 	if err != nil {
 		return nil, err
 	}
@@ -4864,6 +4898,7 @@ func (c *LabelsRevisionsUpdatePermissionsCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.updatePermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4899,9 +4934,11 @@ func (c *LabelsRevisionsUpdatePermissionsCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.updatePermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4973,12 +5010,11 @@ func (c *LabelsRevisionsLocksListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/locks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4986,6 +5022,7 @@ func (c *LabelsRevisionsLocksListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.locks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5021,9 +5058,11 @@ func (c *LabelsRevisionsLocksListCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.locks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5096,8 +5135,7 @@ func (c *LabelsRevisionsPermissionsBatchDeleteCall) Header() http.Header {
 
 func (c *LabelsRevisionsPermissionsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2batchdeletelabelpermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2batchdeletelabelpermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5113,6 +5151,7 @@ func (c *LabelsRevisionsPermissionsBatchDeleteCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5148,9 +5187,11 @@ func (c *LabelsRevisionsPermissionsBatchDeleteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5204,8 +5245,7 @@ func (c *LabelsRevisionsPermissionsBatchUpdateCall) Header() http.Header {
 
 func (c *LabelsRevisionsPermissionsBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2batchupdatelabelpermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2batchupdatelabelpermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5221,6 +5261,7 @@ func (c *LabelsRevisionsPermissionsBatchUpdateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5256,9 +5297,11 @@ func (c *LabelsRevisionsPermissionsBatchUpdateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5318,8 +5361,7 @@ func (c *LabelsRevisionsPermissionsCreateCall) Header() http.Header {
 
 func (c *LabelsRevisionsPermissionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleappsdrivelabelsv2labelpermission)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleappsdrivelabelsv2labelpermission)
 	if err != nil {
 		return nil, err
 	}
@@ -5335,6 +5377,7 @@ func (c *LabelsRevisionsPermissionsCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5370,9 +5413,11 @@ func (c *LabelsRevisionsPermissionsCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5427,12 +5472,11 @@ func (c *LabelsRevisionsPermissionsDeleteCall) Header() http.Header {
 
 func (c *LabelsRevisionsPermissionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5440,6 +5484,7 @@ func (c *LabelsRevisionsPermissionsDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5475,9 +5520,11 @@ func (c *LabelsRevisionsPermissionsDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5558,12 +5605,11 @@ func (c *LabelsRevisionsPermissionsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/permissions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5571,6 +5617,7 @@ func (c *LabelsRevisionsPermissionsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5606,9 +5653,11 @@ func (c *LabelsRevisionsPermissionsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.labels.revisions.permissions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5691,16 +5740,16 @@ func (c *LimitsGetLabelCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/limits/label")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.limits.getLabel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5736,9 +5785,11 @@ func (c *LimitsGetLabelCall) Do(opts ...googleapi.CallOption) (*GoogleAppsDriveL
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.limits.getLabel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5805,12 +5856,11 @@ func (c *UsersGetCapabilitiesCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5818,6 +5868,7 @@ func (c *UsersGetCapabilitiesCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "drivelabels.users.getCapabilities", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5853,8 +5904,10 @@ func (c *UsersGetCapabilitiesCall) Do(opts ...googleapi.CallOption) (*GoogleApps
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "drivelabels.users.getCapabilities", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

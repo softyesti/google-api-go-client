@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "datamigration:v1"
 const apiName = "datamigration"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -222,10 +225,22 @@ type ProjectsLocationsConversionWorkspacesMappingRulesService struct {
 
 func NewProjectsLocationsMigrationJobsService(s *Service) *ProjectsLocationsMigrationJobsService {
 	rs := &ProjectsLocationsMigrationJobsService{s: s}
+	rs.Objects = NewProjectsLocationsMigrationJobsObjectsService(s)
 	return rs
 }
 
 type ProjectsLocationsMigrationJobsService struct {
+	s *Service
+
+	Objects *ProjectsLocationsMigrationJobsObjectsService
+}
+
+func NewProjectsLocationsMigrationJobsObjectsService(s *Service) *ProjectsLocationsMigrationJobsObjectsService {
+	rs := &ProjectsLocationsMigrationJobsObjectsService{s: s}
+	return rs
+}
+
+type ProjectsLocationsMigrationJobsObjectsService struct {
 	s *Service
 }
 
@@ -269,9 +284,9 @@ type AlloyDbConnectionProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AlloyDbConnectionProfile) MarshalJSON() ([]byte, error) {
+func (s AlloyDbConnectionProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod AlloyDbConnectionProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AlloyDbSettings: Settings for creating an AlloyDB cluster.
@@ -284,6 +299,7 @@ type AlloyDbSettings struct {
 	//   "DATABASE_VERSION_UNSPECIFIED" - This is an unknown database version.
 	//   "POSTGRES_14" - The database version is Postgres 14.
 	//   "POSTGRES_15" - The database version is Postgres 15.
+	//   "POSTGRES_16" - The database version is Postgres 16.
 	DatabaseVersion string `json:"databaseVersion,omitempty"`
 	// EncryptionConfig: Optional. The encryption config can be specified to
 	// encrypt the data disks and other persistent data resources of a cluster with
@@ -317,9 +333,9 @@ type AlloyDbSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AlloyDbSettings) MarshalJSON() ([]byte, error) {
+func (s AlloyDbSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod AlloyDbSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplyConversionWorkspaceRequest: Request message for
@@ -351,9 +367,9 @@ type ApplyConversionWorkspaceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplyConversionWorkspaceRequest) MarshalJSON() ([]byte, error) {
+func (s ApplyConversionWorkspaceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplyConversionWorkspaceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplyHash: Apply a hash function on the value.
@@ -373,9 +389,9 @@ type ApplyHash struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplyHash) MarshalJSON() ([]byte, error) {
+func (s ApplyHash) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplyHash
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApplyJobDetails: Details regarding an Apply background job.
@@ -399,9 +415,9 @@ type ApplyJobDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApplyJobDetails) MarshalJSON() ([]byte, error) {
+func (s ApplyJobDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ApplyJobDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssignSpecificValue: Set to a specific value (value is converted to fit the
@@ -422,9 +438,9 @@ type AssignSpecificValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssignSpecificValue) MarshalJSON() ([]byte, error) {
+func (s AssignSpecificValue) MarshalJSON() ([]byte, error) {
 	type NoMethod AssignSpecificValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -463,9 +479,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -498,9 +514,32 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AuthorizedNetwork: AuthorizedNetwork contains metadata for an authorized
+// network.
+type AuthorizedNetwork struct {
+	// CidrRange: Optional. CIDR range for one authorzied network of the instance.
+	CidrRange string `json:"cidrRange,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CidrRange") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CidrRange") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AuthorizedNetwork) MarshalJSON() ([]byte, error) {
+	type NoMethod AuthorizedNetwork
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BackgroundJobLogEntry: Execution log of a background job.
@@ -560,9 +599,33 @@ type BackgroundJobLogEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BackgroundJobLogEntry) MarshalJSON() ([]byte, error) {
+func (s BackgroundJobLogEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod BackgroundJobLogEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BinaryLogParser: Configuration to use Binary Log Parser CDC technique.
+type BinaryLogParser struct {
+	// LogFileDirectories: Use Oracle directories.
+	LogFileDirectories *LogFileDirectories `json:"logFileDirectories,omitempty"`
+	// OracleAsmLogFileAccess: Use Oracle ASM.
+	OracleAsmLogFileAccess *OracleAsmLogFileAccess `json:"oracleAsmLogFileAccess,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "LogFileDirectories") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "LogFileDirectories") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BinaryLogParser) MarshalJSON() ([]byte, error) {
+	type NoMethod BinaryLogParser
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -659,9 +722,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -699,9 +762,9 @@ type CloudSqlConnectionProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudSqlConnectionProfile) MarshalJSON() ([]byte, error) {
+func (s CloudSqlConnectionProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudSqlConnectionProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudSqlSettings: Settings for creating a Cloud SQL database instance.
@@ -745,21 +808,32 @@ type CloudSqlSettings struct {
 	// (https://cloud.google.com/sql/help/mysql-data-cache) in Cloud SQL
 	// documentation.
 	DataCacheConfig *DataCacheConfig `json:"dataCacheConfig,omitempty"`
+	// DataDiskProvisionedIops: Optional. Provisioned number of I/O operations per
+	// second for the data disk. This field is only used for hyperdisk-balanced
+	// disk types.
+	DataDiskProvisionedIops int64 `json:"dataDiskProvisionedIops,omitempty,string"`
+	// DataDiskProvisionedThroughput: Optional. Provisioned throughput measured in
+	// MiB per second for the data disk. This field is only used for
+	// hyperdisk-balanced disk types.
+	DataDiskProvisionedThroughput int64 `json:"dataDiskProvisionedThroughput,omitempty,string"`
 	// DataDiskSizeGb: The storage capacity available to the database, in GB. The
 	// minimum (and default) size is 10GB.
 	DataDiskSizeGb int64 `json:"dataDiskSizeGb,omitempty,string"`
-	// DataDiskType: The type of storage: `PD_SSD` (default) or `PD_HDD`.
+	// DataDiskType: The type of storage: `PD_SSD` (default) or `PD_HDD` or
+	// `HYPERDISK_BALANCED`.
 	//
 	// Possible values:
 	//   "SQL_DATA_DISK_TYPE_UNSPECIFIED" - Unspecified.
 	//   "PD_SSD" - SSD disk.
 	//   "PD_HDD" - HDD disk.
+	//   "HYPERDISK_BALANCED" - A Hyperdisk Balanced data disk.
 	DataDiskType string `json:"dataDiskType,omitempty"`
 	// DatabaseFlags: The database flags passed to the Cloud SQL instance at
 	// startup. An object containing a list of "key": value pairs. Example: {
 	// "name": "wrench", "mass": "1.3kg", "count": "3" }.
 	DatabaseFlags map[string]string `json:"databaseFlags,omitempty"`
-	// DatabaseVersion: The database engine type and version.
+	// DatabaseVersion: The database engine type and version. Deprecated. Use
+	// database_version_name instead.
 	//
 	// Possible values:
 	//   "SQL_DATABASE_VERSION_UNSPECIFIED" - Unspecified version.
@@ -788,6 +862,9 @@ type CloudSqlSettings struct {
 	// version is 35.
 	//   "MYSQL_8_0_36" - The database major version is MySQL 8.0 and the minor
 	// version is 36.
+	//   "MYSQL_8_0_37" - The database major version is MySQL 8.0 and the minor
+	// version is 37.
+	//   "MYSQL_8_4" - MySQL 8.4.
 	//   "POSTGRES_9_6" - PostgreSQL 9.6.
 	//   "POSTGRES_11" - PostgreSQL 11.
 	//   "POSTGRES_10" - PostgreSQL 10.
@@ -797,6 +874,8 @@ type CloudSqlSettings struct {
 	//   "POSTGRES_15" - PostgreSQL 15.
 	//   "POSTGRES_16" - PostgreSQL 16.
 	DatabaseVersion string `json:"databaseVersion,omitempty"`
+	// DatabaseVersionName: Optional. The database engine type and version name.
+	DatabaseVersionName string `json:"databaseVersionName,omitempty"`
 	// Edition: Optional. The edition of the given Cloud SQL instance.
 	//
 	// Possible values:
@@ -852,9 +931,9 @@ type CloudSqlSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudSqlSettings) MarshalJSON() ([]byte, error) {
+func (s CloudSqlSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudSqlSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ColumnEntity: Column is not used as an independent entity, it is retrieved
@@ -872,6 +951,8 @@ type ColumnEntity struct {
 	Collation string `json:"collation,omitempty"`
 	// Comment: Comment associated with the column.
 	Comment string `json:"comment,omitempty"`
+	// Computed: Is the column a computed column.
+	Computed bool `json:"computed,omitempty"`
 	// CustomFeatures: Custom engine specific features.
 	CustomFeatures googleapi.RawMessage `json:"customFeatures,omitempty"`
 	// DataType: Column data type.
@@ -911,9 +992,9 @@ type ColumnEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ColumnEntity) MarshalJSON() ([]byte, error) {
+func (s ColumnEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod ColumnEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CommitConversionWorkspaceRequest: Request message for
@@ -934,9 +1015,9 @@ type CommitConversionWorkspaceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CommitConversionWorkspaceRequest) MarshalJSON() ([]byte, error) {
+func (s CommitConversionWorkspaceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CommitConversionWorkspaceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConditionalColumnSetValue: Options to configure rule type
@@ -968,9 +1049,9 @@ type ConditionalColumnSetValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConditionalColumnSetValue) MarshalJSON() ([]byte, error) {
+func (s ConditionalColumnSetValue) MarshalJSON() ([]byte, error) {
 	type NoMethod ConditionalColumnSetValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConnectionProfile: A connection profile definition.
@@ -1006,12 +1087,24 @@ type ConnectionProfile struct {
 	//
 	// Possible values:
 	//   "DATABASE_PROVIDER_UNSPECIFIED" - Use this value for on-premise source
-	// database instances.
+	// database instances and ORACLE.
 	//   "CLOUDSQL" - Cloud SQL is the source instance provider.
 	//   "RDS" - Amazon RDS is the source instance provider.
 	//   "AURORA" - Amazon Aurora is the source instance provider.
 	//   "ALLOYDB" - AlloyDB for PostgreSQL is the source instance provider.
+	//   "AZURE_DATABASE" - Microsoft Azure Database for MySQL/PostgreSQL.
 	Provider string `json:"provider,omitempty"`
+	// Role: Optional. The connection profile role.
+	//
+	// Possible values:
+	//   "ROLE_UNSPECIFIED" - The role is unspecified.
+	//   "SOURCE" - The role is source.
+	//   "DESTINATION" - The role is destination.
+	Role string `json:"role,omitempty"`
+	// SatisfiesPzi: Output only. Reserved for future use.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
+	// SatisfiesPzs: Output only. Reserved for future use.
+	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
 	// Sqlserver: Connection profile for a SQL Server data source.
 	Sqlserver *SqlServerConnectionProfile `json:"sqlserver,omitempty"`
 	// State: The current connection profile state (e.g. DRAFT, READY, or FAILED).
@@ -1046,9 +1139,9 @@ type ConnectionProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConnectionProfile) MarshalJSON() ([]byte, error) {
+func (s ConnectionProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod ConnectionProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConstraintEntity: Constraint is not used as an independent entity, it is
@@ -1090,9 +1183,9 @@ type ConstraintEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConstraintEntity) MarshalJSON() ([]byte, error) {
+func (s ConstraintEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod ConstraintEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConversionWorkspace: The main conversion workspace resource entity.
@@ -1143,9 +1236,9 @@ type ConversionWorkspace struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConversionWorkspace) MarshalJSON() ([]byte, error) {
+func (s ConversionWorkspace) MarshalJSON() ([]byte, error) {
 	type NoMethod ConversionWorkspace
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConversionWorkspaceInfo: A conversion workspace's version.
@@ -1167,9 +1260,9 @@ type ConversionWorkspaceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConversionWorkspaceInfo) MarshalJSON() ([]byte, error) {
+func (s ConversionWorkspaceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ConversionWorkspaceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConvertConversionWorkspaceRequest: Request message for
@@ -1199,9 +1292,9 @@ type ConvertConversionWorkspaceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConvertConversionWorkspaceRequest) MarshalJSON() ([]byte, error) {
+func (s ConvertConversionWorkspaceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ConvertConversionWorkspaceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConvertJobDetails: Details regarding a Convert background job.
@@ -1222,9 +1315,9 @@ type ConvertJobDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConvertJobDetails) MarshalJSON() ([]byte, error) {
+func (s ConvertJobDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ConvertJobDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConvertRowIdToColumn: Options to configure rule type ConvertROWIDToColumn.
@@ -1251,9 +1344,9 @@ type ConvertRowIdToColumn struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConvertRowIdToColumn) MarshalJSON() ([]byte, error) {
+func (s ConvertRowIdToColumn) MarshalJSON() ([]byte, error) {
 	type NoMethod ConvertRowIdToColumn
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataCacheConfig: Data cache is an optional feature available for Cloud SQL
@@ -1276,9 +1369,9 @@ type DataCacheConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataCacheConfig) MarshalJSON() ([]byte, error) {
+func (s DataCacheConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DataCacheConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseEngineInfo: The type and version of a source or destination
@@ -1309,9 +1402,9 @@ type DatabaseEngineInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseEngineInfo) MarshalJSON() ([]byte, error) {
+func (s DatabaseEngineInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseEngineInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseEntity: The base entity type for all the database related entities.
@@ -1397,9 +1490,9 @@ type DatabaseEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseEntity) MarshalJSON() ([]byte, error) {
+func (s DatabaseEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseInstanceEntity: DatabaseInstance acts as a parent entity to other
@@ -1420,9 +1513,9 @@ type DatabaseInstanceEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseInstanceEntity) MarshalJSON() ([]byte, error) {
+func (s DatabaseInstanceEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseInstanceEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseType: A message defining the database engine and provider.
@@ -1441,11 +1534,12 @@ type DatabaseType struct {
 	//
 	// Possible values:
 	//   "DATABASE_PROVIDER_UNSPECIFIED" - Use this value for on-premise source
-	// database instances.
+	// database instances and ORACLE.
 	//   "CLOUDSQL" - Cloud SQL is the source instance provider.
 	//   "RDS" - Amazon RDS is the source instance provider.
 	//   "AURORA" - Amazon Aurora is the source instance provider.
 	//   "ALLOYDB" - AlloyDB for PostgreSQL is the source instance provider.
+	//   "AZURE_DATABASE" - Microsoft Azure Database for MySQL/PostgreSQL.
 	Provider string `json:"provider,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Engine") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1460,9 +1554,9 @@ type DatabaseType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseType) MarshalJSON() ([]byte, error) {
+func (s DatabaseType) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DemoteDestinationRequest: Request message for 'DemoteDestination' request.
@@ -1490,9 +1584,9 @@ type DescribeConversionWorkspaceRevisionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DescribeConversionWorkspaceRevisionsResponse) MarshalJSON() ([]byte, error) {
+func (s DescribeConversionWorkspaceRevisionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DescribeConversionWorkspaceRevisionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DescribeDatabaseEntitiesResponse: Response message for
@@ -1520,9 +1614,9 @@ type DescribeDatabaseEntitiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DescribeDatabaseEntitiesResponse) MarshalJSON() ([]byte, error) {
+func (s DescribeDatabaseEntitiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DescribeDatabaseEntitiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DoubleComparisonFilter: Filter based on relation between source value and
@@ -1556,9 +1650,9 @@ type DoubleComparisonFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DoubleComparisonFilter) MarshalJSON() ([]byte, error) {
+func (s DoubleComparisonFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod DoubleComparisonFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DoubleComparisonFilter) UnmarshalJSON(data []byte) error {
@@ -1594,9 +1688,9 @@ type DumpFlag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DumpFlag) MarshalJSON() ([]byte, error) {
+func (s DumpFlag) MarshalJSON() ([]byte, error) {
 	type NoMethod DumpFlag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DumpFlags: Dump flags definition.
@@ -1616,9 +1710,9 @@ type DumpFlags struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DumpFlags) MarshalJSON() ([]byte, error) {
+func (s DumpFlags) MarshalJSON() ([]byte, error) {
 	type NoMethod DumpFlags
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1650,17 +1744,38 @@ type EncryptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionConfig) MarshalJSON() ([]byte, error) {
+func (s EncryptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityDdl: A single DDL statement for a specific entity
 type EntityDdl struct {
 	// Ddl: The actual ddl code.
 	Ddl string `json:"ddl,omitempty"`
+	// DdlKind: The DDL Kind selected for apply, or UNSPECIFIED if the entity
+	// wasn't converted yet.
+	//
+	// Possible values:
+	//   "DDL_KIND_UNSPECIFIED" - The kind of the DDL is unknown.
+	//   "SOURCE" - DDL of the source entity
+	//   "DETERMINISTIC" - Deterministic converted DDL
+	//   "AI" - Gemini AI converted DDL
+	//   "USER_EDIT" - User edited DDL
+	DdlKind string `json:"ddlKind,omitempty"`
 	// DdlType: Type of DDL (Create, Alter).
 	DdlType string `json:"ddlType,omitempty"`
+	// EditedDdlKind: If ddl_kind is USER_EDIT, this holds the DDL kind of the
+	// original content - DETERMINISTIC or AI. Otherwise, this is
+	// DDL_KIND_UNSPECIFIED.
+	//
+	// Possible values:
+	//   "DDL_KIND_UNSPECIFIED" - The kind of the DDL is unknown.
+	//   "SOURCE" - DDL of the source entity
+	//   "DETERMINISTIC" - Deterministic converted DDL
+	//   "AI" - Gemini AI converted DDL
+	//   "USER_EDIT" - User edited DDL
+	EditedDdlKind string `json:"editedDdlKind,omitempty"`
 	// Entity: The name of the database entity the ddl refers to.
 	Entity string `json:"entity,omitempty"`
 	// EntityType: The entity type (if the DDL is for a sub entity).
@@ -1698,9 +1813,9 @@ type EntityDdl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityDdl) MarshalJSON() ([]byte, error) {
+func (s EntityDdl) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityDdl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityIssue: Issue related to the entity.
@@ -1764,9 +1879,9 @@ type EntityIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityIssue) MarshalJSON() ([]byte, error) {
+func (s EntityIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityMapping: Details of the mappings of a database entity.
@@ -1838,9 +1953,9 @@ type EntityMapping struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityMapping) MarshalJSON() ([]byte, error) {
+func (s EntityMapping) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityMapping
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityMappingLogEntry: A single record of a rule which was used for a
@@ -1865,9 +1980,9 @@ type EntityMappingLogEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityMappingLogEntry) MarshalJSON() ([]byte, error) {
+func (s EntityMappingLogEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityMappingLogEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityMove: Options to configure rule type EntityMove. The rule is used to
@@ -1890,9 +2005,9 @@ type EntityMove struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityMove) MarshalJSON() ([]byte, error) {
+func (s EntityMove) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityMove
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -1938,9 +2053,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchStaticIpsResponse: Response message for a 'FetchStaticIps' request.
@@ -1966,9 +2081,9 @@ type FetchStaticIpsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchStaticIpsResponse) MarshalJSON() ([]byte, error) {
+func (s FetchStaticIpsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchStaticIpsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterTableColumns: Options to configure rule type FilterTableColumns. The
@@ -1995,9 +2110,9 @@ type FilterTableColumns struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterTableColumns) MarshalJSON() ([]byte, error) {
+func (s FilterTableColumns) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterTableColumns
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ForwardSshTunnelConnectivity: Forward SSH Tunnel connectivity.
@@ -2025,9 +2140,9 @@ type ForwardSshTunnelConnectivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ForwardSshTunnelConnectivity) MarshalJSON() ([]byte, error) {
+func (s ForwardSshTunnelConnectivity) MarshalJSON() ([]byte, error) {
 	type NoMethod ForwardSshTunnelConnectivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FunctionEntity: Function's parent is a schema.
@@ -2049,9 +2164,9 @@ type FunctionEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FunctionEntity) MarshalJSON() ([]byte, error) {
+func (s FunctionEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod FunctionEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenerateSshScriptRequest: Request message for 'GenerateSshScript' request.
@@ -2077,9 +2192,9 @@ type GenerateSshScriptRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenerateSshScriptRequest) MarshalJSON() ([]byte, error) {
+func (s GenerateSshScriptRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GenerateSshScriptRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenerateTcpProxyScriptRequest: Request message for 'GenerateTcpProxyScript'
@@ -2113,9 +2228,9 @@ type GenerateTcpProxyScriptRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenerateTcpProxyScriptRequest) MarshalJSON() ([]byte, error) {
+func (s GenerateTcpProxyScriptRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GenerateTcpProxyScriptRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudClouddmsV1OperationMetadata: Represents the metadata of the
@@ -2129,8 +2244,8 @@ type GoogleCloudClouddmsV1OperationMetadata struct {
 	EndTime string `json:"endTime,omitempty"`
 	// RequestedCancellation: Output only. Identifies whether the user has
 	// requested cancellation of the operation. Operations that have successfully
-	// been cancelled have Operation.error value with a google.rpc.Status.code of
-	// 1, corresponding to `Code.CANCELLED`.
+	// been cancelled have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
 	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
 	// StatusMessage: Output only. Human-readable status of the operation, if any.
 	StatusMessage string `json:"statusMessage,omitempty"`
@@ -2152,9 +2267,9 @@ type GoogleCloudClouddmsV1OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudClouddmsV1OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudClouddmsV1OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudClouddmsV1OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportMappingRulesRequest: Request message for 'ImportMappingRules' request.
@@ -2186,9 +2301,9 @@ type ImportMappingRulesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportMappingRulesRequest) MarshalJSON() ([]byte, error) {
+func (s ImportMappingRulesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportMappingRulesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportRulesJobDetails: Details regarding an Import Rules background job.
@@ -2217,9 +2332,9 @@ type ImportRulesJobDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportRulesJobDetails) MarshalJSON() ([]byte, error) {
+func (s ImportRulesJobDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportRulesJobDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IndexEntity: Index is not used as an independent entity, it is retrieved as
@@ -2255,9 +2370,38 @@ type IndexEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IndexEntity) MarshalJSON() ([]byte, error) {
+func (s IndexEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod IndexEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// InstanceNetworkConfig: Metadata related to instance level network
+// configuration.
+type InstanceNetworkConfig struct {
+	// AuthorizedExternalNetworks: Optional. A list of external network authorized
+	// to access this instance.
+	AuthorizedExternalNetworks []*AuthorizedNetwork `json:"authorizedExternalNetworks,omitempty"`
+	// EnableOutboundPublicIp: Optional. Enabling an outbound public IP address to
+	// support a database server sending requests out into the internet.
+	EnableOutboundPublicIp bool `json:"enableOutboundPublicIp,omitempty"`
+	// EnablePublicIp: Optional. Enabling public ip for the instance.
+	EnablePublicIp bool `json:"enablePublicIp,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AuthorizedExternalNetworks")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AuthorizedExternalNetworks") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s InstanceNetworkConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod InstanceNetworkConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntComparisonFilter: Filter based on relation between source value and
@@ -2291,9 +2435,9 @@ type IntComparisonFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntComparisonFilter) MarshalJSON() ([]byte, error) {
+func (s IntComparisonFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod IntComparisonFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListConnectionProfilesResponse: Response message for
@@ -2322,9 +2466,9 @@ type ListConnectionProfilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConnectionProfilesResponse) MarshalJSON() ([]byte, error) {
+func (s ListConnectionProfilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConnectionProfilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListConversionWorkspacesResponse: Response message for
@@ -2353,9 +2497,9 @@ type ListConversionWorkspacesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConversionWorkspacesResponse) MarshalJSON() ([]byte, error) {
+func (s ListConversionWorkspacesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConversionWorkspacesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -2381,9 +2525,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMappingRulesResponse: Response message for 'ListMappingRulesRequest'
@@ -2410,9 +2554,38 @@ type ListMappingRulesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMappingRulesResponse) MarshalJSON() ([]byte, error) {
+func (s ListMappingRulesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMappingRulesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListMigrationJobObjectsResponse: Response containing the objects for a
+// migration job.
+type ListMigrationJobObjectsResponse struct {
+	// MigrationJobObjects: List of migration job objects.
+	MigrationJobObjects []*MigrationJobObject `json:"migrationJobObjects,omitempty"`
+	// NextPageToken: A token, which can be sent as `page_token` to retrieve the
+	// next page.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "MigrationJobObjects") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "MigrationJobObjects") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListMigrationJobObjectsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListMigrationJobObjectsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMigrationJobsResponse: Response message for 'ListMigrationJobs' request.
@@ -2440,9 +2613,9 @@ type ListMigrationJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMigrationJobsResponse) MarshalJSON() ([]byte, error) {
+func (s ListMigrationJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMigrationJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -2468,9 +2641,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPrivateConnectionsResponse: Response message for
@@ -2499,9 +2672,9 @@ type ListPrivateConnectionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPrivateConnectionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListPrivateConnectionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPrivateConnectionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -2537,9 +2710,62 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// LogFileDirectories: Configuration to specify the Oracle directories to
+// access the log files.
+type LogFileDirectories struct {
+	// ArchivedLogDirectory: Required. Oracle directory for archived logs.
+	ArchivedLogDirectory string `json:"archivedLogDirectory,omitempty"`
+	// OnlineLogDirectory: Required. Oracle directory for online logs.
+	OnlineLogDirectory string `json:"onlineLogDirectory,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ArchivedLogDirectory") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ArchivedLogDirectory") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s LogFileDirectories) MarshalJSON() ([]byte, error) {
+	type NoMethod LogFileDirectories
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// LogMiner: Configuration to use LogMiner CDC method.
+type LogMiner struct {
+}
+
+// LookupMigrationJobObjectRequest: Request for looking up a specific migration
+// job object by its source object identifier.
+type LookupMigrationJobObjectRequest struct {
+	// SourceObjectIdentifier: Required. The source object identifier which maps to
+	// the migration job object.
+	SourceObjectIdentifier *SourceObjectIdentifier `json:"sourceObjectIdentifier,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SourceObjectIdentifier") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SourceObjectIdentifier") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s LookupMigrationJobObjectRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod LookupMigrationJobObjectRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MachineConfig: MachineConfig describes the configuration of a machine.
@@ -2559,9 +2785,9 @@ type MachineConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MachineConfig) MarshalJSON() ([]byte, error) {
+func (s MachineConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod MachineConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MappingRule: Definition of a transformation that is to be applied to a group
@@ -2665,9 +2891,9 @@ type MappingRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MappingRule) MarshalJSON() ([]byte, error) {
+func (s MappingRule) MarshalJSON() ([]byte, error) {
 	type NoMethod MappingRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MappingRuleFilter: A filter defining the entities that a mapping rule should
@@ -2705,15 +2931,17 @@ type MappingRuleFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MappingRuleFilter) MarshalJSON() ([]byte, error) {
+func (s MappingRuleFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod MappingRuleFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MaterializedViewEntity: MaterializedView's parent is a schema.
 type MaterializedViewEntity struct {
 	// CustomFeatures: Custom engine specific features.
 	CustomFeatures googleapi.RawMessage `json:"customFeatures,omitempty"`
+	// Indices: View indices.
+	Indices []*IndexEntity `json:"indices,omitempty"`
 	// SqlCode: The SQL code which creates the view.
 	SqlCode string `json:"sqlCode,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CustomFeatures") to
@@ -2729,9 +2957,9 @@ type MaterializedViewEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MaterializedViewEntity) MarshalJSON() ([]byte, error) {
+func (s MaterializedViewEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod MaterializedViewEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MigrationJob: Represents a Database Migration Service migration job object.
@@ -2798,6 +3026,11 @@ type MigrationJob struct {
 	// Name: The name (URI) of this migration job resource, in the form of:
 	// projects/{project}/locations/{location}/migrationJobs/{migrationJob}.
 	Name string `json:"name,omitempty"`
+	// ObjectsConfig: Optional. The objects that need to be migrated.
+	ObjectsConfig *MigrationJobObjectsConfig `json:"objectsConfig,omitempty"`
+	// OracleToPostgresConfig: Configuration for heterogeneous **Oracle to Cloud
+	// SQL for PostgreSQL** and **Oracle to AlloyDB for PostgreSQL** migrations.
+	OracleToPostgresConfig *OracleToPostgresConfig `json:"oracleToPostgresConfig,omitempty"`
 	// PerformanceConfig: Optional. Data dump parallelism settings used by the
 	// migration.
 	PerformanceConfig *PerformanceConfig `json:"performanceConfig,omitempty"`
@@ -2817,6 +3050,10 @@ type MigrationJob struct {
 	// ReverseSshConnectivity: The details needed to communicate to the source over
 	// Reverse SSH tunnel connectivity.
 	ReverseSshConnectivity *ReverseSshConnectivity `json:"reverseSshConnectivity,omitempty"`
+	// SatisfiesPzi: Output only. Reserved for future use.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
+	// SatisfiesPzs: Output only. Reserved for future use.
+	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
 	// Source: Required. The resource name (URI) of the source connection profile.
 	Source string `json:"source,omitempty"`
 	// SourceDatabase: The database engine type and provider of the source.
@@ -2877,9 +3114,92 @@ type MigrationJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MigrationJob) MarshalJSON() ([]byte, error) {
+func (s MigrationJob) MarshalJSON() ([]byte, error) {
 	type NoMethod MigrationJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MigrationJobObject: A specific Migration Job Object (e.g. a specifc DB
+// Table)
+type MigrationJobObject struct {
+	// CreateTime: Output only. The creation time of the migration job object.
+	CreateTime string `json:"createTime,omitempty"`
+	// Error: Output only. The error details in case of failure.
+	Error *Status `json:"error,omitempty"`
+	// Name: The object's name.
+	Name string `json:"name,omitempty"`
+	// Phase: Output only. The phase of the migration job object.
+	//
+	// Possible values:
+	//   "PHASE_UNSPECIFIED" - The phase of the migration job is unknown.
+	//   "FULL_DUMP" - The migration job object is in the full dump phase.
+	//   "CDC" - The migration job object is in CDC phase.
+	//   "READY_FOR_PROMOTE" - The migration job object is ready to be promoted.
+	//   "PROMOTE_IN_PROGRESS" - The migration job object is in running the promote
+	// phase.
+	//   "PROMOTED" - The migration job is promoted.
+	//   "DIFF_BACKUP" - The migration job object is in the differential backup
+	// phase.
+	Phase string `json:"phase,omitempty"`
+	// SourceObject: The object identifier in the data source.
+	SourceObject *SourceObjectIdentifier `json:"sourceObject,omitempty"`
+	// State: The state of the migration job object.
+	//
+	// Possible values:
+	//   "STATE_UNSPECIFIED" - The state of the migration job object is unknown.
+	//   "NOT_STARTED" - The migration job object is not started.
+	//   "RUNNING" - The migration job object is running.
+	//   "STOPPING" - The migration job object is being stopped.
+	//   "STOPPED" - The migration job object is currently stopped.
+	//   "RESTARTING" - The migration job object is restarting.
+	//   "FAILED" - The migration job object failed.
+	//   "REMOVING" - The migration job object is deleting.
+	//   "NOT_SELECTED" - The migration job object is not selected for migration.
+	//   "COMPLETED" - The migration job object is completed.
+	State string `json:"state,omitempty"`
+	// UpdateTime: Output only. The last update time of the migration job object.
+	UpdateTime string `json:"updateTime,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "CreateTime") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CreateTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MigrationJobObject) MarshalJSON() ([]byte, error) {
+	type NoMethod MigrationJobObject
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MigrationJobObjectsConfig: Configuration for the objects to be migrated.
+type MigrationJobObjectsConfig struct {
+	// SourceObjectsConfig: The list of the migration job objects.
+	SourceObjectsConfig *SourceObjectsConfig `json:"sourceObjectsConfig,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SourceObjectsConfig") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SourceObjectsConfig") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MigrationJobObjectsConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod MigrationJobObjectsConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MigrationJobVerificationError: Error message of a verification Migration
@@ -2965,9 +3285,9 @@ type MigrationJobVerificationError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MigrationJobVerificationError) MarshalJSON() ([]byte, error) {
+func (s MigrationJobVerificationError) MarshalJSON() ([]byte, error) {
 	type NoMethod MigrationJobVerificationError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultiColumnDatatypeChange: Options to configure rule type
@@ -3017,9 +3337,9 @@ type MultiColumnDatatypeChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiColumnDatatypeChange) MarshalJSON() ([]byte, error) {
+func (s MultiColumnDatatypeChange) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiColumnDatatypeChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultiEntityRename: Options to configure rule type MultiEntityRename. The
@@ -3061,9 +3381,9 @@ type MultiEntityRename struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiEntityRename) MarshalJSON() ([]byte, error) {
+func (s MultiEntityRename) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiEntityRename
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MySqlConnectionProfile: Specifies connection parameters required
@@ -3104,9 +3424,9 @@ type MySqlConnectionProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MySqlConnectionProfile) MarshalJSON() ([]byte, error) {
+func (s MySqlConnectionProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod MySqlConnectionProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -3151,9 +3471,50 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OracleAsmConfig: Configuration for Oracle Automatic Storage Management (ASM)
+// connection.
+type OracleAsmConfig struct {
+	// AsmService: Required. ASM service name for the Oracle ASM connection.
+	AsmService string `json:"asmService,omitempty"`
+	// Hostname: Required. Hostname for the Oracle ASM connection.
+	Hostname string `json:"hostname,omitempty"`
+	// Password: Required. Input only. Password for the Oracle ASM connection.
+	Password string `json:"password,omitempty"`
+	// PasswordSet: Output only. Indicates whether a new password is included in
+	// the request.
+	PasswordSet bool `json:"passwordSet,omitempty"`
+	// Port: Required. Port for the Oracle ASM connection.
+	Port int64 `json:"port,omitempty"`
+	// Ssl: Optional. SSL configuration for the Oracle connection.
+	Ssl *SslConfig `json:"ssl,omitempty"`
+	// Username: Required. Username for the Oracle ASM connection.
+	Username string `json:"username,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AsmService") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AsmService") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OracleAsmConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod OracleAsmConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OracleAsmLogFileAccess: Configuration to use Oracle ASM to access the log
+// files.
+type OracleAsmLogFileAccess struct {
 }
 
 // OracleConnectionProfile: Specifies connection parameters required
@@ -3165,6 +3526,8 @@ type OracleConnectionProfile struct {
 	ForwardSshConnectivity *ForwardSshTunnelConnectivity `json:"forwardSshConnectivity,omitempty"`
 	// Host: Required. The IP or hostname of the source Oracle database.
 	Host string `json:"host,omitempty"`
+	// OracleAsmConfig: Optional. Configuration for Oracle ASM connection.
+	OracleAsmConfig *OracleAsmConfig `json:"oracleAsmConfig,omitempty"`
 	// Password: Required. Input only. The password for the user that Database
 	// Migration Service will be using to connect to the database. This field is
 	// not returned on request, and the value is encrypted when stored in Database
@@ -3200,9 +3563,69 @@ type OracleConnectionProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OracleConnectionProfile) MarshalJSON() ([]byte, error) {
+func (s OracleConnectionProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod OracleConnectionProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OracleSourceConfig: Configuration for Oracle as a source in a migration.
+type OracleSourceConfig struct {
+	// BinaryLogParser: Use Binary Log Parser.
+	BinaryLogParser *BinaryLogParser `json:"binaryLogParser,omitempty"`
+	// CdcStartPosition: Optional. The schema change number (SCN) to start CDC data
+	// migration from.
+	CdcStartPosition int64 `json:"cdcStartPosition,omitempty,string"`
+	// LogMiner: Use LogMiner.
+	LogMiner *LogMiner `json:"logMiner,omitempty"`
+	// MaxConcurrentCdcConnections: Optional. Maximum number of connections
+	// Database Migration Service will open to the source for CDC phase.
+	MaxConcurrentCdcConnections int64 `json:"maxConcurrentCdcConnections,omitempty"`
+	// MaxConcurrentFullDumpConnections: Optional. Maximum number of connections
+	// Database Migration Service will open to the source for full dump phase.
+	MaxConcurrentFullDumpConnections int64 `json:"maxConcurrentFullDumpConnections,omitempty"`
+	// SkipFullDump: Optional. Whether to skip full dump or not.
+	SkipFullDump bool `json:"skipFullDump,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BinaryLogParser") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BinaryLogParser") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OracleSourceConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod OracleSourceConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OracleToPostgresConfig: Configuration for heterogeneous **Oracle to Cloud
+// SQL for PostgreSQL** and **Oracle to AlloyDB for PostgreSQL** migrations.
+type OracleToPostgresConfig struct {
+	// OracleSourceConfig: Optional. Configuration for Oracle source.
+	OracleSourceConfig *OracleSourceConfig `json:"oracleSourceConfig,omitempty"`
+	// PostgresDestinationConfig: Optional. Configuration for Postgres destination.
+	PostgresDestinationConfig *PostgresDestinationConfig `json:"postgresDestinationConfig,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "OracleSourceConfig") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "OracleSourceConfig") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OracleToPostgresConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod OracleToPostgresConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PackageEntity: Package's parent is a schema.
@@ -3228,9 +3651,9 @@ type PackageEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PackageEntity) MarshalJSON() ([]byte, error) {
+func (s PackageEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod PackageEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PerformanceConfig: Performance configuration definition.
@@ -3257,9 +3680,9 @@ type PerformanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PerformanceConfig) MarshalJSON() ([]byte, error) {
+func (s PerformanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PerformanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -3349,9 +3772,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Position: Issue position.
@@ -3377,9 +3800,9 @@ type Position struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Position) MarshalJSON() ([]byte, error) {
+func (s Position) MarshalJSON() ([]byte, error) {
 	type NoMethod Position
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PostgreSqlConnectionProfile: Specifies connection parameters required
@@ -3391,6 +3814,8 @@ type PostgreSqlConnectionProfile struct {
 	// CloudSqlId: If the source is a Cloud SQL database, use this field to provide
 	// the Cloud SQL instance ID of the source.
 	CloudSqlId string `json:"cloudSqlId,omitempty"`
+	// Database: Optional. The name of the specific database within the host.
+	Database string `json:"database,omitempty"`
 	// Host: Required. The IP or hostname of the source PostgreSQL database.
 	Host string `json:"host,omitempty"`
 	// NetworkArchitecture: Output only. If the source is a Cloud SQL database,
@@ -3438,9 +3863,35 @@ type PostgreSqlConnectionProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PostgreSqlConnectionProfile) MarshalJSON() ([]byte, error) {
+func (s PostgreSqlConnectionProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod PostgreSqlConnectionProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PostgresDestinationConfig: Configuration for Postgres as a destination in a
+// migration.
+type PostgresDestinationConfig struct {
+	// MaxConcurrentConnections: Optional. Maximum number of connections Database
+	// Migration Service will open to the destination for data migration.
+	MaxConcurrentConnections int64 `json:"maxConcurrentConnections,omitempty"`
+	// TransactionTimeout: Optional. Timeout for data migration transactions.
+	TransactionTimeout string `json:"transactionTimeout,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "MaxConcurrentConnections")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "MaxConcurrentConnections") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PostgresDestinationConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod PostgresDestinationConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrimaryInstanceSettings: Settings for the cluster's primary instance
@@ -3452,12 +3903,18 @@ type PrimaryInstanceSettings struct {
 	// Id: Required. The ID of the AlloyDB primary instance. The ID must satisfy
 	// the regex expression "[a-z0-9-]+".
 	Id string `json:"id,omitempty"`
+	// InstanceNetworkConfig: Optional. Metadata related to instance level network
+	// configuration.
+	InstanceNetworkConfig *InstanceNetworkConfig `json:"instanceNetworkConfig,omitempty"`
 	// Labels: Labels for the AlloyDB primary instance created by DMS. An object
 	// containing a list of 'key', 'value' pairs.
 	Labels map[string]string `json:"labels,omitempty"`
 	// MachineConfig: Configuration for the machines that host the underlying
 	// database engine.
 	MachineConfig *MachineConfig `json:"machineConfig,omitempty"`
+	// OutboundPublicIpAddresses: Output only. All outbound public IP addresses
+	// configured for the instance.
+	OutboundPublicIpAddresses []string `json:"outboundPublicIpAddresses,omitempty"`
 	// PrivateIp: Output only. The private IP address for the Instance. This is the
 	// connection endpoint for an end-user application.
 	PrivateIp string `json:"privateIp,omitempty"`
@@ -3474,9 +3931,9 @@ type PrimaryInstanceSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrimaryInstanceSettings) MarshalJSON() ([]byte, error) {
+func (s PrimaryInstanceSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod PrimaryInstanceSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrivateConnection: The PrivateConnection resource is used to establish
@@ -3495,6 +3952,10 @@ type PrivateConnection struct {
 	Labels map[string]string `json:"labels,omitempty"`
 	// Name: The name of the resource.
 	Name string `json:"name,omitempty"`
+	// SatisfiesPzi: Output only. Reserved for future use.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
+	// SatisfiesPzs: Output only. Reserved for future use.
+	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
 	// State: Output only. The state of the private connection.
 	//
 	// Possible values:
@@ -3529,9 +3990,9 @@ type PrivateConnection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrivateConnection) MarshalJSON() ([]byte, error) {
+func (s PrivateConnection) MarshalJSON() ([]byte, error) {
 	type NoMethod PrivateConnection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrivateConnectivity: Private Connectivity.
@@ -3552,9 +4013,9 @@ type PrivateConnectivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrivateConnectivity) MarshalJSON() ([]byte, error) {
+func (s PrivateConnectivity) MarshalJSON() ([]byte, error) {
 	type NoMethod PrivateConnectivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrivateServiceConnectConnectivity: Private Service Connect connectivity
@@ -3578,38 +4039,61 @@ type PrivateServiceConnectConnectivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrivateServiceConnectConnectivity) MarshalJSON() ([]byte, error) {
+func (s PrivateServiceConnectConnectivity) MarshalJSON() ([]byte, error) {
 	type NoMethod PrivateServiceConnectConnectivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PromoteMigrationJobRequest: Request message for 'PromoteMigrationJob'
 // request.
 type PromoteMigrationJobRequest struct {
-}
-
-// RestartMigrationJobRequest: Request message for 'RestartMigrationJob'
-// request.
-type RestartMigrationJobRequest struct {
-	// SkipValidation: Optional. Restart the migration job without running prior
-	// configuration verification. Defaults to `false`.
-	SkipValidation bool `json:"skipValidation,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "SkipValidation") to
+	// ObjectsFilter: Optional. The object filter to apply to the migration job.
+	ObjectsFilter *MigrationJobObjectsConfig `json:"objectsFilter,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ObjectsFilter") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "SkipValidation") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "ObjectsFilter") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *RestartMigrationJobRequest) MarshalJSON() ([]byte, error) {
+func (s PromoteMigrationJobRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod PromoteMigrationJobRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RestartMigrationJobRequest: Request message for 'RestartMigrationJob'
+// request.
+type RestartMigrationJobRequest struct {
+	// ObjectsFilter: Optional. The object filter to apply to the migration job.
+	ObjectsFilter *MigrationJobObjectsConfig `json:"objectsFilter,omitempty"`
+	// RestartFailedObjects: Optional. If true, only failed objects will be
+	// restarted.
+	RestartFailedObjects bool `json:"restartFailedObjects,omitempty"`
+	// SkipValidation: Optional. Restart the migration job without running prior
+	// configuration verification. Defaults to `false`.
+	SkipValidation bool `json:"skipValidation,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ObjectsFilter") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ObjectsFilter") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RestartMigrationJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RestartMigrationJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResumeMigrationJobRequest: Request message for 'ResumeMigrationJob' request.
@@ -3630,9 +4114,9 @@ type ResumeMigrationJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResumeMigrationJobRequest) MarshalJSON() ([]byte, error) {
+func (s ResumeMigrationJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ResumeMigrationJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReverseSshConnectivity: The details needed to configure a reverse SSH tunnel
@@ -3666,9 +4150,9 @@ type ReverseSshConnectivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReverseSshConnectivity) MarshalJSON() ([]byte, error) {
+func (s ReverseSshConnectivity) MarshalJSON() ([]byte, error) {
 	type NoMethod ReverseSshConnectivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RollbackConversionWorkspaceRequest: Request message for
@@ -3696,9 +4180,9 @@ type RoundToScale struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RoundToScale) MarshalJSON() ([]byte, error) {
+func (s RoundToScale) MarshalJSON() ([]byte, error) {
 	type NoMethod RoundToScale
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RulesFile: Details of a single rules file.
@@ -3723,9 +4207,9 @@ type RulesFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RulesFile) MarshalJSON() ([]byte, error) {
+func (s RulesFile) MarshalJSON() ([]byte, error) {
 	type NoMethod RulesFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchemaEntity: Schema typically has no parent entity, but can have a parent
@@ -3749,9 +4233,9 @@ type SchemaEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchemaEntity) MarshalJSON() ([]byte, error) {
+func (s SchemaEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod SchemaEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchBackgroundJobsResponse: Response message for 'SearchBackgroundJobs'
@@ -3775,9 +4259,9 @@ type SearchBackgroundJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchBackgroundJobsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchBackgroundJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchBackgroundJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SeedConversionWorkspaceRequest: Request message for
@@ -3805,9 +4289,9 @@ type SeedConversionWorkspaceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeedConversionWorkspaceRequest) MarshalJSON() ([]byte, error) {
+func (s SeedConversionWorkspaceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SeedConversionWorkspaceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SeedJobDetails: Details regarding a Seed background job.
@@ -3828,9 +4312,9 @@ type SeedJobDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeedJobDetails) MarshalJSON() ([]byte, error) {
+func (s SeedJobDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod SeedJobDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SequenceEntity: Sequence's parent is a schema.
@@ -3865,9 +4349,9 @@ type SequenceEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SequenceEntity) MarshalJSON() ([]byte, error) {
+func (s SequenceEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod SequenceEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -3894,9 +4378,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetTablePrimaryKey: Options to configure rule type SetTablePrimaryKey. The
@@ -3921,9 +4405,9 @@ type SetTablePrimaryKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetTablePrimaryKey) MarshalJSON() ([]byte, error) {
+func (s SetTablePrimaryKey) MarshalJSON() ([]byte, error) {
 	type NoMethod SetTablePrimaryKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SingleColumnChange: Options to configure rule type SingleColumnChange. The
@@ -3979,9 +4463,9 @@ type SingleColumnChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SingleColumnChange) MarshalJSON() ([]byte, error) {
+func (s SingleColumnChange) MarshalJSON() ([]byte, error) {
 	type NoMethod SingleColumnChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SingleEntityRename: Options to configure rule type SingleEntityRename. The
@@ -4005,9 +4489,9 @@ type SingleEntityRename struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SingleEntityRename) MarshalJSON() ([]byte, error) {
+func (s SingleEntityRename) MarshalJSON() ([]byte, error) {
 	type NoMethod SingleEntityRename
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SinglePackageChange: Options to configure rule type SinglePackageChange. The
@@ -4031,9 +4515,9 @@ type SinglePackageChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SinglePackageChange) MarshalJSON() ([]byte, error) {
+func (s SinglePackageChange) MarshalJSON() ([]byte, error) {
 	type NoMethod SinglePackageChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceNumericFilter: Filter for fixed point number data types such as
@@ -4077,9 +4561,93 @@ type SourceNumericFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceNumericFilter) MarshalJSON() ([]byte, error) {
+func (s SourceNumericFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceNumericFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SourceObjectConfig: Config for a single migration job object.
+type SourceObjectConfig struct {
+	// ObjectIdentifier: Optional. The object identifier.
+	ObjectIdentifier *SourceObjectIdentifier `json:"objectIdentifier,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ObjectIdentifier") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ObjectIdentifier") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SourceObjectConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod SourceObjectConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SourceObjectIdentifier: An identifier for the Migration Job Object.
+type SourceObjectIdentifier struct {
+	// Database: Optional. The database name. This will be required only if the
+	// object uses a database name as part of its unique identifier.
+	Database string `json:"database,omitempty"`
+	// Type: Required. The type of the migration job object.
+	//
+	// Possible values:
+	//   "MIGRATION_JOB_OBJECT_TYPE_UNSPECIFIED" - The type of the migration job
+	// object is unknown.
+	//   "DATABASE" - The migration job object is a database.
+	Type string `json:"type,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Database") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Database") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SourceObjectIdentifier) MarshalJSON() ([]byte, error) {
+	type NoMethod SourceObjectIdentifier
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SourceObjectsConfig: List of configurations for the source objects to be
+// migrated.
+type SourceObjectsConfig struct {
+	// ObjectConfigs: Optional. The list of the objects to be migrated.
+	ObjectConfigs []*SourceObjectConfig `json:"objectConfigs,omitempty"`
+	// ObjectsSelectionType: Optional. The objects selection type of the migration
+	// job.
+	//
+	// Possible values:
+	//   "OBJECTS_SELECTION_TYPE_UNSPECIFIED" - The type of the objects selection
+	// is unknown, indicating that the migration job is at instance level.
+	//   "ALL_OBJECTS" - Migrate all of the objects.
+	//   "SPECIFIED_OBJECTS" - Migrate specific objects.
+	ObjectsSelectionType string `json:"objectsSelectionType,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ObjectConfigs") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ObjectConfigs") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SourceObjectsConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod SourceObjectsConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceSqlChange: Options to configure rule type SourceSqlChange. The rule is
@@ -4103,9 +4671,9 @@ type SourceSqlChange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceSqlChange) MarshalJSON() ([]byte, error) {
+func (s SourceSqlChange) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceSqlChange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SourceTextFilter: Filter for text-based data types like varchar.
@@ -4129,9 +4697,9 @@ type SourceTextFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SourceTextFilter) MarshalJSON() ([]byte, error) {
+func (s SourceTextFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod SourceTextFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlAclEntry: An entry for an Access Control list.
@@ -4159,9 +4727,9 @@ type SqlAclEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlAclEntry) MarshalJSON() ([]byte, error) {
+func (s SqlAclEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlAclEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlIpConfig: IP Management configuration.
@@ -4200,9 +4768,9 @@ type SqlIpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlIpConfig) MarshalJSON() ([]byte, error) {
+func (s SqlIpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlIpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerBackups: Specifies the backup details in Cloud Storage for
@@ -4227,9 +4795,9 @@ type SqlServerBackups struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerBackups) MarshalJSON() ([]byte, error) {
+func (s SqlServerBackups) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerBackups
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerConnectionProfile: Specifies connection parameters required
@@ -4282,9 +4850,9 @@ type SqlServerConnectionProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerConnectionProfile) MarshalJSON() ([]byte, error) {
+func (s SqlServerConnectionProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerConnectionProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerDatabaseBackup: Specifies the backup details for a single database
@@ -4310,18 +4878,22 @@ type SqlServerDatabaseBackup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerDatabaseBackup) MarshalJSON() ([]byte, error) {
+func (s SqlServerDatabaseBackup) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerDatabaseBackup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerEncryptionOptions: Encryption settings for the SQL Server database.
 type SqlServerEncryptionOptions struct {
-	// CertPath: Required. Path to certificate.
+	// CertPath: Required. Path to the Certificate (.cer) in Cloud Storage, in the
+	// form `gs://bucketName/fileName`. The instance must have write permissions to
+	// the bucket and read access to the file.
 	CertPath string `json:"certPath,omitempty"`
-	// PvkPassword: Required. Input only. Private key password.
+	// PvkPassword: Required. Input only. Password that encrypts the private key.
 	PvkPassword string `json:"pvkPassword,omitempty"`
-	// PvkPath: Required. Path to certificate private key.
+	// PvkPath: Required. Path to the Certificate Private Key (.pvk) in Cloud
+	// Storage, in the form `gs://bucketName/fileName`. The instance must have
+	// write permissions to the bucket and read access to the file.
 	PvkPath string `json:"pvkPath,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CertPath") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -4336,9 +4908,9 @@ type SqlServerEncryptionOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerEncryptionOptions) MarshalJSON() ([]byte, error) {
+func (s SqlServerEncryptionOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerEncryptionOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SqlServerHomogeneousMigrationJobConfig: Configuration for homogeneous
@@ -4356,6 +4928,8 @@ type SqlServerHomogeneousMigrationJobConfig struct {
 	BackupFilePattern string `json:"backupFilePattern,omitempty"`
 	// DatabaseBackups: Required. Backup details per database in Cloud Storage.
 	DatabaseBackups []*SqlServerDatabaseBackup `json:"databaseBackups,omitempty"`
+	// PromoteWhenReady: Optional. Promote databases when ready.
+	PromoteWhenReady bool `json:"promoteWhenReady,omitempty"`
 	// UseDiffBackup: Optional. Enable differential backups.
 	UseDiffBackup bool `json:"useDiffBackup,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "BackupFilePattern") to
@@ -4371,9 +4945,9 @@ type SqlServerHomogeneousMigrationJobConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SqlServerHomogeneousMigrationJobConfig) MarshalJSON() ([]byte, error) {
+func (s SqlServerHomogeneousMigrationJobConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SqlServerHomogeneousMigrationJobConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SshScript: Response message for 'GenerateSshScript' request.
@@ -4396,9 +4970,9 @@ type SshScript struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SshScript) MarshalJSON() ([]byte, error) {
+func (s SshScript) MarshalJSON() ([]byte, error) {
 	type NoMethod SshScript
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SslConfig: SSL configuration information.
@@ -4415,7 +4989,7 @@ type SslConfig struct {
 	// key associated with the Client Certificate. If this field is used then the
 	// 'client_certificate' field is mandatory.
 	ClientKey string `json:"clientKey,omitempty"`
-	// Type: Output only. The ssl config type according to 'client_key',
+	// Type: Optional. The ssl config type according to 'client_key',
 	// 'client_certificate' and 'ca_certificate'.
 	//
 	// Possible values:
@@ -4423,6 +4997,9 @@ type SslConfig struct {
 	//   "SERVER_ONLY" - Only 'ca_certificate' specified.
 	//   "SERVER_CLIENT" - Both server ('ca_certificate'), and client
 	// ('client_key', 'client_certificate') specified.
+	//   "REQUIRED" - Mandates SSL encryption for all connections. This doesn’t
+	// require certificate verification.
+	//   "NONE" - Connection is not encrypted.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CaCertificate") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -4437,9 +5014,9 @@ type SslConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SslConfig) MarshalJSON() ([]byte, error) {
+func (s SslConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SslConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartMigrationJobRequest: Request message for 'StartMigrationJob' request.
@@ -4460,9 +5037,9 @@ type StartMigrationJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartMigrationJobRequest) MarshalJSON() ([]byte, error) {
+func (s StartMigrationJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod StartMigrationJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StaticIpConnectivity: The source database will allow incoming connections
@@ -4506,9 +5083,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopMigrationJobRequest: Request message for 'StopMigrationJob' request.
@@ -4534,9 +5111,9 @@ type StoredProcedureEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StoredProcedureEntity) MarshalJSON() ([]byte, error) {
+func (s StoredProcedureEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod StoredProcedureEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SynonymEntity: Synonym's parent is a schema.
@@ -4580,9 +5157,9 @@ type SynonymEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SynonymEntity) MarshalJSON() ([]byte, error) {
+func (s SynonymEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod SynonymEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TableEntity: Table's parent is a schema.
@@ -4612,9 +5189,9 @@ type TableEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TableEntity) MarshalJSON() ([]byte, error) {
+func (s TableEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod TableEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TcpProxyScript: Response message for 'GenerateTcpProxyScript' request.
@@ -4637,9 +5214,9 @@ type TcpProxyScript struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TcpProxyScript) MarshalJSON() ([]byte, error) {
+func (s TcpProxyScript) MarshalJSON() ([]byte, error) {
 	type NoMethod TcpProxyScript
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -4662,9 +5239,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -4689,9 +5266,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TriggerEntity: Trigger is not used as an independent entity, it is retrieved
@@ -4722,9 +5299,9 @@ type TriggerEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TriggerEntity) MarshalJSON() ([]byte, error) {
+func (s TriggerEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod TriggerEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UDTEntity: UDT's parent is a schema.
@@ -4748,9 +5325,9 @@ type UDTEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UDTEntity) MarshalJSON() ([]byte, error) {
+func (s UDTEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod UDTEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserPassword: The username/password for a database user. Used for specifying
@@ -4776,9 +5353,9 @@ type UserPassword struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserPassword) MarshalJSON() ([]byte, error) {
+func (s UserPassword) MarshalJSON() ([]byte, error) {
 	type NoMethod UserPassword
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValueListFilter: A list of values to filter by in ConditionalColumnSetValue
@@ -4811,9 +5388,9 @@ type ValueListFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValueListFilter) MarshalJSON() ([]byte, error) {
+func (s ValueListFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod ValueListFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValueTransformation: Description of data transformation during migration as
@@ -4857,9 +5434,9 @@ type ValueTransformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValueTransformation) MarshalJSON() ([]byte, error) {
+func (s ValueTransformation) MarshalJSON() ([]byte, error) {
 	type NoMethod ValueTransformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerifyMigrationJobRequest: Request message for 'VerifyMigrationJob' request.
@@ -4883,9 +5460,9 @@ type VerifyMigrationJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerifyMigrationJobRequest) MarshalJSON() ([]byte, error) {
+func (s VerifyMigrationJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod VerifyMigrationJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ViewEntity: View's parent is a schema.
@@ -4909,9 +5486,9 @@ type ViewEntity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ViewEntity) MarshalJSON() ([]byte, error) {
+func (s ViewEntity) MarshalJSON() ([]byte, error) {
 	type NoMethod ViewEntity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VmCreationConfig: VM creation configuration message
@@ -4935,9 +5512,9 @@ type VmCreationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VmCreationConfig) MarshalJSON() ([]byte, error) {
+func (s VmCreationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod VmCreationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VmSelectionConfig: VM selection configuration message
@@ -4957,9 +5534,9 @@ type VmSelectionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VmSelectionConfig) MarshalJSON() ([]byte, error) {
+func (s VmSelectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod VmSelectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VpcPeeringConfig: The VPC peering configuration is used to create VPC
@@ -4983,9 +5560,9 @@ type VpcPeeringConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VpcPeeringConfig) MarshalJSON() ([]byte, error) {
+func (s VpcPeeringConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod VpcPeeringConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VpcPeeringConnectivity: The details of the VPC where the source database is
@@ -5007,9 +5584,9 @@ type VpcPeeringConnectivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VpcPeeringConnectivity) MarshalJSON() ([]byte, error) {
+func (s VpcPeeringConnectivity) MarshalJSON() ([]byte, error) {
 	type NoMethod VpcPeeringConnectivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsFetchStaticIpsCall struct {
@@ -5082,12 +5659,11 @@ func (c *ProjectsLocationsFetchStaticIpsCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:fetchStaticIps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5095,6 +5671,7 @@ func (c *ProjectsLocationsFetchStaticIpsCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.fetchStaticIps", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5130,9 +5707,11 @@ func (c *ProjectsLocationsFetchStaticIpsCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.fetchStaticIps", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5211,12 +5790,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5224,6 +5802,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5258,9 +5837,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5342,12 +5923,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5355,6 +5935,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5390,9 +5971,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5494,8 +6077,7 @@ func (c *ProjectsLocationsConnectionProfilesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionProfilesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.connectionprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.connectionprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -5511,6 +6093,7 @@ func (c *ProjectsLocationsConnectionProfilesCreateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5545,9 +6128,11 @@ func (c *ProjectsLocationsConnectionProfilesCreateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5613,12 +6198,11 @@ func (c *ProjectsLocationsConnectionProfilesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionProfilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5626,6 +6210,7 @@ func (c *ProjectsLocationsConnectionProfilesDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5660,9 +6245,11 @@ func (c *ProjectsLocationsConnectionProfilesDeleteCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5720,12 +6307,11 @@ func (c *ProjectsLocationsConnectionProfilesGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5733,6 +6319,7 @@ func (c *ProjectsLocationsConnectionProfilesGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5768,9 +6355,11 @@ func (c *ProjectsLocationsConnectionProfilesGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5848,12 +6437,11 @@ func (c *ProjectsLocationsConnectionProfilesGetIamPolicyCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5861,6 +6449,7 @@ func (c *ProjectsLocationsConnectionProfilesGetIamPolicyCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5895,9 +6484,11 @@ func (c *ProjectsLocationsConnectionProfilesGetIamPolicyCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5995,12 +6586,11 @@ func (c *ProjectsLocationsConnectionProfilesListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/connectionProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6008,6 +6598,7 @@ func (c *ProjectsLocationsConnectionProfilesListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6043,9 +6634,11 @@ func (c *ProjectsLocationsConnectionProfilesListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6150,8 +6743,7 @@ func (c *ProjectsLocationsConnectionProfilesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsConnectionProfilesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.connectionprofile)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.connectionprofile)
 	if err != nil {
 		return nil, err
 	}
@@ -6167,6 +6759,7 @@ func (c *ProjectsLocationsConnectionProfilesPatchCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6201,9 +6794,11 @@ func (c *ProjectsLocationsConnectionProfilesPatchCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6255,8 +6850,7 @@ func (c *ProjectsLocationsConnectionProfilesSetIamPolicyCall) Header() http.Head
 
 func (c *ProjectsLocationsConnectionProfilesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6272,6 +6866,7 @@ func (c *ProjectsLocationsConnectionProfilesSetIamPolicyCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6306,9 +6901,11 @@ func (c *ProjectsLocationsConnectionProfilesSetIamPolicyCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6363,8 +6960,7 @@ func (c *ProjectsLocationsConnectionProfilesTestIamPermissionsCall) Header() htt
 
 func (c *ProjectsLocationsConnectionProfilesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6380,6 +6976,7 @@ func (c *ProjectsLocationsConnectionProfilesTestIamPermissionsCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6415,9 +7012,11 @@ func (c *ProjectsLocationsConnectionProfilesTestIamPermissionsCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.connectionProfiles.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6468,8 +7067,7 @@ func (c *ProjectsLocationsConversionWorkspacesApplyCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversionWorkspacesApplyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.applyconversionworkspacerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.applyconversionworkspacerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6485,6 +7083,7 @@ func (c *ProjectsLocationsConversionWorkspacesApplyCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.apply", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6519,9 +7118,11 @@ func (c *ProjectsLocationsConversionWorkspacesApplyCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.apply", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6569,8 +7170,7 @@ func (c *ProjectsLocationsConversionWorkspacesCommitCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversionWorkspacesCommitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.commitconversionworkspacerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.commitconversionworkspacerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6586,6 +7186,7 @@ func (c *ProjectsLocationsConversionWorkspacesCommitCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.commit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6620,9 +7221,11 @@ func (c *ProjectsLocationsConversionWorkspacesCommitCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.commit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6672,8 +7275,7 @@ func (c *ProjectsLocationsConversionWorkspacesConvertCall) Header() http.Header 
 
 func (c *ProjectsLocationsConversionWorkspacesConvertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.convertconversionworkspacerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.convertconversionworkspacerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6689,6 +7291,7 @@ func (c *ProjectsLocationsConversionWorkspacesConvertCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.convert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6723,9 +7326,11 @@ func (c *ProjectsLocationsConversionWorkspacesConvertCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.convert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6790,8 +7395,7 @@ func (c *ProjectsLocationsConversionWorkspacesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversionWorkspacesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.conversionworkspace)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.conversionworkspace)
 	if err != nil {
 		return nil, err
 	}
@@ -6807,6 +7411,7 @@ func (c *ProjectsLocationsConversionWorkspacesCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6841,9 +7446,11 @@ func (c *ProjectsLocationsConversionWorkspacesCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6906,12 +7513,11 @@ func (c *ProjectsLocationsConversionWorkspacesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversionWorkspacesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6919,6 +7525,7 @@ func (c *ProjectsLocationsConversionWorkspacesDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6953,9 +7560,11 @@ func (c *ProjectsLocationsConversionWorkspacesDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7024,12 +7633,11 @@ func (c *ProjectsLocationsConversionWorkspacesDescribeConversionWorkspaceRevisio
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+conversionWorkspace}:describeConversionWorkspaceRevisions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7037,6 +7645,7 @@ func (c *ProjectsLocationsConversionWorkspacesDescribeConversionWorkspaceRevisio
 	googleapi.Expand(req.URL, map[string]string{
 		"conversionWorkspace": c.conversionWorkspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.describeConversionWorkspaceRevisions", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7072,9 +7681,11 @@ func (c *ProjectsLocationsConversionWorkspacesDescribeConversionWorkspaceRevisio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.describeConversionWorkspaceRevisions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7176,11 +7787,15 @@ func (c *ProjectsLocationsConversionWorkspacesDescribeDatabaseEntitiesCall) Unco
 //
 //	"DATABASE_ENTITY_VIEW_ROOT_SUMMARY" - Top-most (Database, Schema) nodes
 //
-// which are returned contains summary details for their decendents such as the
-// number of entities per type and issues rollups. When this view is used, only
-// a single page of result is returned and the page_size property of the
+// which are returned contains summary details for their descendants such as
+// the number of entities per type and issues rollups. When this view is used,
+// only a single page of result is returned and the page_size property of the
 // request is ignored. The returned page will only include the top-most node
 // types.
+//
+//	"DATABASE_ENTITY_VIEW_FULL_COMPACT" - Returns full entity details except
+//
+// for ddls and schema custom features.
 func (c *ProjectsLocationsConversionWorkspacesDescribeDatabaseEntitiesCall) View(view string) *ProjectsLocationsConversionWorkspacesDescribeDatabaseEntitiesCall {
 	c.urlParams_.Set("view", view)
 	return c
@@ -7222,12 +7837,11 @@ func (c *ProjectsLocationsConversionWorkspacesDescribeDatabaseEntitiesCall) doRe
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+conversionWorkspace}:describeDatabaseEntities")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7235,6 +7849,7 @@ func (c *ProjectsLocationsConversionWorkspacesDescribeDatabaseEntitiesCall) doRe
 	googleapi.Expand(req.URL, map[string]string{
 		"conversionWorkspace": c.conversionWorkspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.describeDatabaseEntities", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7270,9 +7885,11 @@ func (c *ProjectsLocationsConversionWorkspacesDescribeDatabaseEntitiesCall) Do(o
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.describeDatabaseEntities", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7351,12 +7968,11 @@ func (c *ProjectsLocationsConversionWorkspacesGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7364,6 +7980,7 @@ func (c *ProjectsLocationsConversionWorkspacesGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7399,9 +8016,11 @@ func (c *ProjectsLocationsConversionWorkspacesGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7479,12 +8098,11 @@ func (c *ProjectsLocationsConversionWorkspacesGetIamPolicyCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7492,6 +8110,7 @@ func (c *ProjectsLocationsConversionWorkspacesGetIamPolicyCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7526,9 +8145,11 @@ func (c *ProjectsLocationsConversionWorkspacesGetIamPolicyCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7618,12 +8239,11 @@ func (c *ProjectsLocationsConversionWorkspacesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/conversionWorkspaces")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7631,6 +8251,7 @@ func (c *ProjectsLocationsConversionWorkspacesListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7666,9 +8287,11 @@ func (c *ProjectsLocationsConversionWorkspacesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7757,8 +8380,7 @@ func (c *ProjectsLocationsConversionWorkspacesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversionWorkspacesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.conversionworkspace)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.conversionworkspace)
 	if err != nil {
 		return nil, err
 	}
@@ -7774,6 +8396,7 @@ func (c *ProjectsLocationsConversionWorkspacesPatchCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7808,9 +8431,11 @@ func (c *ProjectsLocationsConversionWorkspacesPatchCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7858,8 +8483,7 @@ func (c *ProjectsLocationsConversionWorkspacesRollbackCall) Header() http.Header
 
 func (c *ProjectsLocationsConversionWorkspacesRollbackCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.rollbackconversionworkspacerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rollbackconversionworkspacerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7875,6 +8499,7 @@ func (c *ProjectsLocationsConversionWorkspacesRollbackCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.rollback", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7909,9 +8534,11 @@ func (c *ProjectsLocationsConversionWorkspacesRollbackCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.rollback", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8000,12 +8627,11 @@ func (c *ProjectsLocationsConversionWorkspacesSearchBackgroundJobsCall) doReques
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+conversionWorkspace}:searchBackgroundJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8013,6 +8639,7 @@ func (c *ProjectsLocationsConversionWorkspacesSearchBackgroundJobsCall) doReques
 	googleapi.Expand(req.URL, map[string]string{
 		"conversionWorkspace": c.conversionWorkspace,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.searchBackgroundJobs", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8048,9 +8675,11 @@ func (c *ProjectsLocationsConversionWorkspacesSearchBackgroundJobsCall) Do(opts 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.searchBackgroundJobs", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8102,8 +8731,7 @@ func (c *ProjectsLocationsConversionWorkspacesSeedCall) Header() http.Header {
 
 func (c *ProjectsLocationsConversionWorkspacesSeedCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.seedconversionworkspacerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.seedconversionworkspacerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8119,6 +8747,7 @@ func (c *ProjectsLocationsConversionWorkspacesSeedCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.seed", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8153,9 +8782,11 @@ func (c *ProjectsLocationsConversionWorkspacesSeedCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.seed", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8207,8 +8838,7 @@ func (c *ProjectsLocationsConversionWorkspacesSetIamPolicyCall) Header() http.He
 
 func (c *ProjectsLocationsConversionWorkspacesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8224,6 +8854,7 @@ func (c *ProjectsLocationsConversionWorkspacesSetIamPolicyCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8258,9 +8889,11 @@ func (c *ProjectsLocationsConversionWorkspacesSetIamPolicyCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8315,8 +8948,7 @@ func (c *ProjectsLocationsConversionWorkspacesTestIamPermissionsCall) Header() h
 
 func (c *ProjectsLocationsConversionWorkspacesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8332,6 +8964,7 @@ func (c *ProjectsLocationsConversionWorkspacesTestIamPermissionsCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8367,9 +9000,11 @@ func (c *ProjectsLocationsConversionWorkspacesTestIamPermissionsCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8434,8 +9069,7 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesCreateCall) Header() h
 
 func (c *ProjectsLocationsConversionWorkspacesMappingRulesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.mappingrule)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.mappingrule)
 	if err != nil {
 		return nil, err
 	}
@@ -8451,6 +9085,7 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesCreateCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8485,9 +9120,11 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesCreateCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8543,12 +9180,11 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesDeleteCall) Header() h
 
 func (c *ProjectsLocationsConversionWorkspacesMappingRulesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8556,6 +9192,7 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesDeleteCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8590,9 +9227,11 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesDeleteCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8655,12 +9294,11 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesGetCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8668,6 +9306,7 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesGetCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8702,9 +9341,11 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesGetCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8756,8 +9397,7 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesImportCall) Header() h
 
 func (c *ProjectsLocationsConversionWorkspacesMappingRulesImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importmappingrulesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importmappingrulesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8773,6 +9413,7 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesImportCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8807,9 +9448,11 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesImportCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8887,12 +9530,11 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesListCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/mappingRules")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8900,6 +9542,7 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesListCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8935,9 +9578,11 @@ func (c *ProjectsLocationsConversionWorkspacesMappingRulesListCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.conversionWorkspaces.mappingRules.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9023,8 +9668,7 @@ func (c *ProjectsLocationsMigrationJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.migrationjob)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.migrationjob)
 	if err != nil {
 		return nil, err
 	}
@@ -9040,6 +9684,7 @@ func (c *ProjectsLocationsMigrationJobsCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9074,9 +9719,11 @@ func (c *ProjectsLocationsMigrationJobsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9140,12 +9787,11 @@ func (c *ProjectsLocationsMigrationJobsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9153,6 +9799,7 @@ func (c *ProjectsLocationsMigrationJobsDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9187,9 +9834,11 @@ func (c *ProjectsLocationsMigrationJobsDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9240,8 +9889,7 @@ func (c *ProjectsLocationsMigrationJobsDemoteDestinationCall) Header() http.Head
 
 func (c *ProjectsLocationsMigrationJobsDemoteDestinationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.demotedestinationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.demotedestinationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9257,6 +9905,7 @@ func (c *ProjectsLocationsMigrationJobsDemoteDestinationCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.demoteDestination", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9291,9 +9940,124 @@ func (c *ProjectsLocationsMigrationJobsDemoteDestinationCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.demoteDestination", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsMigrationJobsFetchSourceObjectsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// FetchSourceObjects: Retrieves objects from the source database that can be
+// selected for data migration. This is applicable for the following
+// migrations: 1. PostgreSQL to Cloud SQL for PostgreSQL 2. PostgreSQL to
+// AlloyDB for PostgreSQL.
+//
+//   - name: The resource name for the migration job for which source objects
+//     should be returned.
+func (r *ProjectsLocationsMigrationJobsService) FetchSourceObjects(name string) *ProjectsLocationsMigrationJobsFetchSourceObjectsCall {
+	c := &ProjectsLocationsMigrationJobsFetchSourceObjectsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsMigrationJobsFetchSourceObjectsCall) Fields(s ...googleapi.Field) *ProjectsLocationsMigrationJobsFetchSourceObjectsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsMigrationJobsFetchSourceObjectsCall) IfNoneMatch(entityTag string) *ProjectsLocationsMigrationJobsFetchSourceObjectsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsMigrationJobsFetchSourceObjectsCall) Context(ctx context.Context) *ProjectsLocationsMigrationJobsFetchSourceObjectsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsMigrationJobsFetchSourceObjectsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsMigrationJobsFetchSourceObjectsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:fetchSourceObjects")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.fetchSourceObjects", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datamigration.projects.locations.migrationJobs.fetchSourceObjects" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsMigrationJobsFetchSourceObjectsCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.fetchSourceObjects", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9343,8 +10107,7 @@ func (c *ProjectsLocationsMigrationJobsGenerateSshScriptCall) Header() http.Head
 
 func (c *ProjectsLocationsMigrationJobsGenerateSshScriptCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.generatesshscriptrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.generatesshscriptrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9360,6 +10123,7 @@ func (c *ProjectsLocationsMigrationJobsGenerateSshScriptCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"migrationJob": c.migrationJob,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.generateSshScript", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9394,9 +10158,11 @@ func (c *ProjectsLocationsMigrationJobsGenerateSshScriptCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.generateSshScript", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9446,8 +10212,7 @@ func (c *ProjectsLocationsMigrationJobsGenerateTcpProxyScriptCall) Header() http
 
 func (c *ProjectsLocationsMigrationJobsGenerateTcpProxyScriptCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.generatetcpproxyscriptrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.generatetcpproxyscriptrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9463,6 +10228,7 @@ func (c *ProjectsLocationsMigrationJobsGenerateTcpProxyScriptCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"migrationJob": c.migrationJob,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.generateTcpProxyScript", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9497,9 +10263,11 @@ func (c *ProjectsLocationsMigrationJobsGenerateTcpProxyScriptCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.generateTcpProxyScript", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9557,12 +10325,11 @@ func (c *ProjectsLocationsMigrationJobsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9570,6 +10337,7 @@ func (c *ProjectsLocationsMigrationJobsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9604,9 +10372,11 @@ func (c *ProjectsLocationsMigrationJobsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9684,12 +10454,11 @@ func (c *ProjectsLocationsMigrationJobsGetIamPolicyCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9697,6 +10466,7 @@ func (c *ProjectsLocationsMigrationJobsGetIamPolicyCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9731,9 +10501,11 @@ func (c *ProjectsLocationsMigrationJobsGetIamPolicyCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9832,12 +10604,11 @@ func (c *ProjectsLocationsMigrationJobsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/migrationJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9845,6 +10616,7 @@ func (c *ProjectsLocationsMigrationJobsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9880,9 +10652,11 @@ func (c *ProjectsLocationsMigrationJobsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9970,8 +10744,7 @@ func (c *ProjectsLocationsMigrationJobsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.migrationjob)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.migrationjob)
 	if err != nil {
 		return nil, err
 	}
@@ -9987,6 +10760,7 @@ func (c *ProjectsLocationsMigrationJobsPatchCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10021,9 +10795,11 @@ func (c *ProjectsLocationsMigrationJobsPatchCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10072,8 +10848,7 @@ func (c *ProjectsLocationsMigrationJobsPromoteCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsPromoteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.promotemigrationjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.promotemigrationjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10089,6 +10864,7 @@ func (c *ProjectsLocationsMigrationJobsPromoteCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.promote", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10123,9 +10899,11 @@ func (c *ProjectsLocationsMigrationJobsPromoteCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.promote", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10175,8 +10953,7 @@ func (c *ProjectsLocationsMigrationJobsRestartCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsRestartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.restartmigrationjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.restartmigrationjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10192,6 +10969,7 @@ func (c *ProjectsLocationsMigrationJobsRestartCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.restart", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10226,9 +11004,11 @@ func (c *ProjectsLocationsMigrationJobsRestartCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.restart", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10277,8 +11057,7 @@ func (c *ProjectsLocationsMigrationJobsResumeCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsResumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resumemigrationjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resumemigrationjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10294,6 +11073,7 @@ func (c *ProjectsLocationsMigrationJobsResumeCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.resume", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10328,9 +11108,11 @@ func (c *ProjectsLocationsMigrationJobsResumeCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.resume", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10382,8 +11164,7 @@ func (c *ProjectsLocationsMigrationJobsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10399,6 +11180,7 @@ func (c *ProjectsLocationsMigrationJobsSetIamPolicyCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10433,9 +11215,11 @@ func (c *ProjectsLocationsMigrationJobsSetIamPolicyCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10483,8 +11267,7 @@ func (c *ProjectsLocationsMigrationJobsStartCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsStartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.startmigrationjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.startmigrationjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10500,6 +11283,7 @@ func (c *ProjectsLocationsMigrationJobsStartCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.start", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10534,9 +11318,11 @@ func (c *ProjectsLocationsMigrationJobsStartCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.start", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10584,8 +11370,7 @@ func (c *ProjectsLocationsMigrationJobsStopCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsStopCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.stopmigrationjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.stopmigrationjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10601,6 +11386,7 @@ func (c *ProjectsLocationsMigrationJobsStopCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.stop", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10635,9 +11421,11 @@ func (c *ProjectsLocationsMigrationJobsStopCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.stop", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10692,8 +11480,7 @@ func (c *ProjectsLocationsMigrationJobsTestIamPermissionsCall) Header() http.Hea
 
 func (c *ProjectsLocationsMigrationJobsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10709,6 +11496,7 @@ func (c *ProjectsLocationsMigrationJobsTestIamPermissionsCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10744,9 +11532,11 @@ func (c *ProjectsLocationsMigrationJobsTestIamPermissionsCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10795,8 +11585,7 @@ func (c *ProjectsLocationsMigrationJobsVerifyCall) Header() http.Header {
 
 func (c *ProjectsLocationsMigrationJobsVerifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.verifymigrationjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.verifymigrationjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10812,6 +11601,7 @@ func (c *ProjectsLocationsMigrationJobsVerifyCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.verify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10846,9 +11636,722 @@ func (c *ProjectsLocationsMigrationJobsVerifyCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.verify", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsMigrationJobsObjectsGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Use this method to get details about a migration job object.
+//
+// - name: The name of the migration job object resource to get.
+func (r *ProjectsLocationsMigrationJobsObjectsService) Get(name string) *ProjectsLocationsMigrationJobsObjectsGetCall {
+	c := &ProjectsLocationsMigrationJobsObjectsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsMigrationJobsObjectsGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsMigrationJobsObjectsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsMigrationJobsObjectsGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsMigrationJobsObjectsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsMigrationJobsObjectsGetCall) Context(ctx context.Context) *ProjectsLocationsMigrationJobsObjectsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsMigrationJobsObjectsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsMigrationJobsObjectsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datamigration.projects.locations.migrationJobs.objects.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *MigrationJobObject.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsMigrationJobsObjectsGetCall) Do(opts ...googleapi.CallOption) (*MigrationJobObject, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &MigrationJobObject{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall struct {
+	s            *Service
+	resource     string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetIamPolicy: Gets the access control policy for a resource. Returns an
+// empty policy if the resource exists and does not have a policy set.
+//
+//   - resource: REQUIRED: The resource for which the policy is being requested.
+//     See Resource names (https://cloud.google.com/apis/design/resource_names)
+//     for the appropriate value for this field.
+func (r *ProjectsLocationsMigrationJobsObjectsService) GetIamPolicy(resource string) *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall {
+	c := &ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	return c
+}
+
+// OptionsRequestedPolicyVersion sets the optional parameter
+// "options.requestedPolicyVersion": The maximum policy version that will be
+// used to format the policy. Valid values are 0, 1, and 3. Requests specifying
+// an invalid value will be rejected. Requests for policies with any
+// conditional role bindings must specify version 3. Policies with no
+// conditional role bindings may specify any valid value or leave the field
+// unset. The policy in the response might use the policy version that you
+// specified, or it might use a lower policy version. For example, if you
+// specify version 3, but the policy has no conditional role bindings, the
+// response uses version 1. To learn which resources support conditions in
+// their IAM policies, see the IAM documentation
+// (https://cloud.google.com/iam/help/conditions/resource-policies).
+func (c *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall) OptionsRequestedPolicyVersion(optionsRequestedPolicyVersion int64) *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall {
+	c.urlParams_.Set("options.requestedPolicyVersion", fmt.Sprint(optionsRequestedPolicyVersion))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall) IfNoneMatch(entityTag string) *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall) Context(ctx context.Context) *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datamigration.projects.locations.migrationJobs.objects.getIamPolicy" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsMigrationJobsObjectsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.getIamPolicy", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsMigrationJobsObjectsListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Use this method to list the objects of a specific migration job.
+//
+// - parent: The parent migration job that owns the collection of objects.
+func (r *ProjectsLocationsMigrationJobsObjectsService) List(parent string) *ProjectsLocationsMigrationJobsObjectsListCall {
+	c := &ProjectsLocationsMigrationJobsObjectsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of objects
+// to return. Default is 50. The maximum value is 1000; values above 1000 will
+// be coerced to 1000.
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) PageSize(pageSize int64) *ProjectsLocationsMigrationJobsObjectsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": Page token received from
+// a previous `ListMigrationJObObjectsRequest` call. Provide this to retrieve
+// the subsequent page. When paginating, all other parameters provided to
+// `ListMigrationJobObjectsRequest` must match the call that provided the page
+// token.
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) PageToken(pageToken string) *ProjectsLocationsMigrationJobsObjectsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) Fields(s ...googleapi.Field) *ProjectsLocationsMigrationJobsObjectsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) IfNoneMatch(entityTag string) *ProjectsLocationsMigrationJobsObjectsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) Context(ctx context.Context) *ProjectsLocationsMigrationJobsObjectsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/objects")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datamigration.projects.locations.migrationJobs.objects.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListMigrationJobObjectsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) Do(opts ...googleapi.CallOption) (*ListMigrationJobObjectsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListMigrationJobObjectsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsMigrationJobsObjectsListCall) Pages(ctx context.Context, f func(*ListMigrationJobObjectsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsMigrationJobsObjectsLookupCall struct {
+	s                               *Service
+	parent                          string
+	lookupmigrationjobobjectrequest *LookupMigrationJobObjectRequest
+	urlParams_                      gensupport.URLParams
+	ctx_                            context.Context
+	header_                         http.Header
+}
+
+// Lookup: Use this method to look up a migration job object by its source
+// object identifier.
+//
+// - parent: The parent migration job that owns the collection of objects.
+func (r *ProjectsLocationsMigrationJobsObjectsService) Lookup(parent string, lookupmigrationjobobjectrequest *LookupMigrationJobObjectRequest) *ProjectsLocationsMigrationJobsObjectsLookupCall {
+	c := &ProjectsLocationsMigrationJobsObjectsLookupCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.lookupmigrationjobobjectrequest = lookupmigrationjobobjectrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsMigrationJobsObjectsLookupCall) Fields(s ...googleapi.Field) *ProjectsLocationsMigrationJobsObjectsLookupCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsMigrationJobsObjectsLookupCall) Context(ctx context.Context) *ProjectsLocationsMigrationJobsObjectsLookupCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsMigrationJobsObjectsLookupCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsMigrationJobsObjectsLookupCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.lookupmigrationjobobjectrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/objects:lookup")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.lookup", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datamigration.projects.locations.migrationJobs.objects.lookup" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *MigrationJobObject.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsMigrationJobsObjectsLookupCall) Do(opts ...googleapi.CallOption) (*MigrationJobObject, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &MigrationJobObject{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.lookup", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall struct {
+	s                   *Service
+	resource            string
+	setiampolicyrequest *SetIamPolicyRequest
+	urlParams_          gensupport.URLParams
+	ctx_                context.Context
+	header_             http.Header
+}
+
+// SetIamPolicy: Sets the access control policy on the specified resource.
+// Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`,
+// and `PERMISSION_DENIED` errors.
+//
+//   - resource: REQUIRED: The resource for which the policy is being specified.
+//     See Resource names (https://cloud.google.com/apis/design/resource_names)
+//     for the appropriate value for this field.
+func (r *ProjectsLocationsMigrationJobsObjectsService) SetIamPolicy(resource string, setiampolicyrequest *SetIamPolicyRequest) *ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall {
+	c := &ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.setiampolicyrequest = setiampolicyrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall) Fields(s ...googleapi.Field) *ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall) Context(ctx context.Context) *ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:setIamPolicy")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datamigration.projects.locations.migrationJobs.objects.setIamPolicy" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Policy.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsMigrationJobsObjectsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Policy{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.setIamPolicy", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall struct {
+	s                         *Service
+	resource                  string
+	testiampermissionsrequest *TestIamPermissionsRequest
+	urlParams_                gensupport.URLParams
+	ctx_                      context.Context
+	header_                   http.Header
+}
+
+// TestIamPermissions: Returns permissions that a caller has on the specified
+// resource. If the resource does not exist, this will return an empty set of
+// permissions, not a `NOT_FOUND` error. Note: This operation is designed to be
+// used for building permission-aware UIs and command-line tools, not for
+// authorization checking. This operation may "fail open" without warning.
+//
+//   - resource: REQUIRED: The resource for which the policy detail is being
+//     requested. See Resource names
+//     (https://cloud.google.com/apis/design/resource_names) for the appropriate
+//     value for this field.
+func (r *ProjectsLocationsMigrationJobsObjectsService) TestIamPermissions(resource string, testiampermissionsrequest *TestIamPermissionsRequest) *ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall {
+	c := &ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.resource = resource
+	c.testiampermissionsrequest = testiampermissionsrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall) Fields(s ...googleapi.Field) *ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall) Context(ctx context.Context) *ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:testIamPermissions")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"resource": c.resource,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datamigration.projects.locations.migrationJobs.objects.testIamPermissions" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *TestIamPermissionsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsMigrationJobsObjectsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*TestIamPermissionsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &TestIamPermissionsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.migrationJobs.objects.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10868,7 +12371,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -10904,8 +12407,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10921,6 +12423,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10955,9 +12458,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11006,12 +12511,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11019,6 +12523,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11053,9 +12558,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11115,12 +12622,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11128,6 +12634,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11162,9 +12669,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11243,12 +12752,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11256,6 +12764,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11291,9 +12800,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11386,8 +12897,7 @@ func (c *ProjectsLocationsPrivateConnectionsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsPrivateConnectionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.privateconnection)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.privateconnection)
 	if err != nil {
 		return nil, err
 	}
@@ -11403,6 +12913,7 @@ func (c *ProjectsLocationsPrivateConnectionsCreateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11437,9 +12948,11 @@ func (c *ProjectsLocationsPrivateConnectionsCreateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11495,12 +13008,11 @@ func (c *ProjectsLocationsPrivateConnectionsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsPrivateConnectionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11508,6 +13020,7 @@ func (c *ProjectsLocationsPrivateConnectionsDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11542,9 +13055,11 @@ func (c *ProjectsLocationsPrivateConnectionsDeleteCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11602,12 +13117,11 @@ func (c *ProjectsLocationsPrivateConnectionsGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11615,6 +13129,7 @@ func (c *ProjectsLocationsPrivateConnectionsGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11650,9 +13165,11 @@ func (c *ProjectsLocationsPrivateConnectionsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11730,12 +13247,11 @@ func (c *ProjectsLocationsPrivateConnectionsGetIamPolicyCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11743,6 +13259,7 @@ func (c *ProjectsLocationsPrivateConnectionsGetIamPolicyCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11777,9 +13294,11 @@ func (c *ProjectsLocationsPrivateConnectionsGetIamPolicyCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11875,12 +13394,11 @@ func (c *ProjectsLocationsPrivateConnectionsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/privateConnections")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11888,6 +13406,7 @@ func (c *ProjectsLocationsPrivateConnectionsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11923,9 +13442,11 @@ func (c *ProjectsLocationsPrivateConnectionsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11998,8 +13519,7 @@ func (c *ProjectsLocationsPrivateConnectionsSetIamPolicyCall) Header() http.Head
 
 func (c *ProjectsLocationsPrivateConnectionsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12015,6 +13535,7 @@ func (c *ProjectsLocationsPrivateConnectionsSetIamPolicyCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12049,9 +13570,11 @@ func (c *ProjectsLocationsPrivateConnectionsSetIamPolicyCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12106,8 +13629,7 @@ func (c *ProjectsLocationsPrivateConnectionsTestIamPermissionsCall) Header() htt
 
 func (c *ProjectsLocationsPrivateConnectionsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12123,6 +13645,7 @@ func (c *ProjectsLocationsPrivateConnectionsTestIamPermissionsCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12158,8 +13681,10 @@ func (c *ProjectsLocationsPrivateConnectionsTestIamPermissionsCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datamigration.projects.locations.privateConnections.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

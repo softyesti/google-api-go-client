@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "vault:v1"
 const apiName = "vault"
@@ -123,7 +126,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Matters = NewMattersService(s)
+	s.Operations = NewOperationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -142,14 +147,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Matters = NewMattersService(s)
-	s.Operations = NewOperationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -250,9 +253,9 @@ type AccountCount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountCount) MarshalJSON() ([]byte, error) {
+func (s AccountCount) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountCount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountCountError: An error that occurred when querying a specific account
@@ -284,9 +287,9 @@ type AccountCountError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountCountError) MarshalJSON() ([]byte, error) {
+func (s AccountCountError) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountCountError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AccountInfo: The accounts to search
@@ -306,9 +309,9 @@ type AccountInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccountInfo) MarshalJSON() ([]byte, error) {
+func (s AccountInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AccountInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddHeldAccountResult: The status of each account creation, and the
@@ -331,9 +334,9 @@ type AddHeldAccountResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddHeldAccountResult) MarshalJSON() ([]byte, error) {
+func (s AddHeldAccountResult) MarshalJSON() ([]byte, error) {
 	type NoMethod AddHeldAccountResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddHeldAccountsRequest: Add a list of accounts to a hold.
@@ -357,9 +360,9 @@ type AddHeldAccountsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddHeldAccountsRequest) MarshalJSON() ([]byte, error) {
+func (s AddHeldAccountsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddHeldAccountsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddHeldAccountsResponse: Response for batch create held accounts.
@@ -382,9 +385,9 @@ type AddHeldAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddHeldAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s AddHeldAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AddHeldAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddMatterPermissionsRequest: Add an account with the permission specified.
@@ -412,9 +415,9 @@ type AddMatterPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddMatterPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s AddMatterPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddMatterPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CalendarExportOptions: The options for Calendar exports.
@@ -428,6 +431,7 @@ type CalendarExportOptions struct {
 	//   "PST" - Export as PST. Only available for Gmail, Groups, Hangouts, Voice
 	// and Calendar.
 	//   "ICS" - Export as ICS. Only available for Calendar.
+	//   "XML" - Export as XML. Only available for Gemini.
 	ExportFormat string `json:"exportFormat,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExportFormat") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -442,9 +446,9 @@ type CalendarExportOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CalendarExportOptions) MarshalJSON() ([]byte, error) {
+func (s CalendarExportOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod CalendarExportOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CalendarOptions: Additional options for Calendar search
@@ -495,9 +499,9 @@ type CalendarOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CalendarOptions) MarshalJSON() ([]byte, error) {
+func (s CalendarOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod CalendarOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -528,9 +532,9 @@ type CloseMatterResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloseMatterResponse) MarshalJSON() ([]byte, error) {
+func (s CloseMatterResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CloseMatterResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudStorageFile: The export file in Cloud Storage
@@ -565,9 +569,9 @@ type CloudStorageFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudStorageFile) MarshalJSON() ([]byte, error) {
+func (s CloudStorageFile) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudStorageFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudStorageSink: Export sink for Cloud Storage files.
@@ -587,13 +591,16 @@ type CloudStorageSink struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudStorageSink) MarshalJSON() ([]byte, error) {
+func (s CloudStorageSink) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudStorageSink
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CorpusQuery: Service-specific options for holds.
 type CorpusQuery struct {
+	// CalendarQuery: Service-specific options for Calendar holds. If set,
+	// **CorpusType** must be **CALENDAR**.
+	CalendarQuery *HeldCalendarQuery `json:"calendarQuery,omitempty"`
 	// DriveQuery: Service-specific options for Drive holds. If set, **CorpusType**
 	// must be **DRIVE**.
 	DriveQuery *HeldDriveQuery `json:"driveQuery,omitempty"`
@@ -609,22 +616,22 @@ type CorpusQuery struct {
 	// VoiceQuery: Service-specific options for Voice holds. If set, **CorpusType**
 	// must be **VOICE**.
 	VoiceQuery *HeldVoiceQuery `json:"voiceQuery,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "DriveQuery") to
+	// ForceSendFields is a list of field names (e.g. "CalendarQuery") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "DriveQuery") to include in API
+	// NullFields is a list of field names (e.g. "CalendarQuery") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *CorpusQuery) MarshalJSON() ([]byte, error) {
+func (s CorpusQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod CorpusQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CountArtifactsMetadata: Long running operation metadata for CountArtifacts.
@@ -650,9 +657,9 @@ type CountArtifactsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CountArtifactsMetadata) MarshalJSON() ([]byte, error) {
+func (s CountArtifactsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CountArtifactsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CountArtifactsRequest: Count artifacts request.
@@ -682,9 +689,9 @@ type CountArtifactsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CountArtifactsRequest) MarshalJSON() ([]byte, error) {
+func (s CountArtifactsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CountArtifactsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CountArtifactsResponse: Definition of the response for method
@@ -709,9 +716,53 @@ type CountArtifactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CountArtifactsResponse) MarshalJSON() ([]byte, error) {
+func (s CountArtifactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CountArtifactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DriveDocumentIds: Specify Drive documents by document ID.
+type DriveDocumentIds struct {
+	// Ids: Required. A list of Drive document IDs.
+	Ids []string `json:"ids,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Ids") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Ids") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DriveDocumentIds) MarshalJSON() ([]byte, error) {
+	type NoMethod DriveDocumentIds
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DriveDocumentInfo: The Drive documents to search.
+type DriveDocumentInfo struct {
+	// DocumentIds: Specify Drive documents by document ID.
+	DocumentIds *DriveDocumentIds `json:"documentIds,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DocumentIds") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DocumentIds") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DriveDocumentInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod DriveDocumentInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DriveExportOptions: Options for Drive exports.
@@ -733,12 +784,12 @@ type DriveExportOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DriveExportOptions) MarshalJSON() ([]byte, error) {
+func (s DriveExportOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod DriveExportOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// DriveOptions: Additional options for Drive search
+// DriveOptions: Additional options for Drive search.
 type DriveOptions struct {
 	// ClientSideEncryptedOption: Set whether the results include only content
 	// encrypted with Google Workspace Client-side encryption
@@ -777,9 +828,9 @@ type DriveOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DriveOptions) MarshalJSON() ([]byte, error) {
+func (s DriveOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod DriveOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -843,9 +894,9 @@ type Export struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Export) MarshalJSON() ([]byte, error) {
+func (s Export) MarshalJSON() ([]byte, error) {
 	type NoMethod Export
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExportOptions: Additional options for exports
@@ -854,6 +905,8 @@ type ExportOptions struct {
 	CalendarOptions *CalendarExportOptions `json:"calendarOptions,omitempty"`
 	// DriveOptions: Options for Drive exports.
 	DriveOptions *DriveExportOptions `json:"driveOptions,omitempty"`
+	// GeminiOptions: Option available for Gemini export.
+	GeminiOptions *GeminiExportOptions `json:"geminiOptions,omitempty"`
 	// GroupsOptions: Options for Groups exports.
 	GroupsOptions *GroupsExportOptions `json:"groupsOptions,omitempty"`
 	// HangoutsChatOptions: Options for Chat exports.
@@ -883,9 +936,9 @@ type ExportOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExportOptions) MarshalJSON() ([]byte, error) {
+func (s ExportOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ExportOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExportStats: Progress information for an export.
@@ -910,9 +963,44 @@ type ExportStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExportStats) MarshalJSON() ([]byte, error) {
+func (s ExportStats) MarshalJSON() ([]byte, error) {
 	type NoMethod ExportStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GeminiExportOptions: The options for Gemini exports.
+type GeminiExportOptions struct {
+	// ExportFormat: The file format for exported messages.
+	//
+	// Possible values:
+	//   "EXPORT_FORMAT_UNSPECIFIED" - No export format specified.
+	//   "MBOX" - Export as MBOX. Only available for Gmail, Groups, Hangouts and
+	// Voice.
+	//   "PST" - Export as PST. Only available for Gmail, Groups, Hangouts, Voice
+	// and Calendar.
+	//   "ICS" - Export as ICS. Only available for Calendar.
+	//   "XML" - Export as XML. Only available for Gemini.
+	ExportFormat string `json:"exportFormat,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ExportFormat") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExportFormat") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GeminiExportOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod GeminiExportOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GeminiOptions: Additional options for Gemini search
+type GeminiOptions struct {
 }
 
 // GroupsCountResult: Groups specific count metrics.
@@ -945,9 +1033,9 @@ type GroupsCountResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GroupsCountResult) MarshalJSON() ([]byte, error) {
+func (s GroupsCountResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GroupsCountResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GroupsExportOptions: Options for Groups exports.
@@ -961,6 +1049,7 @@ type GroupsExportOptions struct {
 	//   "PST" - Export as PST. Only available for Gmail, Groups, Hangouts, Voice
 	// and Calendar.
 	//   "ICS" - Export as ICS. Only available for Calendar.
+	//   "XML" - Export as XML. Only available for Gemini.
 	ExportFormat string `json:"exportFormat,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExportFormat") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -975,9 +1064,9 @@ type GroupsExportOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GroupsExportOptions) MarshalJSON() ([]byte, error) {
+func (s GroupsExportOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GroupsExportOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HangoutsChatExportOptions: Options for Chat exports.
@@ -991,6 +1080,7 @@ type HangoutsChatExportOptions struct {
 	//   "PST" - Export as PST. Only available for Gmail, Groups, Hangouts, Voice
 	// and Calendar.
 	//   "ICS" - Export as ICS. Only available for Calendar.
+	//   "XML" - Export as XML. Only available for Gemini.
 	ExportFormat string `json:"exportFormat,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExportFormat") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1005,9 +1095,9 @@ type HangoutsChatExportOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HangoutsChatExportOptions) MarshalJSON() ([]byte, error) {
+func (s HangoutsChatExportOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod HangoutsChatExportOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HangoutsChatInfo: The Chat spaces to search
@@ -1029,9 +1119,9 @@ type HangoutsChatInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HangoutsChatInfo) MarshalJSON() ([]byte, error) {
+func (s HangoutsChatInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod HangoutsChatInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HangoutsChatOptions: Additional options for Google Chat search
@@ -1052,9 +1142,9 @@ type HangoutsChatOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HangoutsChatOptions) MarshalJSON() ([]byte, error) {
+func (s HangoutsChatOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod HangoutsChatOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HeldAccount: An account covered by a hold. This structure is immutable. It
@@ -1093,9 +1183,13 @@ type HeldAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HeldAccount) MarshalJSON() ([]byte, error) {
+func (s HeldAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod HeldAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// HeldCalendarQuery: Options for Calendar holds.
+type HeldCalendarQuery struct {
 }
 
 // HeldDriveQuery: Options for Drive holds.
@@ -1119,9 +1213,9 @@ type HeldDriveQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HeldDriveQuery) MarshalJSON() ([]byte, error) {
+func (s HeldDriveQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod HeldDriveQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HeldGroupsQuery: Query options for group holds.
@@ -1149,9 +1243,9 @@ type HeldGroupsQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HeldGroupsQuery) MarshalJSON() ([]byte, error) {
+func (s HeldGroupsQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod HeldGroupsQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HeldHangoutsChatQuery: Options for Chat holds.
@@ -1172,9 +1266,9 @@ type HeldHangoutsChatQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HeldHangoutsChatQuery) MarshalJSON() ([]byte, error) {
+func (s HeldHangoutsChatQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod HeldHangoutsChatQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HeldMailQuery: Query options for Gmail holds.
@@ -1202,9 +1296,9 @@ type HeldMailQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HeldMailQuery) MarshalJSON() ([]byte, error) {
+func (s HeldMailQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod HeldMailQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HeldOrgUnit: The organizational unit covered by a hold. This structure is
@@ -1229,9 +1323,9 @@ type HeldOrgUnit struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HeldOrgUnit) MarshalJSON() ([]byte, error) {
+func (s HeldOrgUnit) MarshalJSON() ([]byte, error) {
 	type NoMethod HeldOrgUnit
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HeldVoiceQuery: Options for Voice holds.
@@ -1258,9 +1352,9 @@ type HeldVoiceQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HeldVoiceQuery) MarshalJSON() ([]byte, error) {
+func (s HeldVoiceQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod HeldVoiceQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Hold: A hold. A hold prevents the specified Google Workspace service from
@@ -1285,6 +1379,7 @@ type Hold struct {
 	// classic Hangouts.
 	//   "VOICE" - Google Voice.
 	//   "CALENDAR" - Calendar.
+	//   "GEMINI" - Gemini.
 	Corpus string `json:"corpus,omitempty"`
 	// HoldId: The unique immutable ID of the hold. Assigned during creation.
 	HoldId string `json:"holdId,omitempty"`
@@ -1315,9 +1410,9 @@ type Hold struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Hold) MarshalJSON() ([]byte, error) {
+func (s Hold) MarshalJSON() ([]byte, error) {
 	type NoMethod Hold
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListExportsResponse: The exports for a matter.
@@ -1342,9 +1437,9 @@ type ListExportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListExportsResponse) MarshalJSON() ([]byte, error) {
+func (s ListExportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListExportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListHeldAccountsResponse: Returns a list of the accounts covered by a hold.
@@ -1367,9 +1462,9 @@ type ListHeldAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListHeldAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s ListHeldAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListHeldAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListHoldsResponse: The holds for a matter.
@@ -1395,9 +1490,9 @@ type ListHoldsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListHoldsResponse) MarshalJSON() ([]byte, error) {
+func (s ListHoldsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListHoldsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMattersResponse: Provides the list of matters.
@@ -1422,9 +1517,9 @@ type ListMattersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMattersResponse) MarshalJSON() ([]byte, error) {
+func (s ListMattersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMattersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1450,9 +1545,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSavedQueriesResponse: Definition of the response for method
@@ -1479,9 +1574,9 @@ type ListSavedQueriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSavedQueriesResponse) MarshalJSON() ([]byte, error) {
+func (s ListSavedQueriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSavedQueriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MailCountResult: Gmail and classic Hangouts-specific count metrics.
@@ -1515,9 +1610,9 @@ type MailCountResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MailCountResult) MarshalJSON() ([]byte, error) {
+func (s MailCountResult) MarshalJSON() ([]byte, error) {
 	type NoMethod MailCountResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MailExportOptions: Options for Gmail exports.
@@ -1531,6 +1626,7 @@ type MailExportOptions struct {
 	//   "PST" - Export as PST. Only available for Gmail, Groups, Hangouts, Voice
 	// and Calendar.
 	//   "ICS" - Export as ICS. Only available for Calendar.
+	//   "XML" - Export as XML. Only available for Gemini.
 	ExportFormat string `json:"exportFormat,omitempty"`
 	// ExportLinkedDriveFiles: Optional. To enable exporting linked Drive files,
 	// set to **true**.
@@ -1553,9 +1649,9 @@ type MailExportOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MailExportOptions) MarshalJSON() ([]byte, error) {
+func (s MailExportOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod MailExportOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MailOptions: Additional options for Gmail search
@@ -1589,9 +1685,9 @@ type MailOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MailOptions) MarshalJSON() ([]byte, error) {
+func (s MailOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod MailOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Matter: Represents a matter. To work with Vault resources, the account must
@@ -1609,6 +1705,14 @@ type Matter struct {
 	// Currently there is no programmer defined limit on the number of permissions
 	// a matter can have.
 	MatterPermissions []*MatterPermission `json:"matterPermissions,omitempty"`
+	// MatterRegion: Optional. The requested data region for the matter.
+	//
+	// Possible values:
+	//   "MATTER_REGION_UNSPECIFIED" - The region is unspecified. Defaults to ANY.
+	//   "ANY" - Any region.
+	//   "US" - United States region.
+	//   "EUROPE" - Europe region.
+	MatterRegion string `json:"matterRegion,omitempty"`
 	// Name: The name of the matter.
 	Name string `json:"name,omitempty"`
 	// State: The state of the matter.
@@ -1635,9 +1739,9 @@ type Matter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Matter) MarshalJSON() ([]byte, error) {
+func (s Matter) MarshalJSON() ([]byte, error) {
 	type NoMethod Matter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MatterPermission: Users can be matter owners or collaborators. Each matter
@@ -1671,9 +1775,9 @@ type MatterPermission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MatterPermission) MarshalJSON() ([]byte, error) {
+func (s MatterPermission) MarshalJSON() ([]byte, error) {
 	type NoMethod MatterPermission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1718,9 +1822,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OrgUnitInfo: The organizational unit to search
@@ -1742,9 +1846,9 @@ type OrgUnitInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OrgUnitInfo) MarshalJSON() ([]byte, error) {
+func (s OrgUnitInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod OrgUnitInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Query: The query definition used for search and export.
@@ -1764,6 +1868,7 @@ type Query struct {
 	// classic Hangouts.
 	//   "VOICE" - Google Voice.
 	//   "CALENDAR" - Calendar.
+	//   "GEMINI" - Gemini.
 	Corpus string `json:"corpus,omitempty"`
 	// DataScope: The data source to search.
 	//
@@ -1774,11 +1879,15 @@ type Query struct {
 	//   "UNPROCESSED_DATA" - Only data not yet processed by Vault. (Gmail and
 	// Groups only)
 	DataScope string `json:"dataScope,omitempty"`
+	// DriveDocumentInfo: Required when **SearchMethod** is **DRIVE_DOCUMENT**.
+	DriveDocumentInfo *DriveDocumentInfo `json:"driveDocumentInfo,omitempty"`
 	// DriveOptions: Set Drive search-specific options.
 	DriveOptions *DriveOptions `json:"driveOptions,omitempty"`
 	// EndTime: The end time for the search query. Specify in GMT. The value is
 	// rounded to 12 AM on the specified date.
 	EndTime string `json:"endTime,omitempty"`
+	// GeminiOptions: Set Gemini search-specific options.
+	GeminiOptions *GeminiOptions `json:"geminiOptions,omitempty"`
 	// HangoutsChatInfo: Required when **SearchMethod** is **ROOM**. (read-only)
 	HangoutsChatInfo *HangoutsChatInfo `json:"hangoutsChatInfo,omitempty"`
 	// HangoutsChatOptions: Set Chat search-specific options. (read-only)
@@ -1813,6 +1922,7 @@ type Query struct {
 	//   "SHARED_DRIVE" - Search the files in the shared drives specified in
 	// [SharedDriveInfo](https://developers.google.com/vault/reference/rest/v1/Query
 	// #shareddriveinfo).
+	//   "DRIVE_DOCUMENT" - Retrieve the documents specified in DriveDocumentInfo.
 	Method string `json:"method,omitempty"`
 	// OrgUnitInfo: Required when **SearchMethod** is **ORG_UNIT**.
 	OrgUnitInfo *OrgUnitInfo `json:"orgUnitInfo,omitempty"`
@@ -1842,6 +1952,7 @@ type Query struct {
 	//   "SHARED_DRIVE" - Search the files in the shared drives specified in
 	// [SharedDriveInfo](https://developers.google.com/vault/reference/rest/v1/Query
 	// #shareddriveinfo).
+	//   "DRIVE_DOCUMENT" - Retrieve the documents specified in DriveDocumentInfo.
 	SearchMethod string `json:"searchMethod,omitempty"`
 	// SharedDriveInfo: Required when **SearchMethod** is **SHARED_DRIVE**.
 	SharedDriveInfo *SharedDriveInfo `json:"sharedDriveInfo,omitempty"`
@@ -1876,9 +1987,9 @@ type Query struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Query) MarshalJSON() ([]byte, error) {
+func (s Query) MarshalJSON() ([]byte, error) {
 	type NoMethod Query
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveHeldAccountsRequest: Remove a list of accounts from a hold.
@@ -1898,9 +2009,9 @@ type RemoveHeldAccountsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveHeldAccountsRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveHeldAccountsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveHeldAccountsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveHeldAccountsResponse: Response for batch delete held accounts.
@@ -1924,9 +2035,9 @@ type RemoveHeldAccountsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveHeldAccountsResponse) MarshalJSON() ([]byte, error) {
+func (s RemoveHeldAccountsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveHeldAccountsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveMatterPermissionsRequest: Remove an account as a matter collaborator.
@@ -1946,9 +2057,9 @@ type RemoveMatterPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveMatterPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveMatterPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveMatterPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReopenMatterRequest: Reopen a matter by ID.
@@ -1975,9 +2086,9 @@ type ReopenMatterResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReopenMatterResponse) MarshalJSON() ([]byte, error) {
+func (s ReopenMatterResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReopenMatterResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SavedQuery: The definition of a saved query. To work with Vault resources,
@@ -2015,9 +2126,9 @@ type SavedQuery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SavedQuery) MarshalJSON() ([]byte, error) {
+func (s SavedQuery) MarshalJSON() ([]byte, error) {
 	type NoMethod SavedQuery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SharedDriveInfo: The shared drives to search
@@ -2038,9 +2149,9 @@ type SharedDriveInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SharedDriveInfo) MarshalJSON() ([]byte, error) {
+func (s SharedDriveInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SharedDriveInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SitesUrlInfo: The published site URLs of new Google Sites to search
@@ -2060,9 +2171,9 @@ type SitesUrlInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SitesUrlInfo) MarshalJSON() ([]byte, error) {
+func (s SitesUrlInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SitesUrlInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2094,9 +2205,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TeamDriveInfo: Team Drives to search
@@ -2117,9 +2228,9 @@ type TeamDriveInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TeamDriveInfo) MarshalJSON() ([]byte, error) {
+func (s TeamDriveInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod TeamDriveInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UndeleteMatterRequest: Undelete a matter by ID.
@@ -2145,9 +2256,9 @@ type UserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserInfo) MarshalJSON() ([]byte, error) {
+func (s UserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod UserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoiceExportOptions: The options for Voice exports.
@@ -2161,6 +2272,7 @@ type VoiceExportOptions struct {
 	//   "PST" - Export as PST. Only available for Gmail, Groups, Hangouts, Voice
 	// and Calendar.
 	//   "ICS" - Export as ICS. Only available for Calendar.
+	//   "XML" - Export as XML. Only available for Gemini.
 	ExportFormat string `json:"exportFormat,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExportFormat") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2175,9 +2287,9 @@ type VoiceExportOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoiceExportOptions) MarshalJSON() ([]byte, error) {
+func (s VoiceExportOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod VoiceExportOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoiceOptions: Additional options for Voice search
@@ -2203,9 +2315,9 @@ type VoiceOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoiceOptions) MarshalJSON() ([]byte, error) {
+func (s VoiceOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod VoiceOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type MattersAddPermissionsCall struct {
@@ -2252,8 +2364,7 @@ func (c *MattersAddPermissionsCall) Header() http.Header {
 
 func (c *MattersAddPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmatterpermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmatterpermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2269,6 +2380,7 @@ func (c *MattersAddPermissionsCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.addPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2304,9 +2416,11 @@ func (c *MattersAddPermissionsCall) Do(opts ...googleapi.CallOption) (*MatterPer
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.addPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2354,8 +2468,7 @@ func (c *MattersCloseCall) Header() http.Header {
 
 func (c *MattersCloseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.closematterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.closematterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2371,6 +2484,7 @@ func (c *MattersCloseCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.close", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2406,9 +2520,11 @@ func (c *MattersCloseCall) Do(opts ...googleapi.CallOption) (*CloseMatterRespons
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.close", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2456,8 +2572,7 @@ func (c *MattersCountCall) Header() http.Header {
 
 func (c *MattersCountCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.countartifactsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.countartifactsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2473,6 +2588,7 @@ func (c *MattersCountCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.count", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2507,9 +2623,11 @@ func (c *MattersCountCall) Do(opts ...googleapi.CallOption) (*Operation, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.count", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2555,8 +2673,7 @@ func (c *MattersCreateCall) Header() http.Header {
 
 func (c *MattersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.matter)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.matter)
 	if err != nil {
 		return nil, err
 	}
@@ -2569,6 +2686,7 @@ func (c *MattersCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2603,9 +2721,11 @@ func (c *MattersCreateCall) Do(opts ...googleapi.CallOption) (*Matter, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2651,12 +2771,11 @@ func (c *MattersDeleteCall) Header() http.Header {
 
 func (c *MattersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2664,6 +2783,7 @@ func (c *MattersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2698,9 +2818,11 @@ func (c *MattersDeleteCall) Do(opts ...googleapi.CallOption) (*Matter, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2781,12 +2903,11 @@ func (c *MattersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2794,6 +2915,7 @@ func (c *MattersGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2828,9 +2950,11 @@ func (c *MattersGetCall) Do(opts ...googleapi.CallOption) (*Matter, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2935,16 +3059,16 @@ func (c *MattersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2980,9 +3104,11 @@ func (c *MattersListCall) Do(opts ...googleapi.CallOption) (*ListMattersResponse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3051,8 +3177,7 @@ func (c *MattersRemovePermissionsCall) Header() http.Header {
 
 func (c *MattersRemovePermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removematterpermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removematterpermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3068,6 +3193,7 @@ func (c *MattersRemovePermissionsCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.removePermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3102,9 +3228,11 @@ func (c *MattersRemovePermissionsCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.removePermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3152,8 +3280,7 @@ func (c *MattersReopenCall) Header() http.Header {
 
 func (c *MattersReopenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reopenmatterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reopenmatterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3169,6 +3296,7 @@ func (c *MattersReopenCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.reopen", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3204,9 +3332,11 @@ func (c *MattersReopenCall) Do(opts ...googleapi.CallOption) (*ReopenMatterRespo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.reopen", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3255,8 +3385,7 @@ func (c *MattersUndeleteCall) Header() http.Header {
 
 func (c *MattersUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.undeletematterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.undeletematterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3272,6 +3401,7 @@ func (c *MattersUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3306,9 +3436,11 @@ func (c *MattersUndeleteCall) Do(opts ...googleapi.CallOption) (*Matter, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3358,8 +3490,7 @@ func (c *MattersUpdateCall) Header() http.Header {
 
 func (c *MattersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.matter)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.matter)
 	if err != nil {
 		return nil, err
 	}
@@ -3375,6 +3506,7 @@ func (c *MattersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3409,9 +3541,11 @@ func (c *MattersUpdateCall) Do(opts ...googleapi.CallOption) (*Matter, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3459,8 +3593,7 @@ func (c *MattersExportsCreateCall) Header() http.Header {
 
 func (c *MattersExportsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.export)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.export)
 	if err != nil {
 		return nil, err
 	}
@@ -3476,6 +3609,7 @@ func (c *MattersExportsCreateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.exports.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3510,9 +3644,11 @@ func (c *MattersExportsCreateCall) Do(opts ...googleapi.CallOption) (*Export, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.exports.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3561,12 +3697,11 @@ func (c *MattersExportsDeleteCall) Header() http.Header {
 
 func (c *MattersExportsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/exports/{exportId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3575,6 +3710,7 @@ func (c *MattersExportsDeleteCall) doRequest(alt string) (*http.Response, error)
 		"matterId": c.matterId,
 		"exportId": c.exportId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.exports.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3609,9 +3745,11 @@ func (c *MattersExportsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.exports.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3672,12 +3810,11 @@ func (c *MattersExportsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/exports/{exportId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3686,6 +3823,7 @@ func (c *MattersExportsGetCall) doRequest(alt string) (*http.Response, error) {
 		"matterId": c.matterId,
 		"exportId": c.exportId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.exports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3720,9 +3858,11 @@ func (c *MattersExportsGetCall) Do(opts ...googleapi.CallOption) (*Export, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.exports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3794,12 +3934,11 @@ func (c *MattersExportsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/exports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3807,6 +3946,7 @@ func (c *MattersExportsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.exports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3842,9 +3982,11 @@ func (c *MattersExportsListCall) Do(opts ...googleapi.CallOption) (*ListExportsR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.exports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3918,8 +4060,7 @@ func (c *MattersHoldsAddHeldAccountsCall) Header() http.Header {
 
 func (c *MattersHoldsAddHeldAccountsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addheldaccountsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addheldaccountsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3936,6 +4077,7 @@ func (c *MattersHoldsAddHeldAccountsCall) doRequest(alt string) (*http.Response,
 		"matterId": c.matterId,
 		"holdId":   c.holdId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.addHeldAccounts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3971,9 +4113,11 @@ func (c *MattersHoldsAddHeldAccountsCall) Do(opts ...googleapi.CallOption) (*Add
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.addHeldAccounts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4021,8 +4165,7 @@ func (c *MattersHoldsCreateCall) Header() http.Header {
 
 func (c *MattersHoldsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.hold)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.hold)
 	if err != nil {
 		return nil, err
 	}
@@ -4038,6 +4181,7 @@ func (c *MattersHoldsCreateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4072,9 +4216,11 @@ func (c *MattersHoldsCreateCall) Do(opts ...googleapi.CallOption) (*Hold, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4125,12 +4271,11 @@ func (c *MattersHoldsDeleteCall) Header() http.Header {
 
 func (c *MattersHoldsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/holds/{holdId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4139,6 +4284,7 @@ func (c *MattersHoldsDeleteCall) doRequest(alt string) (*http.Response, error) {
 		"matterId": c.matterId,
 		"holdId":   c.holdId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4173,9 +4319,11 @@ func (c *MattersHoldsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4251,12 +4399,11 @@ func (c *MattersHoldsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/holds/{holdId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4265,6 +4412,7 @@ func (c *MattersHoldsGetCall) doRequest(alt string) (*http.Response, error) {
 		"matterId": c.matterId,
 		"holdId":   c.holdId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4299,9 +4447,11 @@ func (c *MattersHoldsGetCall) Do(opts ...googleapi.CallOption) (*Hold, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4389,12 +4539,11 @@ func (c *MattersHoldsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/holds")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4402,6 +4551,7 @@ func (c *MattersHoldsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4437,9 +4587,11 @@ func (c *MattersHoldsListCall) Do(opts ...googleapi.CallOption) (*ListHoldsRespo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4512,8 +4664,7 @@ func (c *MattersHoldsRemoveHeldAccountsCall) Header() http.Header {
 
 func (c *MattersHoldsRemoveHeldAccountsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removeheldaccountsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removeheldaccountsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4530,6 +4681,7 @@ func (c *MattersHoldsRemoveHeldAccountsCall) doRequest(alt string) (*http.Respon
 		"matterId": c.matterId,
 		"holdId":   c.holdId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.removeHeldAccounts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4565,9 +4717,11 @@ func (c *MattersHoldsRemoveHeldAccountsCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.removeHeldAccounts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4621,8 +4775,7 @@ func (c *MattersHoldsUpdateCall) Header() http.Header {
 
 func (c *MattersHoldsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.hold)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.hold)
 	if err != nil {
 		return nil, err
 	}
@@ -4639,6 +4792,7 @@ func (c *MattersHoldsUpdateCall) doRequest(alt string) (*http.Response, error) {
 		"matterId": c.matterId,
 		"holdId":   c.holdId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4673,9 +4827,11 @@ func (c *MattersHoldsUpdateCall) Do(opts ...googleapi.CallOption) (*Hold, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4728,8 +4884,7 @@ func (c *MattersHoldsAccountsCreateCall) Header() http.Header {
 
 func (c *MattersHoldsAccountsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.heldaccount)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.heldaccount)
 	if err != nil {
 		return nil, err
 	}
@@ -4746,6 +4901,7 @@ func (c *MattersHoldsAccountsCreateCall) doRequest(alt string) (*http.Response, 
 		"matterId": c.matterId,
 		"holdId":   c.holdId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.accounts.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4780,9 +4936,11 @@ func (c *MattersHoldsAccountsCreateCall) Do(opts ...googleapi.CallOption) (*Held
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.accounts.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4834,12 +4992,11 @@ func (c *MattersHoldsAccountsDeleteCall) Header() http.Header {
 
 func (c *MattersHoldsAccountsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/holds/{holdId}/accounts/{accountId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4849,6 +5006,7 @@ func (c *MattersHoldsAccountsDeleteCall) doRequest(alt string) (*http.Response, 
 		"holdId":    c.holdId,
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.accounts.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4883,9 +5041,11 @@ func (c *MattersHoldsAccountsDeleteCall) Do(opts ...googleapi.CallOption) (*Empt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.accounts.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4950,12 +5110,11 @@ func (c *MattersHoldsAccountsListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/holds/{holdId}/accounts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4964,6 +5123,7 @@ func (c *MattersHoldsAccountsListCall) doRequest(alt string) (*http.Response, er
 		"matterId": c.matterId,
 		"holdId":   c.holdId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.holds.accounts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4999,9 +5159,11 @@ func (c *MattersHoldsAccountsListCall) Do(opts ...googleapi.CallOption) (*ListHe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.holds.accounts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5049,8 +5211,7 @@ func (c *MattersSavedQueriesCreateCall) Header() http.Header {
 
 func (c *MattersSavedQueriesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.savedquery)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.savedquery)
 	if err != nil {
 		return nil, err
 	}
@@ -5066,6 +5227,7 @@ func (c *MattersSavedQueriesCreateCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.savedQueries.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5100,9 +5262,11 @@ func (c *MattersSavedQueriesCreateCall) Do(opts ...googleapi.CallOption) (*Saved
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.savedQueries.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5151,12 +5315,11 @@ func (c *MattersSavedQueriesDeleteCall) Header() http.Header {
 
 func (c *MattersSavedQueriesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/savedQueries/{savedQueryId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5165,6 +5328,7 @@ func (c *MattersSavedQueriesDeleteCall) doRequest(alt string) (*http.Response, e
 		"matterId":     c.matterId,
 		"savedQueryId": c.savedQueryId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.savedQueries.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5199,9 +5363,11 @@ func (c *MattersSavedQueriesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.savedQueries.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5262,12 +5428,11 @@ func (c *MattersSavedQueriesGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/savedQueries/{savedQueryId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5276,6 +5441,7 @@ func (c *MattersSavedQueriesGetCall) doRequest(alt string) (*http.Response, erro
 		"matterId":     c.matterId,
 		"savedQueryId": c.savedQueryId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.savedQueries.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5310,9 +5476,11 @@ func (c *MattersSavedQueriesGetCall) Do(opts ...googleapi.CallOption) (*SavedQue
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.savedQueries.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5385,12 +5553,11 @@ func (c *MattersSavedQueriesListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/matters/{matterId}/savedQueries")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5398,6 +5565,7 @@ func (c *MattersSavedQueriesListCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"matterId": c.matterId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.matters.savedQueries.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5433,9 +5601,11 @@ func (c *MattersSavedQueriesListCall) Do(opts ...googleapi.CallOption) (*ListSav
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.matters.savedQueries.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5476,7 +5646,7 @@ type OperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -5512,8 +5682,7 @@ func (c *OperationsCancelCall) Header() http.Header {
 
 func (c *OperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5529,6 +5698,7 @@ func (c *OperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5563,9 +5733,11 @@ func (c *OperationsCancelCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5614,12 +5786,11 @@ func (c *OperationsDeleteCall) Header() http.Header {
 
 func (c *OperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5627,6 +5798,7 @@ func (c *OperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5661,9 +5833,11 @@ func (c *OperationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5723,12 +5897,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5736,6 +5909,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5770,9 +5944,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5851,12 +6027,11 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5864,6 +6039,7 @@ func (c *OperationsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "vault.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5899,9 +6075,11 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*ListOperationsRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "vault.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

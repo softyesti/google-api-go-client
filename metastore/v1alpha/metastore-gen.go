@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "metastore:v1alpha"
 const apiName = "metastore"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*APIService, 
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &APIService{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*APIService, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &APIService{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type APIService struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -293,9 +296,9 @@ type AlterMetadataResourceLocationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AlterMetadataResourceLocationRequest) MarshalJSON() ([]byte, error) {
+func (s AlterMetadataResourceLocationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AlterMetadataResourceLocationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AlterMetadataResourceLocationResponse: Response message for
@@ -335,9 +338,9 @@ type AlterTablePropertiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AlterTablePropertiesRequest) MarshalJSON() ([]byte, error) {
+func (s AlterTablePropertiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AlterTablePropertiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -376,9 +379,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -411,9 +414,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutoscalingConfig: Represents the autoscaling configuration of a metastore
@@ -440,9 +443,9 @@ type AutoscalingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoscalingConfig) MarshalJSON() ([]byte, error) {
+func (s AutoscalingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoscalingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *AutoscalingConfig) UnmarshalJSON(data []byte) error {
@@ -462,17 +465,18 @@ func (s *AutoscalingConfig) UnmarshalJSON(data []byte) error {
 // AuxiliaryVersionConfig: Configuration information for the auxiliary service
 // versions.
 type AuxiliaryVersionConfig struct {
-	// ConfigOverrides: A mapping of Hive metastore configuration key-value pairs
-	// to apply to the auxiliary Hive metastore (configured in hive-site.xml) in
-	// addition to the primary version's overrides. If keys are present in both the
-	// auxiliary version's overrides and the primary version's overrides, the value
-	// from the auxiliary version's overrides takes precedence.
+	// ConfigOverrides: Optional. A mapping of Hive metastore configuration
+	// key-value pairs to apply to the auxiliary Hive metastore (configured in
+	// hive-site.xml) in addition to the primary version's overrides. If keys are
+	// present in both the auxiliary version's overrides and the primary version's
+	// overrides, the value from the auxiliary version's overrides takes
+	// precedence.
 	ConfigOverrides map[string]string `json:"configOverrides,omitempty"`
 	// NetworkConfig: Output only. The network configuration contains the endpoint
 	// URI(s) of the auxiliary Hive metastore service.
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
-	// Version: The Hive metastore version of the auxiliary service. It must be
-	// less than the primary Hive metastore service's version.
+	// Version: Optional. The Hive metastore version of the auxiliary service. It
+	// must be less than the primary Hive metastore service's version.
 	Version string `json:"version,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ConfigOverrides") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -487,9 +491,9 @@ type AuxiliaryVersionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuxiliaryVersionConfig) MarshalJSON() ([]byte, error) {
+func (s AuxiliaryVersionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuxiliaryVersionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BackendMetastore: Represents a backend metastore for the federation.
@@ -520,20 +524,21 @@ type BackendMetastore struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BackendMetastore) MarshalJSON() ([]byte, error) {
+func (s BackendMetastore) MarshalJSON() ([]byte, error) {
 	type NoMethod BackendMetastore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Backup: The details of a backup resource.
 type Backup struct {
 	// CreateTime: Output only. The time when the backup was started.
 	CreateTime string `json:"createTime,omitempty"`
-	// Description: The description of the backup.
+	// Description: Optional. The description of the backup.
 	Description string `json:"description,omitempty"`
 	// EndTime: Output only. The time when the backup finished creating.
 	EndTime string `json:"endTime,omitempty"`
-	// Name: Immutable. The relative resource name of the backup, in the following
+	// Name: Immutable. Identifier. The relative resource name of the backup, in
+	// the following
 	// form:projects/{project_number}/locations/{location_id}/services/{service_id}/
 	// backups/{backup_id}
 	Name string `json:"name,omitempty"`
@@ -568,9 +573,9 @@ type Backup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Backup) MarshalJSON() ([]byte, error) {
+func (s Backup) MarshalJSON() ([]byte, error) {
 	type NoMethod Backup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates members, or principals, with a role.
@@ -664,9 +669,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelMigrationRequest: Request message for
@@ -695,9 +700,9 @@ type CancelMigrationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CancelMigrationResponse) MarshalJSON() ([]byte, error) {
+func (s CancelMigrationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CancelMigrationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -754,9 +759,9 @@ type CdcConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CdcConfig) MarshalJSON() ([]byte, error) {
+func (s CdcConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CdcConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudSQLConnectionConfig: Configuration information to establish customer
@@ -806,9 +811,9 @@ type CloudSQLConnectionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudSQLConnectionConfig) MarshalJSON() ([]byte, error) {
+func (s CloudSQLConnectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudSQLConnectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudSQLMigrationConfig: Configuration information for migrating from
@@ -836,9 +841,9 @@ type CloudSQLMigrationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudSQLMigrationConfig) MarshalJSON() ([]byte, error) {
+func (s CloudSQLMigrationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudSQLMigrationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompleteMigrationRequest: Request message for
@@ -867,9 +872,9 @@ type CompleteMigrationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompleteMigrationResponse) MarshalJSON() ([]byte, error) {
+func (s CompleteMigrationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CompleteMigrationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Consumer: Contains information of the customer's network configurations.
@@ -902,9 +907,38 @@ type Consumer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Consumer) MarshalJSON() ([]byte, error) {
+func (s Consumer) MarshalJSON() ([]byte, error) {
 	type NoMethod Consumer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CustomRegionConfig: Custom configuration used to specify regions that the
+// metastore service runs in. Currently only supported in the us multi-region.
+type CustomRegionConfig struct {
+	// ReadOnlyRegions: Optional. The list of read-only regions where the metastore
+	// service runs in. These regions should be part (or subset) of the
+	// multi-region.
+	ReadOnlyRegions []string `json:"readOnlyRegions,omitempty"`
+	// ReadWriteRegions: Required. The list of read-write regions where the
+	// metastore service runs in. These regions should be part (or subset) of the
+	// multi-region.
+	ReadWriteRegions []string `json:"readWriteRegions,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ReadOnlyRegions") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ReadOnlyRegions") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CustomRegionConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod CustomRegionConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomRegionMetadata: Metadata about a custom region. This is only populated
@@ -930,9 +964,9 @@ type CustomRegionMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomRegionMetadata) MarshalJSON() ([]byte, error) {
+func (s CustomRegionMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomRegionMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataCatalogConfig: Specifies how metastore metadata should be integrated
@@ -955,9 +989,9 @@ type DataCatalogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataCatalogConfig) MarshalJSON() ([]byte, error) {
+func (s DataCatalogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DataCatalogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseDump: A specification of the location of and metadata about a
@@ -969,10 +1003,10 @@ type DatabaseDump struct {
 	//   "DATABASE_TYPE_UNSPECIFIED" - The type of the source database is unknown.
 	//   "MYSQL" - The type of the source database is MySQL.
 	DatabaseType string `json:"databaseType,omitempty"`
-	// GcsUri: A Cloud Storage object or folder URI that specifies the source from
-	// which to import metadata. It must begin with gs://.
+	// GcsUri: Optional. A Cloud Storage object or folder URI that specifies the
+	// source from which to import metadata. It must begin with gs://.
 	GcsUri string `json:"gcsUri,omitempty"`
-	// SourceDatabase: The name of the source database.
+	// SourceDatabase: Optional. The name of the source database.
 	SourceDatabase string `json:"sourceDatabase,omitempty"`
 	// Type: Optional. The type of the database dump. If unspecified, defaults to
 	// MYSQL.
@@ -995,17 +1029,17 @@ type DatabaseDump struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseDump) MarshalJSON() ([]byte, error) {
+func (s DatabaseDump) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseDump
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataplexConfig: Specifies how metastore metadata should be integrated with
 // the Dataplex service.
 type DataplexConfig struct {
-	// LakeResources: A reference to the Lake resources that this metastore service
-	// is attached to. The key is the lake resource name. Example:
-	// projects/{project_number}/locations/{location_id}/lakes/{lake_id}.
+	// LakeResources: Optional. A reference to the Lake resources that this
+	// metastore service is attached to. The key is the lake resource name.
+	// Example: projects/{project_number}/locations/{location_id}/lakes/{lake_id}.
 	LakeResources map[string]Lake `json:"lakeResources,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "LakeResources") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1020,9 +1054,9 @@ type DataplexConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataplexConfig) MarshalJSON() ([]byte, error) {
+func (s DataplexConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DataplexConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1036,8 +1070,8 @@ type Empty struct {
 
 // EncryptionConfig: Encryption settings for the service.
 type EncryptionConfig struct {
-	// KmsKey: The fully qualified customer provided Cloud KMS key name to use for
-	// customer data encryption, in the following
+	// KmsKey: Optional. The fully qualified customer provided Cloud KMS key name
+	// to use for customer data encryption, in the following
 	// format:projects/{project_number}/locations/{location_id}/keyRings/{key_ring_i
 	// d}/cryptoKeys/{crypto_key_id}.
 	KmsKey string `json:"kmsKey,omitempty"`
@@ -1054,9 +1088,9 @@ type EncryptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionConfig) MarshalJSON() ([]byte, error) {
+func (s EncryptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ErrorDetails: Error details in public error message for
@@ -1078,9 +1112,9 @@ type ErrorDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ErrorDetails) MarshalJSON() ([]byte, error) {
+func (s ErrorDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ErrorDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExportMetadataRequest: Request message for DataprocMetastore.ExportMetadata.
@@ -1119,9 +1153,9 @@ type ExportMetadataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExportMetadataRequest) MarshalJSON() ([]byte, error) {
+func (s ExportMetadataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ExportMetadataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -1167,9 +1201,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Federation: Represents a federation of multiple backend metastores.
@@ -1232,31 +1266,31 @@ type Federation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Federation) MarshalJSON() ([]byte, error) {
+func (s Federation) MarshalJSON() ([]byte, error) {
 	type NoMethod Federation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HiveMetastoreConfig: Specifies configuration information specific to running
 // Hive metastore software as the metastore service.
 type HiveMetastoreConfig struct {
-	// AuxiliaryVersions: A mapping of Hive metastore version to the auxiliary
-	// version configuration. When specified, a secondary Hive metastore service is
-	// created along with the primary service. All auxiliary versions must be less
-	// than the service's primary version. The key is the auxiliary service name
-	// and it must match the regular expression a-z?. This means that the first
-	// character must be a lowercase letter, and all the following characters must
-	// be hyphens, lowercase letters, or digits, except the last character, which
-	// cannot be a hyphen.
+	// AuxiliaryVersions: Optional. A mapping of Hive metastore version to the
+	// auxiliary version configuration. When specified, a secondary Hive metastore
+	// service is created along with the primary service. All auxiliary versions
+	// must be less than the service's primary version. The key is the auxiliary
+	// service name and it must match the regular expression a-z?. This means that
+	// the first character must be a lowercase letter, and all the following
+	// characters must be hyphens, lowercase letters, or digits, except the last
+	// character, which cannot be a hyphen.
 	AuxiliaryVersions map[string]AuxiliaryVersionConfig `json:"auxiliaryVersions,omitempty"`
-	// ConfigOverrides: A mapping of Hive metastore configuration key-value pairs
-	// to apply to the Hive metastore (configured in hive-site.xml). The mappings
-	// override system defaults (some keys cannot be overridden). These overrides
-	// are also applied to auxiliary versions and can be further customized in the
-	// auxiliary version's AuxiliaryVersionConfig.
+	// ConfigOverrides: Optional. A mapping of Hive metastore configuration
+	// key-value pairs to apply to the Hive metastore (configured in
+	// hive-site.xml). The mappings override system defaults (some keys cannot be
+	// overridden). These overrides are also applied to auxiliary versions and can
+	// be further customized in the auxiliary version's AuxiliaryVersionConfig.
 	ConfigOverrides map[string]string `json:"configOverrides,omitempty"`
-	// EndpointProtocol: The protocol to use for the metastore service endpoint. If
-	// unspecified, defaults to THRIFT.
+	// EndpointProtocol: Optional. The protocol to use for the metastore service
+	// endpoint. If unspecified, defaults to THRIFT.
 	//
 	// Possible values:
 	//   "ENDPOINT_PROTOCOL_UNSPECIFIED" - The protocol is not set.
@@ -1265,9 +1299,9 @@ type HiveMetastoreConfig struct {
 	//   "GRPC" - Use the modernized gRPC protocol for the metastore service
 	// endpoint.
 	EndpointProtocol string `json:"endpointProtocol,omitempty"`
-	// KerberosConfig: Information used to configure the Hive metastore service as
-	// a service principal in a Kerberos realm. To disable Kerberos, use the
-	// UpdateService method and specify this field's path
+	// KerberosConfig: Optional. Information used to configure the Hive metastore
+	// service as a service principal in a Kerberos realm. To disable Kerberos, use
+	// the UpdateService method and specify this field's path
 	// (hive_metastore_config.kerberos_config) in the request's update_mask while
 	// omitting this field from the request's service.
 	KerberosConfig *KerberosConfig `json:"kerberosConfig,omitempty"`
@@ -1286,9 +1320,9 @@ type HiveMetastoreConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HiveMetastoreConfig) MarshalJSON() ([]byte, error) {
+func (s HiveMetastoreConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod HiveMetastoreConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HiveMetastoreVersion: A specification of a supported version of the Hive
@@ -1312,22 +1346,22 @@ type HiveMetastoreVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HiveMetastoreVersion) MarshalJSON() ([]byte, error) {
+func (s HiveMetastoreVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod HiveMetastoreVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KerberosConfig: Configuration information for a Kerberos principal.
 type KerberosConfig struct {
-	// Keytab: A Kerberos keytab file that can be used to authenticate a service
-	// principal with a Kerberos Key Distribution Center (KDC).
+	// Keytab: Optional. A Kerberos keytab file that can be used to authenticate a
+	// service principal with a Kerberos Key Distribution Center (KDC).
 	Keytab *Secret `json:"keytab,omitempty"`
-	// Krb5ConfigGcsUri: A Cloud Storage URI that specifies the path to a krb5.conf
-	// file. It is of the form gs://{bucket_name}/path/to/krb5.conf, although the
-	// file does not need to be named krb5.conf explicitly.
+	// Krb5ConfigGcsUri: Optional. A Cloud Storage URI that specifies the path to a
+	// krb5.conf file. It is of the form gs://{bucket_name}/path/to/krb5.conf,
+	// although the file does not need to be named krb5.conf explicitly.
 	Krb5ConfigGcsUri string `json:"krb5ConfigGcsUri,omitempty"`
-	// Principal: A Kerberos principal that exists in the both the keytab the KDC
-	// to authenticate as. A typical principal is of the form
+	// Principal: Optional. A Kerberos principal that exists in the both the keytab
+	// the KDC to authenticate as. A typical principal is of the form
 	// primary/instance@REALM, but there is no exact format.
 	Principal string `json:"principal,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Keytab") to unconditionally
@@ -1343,9 +1377,9 @@ type KerberosConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KerberosConfig) MarshalJSON() ([]byte, error) {
+func (s KerberosConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod KerberosConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Lake: Represents a Lake resource
@@ -1366,9 +1400,9 @@ type Lake struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Lake) MarshalJSON() ([]byte, error) {
+func (s Lake) MarshalJSON() ([]byte, error) {
 	type NoMethod Lake
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LatestBackup: The details of the latest scheduled backup.
@@ -1401,9 +1435,9 @@ type LatestBackup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatestBackup) MarshalJSON() ([]byte, error) {
+func (s LatestBackup) MarshalJSON() ([]byte, error) {
 	type NoMethod LatestBackup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LimitConfig: Represents the autoscaling limit configuration of a metastore
@@ -1428,9 +1462,9 @@ type LimitConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LimitConfig) MarshalJSON() ([]byte, error) {
+func (s LimitConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod LimitConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LimitConfig) UnmarshalJSON(data []byte) error {
@@ -1474,9 +1508,9 @@ type ListBackupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBackupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListBackupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBackupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFederationsResponse: Response message for ListFederations
@@ -1504,9 +1538,9 @@ type ListFederationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFederationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListFederationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFederationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -1532,9 +1566,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMetadataImportsResponse: Response message for
@@ -1563,9 +1597,9 @@ type ListMetadataImportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMetadataImportsResponse) MarshalJSON() ([]byte, error) {
+func (s ListMetadataImportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMetadataImportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMigrationExecutionsResponse: Response message for
@@ -1594,9 +1628,9 @@ type ListMigrationExecutionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMigrationExecutionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListMigrationExecutionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMigrationExecutionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1622,9 +1656,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListServicesResponse: Response message for DataprocMetastore.ListServices.
@@ -1652,9 +1686,9 @@ type ListServicesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListServicesResponse) MarshalJSON() ([]byte, error) {
+func (s ListServicesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListServicesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -1689,9 +1723,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LocationMetadata: Metadata about the service in a location.
@@ -1720,15 +1754,15 @@ type LocationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LocationMetadata) MarshalJSON() ([]byte, error) {
+func (s LocationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod LocationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MaintenanceWindow: Maintenance window. This specifies when Dataproc
 // Metastore may perform system maintenance operation to the service.
 type MaintenanceWindow struct {
-	// DayOfWeek: The day of week, when the window starts.
+	// DayOfWeek: Optional. The day of week, when the window starts.
 	//
 	// Possible values:
 	//   "DAY_OF_WEEK_UNSPECIFIED" - The day of the week is unspecified.
@@ -1740,7 +1774,7 @@ type MaintenanceWindow struct {
 	//   "SATURDAY" - Saturday
 	//   "SUNDAY" - Sunday
 	DayOfWeek string `json:"dayOfWeek,omitempty"`
-	// HourOfDay: The hour of day (0-23) when the window starts.
+	// HourOfDay: Optional. The hour of day (0-23) when the window starts.
 	HourOfDay int64 `json:"hourOfDay,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DayOfWeek") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1755,9 +1789,9 @@ type MaintenanceWindow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MaintenanceWindow) MarshalJSON() ([]byte, error) {
+func (s MaintenanceWindow) MarshalJSON() ([]byte, error) {
 	type NoMethod MaintenanceWindow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetadataExport: The details of a metadata export operation.
@@ -1799,9 +1833,9 @@ type MetadataExport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetadataExport) MarshalJSON() ([]byte, error) {
+func (s MetadataExport) MarshalJSON() ([]byte, error) {
 	type NoMethod MetadataExport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetadataImport: A metastore resource that imports metadata.
@@ -1811,11 +1845,12 @@ type MetadataImport struct {
 	// DatabaseDump: Immutable. A database dump from a pre-existing metastore's
 	// database.
 	DatabaseDump *DatabaseDump `json:"databaseDump,omitempty"`
-	// Description: The description of the metadata import.
+	// Description: Optional. The description of the metadata import.
 	Description string `json:"description,omitempty"`
 	// EndTime: Output only. The time when the metadata import finished.
 	EndTime string `json:"endTime,omitempty"`
-	// Name: Immutable. The relative resource name of the metadata import, of the
+	// Name: Immutable. Identifier. The relative resource name of the metadata
+	// import, of the
 	// form:projects/{project_number}/locations/{location_id}/services/{service_id}/
 	// metadataImports/{metadata_import_id}.
 	Name string `json:"name,omitempty"`
@@ -1847,9 +1882,9 @@ type MetadataImport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetadataImport) MarshalJSON() ([]byte, error) {
+func (s MetadataImport) MarshalJSON() ([]byte, error) {
 	type NoMethod MetadataImport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetadataIntegration: Specifies how metastore metadata should be integrated
@@ -1858,7 +1893,7 @@ type MetadataIntegration struct {
 	// DataCatalogConfig: Optional. The integration config for the Data Catalog
 	// service.
 	DataCatalogConfig *DataCatalogConfig `json:"dataCatalogConfig,omitempty"`
-	// DataplexConfig: The integration config for the Dataplex service.
+	// DataplexConfig: Optional. The integration config for the Dataplex service.
 	DataplexConfig *DataplexConfig `json:"dataplexConfig,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DataCatalogConfig") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1873,9 +1908,9 @@ type MetadataIntegration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetadataIntegration) MarshalJSON() ([]byte, error) {
+func (s MetadataIntegration) MarshalJSON() ([]byte, error) {
 	type NoMethod MetadataIntegration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetadataManagementActivity: The metadata management activities of the
@@ -1899,9 +1934,9 @@ type MetadataManagementActivity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetadataManagementActivity) MarshalJSON() ([]byte, error) {
+func (s MetadataManagementActivity) MarshalJSON() ([]byte, error) {
 	type NoMethod MetadataManagementActivity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MigrationExecution: The details of a migration execution resource.
@@ -1965,9 +2000,9 @@ type MigrationExecution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MigrationExecution) MarshalJSON() ([]byte, error) {
+func (s MigrationExecution) MarshalJSON() ([]byte, error) {
 	type NoMethod MigrationExecution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MoveTableToDatabaseRequest: Request message for
@@ -1993,14 +2028,39 @@ type MoveTableToDatabaseRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MoveTableToDatabaseRequest) MarshalJSON() ([]byte, error) {
+func (s MoveTableToDatabaseRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MoveTableToDatabaseRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MoveTableToDatabaseResponse: Response message for
 // DataprocMetastore.MoveTableToDatabase.
 type MoveTableToDatabaseResponse struct {
+}
+
+// MultiRegionConfig: The multi-region config for the Dataproc Metastore
+// service.
+type MultiRegionConfig struct {
+	// Certificates: Output only. The list of root CA certificates that a gRPC
+	// client uses to connect to a multi-regional Dataproc Metastore service.
+	Certificates       []*RootCACertificate `json:"certificates,omitempty"`
+	CustomRegionConfig *CustomRegionConfig  `json:"customRegionConfig,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Certificates") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Certificates") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MultiRegionConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod MultiRegionConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultiRegionMetadata: The metadata for the multi-region that includes the
@@ -2009,6 +2069,10 @@ type MoveTableToDatabaseResponse struct {
 type MultiRegionMetadata struct {
 	// ConstituentRegions: The regions constituting the multi-region.
 	ConstituentRegions []string `json:"constituentRegions,omitempty"`
+	// Continent: The continent for this multi-region.
+	Continent string `json:"continent,omitempty"`
+	// WitnessRegion: The Spanner witness region for this multi-region.
+	WitnessRegion string `json:"witnessRegion,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ConstituentRegions") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -2022,9 +2086,9 @@ type MultiRegionMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultiRegionMetadata) MarshalJSON() ([]byte, error) {
+func (s MultiRegionMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod MultiRegionMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkConfig: Network configuration for the Dataproc Metastore service.
@@ -2032,8 +2096,8 @@ type NetworkConfig struct {
 	// Consumers: Immutable. The consumer-side network configuration for the
 	// Dataproc Metastore instance.
 	Consumers []*Consumer `json:"consumers,omitempty"`
-	// CustomRoutesEnabled: Enables custom routes to be imported and exported for
-	// the Dataproc Metastore service's peered VPC network.
+	// CustomRoutesEnabled: Optional. Enables custom routes to be imported and
+	// exported for the Dataproc Metastore service's peered VPC network.
 	CustomRoutesEnabled bool `json:"customRoutesEnabled,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Consumers") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2048,9 +2112,9 @@ type NetworkConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkConfig) MarshalJSON() ([]byte, error) {
+func (s NetworkConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -2094,9 +2158,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of a long-running operation.
@@ -2109,8 +2173,8 @@ type OperationMetadata struct {
 	EndTime string `json:"endTime,omitempty"`
 	// RequestedCancellation: Output only. Identifies whether the caller has
 	// requested cancellation of the operation. Operations that have successfully
-	// been cancelled have Operation.error value with a google.rpc.Status.code of
-	// 1, corresponding to Code.CANCELLED.
+	// been cancelled have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of 1, corresponding to Code.CANCELLED.
 	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
 	// StatusMessage: Output only. Human-readable status of the operation, if any.
 	StatusMessage string `json:"statusMessage,omitempty"`
@@ -2132,9 +2196,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -2222,9 +2286,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryMetadataRequest: Request message for DataprocMetastore.QueryMetadata.
@@ -2245,9 +2309,9 @@ type QueryMetadataRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryMetadataRequest) MarshalJSON() ([]byte, error) {
+func (s QueryMetadataRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryMetadataRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryMetadataResponse: Response message for DataprocMetastore.QueryMetadata.
@@ -2270,9 +2334,9 @@ type QueryMetadataResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryMetadataResponse) MarshalJSON() ([]byte, error) {
+func (s QueryMetadataResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryMetadataResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveIamPolicyRequest: Request message for
@@ -2294,9 +2358,9 @@ type RemoveIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveIamPolicyResponse: Response message for
@@ -2320,9 +2384,9 @@ type RemoveIamPolicyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveIamPolicyResponse) MarshalJSON() ([]byte, error) {
+func (s RemoveIamPolicyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveIamPolicyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Restore: The details of a metadata restore operation.
@@ -2371,12 +2435,12 @@ type Restore struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Restore) MarshalJSON() ([]byte, error) {
+func (s Restore) MarshalJSON() ([]byte, error) {
 	type NoMethod Restore
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// RestoreServiceRequest: Request message for DataprocMetastore.Restore.
+// RestoreServiceRequest: Request message for DataprocMetastore.RestoreService.
 type RestoreServiceRequest struct {
 	// Backup: Optional. The relative resource name of the metastore service backup
 	// to restore from, in the following
@@ -2420,9 +2484,35 @@ type RestoreServiceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestoreServiceRequest) MarshalJSON() ([]byte, error) {
+func (s RestoreServiceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RestoreServiceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RootCACertificate: A gRPC client must install all root CA certificates to
+// connect to a multi-regional Dataproc Metastore service and achieve failover.
+type RootCACertificate struct {
+	// Certificate: The root CA certificate in PEM format. The maximum length is
+	// 65536 bytes.
+	Certificate string `json:"certificate,omitempty"`
+	// ExpirationTime: The certificate expiration time in timestamp format.
+	ExpirationTime string `json:"expirationTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Certificate") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Certificate") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RootCACertificate) MarshalJSON() ([]byte, error) {
+	type NoMethod RootCACertificate
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScalingConfig: Represents the scaling configuration of a metastore service.
@@ -2459,9 +2549,9 @@ type ScalingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScalingConfig) MarshalJSON() ([]byte, error) {
+func (s ScalingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ScalingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ScalingConfig) UnmarshalJSON(data []byte) error {
@@ -2514,15 +2604,15 @@ type ScheduledBackup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScheduledBackup) MarshalJSON() ([]byte, error) {
+func (s ScheduledBackup) MarshalJSON() ([]byte, error) {
 	type NoMethod ScheduledBackup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Secret: A securely stored value.
 type Secret struct {
-	// CloudSecret: The relative resource name of a Secret Manager secret version,
-	// in the following
+	// CloudSecret: Optional. The relative resource name of a Secret Manager secret
+	// version, in the following
 	// form:projects/{project_number}/secrets/{secret_id}/versions/{version_id}.
 	CloudSecret string `json:"cloudSecret,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CloudSecret") to
@@ -2538,9 +2628,9 @@ type Secret struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Secret) MarshalJSON() ([]byte, error) {
+func (s Secret) MarshalJSON() ([]byte, error) {
 	type NoMethod Secret
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Service: A managed metastore service that serves metadata queries.
@@ -2572,10 +2662,10 @@ type Service struct {
 	HiveMetastoreConfig *HiveMetastoreConfig `json:"hiveMetastoreConfig,omitempty"`
 	// Labels: User-defined labels for the metastore service.
 	Labels map[string]string `json:"labels,omitempty"`
-	// MaintenanceWindow: The one hour maintenance window of the metastore service.
-	// This specifies when the service can be restarted for maintenance purposes in
-	// UTC time. Maintenance window is not needed for services with the SPANNER
-	// database type.
+	// MaintenanceWindow: Optional. The one hour maintenance window of the
+	// metastore service. This specifies when the service can be restarted for
+	// maintenance purposes in UTC time. Maintenance window is not needed for
+	// services with the SPANNER database type.
 	MaintenanceWindow *MaintenanceWindow `json:"maintenanceWindow,omitempty"`
 	// MetadataIntegration: Optional. The setting that defines how metastore
 	// metadata should be integrated with external services and systems.
@@ -2583,8 +2673,11 @@ type Service struct {
 	// MetadataManagementActivity: Output only. The metadata management activities
 	// of the metastore service.
 	MetadataManagementActivity *MetadataManagementActivity `json:"metadataManagementActivity,omitempty"`
-	// Name: Immutable. The relative resource name of the metastore service, in the
-	// following
+	// MultiRegionConfig: Optional. Specifies the multi-region configuration
+	// information for the Hive metastore service.
+	MultiRegionConfig *MultiRegionConfig `json:"multiRegionConfig,omitempty"`
+	// Name: Immutable. Identifier. The relative resource name of the metastore
+	// service, in the following
 	// format:projects/{project_number}/locations/{location_id}/services/{service_id
 	// }.
 	Name string `json:"name,omitempty"`
@@ -2592,10 +2685,11 @@ type Service struct {
 	// the instance can be accessed. It is specified in the following
 	// form:projects/{project_number}/global/networks/{network_id}.
 	Network string `json:"network,omitempty"`
-	// NetworkConfig: The configuration specifying the network settings for the
-	// Dataproc Metastore service.
+	// NetworkConfig: Optional. The configuration specifying the network settings
+	// for the Dataproc Metastore service.
 	NetworkConfig *NetworkConfig `json:"networkConfig,omitempty"`
-	// Port: The TCP port at which the metastore service is reached. Default: 9083.
+	// Port: Optional. The TCP port at which the metastore service is reached.
+	// Default: 9083.
 	Port int64 `json:"port,omitempty"`
 	// ReleaseChannel: Immutable. The release channel of the service. If
 	// unspecified, defaults to STABLE.
@@ -2608,7 +2702,7 @@ type Service struct {
 	//   "STABLE" - The STABLE release channel contains features that are
 	// considered stable and have been validated for production use.
 	ReleaseChannel string `json:"releaseChannel,omitempty"`
-	// ScalingConfig: Scaling configuration of the metastore service.
+	// ScalingConfig: Optional. Scaling configuration of the metastore service.
 	ScalingConfig *ScalingConfig `json:"scalingConfig,omitempty"`
 	// ScheduledBackup: Optional. The configuration of scheduled backup for the
 	// metastore service.
@@ -2629,15 +2723,17 @@ type Service struct {
 	// used.
 	//   "ERROR" - The metastore service has encountered an error and cannot be
 	// used. The metastore service should be deleted.
+	//   "AUTOSCALING" - The Dataproc Metastore service 2 is being scaled up or
+	// down.
 	//   "MIGRATING" - The metastore service is processing a managed migration.
 	State string `json:"state,omitempty"`
 	// StateMessage: Output only. Additional information about the current state of
 	// the metastore service, if available.
 	StateMessage string `json:"stateMessage,omitempty"`
-	// TelemetryConfig: The configuration specifying telemetry settings for the
-	// Dataproc Metastore service. If unspecified defaults to JSON.
+	// TelemetryConfig: Optional. The configuration specifying telemetry settings
+	// for the Dataproc Metastore service. If unspecified defaults to JSON.
 	TelemetryConfig *TelemetryConfig `json:"telemetryConfig,omitempty"`
-	// Tier: The tier of the service.
+	// Tier: Optional. The tier of the service.
 	//
 	// Possible values:
 	//   "TIER_UNSPECIFIED" - The tier is not set.
@@ -2669,9 +2765,9 @@ type Service struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Service) MarshalJSON() ([]byte, error) {
+func (s Service) MarshalJSON() ([]byte, error) {
 	type NoMethod Service
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for SetIamPolicy method.
@@ -2698,9 +2794,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartMigrationRequest: Request message for DataprocMetastore.StartMigration.
@@ -2730,9 +2826,9 @@ type StartMigrationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartMigrationRequest) MarshalJSON() ([]byte, error) {
+func (s StartMigrationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod StartMigrationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The Status type defines a logical error model that is suitable for
@@ -2764,14 +2860,15 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TelemetryConfig: Telemetry Configuration for the Dataproc Metastore service.
 type TelemetryConfig struct {
-	// LogFormat: The output format of the Dataproc Metastore service's logs.
+	// LogFormat: Optional. The output format of the Dataproc Metastore service's
+	// logs.
 	//
 	// Possible values:
 	//   "LOG_FORMAT_UNSPECIFIED" - The LOG_FORMAT is not set.
@@ -2791,9 +2888,9 @@ type TelemetryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TelemetryConfig) MarshalJSON() ([]byte, error) {
+func (s TelemetryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TelemetryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for TestIamPermissions method.
@@ -2816,9 +2913,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for TestIamPermissions method.
@@ -2842,9 +2939,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -2901,12 +2998,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2914,6 +3010,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2948,9 +3045,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3032,12 +3131,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3045,6 +3143,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3080,9 +3179,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3177,8 +3278,7 @@ func (c *ProjectsLocationsFederationsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsFederationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.federation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.federation)
 	if err != nil {
 		return nil, err
 	}
@@ -3194,6 +3294,7 @@ func (c *ProjectsLocationsFederationsCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3228,9 +3329,11 @@ func (c *ProjectsLocationsFederationsCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3293,12 +3396,11 @@ func (c *ProjectsLocationsFederationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsFederationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3306,6 +3408,7 @@ func (c *ProjectsLocationsFederationsDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3340,9 +3443,11 @@ func (c *ProjectsLocationsFederationsDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3403,12 +3508,11 @@ func (c *ProjectsLocationsFederationsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3416,6 +3520,7 @@ func (c *ProjectsLocationsFederationsGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3450,9 +3555,11 @@ func (c *ProjectsLocationsFederationsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3530,12 +3637,11 @@ func (c *ProjectsLocationsFederationsGetIamPolicyCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3543,6 +3649,7 @@ func (c *ProjectsLocationsFederationsGetIamPolicyCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3577,9 +3684,11 @@ func (c *ProjectsLocationsFederationsGetIamPolicyCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3674,12 +3783,11 @@ func (c *ProjectsLocationsFederationsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/federations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3687,6 +3795,7 @@ func (c *ProjectsLocationsFederationsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3722,9 +3831,11 @@ func (c *ProjectsLocationsFederationsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3820,8 +3931,7 @@ func (c *ProjectsLocationsFederationsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsFederationsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.federation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.federation)
 	if err != nil {
 		return nil, err
 	}
@@ -3837,6 +3947,7 @@ func (c *ProjectsLocationsFederationsPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3871,9 +3982,11 @@ func (c *ProjectsLocationsFederationsPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3925,8 +4038,7 @@ func (c *ProjectsLocationsFederationsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsFederationsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3942,6 +4054,7 @@ func (c *ProjectsLocationsFederationsSetIamPolicyCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3976,9 +4089,11 @@ func (c *ProjectsLocationsFederationsSetIamPolicyCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4033,8 +4148,7 @@ func (c *ProjectsLocationsFederationsTestIamPermissionsCall) Header() http.Heade
 
 func (c *ProjectsLocationsFederationsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4050,6 +4164,7 @@ func (c *ProjectsLocationsFederationsTestIamPermissionsCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4085,9 +4200,11 @@ func (c *ProjectsLocationsFederationsTestIamPermissionsCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.federations.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4143,8 +4260,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4160,6 +4276,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4194,9 +4311,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4245,12 +4364,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4258,6 +4376,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4292,9 +4411,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4354,12 +4475,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4367,6 +4487,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4401,9 +4522,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4482,12 +4605,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4495,6 +4617,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4530,9 +4653,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4606,8 +4731,7 @@ func (c *ProjectsLocationsServicesAlterLocationCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesAlterLocationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.altermetadataresourcelocationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.altermetadataresourcelocationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4623,6 +4747,7 @@ func (c *ProjectsLocationsServicesAlterLocationCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.alterLocation", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4657,9 +4782,11 @@ func (c *ProjectsLocationsServicesAlterLocationCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.alterLocation", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4709,8 +4836,7 @@ func (c *ProjectsLocationsServicesAlterTablePropertiesCall) Header() http.Header
 
 func (c *ProjectsLocationsServicesAlterTablePropertiesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.altertablepropertiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.altertablepropertiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4726,6 +4852,7 @@ func (c *ProjectsLocationsServicesAlterTablePropertiesCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.alterTableProperties", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4760,9 +4887,11 @@ func (c *ProjectsLocationsServicesAlterTablePropertiesCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.alterTableProperties", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4812,8 +4941,7 @@ func (c *ProjectsLocationsServicesCancelMigrationCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesCancelMigrationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelmigrationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelmigrationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4829,6 +4957,7 @@ func (c *ProjectsLocationsServicesCancelMigrationCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.cancelMigration", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4863,9 +4992,11 @@ func (c *ProjectsLocationsServicesCancelMigrationCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.cancelMigration", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4917,8 +5048,7 @@ func (c *ProjectsLocationsServicesCompleteMigrationCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesCompleteMigrationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.completemigrationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.completemigrationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4934,6 +5064,7 @@ func (c *ProjectsLocationsServicesCompleteMigrationCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.completeMigration", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4968,9 +5099,11 @@ func (c *ProjectsLocationsServicesCompleteMigrationCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.completeMigration", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5044,8 +5177,7 @@ func (c *ProjectsLocationsServicesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.service)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.service)
 	if err != nil {
 		return nil, err
 	}
@@ -5061,6 +5193,7 @@ func (c *ProjectsLocationsServicesCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5095,9 +5228,11 @@ func (c *ProjectsLocationsServicesCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5160,12 +5295,11 @@ func (c *ProjectsLocationsServicesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5173,6 +5307,7 @@ func (c *ProjectsLocationsServicesDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5207,9 +5342,11 @@ func (c *ProjectsLocationsServicesDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5259,8 +5396,7 @@ func (c *ProjectsLocationsServicesExportMetadataCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesExportMetadataCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.exportmetadatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.exportmetadatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5276,6 +5412,7 @@ func (c *ProjectsLocationsServicesExportMetadataCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.exportMetadata", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5310,9 +5447,11 @@ func (c *ProjectsLocationsServicesExportMetadataCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.exportMetadata", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5373,12 +5512,11 @@ func (c *ProjectsLocationsServicesGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5386,6 +5524,7 @@ func (c *ProjectsLocationsServicesGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5420,9 +5559,11 @@ func (c *ProjectsLocationsServicesGetCall) Do(opts ...googleapi.CallOption) (*Se
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5500,12 +5641,11 @@ func (c *ProjectsLocationsServicesGetIamPolicyCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5513,6 +5653,7 @@ func (c *ProjectsLocationsServicesGetIamPolicyCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5547,9 +5688,11 @@ func (c *ProjectsLocationsServicesGetIamPolicyCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5645,12 +5788,11 @@ func (c *ProjectsLocationsServicesListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/services")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5658,6 +5800,7 @@ func (c *ProjectsLocationsServicesListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5693,9 +5836,11 @@ func (c *ProjectsLocationsServicesListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5766,8 +5911,7 @@ func (c *ProjectsLocationsServicesMoveTableToDatabaseCall) Header() http.Header 
 
 func (c *ProjectsLocationsServicesMoveTableToDatabaseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.movetabletodatabaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.movetabletodatabaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5783,6 +5927,7 @@ func (c *ProjectsLocationsServicesMoveTableToDatabaseCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.moveTableToDatabase", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5817,9 +5962,11 @@ func (c *ProjectsLocationsServicesMoveTableToDatabaseCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.moveTableToDatabase", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5834,8 +5981,8 @@ type ProjectsLocationsServicesPatchCall struct {
 
 // Patch: Updates the parameters of a single service.
 //
-//   - name: Immutable. The relative resource name of the metastore service, in
-//     the following
+//   - name: Immutable. Identifier. The relative resource name of the metastore
+//     service, in the following
 //     format:projects/{project_number}/locations/{location_id}/services/{service_
 //     id}.
 func (r *ProjectsLocationsServicesService) Patch(name string, service *Service) *ProjectsLocationsServicesPatchCall {
@@ -5894,8 +6041,7 @@ func (c *ProjectsLocationsServicesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.service)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.service)
 	if err != nil {
 		return nil, err
 	}
@@ -5911,6 +6057,7 @@ func (c *ProjectsLocationsServicesPatchCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5945,9 +6092,11 @@ func (c *ProjectsLocationsServicesPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5997,8 +6146,7 @@ func (c *ProjectsLocationsServicesQueryMetadataCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesQueryMetadataCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.querymetadatarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.querymetadatarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6014,6 +6162,7 @@ func (c *ProjectsLocationsServicesQueryMetadataCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.queryMetadata", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6048,9 +6197,11 @@ func (c *ProjectsLocationsServicesQueryMetadataCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.queryMetadata", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6103,8 +6254,7 @@ func (c *ProjectsLocationsServicesRemoveIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesRemoveIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removeiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removeiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6120,6 +6270,7 @@ func (c *ProjectsLocationsServicesRemoveIamPolicyCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.removeIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6155,9 +6306,11 @@ func (c *ProjectsLocationsServicesRemoveIamPolicyCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.removeIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6207,8 +6360,7 @@ func (c *ProjectsLocationsServicesRestoreCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesRestoreCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.restoreservicerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.restoreservicerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6224,6 +6376,7 @@ func (c *ProjectsLocationsServicesRestoreCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.restore", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6258,9 +6411,11 @@ func (c *ProjectsLocationsServicesRestoreCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.restore", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6312,8 +6467,7 @@ func (c *ProjectsLocationsServicesSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6329,6 +6483,7 @@ func (c *ProjectsLocationsServicesSetIamPolicyCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6363,9 +6518,11 @@ func (c *ProjectsLocationsServicesSetIamPolicyCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6415,8 +6572,7 @@ func (c *ProjectsLocationsServicesStartMigrationCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesStartMigrationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.startmigrationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.startmigrationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6432,6 +6588,7 @@ func (c *ProjectsLocationsServicesStartMigrationCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"service": c.service,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.startMigration", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6466,9 +6623,11 @@ func (c *ProjectsLocationsServicesStartMigrationCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.startMigration", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6523,8 +6682,7 @@ func (c *ProjectsLocationsServicesTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6540,6 +6698,7 @@ func (c *ProjectsLocationsServicesTestIamPermissionsCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6575,9 +6734,11 @@ func (c *ProjectsLocationsServicesTestIamPermissionsCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6651,8 +6812,7 @@ func (c *ProjectsLocationsServicesBackupsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesBackupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.backup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.backup)
 	if err != nil {
 		return nil, err
 	}
@@ -6668,6 +6828,7 @@ func (c *ProjectsLocationsServicesBackupsCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6702,9 +6863,11 @@ func (c *ProjectsLocationsServicesBackupsCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6766,12 +6929,11 @@ func (c *ProjectsLocationsServicesBackupsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsServicesBackupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6779,6 +6941,7 @@ func (c *ProjectsLocationsServicesBackupsDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6813,9 +6976,11 @@ func (c *ProjectsLocationsServicesBackupsDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6876,12 +7041,11 @@ func (c *ProjectsLocationsServicesBackupsGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6889,6 +7053,7 @@ func (c *ProjectsLocationsServicesBackupsGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6923,9 +7088,11 @@ func (c *ProjectsLocationsServicesBackupsGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7003,12 +7170,11 @@ func (c *ProjectsLocationsServicesBackupsGetIamPolicyCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7016,6 +7182,7 @@ func (c *ProjectsLocationsServicesBackupsGetIamPolicyCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7050,9 +7217,11 @@ func (c *ProjectsLocationsServicesBackupsGetIamPolicyCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7149,12 +7318,11 @@ func (c *ProjectsLocationsServicesBackupsListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/backups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7162,6 +7330,7 @@ func (c *ProjectsLocationsServicesBackupsListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7197,9 +7366,11 @@ func (c *ProjectsLocationsServicesBackupsListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7272,8 +7443,7 @@ func (c *ProjectsLocationsServicesBackupsSetIamPolicyCall) Header() http.Header 
 
 func (c *ProjectsLocationsServicesBackupsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7289,6 +7459,7 @@ func (c *ProjectsLocationsServicesBackupsSetIamPolicyCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7323,9 +7494,11 @@ func (c *ProjectsLocationsServicesBackupsSetIamPolicyCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7380,8 +7553,7 @@ func (c *ProjectsLocationsServicesBackupsTestIamPermissionsCall) Header() http.H
 
 func (c *ProjectsLocationsServicesBackupsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7397,6 +7569,7 @@ func (c *ProjectsLocationsServicesBackupsTestIamPermissionsCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7432,9 +7605,11 @@ func (c *ProjectsLocationsServicesBackupsTestIamPermissionsCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.backups.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7512,12 +7687,11 @@ func (c *ProjectsLocationsServicesDatabasesGetIamPolicyCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7525,6 +7699,7 @@ func (c *ProjectsLocationsServicesDatabasesGetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7559,9 +7734,11 @@ func (c *ProjectsLocationsServicesDatabasesGetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7613,8 +7790,7 @@ func (c *ProjectsLocationsServicesDatabasesSetIamPolicyCall) Header() http.Heade
 
 func (c *ProjectsLocationsServicesDatabasesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7630,6 +7806,7 @@ func (c *ProjectsLocationsServicesDatabasesSetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7664,9 +7841,11 @@ func (c *ProjectsLocationsServicesDatabasesSetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7721,8 +7900,7 @@ func (c *ProjectsLocationsServicesDatabasesTestIamPermissionsCall) Header() http
 
 func (c *ProjectsLocationsServicesDatabasesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7738,6 +7916,7 @@ func (c *ProjectsLocationsServicesDatabasesTestIamPermissionsCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7773,9 +7952,11 @@ func (c *ProjectsLocationsServicesDatabasesTestIamPermissionsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7853,12 +8034,11 @@ func (c *ProjectsLocationsServicesDatabasesTablesGetIamPolicyCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7866,6 +8046,7 @@ func (c *ProjectsLocationsServicesDatabasesTablesGetIamPolicyCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.tables.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7900,9 +8081,11 @@ func (c *ProjectsLocationsServicesDatabasesTablesGetIamPolicyCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.tables.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7954,8 +8137,7 @@ func (c *ProjectsLocationsServicesDatabasesTablesSetIamPolicyCall) Header() http
 
 func (c *ProjectsLocationsServicesDatabasesTablesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7971,6 +8153,7 @@ func (c *ProjectsLocationsServicesDatabasesTablesSetIamPolicyCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.tables.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8005,9 +8188,11 @@ func (c *ProjectsLocationsServicesDatabasesTablesSetIamPolicyCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.tables.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8062,8 +8247,7 @@ func (c *ProjectsLocationsServicesDatabasesTablesTestIamPermissionsCall) Header(
 
 func (c *ProjectsLocationsServicesDatabasesTablesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8079,6 +8263,7 @@ func (c *ProjectsLocationsServicesDatabasesTablesTestIamPermissionsCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.tables.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8114,9 +8299,11 @@ func (c *ProjectsLocationsServicesDatabasesTablesTestIamPermissionsCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.databases.tables.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8191,8 +8378,7 @@ func (c *ProjectsLocationsServicesMetadataImportsCreateCall) Header() http.Heade
 
 func (c *ProjectsLocationsServicesMetadataImportsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.metadataimport)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.metadataimport)
 	if err != nil {
 		return nil, err
 	}
@@ -8208,6 +8394,7 @@ func (c *ProjectsLocationsServicesMetadataImportsCreateCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.metadataImports.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8242,9 +8429,11 @@ func (c *ProjectsLocationsServicesMetadataImportsCreateCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.metadataImports.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8305,12 +8494,11 @@ func (c *ProjectsLocationsServicesMetadataImportsGetCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8318,6 +8506,7 @@ func (c *ProjectsLocationsServicesMetadataImportsGetCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.metadataImports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8352,9 +8541,11 @@ func (c *ProjectsLocationsServicesMetadataImportsGetCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.metadataImports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8451,12 +8642,11 @@ func (c *ProjectsLocationsServicesMetadataImportsListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/metadataImports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8464,6 +8654,7 @@ func (c *ProjectsLocationsServicesMetadataImportsListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.metadataImports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8499,9 +8690,11 @@ func (c *ProjectsLocationsServicesMetadataImportsListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.metadataImports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8538,7 +8731,8 @@ type ProjectsLocationsServicesMetadataImportsPatchCall struct {
 // Patch: Updates a single import. Only the description field of MetadataImport
 // is supported to be updated.
 //
-//   - name: Immutable. The relative resource name of the metadata import, of the
+//   - name: Immutable. Identifier. The relative resource name of the metadata
+//     import, of the
 //     form:projects/{project_number}/locations/{location_id}/services/{service_id
 //     }/metadataImports/{metadata_import_id}.
 func (r *ProjectsLocationsServicesMetadataImportsService) Patch(name string, metadataimport *MetadataImport) *ProjectsLocationsServicesMetadataImportsPatchCall {
@@ -8597,8 +8791,7 @@ func (c *ProjectsLocationsServicesMetadataImportsPatchCall) Header() http.Header
 
 func (c *ProjectsLocationsServicesMetadataImportsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.metadataimport)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.metadataimport)
 	if err != nil {
 		return nil, err
 	}
@@ -8614,6 +8807,7 @@ func (c *ProjectsLocationsServicesMetadataImportsPatchCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.metadataImports.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8648,9 +8842,11 @@ func (c *ProjectsLocationsServicesMetadataImportsPatchCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.metadataImports.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8713,12 +8909,11 @@ func (c *ProjectsLocationsServicesMigrationExecutionsDeleteCall) Header() http.H
 
 func (c *ProjectsLocationsServicesMigrationExecutionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8726,6 +8921,7 @@ func (c *ProjectsLocationsServicesMigrationExecutionsDeleteCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.migrationExecutions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8760,9 +8956,11 @@ func (c *ProjectsLocationsServicesMigrationExecutionsDeleteCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.migrationExecutions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8823,12 +9021,11 @@ func (c *ProjectsLocationsServicesMigrationExecutionsGetCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8836,6 +9033,7 @@ func (c *ProjectsLocationsServicesMigrationExecutionsGetCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.migrationExecutions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8871,9 +9069,11 @@ func (c *ProjectsLocationsServicesMigrationExecutionsGetCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.migrationExecutions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8970,12 +9170,11 @@ func (c *ProjectsLocationsServicesMigrationExecutionsListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha/{+parent}/migrationExecutions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8983,6 +9182,7 @@ func (c *ProjectsLocationsServicesMigrationExecutionsListCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.migrationExecutions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9018,9 +9218,11 @@ func (c *ProjectsLocationsServicesMigrationExecutionsListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "metastore.projects.locations.services.migrationExecutions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

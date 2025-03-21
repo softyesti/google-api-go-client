@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "adexchangebuyer2:v2beta1"
 const apiName = "adexchangebuyer2"
@@ -114,7 +117,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
+	s.Bidders = NewBiddersService(s)
+	s.Buyers = NewBuyersService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,15 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	s.Bidders = NewBiddersService(s)
-	s.Buyers = NewBuyersService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -727,9 +730,9 @@ type AbsoluteDateRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AbsoluteDateRange) MarshalJSON() ([]byte, error) {
+func (s AbsoluteDateRange) MarshalJSON() ([]byte, error) {
 	type NoMethod AbsoluteDateRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AcceptProposalRequest: Request to accept a proposal.
@@ -749,9 +752,9 @@ type AcceptProposalRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AcceptProposalRequest) MarshalJSON() ([]byte, error) {
+func (s AcceptProposalRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AcceptProposalRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdSize: Represents size of a single ad slot, or a creative.
@@ -785,9 +788,9 @@ type AdSize struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdSize) MarshalJSON() ([]byte, error) {
+func (s AdSize) MarshalJSON() ([]byte, error) {
 	type NoMethod AdSize
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdTechnologyProviders: Detected ad technology provider information.
@@ -826,9 +829,9 @@ type AdTechnologyProviders struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdTechnologyProviders) MarshalJSON() ([]byte, error) {
+func (s AdTechnologyProviders) MarshalJSON() ([]byte, error) {
 	type NoMethod AdTechnologyProviders
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddDealAssociationRequest: A request for associating a deal and a creative.
@@ -849,9 +852,9 @@ type AddDealAssociationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddDealAssociationRequest) MarshalJSON() ([]byte, error) {
+func (s AddDealAssociationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddDealAssociationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddNoteRequest: Request message for adding a note to a given proposal.
@@ -871,9 +874,9 @@ type AddNoteRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddNoteRequest) MarshalJSON() ([]byte, error) {
+func (s AddNoteRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddNoteRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AppContext: Output only. The app type the restriction applies to for mobile
@@ -898,9 +901,9 @@ type AppContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppContext) MarshalJSON() ([]byte, error) {
+func (s AppContext) MarshalJSON() ([]byte, error) {
 	type NoMethod AppContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuctionContext: Output only. The auction type the restriction applies to.
@@ -924,9 +927,9 @@ type AuctionContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuctionContext) MarshalJSON() ([]byte, error) {
+func (s AuctionContext) MarshalJSON() ([]byte, error) {
 	type NoMethod AuctionContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BidMetricsRow: The set of metrics that are measured in numbers of bids,
@@ -968,9 +971,9 @@ type BidMetricsRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BidMetricsRow) MarshalJSON() ([]byte, error) {
+func (s BidMetricsRow) MarshalJSON() ([]byte, error) {
 	type NoMethod BidMetricsRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BidResponseWithoutBidsStatusRow: The number of impressions with the
@@ -1013,9 +1016,9 @@ type BidResponseWithoutBidsStatusRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BidResponseWithoutBidsStatusRow) MarshalJSON() ([]byte, error) {
+func (s BidResponseWithoutBidsStatusRow) MarshalJSON() ([]byte, error) {
 	type NoMethod BidResponseWithoutBidsStatusRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Buyer: Represents a buyer of inventory. Each buyer is identified by a unique
@@ -1036,9 +1039,9 @@ type Buyer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Buyer) MarshalJSON() ([]byte, error) {
+func (s Buyer) MarshalJSON() ([]byte, error) {
 	type NoMethod Buyer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CalloutStatusRow: The number of impressions with the specified dimension
@@ -1067,9 +1070,9 @@ type CalloutStatusRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CalloutStatusRow) MarshalJSON() ([]byte, error) {
+func (s CalloutStatusRow) MarshalJSON() ([]byte, error) {
 	type NoMethod CalloutStatusRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelNegotiationRequest: Request to cancel an ongoing negotiation.
@@ -1170,9 +1173,9 @@ type Client struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Client) MarshalJSON() ([]byte, error) {
+func (s Client) MarshalJSON() ([]byte, error) {
 	type NoMethod Client
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClientUser: A client user is created under a client buyer and has restricted
@@ -1217,9 +1220,9 @@ type ClientUser struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClientUser) MarshalJSON() ([]byte, error) {
+func (s ClientUser) MarshalJSON() ([]byte, error) {
 	type NoMethod ClientUser
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClientUserInvitation: An invitation for a new client user to get access to
@@ -1252,9 +1255,9 @@ type ClientUserInvitation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClientUserInvitation) MarshalJSON() ([]byte, error) {
+func (s ClientUserInvitation) MarshalJSON() ([]byte, error) {
 	type NoMethod ClientUserInvitation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompleteSetupRequest: Request message for indicating that the proposal's
@@ -1282,9 +1285,9 @@ type ContactInformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContactInformation) MarshalJSON() ([]byte, error) {
+func (s ContactInformation) MarshalJSON() ([]byte, error) {
 	type NoMethod ContactInformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Correction: Output only. Shows any corrections that were applied to this
@@ -1335,9 +1338,9 @@ type Correction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Correction) MarshalJSON() ([]byte, error) {
+func (s Correction) MarshalJSON() ([]byte, error) {
 	type NoMethod Correction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Creative: A creative and its classification data.
@@ -1522,9 +1525,9 @@ type Creative struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Creative) MarshalJSON() ([]byte, error) {
+func (s Creative) MarshalJSON() ([]byte, error) {
 	type NoMethod Creative
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreativeDealAssociation: The association between a creative and a deal.
@@ -1548,9 +1551,9 @@ type CreativeDealAssociation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreativeDealAssociation) MarshalJSON() ([]byte, error) {
+func (s CreativeDealAssociation) MarshalJSON() ([]byte, error) {
 	type NoMethod CreativeDealAssociation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreativeRestrictions: Represents creative restrictions associated to
@@ -1594,9 +1597,9 @@ type CreativeRestrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreativeRestrictions) MarshalJSON() ([]byte, error) {
+func (s CreativeRestrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod CreativeRestrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreativeSize: Specifies the size of the creative.
@@ -1665,9 +1668,9 @@ type CreativeSize struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreativeSize) MarshalJSON() ([]byte, error) {
+func (s CreativeSize) MarshalJSON() ([]byte, error) {
 	type NoMethod CreativeSize
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreativeSpecification: Represents information for a creative that is
@@ -1691,9 +1694,9 @@ type CreativeSpecification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreativeSpecification) MarshalJSON() ([]byte, error) {
+func (s CreativeSpecification) MarshalJSON() ([]byte, error) {
 	type NoMethod CreativeSpecification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreativeStatusRow: The number of bids with the specified dimension values
@@ -1721,9 +1724,9 @@ type CreativeStatusRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreativeStatusRow) MarshalJSON() ([]byte, error) {
+func (s CreativeStatusRow) MarshalJSON() ([]byte, error) {
 	type NoMethod CreativeStatusRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CriteriaTargeting: Generic targeting used for targeting dimensions that
@@ -1746,9 +1749,9 @@ type CriteriaTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CriteriaTargeting) MarshalJSON() ([]byte, error) {
+func (s CriteriaTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod CriteriaTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -1784,9 +1787,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DayPart: Daypart targeting message that specifies if the ad can be shown
@@ -1827,9 +1830,9 @@ type DayPart struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DayPart) MarshalJSON() ([]byte, error) {
+func (s DayPart) MarshalJSON() ([]byte, error) {
 	type NoMethod DayPart
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DayPartTargeting: Specifies the day part targeting criteria.
@@ -1857,9 +1860,9 @@ type DayPartTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DayPartTargeting) MarshalJSON() ([]byte, error) {
+func (s DayPartTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod DayPartTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Deal: A deal represents a segment of inventory for displaying ads on. A
@@ -1989,9 +1992,9 @@ type Deal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Deal) MarshalJSON() ([]byte, error) {
+func (s Deal) MarshalJSON() ([]byte, error) {
 	type NoMethod Deal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DealPauseStatus: Tracks which parties (if any) have paused a deal. The deal
@@ -2028,9 +2031,9 @@ type DealPauseStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DealPauseStatus) MarshalJSON() ([]byte, error) {
+func (s DealPauseStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod DealPauseStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DealServingMetadata: Message captures metadata about the serving status of a
@@ -2052,9 +2055,9 @@ type DealServingMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DealServingMetadata) MarshalJSON() ([]byte, error) {
+func (s DealServingMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod DealServingMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DealTerms: The deal terms specify the details of a Product/deal. They
@@ -2103,9 +2106,9 @@ type DealTerms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DealTerms) MarshalJSON() ([]byte, error) {
+func (s DealTerms) MarshalJSON() ([]byte, error) {
 	type NoMethod DealTerms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeliveryControl: Message contains details about how the deals will be paced.
@@ -2145,9 +2148,9 @@ type DeliveryControl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeliveryControl) MarshalJSON() ([]byte, error) {
+func (s DeliveryControl) MarshalJSON() ([]byte, error) {
 	type NoMethod DeliveryControl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Disapproval: Output only. The reason and details for a disapproval.
@@ -2316,9 +2319,9 @@ type Disapproval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Disapproval) MarshalJSON() ([]byte, error) {
+func (s Disapproval) MarshalJSON() ([]byte, error) {
 	type NoMethod Disapproval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -2457,9 +2460,9 @@ type FilterSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterSet) MarshalJSON() ([]byte, error) {
+func (s FilterSet) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilteredBidCreativeRow: The number of filtered bids with the specified
@@ -2485,9 +2488,9 @@ type FilteredBidCreativeRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilteredBidCreativeRow) MarshalJSON() ([]byte, error) {
+func (s FilteredBidCreativeRow) MarshalJSON() ([]byte, error) {
 	type NoMethod FilteredBidCreativeRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilteredBidDetailRow: The number of filtered bids with the specified
@@ -2522,9 +2525,9 @@ type FilteredBidDetailRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilteredBidDetailRow) MarshalJSON() ([]byte, error) {
+func (s FilteredBidDetailRow) MarshalJSON() ([]byte, error) {
 	type NoMethod FilteredBidDetailRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FirstPartyMobileApplicationTargeting: Represents a list of targeted and
@@ -2551,9 +2554,9 @@ type FirstPartyMobileApplicationTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FirstPartyMobileApplicationTargeting) MarshalJSON() ([]byte, error) {
+func (s FirstPartyMobileApplicationTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod FirstPartyMobileApplicationTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FrequencyCap: Frequency cap.
@@ -2594,9 +2597,9 @@ type FrequencyCap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FrequencyCap) MarshalJSON() ([]byte, error) {
+func (s FrequencyCap) MarshalJSON() ([]byte, error) {
 	type NoMethod FrequencyCap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuaranteedFixedPriceTerms: Terms for Programmatic Guaranteed Deals.
@@ -2644,9 +2647,9 @@ type GuaranteedFixedPriceTerms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuaranteedFixedPriceTerms) MarshalJSON() ([]byte, error) {
+func (s GuaranteedFixedPriceTerms) MarshalJSON() ([]byte, error) {
 	type NoMethod GuaranteedFixedPriceTerms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HtmlContent: HTML content for a creative.
@@ -2671,9 +2674,9 @@ type HtmlContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HtmlContent) MarshalJSON() ([]byte, error) {
+func (s HtmlContent) MarshalJSON() ([]byte, error) {
 	type NoMethod HtmlContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Image: An image resource. You may provide a larger image than was requested,
@@ -2698,9 +2701,9 @@ type Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Image) MarshalJSON() ([]byte, error) {
+func (s Image) MarshalJSON() ([]byte, error) {
 	type NoMethod Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImpressionMetricsRow: The set of metrics that are measured in numbers of
@@ -2738,9 +2741,9 @@ type ImpressionMetricsRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImpressionMetricsRow) MarshalJSON() ([]byte, error) {
+func (s ImpressionMetricsRow) MarshalJSON() ([]byte, error) {
 	type NoMethod ImpressionMetricsRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InventorySizeTargeting: Represents the size of an ad unit that can be
@@ -2765,9 +2768,9 @@ type InventorySizeTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InventorySizeTargeting) MarshalJSON() ([]byte, error) {
+func (s InventorySizeTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod InventorySizeTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBidMetricsResponse: Response message for listing the metrics that are
@@ -2795,9 +2798,9 @@ type ListBidMetricsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBidMetricsResponse) MarshalJSON() ([]byte, error) {
+func (s ListBidMetricsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBidMetricsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBidResponseErrorsResponse: Response message for listing all reasons that
@@ -2826,9 +2829,9 @@ type ListBidResponseErrorsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBidResponseErrorsResponse) MarshalJSON() ([]byte, error) {
+func (s ListBidResponseErrorsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBidResponseErrorsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBidResponsesWithoutBidsResponse: Response message for listing all
@@ -2860,9 +2863,9 @@ type ListBidResponsesWithoutBidsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBidResponsesWithoutBidsResponse) MarshalJSON() ([]byte, error) {
+func (s ListBidResponsesWithoutBidsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBidResponsesWithoutBidsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListClientUserInvitationsResponse struct {
@@ -2889,9 +2892,9 @@ type ListClientUserInvitationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListClientUserInvitationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListClientUserInvitationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListClientUserInvitationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListClientUsersResponse struct {
@@ -2917,9 +2920,9 @@ type ListClientUsersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListClientUsersResponse) MarshalJSON() ([]byte, error) {
+func (s ListClientUsersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListClientUsersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListClientsResponse struct {
@@ -2945,9 +2948,9 @@ type ListClientsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListClientsResponse) MarshalJSON() ([]byte, error) {
+func (s ListClientsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListClientsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCreativeStatusBreakdownByCreativeResponse: Response message for listing
@@ -2977,9 +2980,9 @@ type ListCreativeStatusBreakdownByCreativeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCreativeStatusBreakdownByCreativeResponse) MarshalJSON() ([]byte, error) {
+func (s ListCreativeStatusBreakdownByCreativeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCreativeStatusBreakdownByCreativeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCreativeStatusBreakdownByDetailResponse: Response message for listing
@@ -3046,9 +3049,9 @@ type ListCreativeStatusBreakdownByDetailResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCreativeStatusBreakdownByDetailResponse) MarshalJSON() ([]byte, error) {
+func (s ListCreativeStatusBreakdownByDetailResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCreativeStatusBreakdownByDetailResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCreativesResponse: A response for listing creatives.
@@ -3075,9 +3078,9 @@ type ListCreativesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCreativesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCreativesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCreativesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDealAssociationsResponse: A response for listing creative and deal
@@ -3105,9 +3108,9 @@ type ListDealAssociationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDealAssociationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListDealAssociationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDealAssociationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFilterSetsResponse: Response message for listing filter sets.
@@ -3134,9 +3137,9 @@ type ListFilterSetsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFilterSetsResponse) MarshalJSON() ([]byte, error) {
+func (s ListFilterSetsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFilterSetsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFilteredBidRequestsResponse: Response message for listing all reasons
@@ -3165,9 +3168,9 @@ type ListFilteredBidRequestsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFilteredBidRequestsResponse) MarshalJSON() ([]byte, error) {
+func (s ListFilteredBidRequestsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFilteredBidRequestsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFilteredBidsResponse: Response message for listing all reasons that bids
@@ -3196,9 +3199,9 @@ type ListFilteredBidsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFilteredBidsResponse) MarshalJSON() ([]byte, error) {
+func (s ListFilteredBidsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFilteredBidsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListImpressionMetricsResponse: Response message for listing the metrics that
@@ -3227,9 +3230,9 @@ type ListImpressionMetricsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListImpressionMetricsResponse) MarshalJSON() ([]byte, error) {
+func (s ListImpressionMetricsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListImpressionMetricsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLosingBidsResponse: Response message for listing all reasons that bids
@@ -3258,9 +3261,9 @@ type ListLosingBidsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLosingBidsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLosingBidsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLosingBidsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListNonBillableWinningBidsResponse: Response message for listing all reasons
@@ -3290,9 +3293,9 @@ type ListNonBillableWinningBidsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListNonBillableWinningBidsResponse) MarshalJSON() ([]byte, error) {
+func (s ListNonBillableWinningBidsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListNonBillableWinningBidsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListProductsResponse: Response message for listing products visible to the
@@ -3318,9 +3321,9 @@ type ListProductsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListProductsResponse) MarshalJSON() ([]byte, error) {
+func (s ListProductsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListProductsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListProposalsResponse: Response message for listing proposals.
@@ -3345,9 +3348,9 @@ type ListProposalsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListProposalsResponse) MarshalJSON() ([]byte, error) {
+func (s ListProposalsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListProposalsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPublisherProfilesResponse: Response message for profiles visible to the
@@ -3373,9 +3376,9 @@ type ListPublisherProfilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPublisherProfilesResponse) MarshalJSON() ([]byte, error) {
+func (s ListPublisherProfilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPublisherProfilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LocationContext: Output only. The Geo criteria the restriction applies to.
@@ -3398,9 +3401,9 @@ type LocationContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LocationContext) MarshalJSON() ([]byte, error) {
+func (s LocationContext) MarshalJSON() ([]byte, error) {
 	type NoMethod LocationContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MarketplaceTargeting: Targeting represents different criteria that can be
@@ -3433,9 +3436,9 @@ type MarketplaceTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MarketplaceTargeting) MarshalJSON() ([]byte, error) {
+func (s MarketplaceTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod MarketplaceTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricValue: A metric value, with an expected value and a variance;
@@ -3464,9 +3467,9 @@ type MetricValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricValue) MarshalJSON() ([]byte, error) {
+func (s MetricValue) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MobileApplicationTargeting: Mobile application targeting settings.
@@ -3487,9 +3490,9 @@ type MobileApplicationTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MobileApplicationTargeting) MarshalJSON() ([]byte, error) {
+func (s MobileApplicationTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod MobileApplicationTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Money: Represents an amount of money with its currency type.
@@ -3518,9 +3521,9 @@ type Money struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Money) MarshalJSON() ([]byte, error) {
+func (s Money) MarshalJSON() ([]byte, error) {
 	type NoMethod Money
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NativeContent: Native content for a creative.
@@ -3566,9 +3569,9 @@ type NativeContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NativeContent) MarshalJSON() ([]byte, error) {
+func (s NativeContent) MarshalJSON() ([]byte, error) {
 	type NoMethod NativeContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *NativeContent) UnmarshalJSON(data []byte) error {
@@ -3621,9 +3624,9 @@ type NonBillableWinningBidStatusRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NonBillableWinningBidStatusRow) MarshalJSON() ([]byte, error) {
+func (s NonBillableWinningBidStatusRow) MarshalJSON() ([]byte, error) {
 	type NoMethod NonBillableWinningBidStatusRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NonGuaranteedAuctionTerms: Terms for Private Auctions. Note that Private
@@ -3648,9 +3651,9 @@ type NonGuaranteedAuctionTerms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NonGuaranteedAuctionTerms) MarshalJSON() ([]byte, error) {
+func (s NonGuaranteedAuctionTerms) MarshalJSON() ([]byte, error) {
 	type NoMethod NonGuaranteedAuctionTerms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NonGuaranteedFixedPriceTerms: Terms for Preferred Deals.
@@ -3670,9 +3673,9 @@ type NonGuaranteedFixedPriceTerms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NonGuaranteedFixedPriceTerms) MarshalJSON() ([]byte, error) {
+func (s NonGuaranteedFixedPriceTerms) MarshalJSON() ([]byte, error) {
 	type NoMethod NonGuaranteedFixedPriceTerms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Note: A proposal may be associated to several notes.
@@ -3713,9 +3716,9 @@ type Note struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Note) MarshalJSON() ([]byte, error) {
+func (s Note) MarshalJSON() ([]byte, error) {
 	type NoMethod Note
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperatingSystemTargeting: Represents targeting information for operating
@@ -3739,9 +3742,9 @@ type OperatingSystemTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperatingSystemTargeting) MarshalJSON() ([]byte, error) {
+func (s OperatingSystemTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod OperatingSystemTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PauseProposalDealsRequest: Request message to pause serving for finalized
@@ -3767,9 +3770,9 @@ type PauseProposalDealsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PauseProposalDealsRequest) MarshalJSON() ([]byte, error) {
+func (s PauseProposalDealsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PauseProposalDealsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PauseProposalRequest: Request message to pause serving for an
@@ -3792,9 +3795,9 @@ type PauseProposalRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PauseProposalRequest) MarshalJSON() ([]byte, error) {
+func (s PauseProposalRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PauseProposalRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlacementTargeting: Represents targeting about where the ads can appear, for
@@ -3819,9 +3822,9 @@ type PlacementTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlacementTargeting) MarshalJSON() ([]byte, error) {
+func (s PlacementTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod PlacementTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlatformContext: Output only. The type of platform the restriction applies
@@ -3847,9 +3850,9 @@ type PlatformContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlatformContext) MarshalJSON() ([]byte, error) {
+func (s PlatformContext) MarshalJSON() ([]byte, error) {
 	type NoMethod PlatformContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Price: Represents a price and a pricing type for a product / deal.
@@ -3877,9 +3880,9 @@ type Price struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Price) MarshalJSON() ([]byte, error) {
+func (s Price) MarshalJSON() ([]byte, error) {
 	type NoMethod Price
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PricePerBuyer: Used to specify pricing rules for buyers/advertisers. Each
@@ -3911,9 +3914,9 @@ type PricePerBuyer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PricePerBuyer) MarshalJSON() ([]byte, error) {
+func (s PricePerBuyer) MarshalJSON() ([]byte, error) {
 	type NoMethod PricePerBuyer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrivateData: Buyers are allowed to store certain types of private data in a
@@ -3935,9 +3938,9 @@ type PrivateData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrivateData) MarshalJSON() ([]byte, error) {
+func (s PrivateData) MarshalJSON() ([]byte, error) {
 	type NoMethod PrivateData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Product: A product is a segment of inventory that a seller wants to sell. It
@@ -4010,9 +4013,9 @@ type Product struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Product) MarshalJSON() ([]byte, error) {
+func (s Product) MarshalJSON() ([]byte, error) {
 	type NoMethod Product
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Proposal: Represents a proposal in the Marketplace. A proposal is the unit
@@ -4114,9 +4117,9 @@ type Proposal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Proposal) MarshalJSON() ([]byte, error) {
+func (s Proposal) MarshalJSON() ([]byte, error) {
 	type NoMethod Proposal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PublisherProfile: Represents a publisher profile
@@ -4191,9 +4194,9 @@ type PublisherProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublisherProfile) MarshalJSON() ([]byte, error) {
+func (s PublisherProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod PublisherProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PublisherProfileMobileApplication: A mobile application that contains a
@@ -4234,9 +4237,9 @@ type PublisherProfileMobileApplication struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublisherProfileMobileApplication) MarshalJSON() ([]byte, error) {
+func (s PublisherProfileMobileApplication) MarshalJSON() ([]byte, error) {
 	type NoMethod PublisherProfileMobileApplication
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RealtimeTimeRange: An open-ended realtime time range specified by the start
@@ -4259,9 +4262,9 @@ type RealtimeTimeRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RealtimeTimeRange) MarshalJSON() ([]byte, error) {
+func (s RealtimeTimeRange) MarshalJSON() ([]byte, error) {
 	type NoMethod RealtimeTimeRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RelativeDateRange: A relative date range, specified by an offset and a
@@ -4288,9 +4291,9 @@ type RelativeDateRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RelativeDateRange) MarshalJSON() ([]byte, error) {
+func (s RelativeDateRange) MarshalJSON() ([]byte, error) {
 	type NoMethod RelativeDateRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoveDealAssociationRequest: A request for removing the association between
@@ -4312,9 +4315,9 @@ type RemoveDealAssociationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoveDealAssociationRequest) MarshalJSON() ([]byte, error) {
+func (s RemoveDealAssociationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoveDealAssociationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResumeProposalDealsRequest: Request message to resume (unpause) serving for
@@ -4336,9 +4339,9 @@ type ResumeProposalDealsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResumeProposalDealsRequest) MarshalJSON() ([]byte, error) {
+func (s ResumeProposalDealsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ResumeProposalDealsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResumeProposalRequest: Request message to resume (unpause) serving for an
@@ -4370,9 +4373,9 @@ type RowDimensions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RowDimensions) MarshalJSON() ([]byte, error) {
+func (s RowDimensions) MarshalJSON() ([]byte, error) {
 	type NoMethod RowDimensions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SecurityContext: Output only. A security context.
@@ -4396,9 +4399,9 @@ type SecurityContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SecurityContext) MarshalJSON() ([]byte, error) {
+func (s SecurityContext) MarshalJSON() ([]byte, error) {
 	type NoMethod SecurityContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Seller: Represents a seller of inventory. Each seller is identified by a
@@ -4422,9 +4425,9 @@ type Seller struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Seller) MarshalJSON() ([]byte, error) {
+func (s Seller) MarshalJSON() ([]byte, error) {
 	type NoMethod Seller
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServingContext: The serving context for this restriction.
@@ -4458,9 +4461,9 @@ type ServingContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServingContext) MarshalJSON() ([]byte, error) {
+func (s ServingContext) MarshalJSON() ([]byte, error) {
 	type NoMethod ServingContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServingRestriction: Output only. A representation of the status of an ad in
@@ -4499,9 +4502,9 @@ type ServingRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServingRestriction) MarshalJSON() ([]byte, error) {
+func (s ServingRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod ServingRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Size: Message depicting the size of the creative. The units of width and
@@ -4524,9 +4527,9 @@ type Size struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Size) MarshalJSON() ([]byte, error) {
+func (s Size) MarshalJSON() ([]byte, error) {
 	type NoMethod Size
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopWatchingCreativeRequest: A request for stopping notifications for
@@ -4562,9 +4565,9 @@ type TargetingCriteria struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetingCriteria) MarshalJSON() ([]byte, error) {
+func (s TargetingCriteria) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetingCriteria
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TargetingValue: A polymorphic targeting value used as part of Shared
@@ -4594,9 +4597,9 @@ type TargetingValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TargetingValue) MarshalJSON() ([]byte, error) {
+func (s TargetingValue) MarshalJSON() ([]byte, error) {
 	type NoMethod TargetingValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TechnologyTargeting: Represents targeting about various types of technology.
@@ -4621,9 +4624,9 @@ type TechnologyTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TechnologyTargeting) MarshalJSON() ([]byte, error) {
+func (s TechnologyTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod TechnologyTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeInterval: An interval of time, with an absolute start and end.
@@ -4647,25 +4650,28 @@ type TimeInterval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeInterval) MarshalJSON() ([]byte, error) {
+func (s TimeInterval) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeInterval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeOfDay: Represents a time of day. The date and time zone are either not
 // significant or are specified elsewhere. An API may choose to allow leap
 // seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 type TimeOfDay struct {
-	// Hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-	// choose to allow the value "24:00:00" for scenarios like business closing
-	// time.
+	// Hours: Hours of a day in 24 hour format. Must be greater than or equal to 0
+	// and typically must be less than or equal to 23. An API may choose to allow
+	// the value "24:00:00" for scenarios like business closing time.
 	Hours int64 `json:"hours,omitempty"`
-	// Minutes: Minutes of hour of day. Must be from 0 to 59.
+	// Minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+	// than or equal to 59.
 	Minutes int64 `json:"minutes,omitempty"`
-	// Nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+	// Nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+	// to 0 and less than or equal to 999,999,999.
 	Nanos int64 `json:"nanos,omitempty"`
-	// Seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-	// API may allow the value 60 if it allows leap-seconds.
+	// Seconds: Seconds of a minute. Must be greater than or equal to 0 and
+	// typically must be less than or equal to 59. An API may allow the value 60 if
+	// it allows leap-seconds.
 	Seconds int64 `json:"seconds,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -4680,9 +4686,9 @@ type TimeOfDay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeOfDay) MarshalJSON() ([]byte, error) {
+func (s TimeOfDay) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeOfDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UrlTargeting: Represents a list of targeted and excluded URLs (for example,
@@ -4707,9 +4713,9 @@ type UrlTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UrlTargeting) MarshalJSON() ([]byte, error) {
+func (s UrlTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod UrlTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoContent: Video content for a creative.
@@ -4732,9 +4738,9 @@ type VideoContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoContent) MarshalJSON() ([]byte, error) {
+func (s VideoContent) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VideoTargeting: Represents targeting information about video.
@@ -4773,9 +4779,9 @@ type VideoTargeting struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VideoTargeting) MarshalJSON() ([]byte, error) {
+func (s VideoTargeting) MarshalJSON() ([]byte, error) {
 	type NoMethod VideoTargeting
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WatchCreativeRequest: A request for watching changes to creative Status.
@@ -4798,9 +4804,9 @@ type WatchCreativeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WatchCreativeRequest) MarshalJSON() ([]byte, error) {
+func (s WatchCreativeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod WatchCreativeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountsClientsCreateCall struct {
@@ -4848,8 +4854,7 @@ func (c *AccountsClientsCreateCall) Header() http.Header {
 
 func (c *AccountsClientsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.client)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.client)
 	if err != nil {
 		return nil, err
 	}
@@ -4865,6 +4870,7 @@ func (c *AccountsClientsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": strconv.FormatInt(c.accountId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4899,9 +4905,11 @@ func (c *AccountsClientsCreateCall) Do(opts ...googleapi.CallOption) (*Client, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4963,12 +4971,11 @@ func (c *AccountsClientsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/clients/{clientAccountId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4977,6 +4984,7 @@ func (c *AccountsClientsGetCall) doRequest(alt string) (*http.Response, error) {
 		"accountId":       strconv.FormatInt(c.accountId, 10),
 		"clientAccountId": strconv.FormatInt(c.clientAccountId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5011,9 +5019,11 @@ func (c *AccountsClientsGetCall) Do(opts ...googleapi.CallOption) (*Client, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5098,12 +5108,11 @@ func (c *AccountsClientsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/clients")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5111,6 +5120,7 @@ func (c *AccountsClientsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": strconv.FormatInt(c.accountId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5146,9 +5156,11 @@ func (c *AccountsClientsListCall) Do(opts ...googleapi.CallOption) (*ListClients
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5222,8 +5234,7 @@ func (c *AccountsClientsUpdateCall) Header() http.Header {
 
 func (c *AccountsClientsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.client)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.client)
 	if err != nil {
 		return nil, err
 	}
@@ -5240,6 +5251,7 @@ func (c *AccountsClientsUpdateCall) doRequest(alt string) (*http.Response, error
 		"accountId":       strconv.FormatInt(c.accountId, 10),
 		"clientAccountId": strconv.FormatInt(c.clientAccountId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5274,9 +5286,11 @@ func (c *AccountsClientsUpdateCall) Do(opts ...googleapi.CallOption) (*Client, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5329,8 +5343,7 @@ func (c *AccountsClientsInvitationsCreateCall) Header() http.Header {
 
 func (c *AccountsClientsInvitationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.clientuserinvitation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.clientuserinvitation)
 	if err != nil {
 		return nil, err
 	}
@@ -5347,6 +5360,7 @@ func (c *AccountsClientsInvitationsCreateCall) doRequest(alt string) (*http.Resp
 		"accountId":       strconv.FormatInt(c.accountId, 10),
 		"clientAccountId": strconv.FormatInt(c.clientAccountId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.invitations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5382,9 +5396,11 @@ func (c *AccountsClientsInvitationsCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.invitations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5450,12 +5466,11 @@ func (c *AccountsClientsInvitationsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/clients/{clientAccountId}/invitations/{invitationId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5465,6 +5480,7 @@ func (c *AccountsClientsInvitationsGetCall) doRequest(alt string) (*http.Respons
 		"clientAccountId": strconv.FormatInt(c.clientAccountId, 10),
 		"invitationId":    strconv.FormatInt(c.invitationId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.invitations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5500,9 +5516,11 @@ func (c *AccountsClientsInvitationsGetCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.invitations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5584,12 +5602,11 @@ func (c *AccountsClientsInvitationsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/clients/{clientAccountId}/invitations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5598,6 +5615,7 @@ func (c *AccountsClientsInvitationsListCall) doRequest(alt string) (*http.Respon
 		"accountId":       strconv.FormatInt(c.accountId, 10),
 		"clientAccountId": c.clientAccountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.invitations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5633,9 +5651,11 @@ func (c *AccountsClientsInvitationsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.invitations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5721,12 +5741,11 @@ func (c *AccountsClientsUsersGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/clients/{clientAccountId}/users/{userId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5736,6 +5755,7 @@ func (c *AccountsClientsUsersGetCall) doRequest(alt string) (*http.Response, err
 		"clientAccountId": strconv.FormatInt(c.clientAccountId, 10),
 		"userId":          strconv.FormatInt(c.userId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.users.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5770,9 +5790,11 @@ func (c *AccountsClientsUsersGetCall) Do(opts ...googleapi.CallOption) (*ClientU
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.users.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5855,12 +5877,11 @@ func (c *AccountsClientsUsersListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/clients/{clientAccountId}/users")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5869,6 +5890,7 @@ func (c *AccountsClientsUsersListCall) doRequest(alt string) (*http.Response, er
 		"accountId":       strconv.FormatInt(c.accountId, 10),
 		"clientAccountId": c.clientAccountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.users.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5904,9 +5926,11 @@ func (c *AccountsClientsUsersListCall) Do(opts ...googleapi.CallOption) (*ListCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.users.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5983,8 +6007,7 @@ func (c *AccountsClientsUsersUpdateCall) Header() http.Header {
 
 func (c *AccountsClientsUsersUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.clientuser)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.clientuser)
 	if err != nil {
 		return nil, err
 	}
@@ -6002,6 +6025,7 @@ func (c *AccountsClientsUsersUpdateCall) doRequest(alt string) (*http.Response, 
 		"clientAccountId": strconv.FormatInt(c.clientAccountId, 10),
 		"userId":          strconv.FormatInt(c.userId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.users.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6036,9 +6060,11 @@ func (c *AccountsClientsUsersUpdateCall) Do(opts ...googleapi.CallOption) (*Clie
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.clients.users.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6109,8 +6135,7 @@ func (c *AccountsCreativesCreateCall) Header() http.Header {
 
 func (c *AccountsCreativesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.creative)
 	if err != nil {
 		return nil, err
 	}
@@ -6126,6 +6151,7 @@ func (c *AccountsCreativesCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6160,9 +6186,11 @@ func (c *AccountsCreativesCreateCall) Do(opts ...googleapi.CallOption) (*Creativ
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6223,12 +6251,11 @@ func (c *AccountsCreativesGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/creatives/{creativeId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6237,6 +6264,7 @@ func (c *AccountsCreativesGetCall) doRequest(alt string) (*http.Response, error)
 		"accountId":  c.accountId,
 		"creativeId": c.creativeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6271,9 +6299,11 @@ func (c *AccountsCreativesGetCall) Do(opts ...googleapi.CallOption) (*Creative, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6365,12 +6395,11 @@ func (c *AccountsCreativesListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/creatives")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6378,6 +6407,7 @@ func (c *AccountsCreativesListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6413,9 +6443,11 @@ func (c *AccountsCreativesListCall) Do(opts ...googleapi.CallOption) (*ListCreat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6489,8 +6521,7 @@ func (c *AccountsCreativesStopWatchingCall) Header() http.Header {
 
 func (c *AccountsCreativesStopWatchingCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.stopwatchingcreativerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.stopwatchingcreativerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6507,6 +6538,7 @@ func (c *AccountsCreativesStopWatchingCall) doRequest(alt string) (*http.Respons
 		"accountId":  c.accountId,
 		"creativeId": c.creativeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.stopWatching", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6541,9 +6573,11 @@ func (c *AccountsCreativesStopWatchingCall) Do(opts ...googleapi.CallOption) (*E
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.stopWatching", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6596,8 +6630,7 @@ func (c *AccountsCreativesUpdateCall) Header() http.Header {
 
 func (c *AccountsCreativesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.creative)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.creative)
 	if err != nil {
 		return nil, err
 	}
@@ -6614,6 +6647,7 @@ func (c *AccountsCreativesUpdateCall) doRequest(alt string) (*http.Response, err
 		"accountId":  c.accountId,
 		"creativeId": c.creativeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6648,9 +6682,11 @@ func (c *AccountsCreativesUpdateCall) Do(opts ...googleapi.CallOption) (*Creativ
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6705,8 +6741,7 @@ func (c *AccountsCreativesWatchCall) Header() http.Header {
 
 func (c *AccountsCreativesWatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.watchcreativerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.watchcreativerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6723,6 +6758,7 @@ func (c *AccountsCreativesWatchCall) doRequest(alt string) (*http.Response, erro
 		"accountId":  c.accountId,
 		"creativeId": c.creativeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.watch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6757,9 +6793,11 @@ func (c *AccountsCreativesWatchCall) Do(opts ...googleapi.CallOption) (*Empty, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.watch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6810,8 +6848,7 @@ func (c *AccountsCreativesDealAssociationsAddCall) Header() http.Header {
 
 func (c *AccountsCreativesDealAssociationsAddCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.adddealassociationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.adddealassociationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6828,6 +6865,7 @@ func (c *AccountsCreativesDealAssociationsAddCall) doRequest(alt string) (*http.
 		"accountId":  c.accountId,
 		"creativeId": c.creativeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.dealAssociations.add", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6862,9 +6900,11 @@ func (c *AccountsCreativesDealAssociationsAddCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.dealAssociations.add", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6956,12 +6996,11 @@ func (c *AccountsCreativesDealAssociationsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/creatives/{creativeId}/dealAssociations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6970,6 +7009,7 @@ func (c *AccountsCreativesDealAssociationsListCall) doRequest(alt string) (*http
 		"accountId":  c.accountId,
 		"creativeId": c.creativeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.dealAssociations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7005,9 +7045,11 @@ func (c *AccountsCreativesDealAssociationsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.dealAssociations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7079,8 +7121,7 @@ func (c *AccountsCreativesDealAssociationsRemoveCall) Header() http.Header {
 
 func (c *AccountsCreativesDealAssociationsRemoveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.removedealassociationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.removedealassociationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7097,6 +7138,7 @@ func (c *AccountsCreativesDealAssociationsRemoveCall) doRequest(alt string) (*ht
 		"accountId":  c.accountId,
 		"creativeId": c.creativeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.dealAssociations.remove", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7131,9 +7173,11 @@ func (c *AccountsCreativesDealAssociationsRemoveCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.creatives.dealAssociations.remove", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7239,12 +7283,11 @@ func (c *AccountsFinalizedProposalsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/finalizedProposals")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7252,6 +7295,7 @@ func (c *AccountsFinalizedProposalsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.finalizedProposals.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7287,9 +7331,11 @@ func (c *AccountsFinalizedProposalsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.finalizedProposals.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7367,8 +7413,7 @@ func (c *AccountsFinalizedProposalsPauseCall) Header() http.Header {
 
 func (c *AccountsFinalizedProposalsPauseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pauseproposaldealsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pauseproposaldealsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7385,6 +7430,7 @@ func (c *AccountsFinalizedProposalsPauseCall) doRequest(alt string) (*http.Respo
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.finalizedProposals.pause", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7419,9 +7465,11 @@ func (c *AccountsFinalizedProposalsPauseCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.finalizedProposals.pause", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7478,8 +7526,7 @@ func (c *AccountsFinalizedProposalsResumeCall) Header() http.Header {
 
 func (c *AccountsFinalizedProposalsResumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resumeproposaldealsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resumeproposaldealsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7496,6 +7543,7 @@ func (c *AccountsFinalizedProposalsResumeCall) doRequest(alt string) (*http.Resp
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.finalizedProposals.resume", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7530,9 +7578,11 @@ func (c *AccountsFinalizedProposalsResumeCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.finalizedProposals.resume", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7593,12 +7643,11 @@ func (c *AccountsProductsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/products/{productId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7607,6 +7656,7 @@ func (c *AccountsProductsGetCall) doRequest(alt string) (*http.Response, error) 
 		"accountId": c.accountId,
 		"productId": c.productId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.products.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7641,9 +7691,11 @@ func (c *AccountsProductsGetCall) Do(opts ...googleapi.CallOption) (*Product, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.products.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7727,12 +7779,11 @@ func (c *AccountsProductsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/products")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7740,6 +7791,7 @@ func (c *AccountsProductsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.products.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7775,9 +7827,11 @@ func (c *AccountsProductsListCall) Do(opts ...googleapi.CallOption) (*ListProduc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.products.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7854,8 +7908,7 @@ func (c *AccountsProposalsAcceptCall) Header() http.Header {
 
 func (c *AccountsProposalsAcceptCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.acceptproposalrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.acceptproposalrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7872,6 +7925,7 @@ func (c *AccountsProposalsAcceptCall) doRequest(alt string) (*http.Response, err
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.accept", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7906,9 +7960,11 @@ func (c *AccountsProposalsAcceptCall) Do(opts ...googleapi.CallOption) (*Proposa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.accept", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7961,8 +8017,7 @@ func (c *AccountsProposalsAddNoteCall) Header() http.Header {
 
 func (c *AccountsProposalsAddNoteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addnoterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addnoterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7979,6 +8034,7 @@ func (c *AccountsProposalsAddNoteCall) doRequest(alt string) (*http.Response, er
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.addNote", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8013,9 +8069,11 @@ func (c *AccountsProposalsAddNoteCall) Do(opts ...googleapi.CallOption) (*Note, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.addNote", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8068,8 +8126,7 @@ func (c *AccountsProposalsCancelNegotiationCall) Header() http.Header {
 
 func (c *AccountsProposalsCancelNegotiationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cancelnegotiationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelnegotiationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8086,6 +8143,7 @@ func (c *AccountsProposalsCancelNegotiationCall) doRequest(alt string) (*http.Re
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.cancelNegotiation", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8120,9 +8178,11 @@ func (c *AccountsProposalsCancelNegotiationCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.cancelNegotiation", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8181,8 +8241,7 @@ func (c *AccountsProposalsCompleteSetupCall) Header() http.Header {
 
 func (c *AccountsProposalsCompleteSetupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.completesetuprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.completesetuprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8199,6 +8258,7 @@ func (c *AccountsProposalsCompleteSetupCall) doRequest(alt string) (*http.Respon
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.completeSetup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8233,9 +8293,11 @@ func (c *AccountsProposalsCompleteSetupCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.completeSetup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8284,8 +8346,7 @@ func (c *AccountsProposalsCreateCall) Header() http.Header {
 
 func (c *AccountsProposalsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.proposal)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.proposal)
 	if err != nil {
 		return nil, err
 	}
@@ -8301,6 +8362,7 @@ func (c *AccountsProposalsCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8335,9 +8397,11 @@ func (c *AccountsProposalsCreateCall) Do(opts ...googleapi.CallOption) (*Proposa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8399,12 +8463,11 @@ func (c *AccountsProposalsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/proposals/{proposalId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8413,6 +8476,7 @@ func (c *AccountsProposalsGetCall) doRequest(alt string) (*http.Response, error)
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8447,9 +8511,11 @@ func (c *AccountsProposalsGetCall) Do(opts ...googleapi.CallOption) (*Proposal, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8558,12 +8624,11 @@ func (c *AccountsProposalsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/proposals")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8571,6 +8636,7 @@ func (c *AccountsProposalsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8606,9 +8672,11 @@ func (c *AccountsProposalsListCall) Do(opts ...googleapi.CallOption) (*ListPropo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8684,8 +8752,7 @@ func (c *AccountsProposalsPauseCall) Header() http.Header {
 
 func (c *AccountsProposalsPauseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pauseproposalrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pauseproposalrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8702,6 +8769,7 @@ func (c *AccountsProposalsPauseCall) doRequest(alt string) (*http.Response, erro
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.pause", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8736,9 +8804,11 @@ func (c *AccountsProposalsPauseCall) Do(opts ...googleapi.CallOption) (*Proposal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.pause", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8794,8 +8864,7 @@ func (c *AccountsProposalsResumeCall) Header() http.Header {
 
 func (c *AccountsProposalsResumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resumeproposalrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resumeproposalrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8812,6 +8881,7 @@ func (c *AccountsProposalsResumeCall) doRequest(alt string) (*http.Response, err
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.resume", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8846,9 +8916,11 @@ func (c *AccountsProposalsResumeCall) Do(opts ...googleapi.CallOption) (*Proposa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.resume", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8908,8 +8980,7 @@ func (c *AccountsProposalsUpdateCall) Header() http.Header {
 
 func (c *AccountsProposalsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.proposal)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.proposal)
 	if err != nil {
 		return nil, err
 	}
@@ -8926,6 +8997,7 @@ func (c *AccountsProposalsUpdateCall) doRequest(alt string) (*http.Response, err
 		"accountId":  c.accountId,
 		"proposalId": c.proposalId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8960,9 +9032,11 @@ func (c *AccountsProposalsUpdateCall) Do(opts ...googleapi.CallOption) (*Proposa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.proposals.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9023,12 +9097,11 @@ func (c *AccountsPublisherProfilesGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/publisherProfiles/{publisherProfileId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9037,6 +9110,7 @@ func (c *AccountsPublisherProfilesGetCall) doRequest(alt string) (*http.Response
 		"accountId":          c.accountId,
 		"publisherProfileId": c.publisherProfileId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.publisherProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9072,9 +9146,11 @@ func (c *AccountsPublisherProfilesGetCall) Do(opts ...googleapi.CallOption) (*Pu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.publisherProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9146,12 +9222,11 @@ func (c *AccountsPublisherProfilesListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/accounts/{accountId}/publisherProfiles")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9159,6 +9234,7 @@ func (c *AccountsPublisherProfilesListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"accountId": c.accountId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.publisherProfiles.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9194,9 +9270,11 @@ func (c *AccountsPublisherProfilesListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.accounts.publisherProfiles.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9280,8 +9358,7 @@ func (c *BiddersAccountsFilterSetsCreateCall) Header() http.Header {
 
 func (c *BiddersAccountsFilterSetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filterset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.filterset)
 	if err != nil {
 		return nil, err
 	}
@@ -9297,6 +9374,7 @@ func (c *BiddersAccountsFilterSetsCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"ownerName": c.ownerName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9331,9 +9409,11 @@ func (c *BiddersAccountsFilterSetsCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9385,12 +9465,11 @@ func (c *BiddersAccountsFilterSetsDeleteCall) Header() http.Header {
 
 func (c *BiddersAccountsFilterSetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9398,6 +9477,7 @@ func (c *BiddersAccountsFilterSetsDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9432,9 +9512,11 @@ func (c *BiddersAccountsFilterSetsDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9498,12 +9580,11 @@ func (c *BiddersAccountsFilterSetsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9511,6 +9592,7 @@ func (c *BiddersAccountsFilterSetsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9545,9 +9627,11 @@ func (c *BiddersAccountsFilterSetsGetCall) Do(opts ...googleapi.CallOption) (*Fi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9627,12 +9711,11 @@ func (c *BiddersAccountsFilterSetsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+ownerName}/filterSets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9640,6 +9723,7 @@ func (c *BiddersAccountsFilterSetsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"ownerName": c.ownerName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9675,9 +9759,11 @@ func (c *BiddersAccountsFilterSetsListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9779,12 +9865,11 @@ func (c *BiddersAccountsFilterSetsBidMetricsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9792,6 +9877,7 @@ func (c *BiddersAccountsFilterSetsBidMetricsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.bidMetrics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9827,9 +9913,11 @@ func (c *BiddersAccountsFilterSetsBidMetricsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.bidMetrics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9932,12 +10020,11 @@ func (c *BiddersAccountsFilterSetsBidResponseErrorsListCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidResponseErrors")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9945,6 +10032,7 @@ func (c *BiddersAccountsFilterSetsBidResponseErrorsListCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.bidResponseErrors.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9980,9 +10068,11 @@ func (c *BiddersAccountsFilterSetsBidResponseErrorsListCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.bidResponseErrors.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10085,12 +10175,11 @@ func (c *BiddersAccountsFilterSetsBidResponsesWithoutBidsListCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidResponsesWithoutBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10098,6 +10187,7 @@ func (c *BiddersAccountsFilterSetsBidResponsesWithoutBidsListCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.bidResponsesWithoutBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10133,9 +10223,11 @@ func (c *BiddersAccountsFilterSetsBidResponsesWithoutBidsListCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.bidResponsesWithoutBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10238,12 +10330,11 @@ func (c *BiddersAccountsFilterSetsFilteredBidRequestsListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBidRequests")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10251,6 +10342,7 @@ func (c *BiddersAccountsFilterSetsFilteredBidRequestsListCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.filteredBidRequests.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10286,9 +10378,11 @@ func (c *BiddersAccountsFilterSetsFilteredBidRequestsListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.filteredBidRequests.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10391,12 +10485,11 @@ func (c *BiddersAccountsFilterSetsFilteredBidsListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10404,6 +10497,7 @@ func (c *BiddersAccountsFilterSetsFilteredBidsListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.filteredBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10439,9 +10533,11 @@ func (c *BiddersAccountsFilterSetsFilteredBidsListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.filteredBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10549,12 +10645,11 @@ func (c *BiddersAccountsFilterSetsFilteredBidsCreativesListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids/{creativeStatusId}/creatives")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10563,6 +10658,7 @@ func (c *BiddersAccountsFilterSetsFilteredBidsCreativesListCall) doRequest(alt s
 		"filterSetName":    c.filterSetName,
 		"creativeStatusId": strconv.FormatInt(c.creativeStatusId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.filteredBids.creatives.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10598,9 +10694,11 @@ func (c *BiddersAccountsFilterSetsFilteredBidsCreativesListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.filteredBids.creatives.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10710,12 +10808,11 @@ func (c *BiddersAccountsFilterSetsFilteredBidsDetailsListCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids/{creativeStatusId}/details")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10724,6 +10821,7 @@ func (c *BiddersAccountsFilterSetsFilteredBidsDetailsListCall) doRequest(alt str
 		"filterSetName":    c.filterSetName,
 		"creativeStatusId": strconv.FormatInt(c.creativeStatusId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.filteredBids.details.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10759,9 +10857,11 @@ func (c *BiddersAccountsFilterSetsFilteredBidsDetailsListCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.filteredBids.details.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10863,12 +10963,11 @@ func (c *BiddersAccountsFilterSetsImpressionMetricsListCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/impressionMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10876,6 +10975,7 @@ func (c *BiddersAccountsFilterSetsImpressionMetricsListCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.impressionMetrics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10911,9 +11011,11 @@ func (c *BiddersAccountsFilterSetsImpressionMetricsListCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.impressionMetrics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11016,12 +11118,11 @@ func (c *BiddersAccountsFilterSetsLosingBidsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/losingBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11029,6 +11130,7 @@ func (c *BiddersAccountsFilterSetsLosingBidsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.losingBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11064,9 +11166,11 @@ func (c *BiddersAccountsFilterSetsLosingBidsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.losingBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11169,12 +11273,11 @@ func (c *BiddersAccountsFilterSetsNonBillableWinningBidsListCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/nonBillableWinningBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11182,6 +11285,7 @@ func (c *BiddersAccountsFilterSetsNonBillableWinningBidsListCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.nonBillableWinningBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11217,9 +11321,11 @@ func (c *BiddersAccountsFilterSetsNonBillableWinningBidsListCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.accounts.filterSets.nonBillableWinningBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11303,8 +11409,7 @@ func (c *BiddersFilterSetsCreateCall) Header() http.Header {
 
 func (c *BiddersFilterSetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filterset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.filterset)
 	if err != nil {
 		return nil, err
 	}
@@ -11320,6 +11425,7 @@ func (c *BiddersFilterSetsCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"ownerName": c.ownerName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11354,9 +11460,11 @@ func (c *BiddersFilterSetsCreateCall) Do(opts ...googleapi.CallOption) (*FilterS
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11408,12 +11516,11 @@ func (c *BiddersFilterSetsDeleteCall) Header() http.Header {
 
 func (c *BiddersFilterSetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11421,6 +11528,7 @@ func (c *BiddersFilterSetsDeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11455,9 +11563,11 @@ func (c *BiddersFilterSetsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11521,12 +11631,11 @@ func (c *BiddersFilterSetsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11534,6 +11643,7 @@ func (c *BiddersFilterSetsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11568,9 +11678,11 @@ func (c *BiddersFilterSetsGetCall) Do(opts ...googleapi.CallOption) (*FilterSet,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11650,12 +11762,11 @@ func (c *BiddersFilterSetsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+ownerName}/filterSets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11663,6 +11774,7 @@ func (c *BiddersFilterSetsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"ownerName": c.ownerName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11698,9 +11810,11 @@ func (c *BiddersFilterSetsListCall) Do(opts ...googleapi.CallOption) (*ListFilte
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11802,12 +11916,11 @@ func (c *BiddersFilterSetsBidMetricsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11815,6 +11928,7 @@ func (c *BiddersFilterSetsBidMetricsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.bidMetrics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11850,9 +11964,11 @@ func (c *BiddersFilterSetsBidMetricsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.bidMetrics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11955,12 +12071,11 @@ func (c *BiddersFilterSetsBidResponseErrorsListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidResponseErrors")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11968,6 +12083,7 @@ func (c *BiddersFilterSetsBidResponseErrorsListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.bidResponseErrors.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12003,9 +12119,11 @@ func (c *BiddersFilterSetsBidResponseErrorsListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.bidResponseErrors.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12108,12 +12226,11 @@ func (c *BiddersFilterSetsBidResponsesWithoutBidsListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidResponsesWithoutBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12121,6 +12238,7 @@ func (c *BiddersFilterSetsBidResponsesWithoutBidsListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.bidResponsesWithoutBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12156,9 +12274,11 @@ func (c *BiddersFilterSetsBidResponsesWithoutBidsListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.bidResponsesWithoutBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12261,12 +12381,11 @@ func (c *BiddersFilterSetsFilteredBidRequestsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBidRequests")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12274,6 +12393,7 @@ func (c *BiddersFilterSetsFilteredBidRequestsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.filteredBidRequests.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12309,9 +12429,11 @@ func (c *BiddersFilterSetsFilteredBidRequestsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.filteredBidRequests.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12414,12 +12536,11 @@ func (c *BiddersFilterSetsFilteredBidsListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12427,6 +12548,7 @@ func (c *BiddersFilterSetsFilteredBidsListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.filteredBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12462,9 +12584,11 @@ func (c *BiddersFilterSetsFilteredBidsListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.filteredBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12572,12 +12696,11 @@ func (c *BiddersFilterSetsFilteredBidsCreativesListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids/{creativeStatusId}/creatives")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12586,6 +12709,7 @@ func (c *BiddersFilterSetsFilteredBidsCreativesListCall) doRequest(alt string) (
 		"filterSetName":    c.filterSetName,
 		"creativeStatusId": strconv.FormatInt(c.creativeStatusId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.filteredBids.creatives.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12621,9 +12745,11 @@ func (c *BiddersFilterSetsFilteredBidsCreativesListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.filteredBids.creatives.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12733,12 +12859,11 @@ func (c *BiddersFilterSetsFilteredBidsDetailsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids/{creativeStatusId}/details")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12747,6 +12872,7 @@ func (c *BiddersFilterSetsFilteredBidsDetailsListCall) doRequest(alt string) (*h
 		"filterSetName":    c.filterSetName,
 		"creativeStatusId": strconv.FormatInt(c.creativeStatusId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.filteredBids.details.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12782,9 +12908,11 @@ func (c *BiddersFilterSetsFilteredBidsDetailsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.filteredBids.details.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12886,12 +13014,11 @@ func (c *BiddersFilterSetsImpressionMetricsListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/impressionMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12899,6 +13026,7 @@ func (c *BiddersFilterSetsImpressionMetricsListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.impressionMetrics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12934,9 +13062,11 @@ func (c *BiddersFilterSetsImpressionMetricsListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.impressionMetrics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13039,12 +13169,11 @@ func (c *BiddersFilterSetsLosingBidsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/losingBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13052,6 +13181,7 @@ func (c *BiddersFilterSetsLosingBidsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.losingBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13087,9 +13217,11 @@ func (c *BiddersFilterSetsLosingBidsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.losingBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13192,12 +13324,11 @@ func (c *BiddersFilterSetsNonBillableWinningBidsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/nonBillableWinningBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13205,6 +13336,7 @@ func (c *BiddersFilterSetsNonBillableWinningBidsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.nonBillableWinningBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13240,9 +13372,11 @@ func (c *BiddersFilterSetsNonBillableWinningBidsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.bidders.filterSets.nonBillableWinningBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13326,8 +13460,7 @@ func (c *BuyersFilterSetsCreateCall) Header() http.Header {
 
 func (c *BuyersFilterSetsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.filterset)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.filterset)
 	if err != nil {
 		return nil, err
 	}
@@ -13343,6 +13476,7 @@ func (c *BuyersFilterSetsCreateCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"ownerName": c.ownerName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13377,9 +13511,11 @@ func (c *BuyersFilterSetsCreateCall) Do(opts ...googleapi.CallOption) (*FilterSe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13431,12 +13567,11 @@ func (c *BuyersFilterSetsDeleteCall) Header() http.Header {
 
 func (c *BuyersFilterSetsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13444,6 +13579,7 @@ func (c *BuyersFilterSetsDeleteCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13478,9 +13614,11 @@ func (c *BuyersFilterSetsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13544,12 +13682,11 @@ func (c *BuyersFilterSetsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13557,6 +13694,7 @@ func (c *BuyersFilterSetsGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13591,9 +13729,11 @@ func (c *BuyersFilterSetsGetCall) Do(opts ...googleapi.CallOption) (*FilterSet, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13673,12 +13813,11 @@ func (c *BuyersFilterSetsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+ownerName}/filterSets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13686,6 +13825,7 @@ func (c *BuyersFilterSetsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"ownerName": c.ownerName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13721,9 +13861,11 @@ func (c *BuyersFilterSetsListCall) Do(opts ...googleapi.CallOption) (*ListFilter
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13825,12 +13967,11 @@ func (c *BuyersFilterSetsBidMetricsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13838,6 +13979,7 @@ func (c *BuyersFilterSetsBidMetricsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.bidMetrics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13873,9 +14015,11 @@ func (c *BuyersFilterSetsBidMetricsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.bidMetrics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13978,12 +14122,11 @@ func (c *BuyersFilterSetsBidResponseErrorsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidResponseErrors")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13991,6 +14134,7 @@ func (c *BuyersFilterSetsBidResponseErrorsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.bidResponseErrors.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14026,9 +14170,11 @@ func (c *BuyersFilterSetsBidResponseErrorsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.bidResponseErrors.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14131,12 +14277,11 @@ func (c *BuyersFilterSetsBidResponsesWithoutBidsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/bidResponsesWithoutBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14144,6 +14289,7 @@ func (c *BuyersFilterSetsBidResponsesWithoutBidsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.bidResponsesWithoutBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14179,9 +14325,11 @@ func (c *BuyersFilterSetsBidResponsesWithoutBidsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.bidResponsesWithoutBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14284,12 +14432,11 @@ func (c *BuyersFilterSetsFilteredBidRequestsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBidRequests")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14297,6 +14444,7 @@ func (c *BuyersFilterSetsFilteredBidRequestsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.filteredBidRequests.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14332,9 +14480,11 @@ func (c *BuyersFilterSetsFilteredBidRequestsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.filteredBidRequests.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14437,12 +14587,11 @@ func (c *BuyersFilterSetsFilteredBidsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14450,6 +14599,7 @@ func (c *BuyersFilterSetsFilteredBidsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.filteredBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14485,9 +14635,11 @@ func (c *BuyersFilterSetsFilteredBidsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.filteredBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14595,12 +14747,11 @@ func (c *BuyersFilterSetsFilteredBidsCreativesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids/{creativeStatusId}/creatives")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14609,6 +14760,7 @@ func (c *BuyersFilterSetsFilteredBidsCreativesListCall) doRequest(alt string) (*
 		"filterSetName":    c.filterSetName,
 		"creativeStatusId": strconv.FormatInt(c.creativeStatusId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.filteredBids.creatives.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14644,9 +14796,11 @@ func (c *BuyersFilterSetsFilteredBidsCreativesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.filteredBids.creatives.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14756,12 +14910,11 @@ func (c *BuyersFilterSetsFilteredBidsDetailsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/filteredBids/{creativeStatusId}/details")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14770,6 +14923,7 @@ func (c *BuyersFilterSetsFilteredBidsDetailsListCall) doRequest(alt string) (*ht
 		"filterSetName":    c.filterSetName,
 		"creativeStatusId": strconv.FormatInt(c.creativeStatusId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.filteredBids.details.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14805,9 +14959,11 @@ func (c *BuyersFilterSetsFilteredBidsDetailsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.filteredBids.details.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14909,12 +15065,11 @@ func (c *BuyersFilterSetsImpressionMetricsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/impressionMetrics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14922,6 +15077,7 @@ func (c *BuyersFilterSetsImpressionMetricsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.impressionMetrics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14957,9 +15113,11 @@ func (c *BuyersFilterSetsImpressionMetricsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.impressionMetrics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15062,12 +15220,11 @@ func (c *BuyersFilterSetsLosingBidsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/losingBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15075,6 +15232,7 @@ func (c *BuyersFilterSetsLosingBidsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.losingBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15110,9 +15268,11 @@ func (c *BuyersFilterSetsLosingBidsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.losingBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15215,12 +15375,11 @@ func (c *BuyersFilterSetsNonBillableWinningBidsListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2beta1/{+filterSetName}/nonBillableWinningBids")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15228,6 +15387,7 @@ func (c *BuyersFilterSetsNonBillableWinningBidsListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"filterSetName": c.filterSetName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.nonBillableWinningBids.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15263,9 +15423,11 @@ func (c *BuyersFilterSetsNonBillableWinningBidsListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "adexchangebuyer2.buyers.filterSets.nonBillableWinningBids.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

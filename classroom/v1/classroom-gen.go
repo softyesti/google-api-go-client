@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "classroom:v1"
 const apiName = "classroom"
@@ -100,6 +103,13 @@ const mtlsBasePath = "https://classroom.mtls.googleapis.com/"
 
 // OAuth2 scopes used by this API.
 const (
+	// See and update its own attachments to posts in Google Classroom
+	ClassroomAddonsStudentScope = "https://www.googleapis.com/auth/classroom.addons.student"
+
+	// See, create, and update its own attachments to posts in classes you teach in
+	// Google Classroom
+	ClassroomAddonsTeacherScope = "https://www.googleapis.com/auth/classroom.addons.teacher"
+
 	// View and manage announcements in Google Classroom
 	ClassroomAnnouncementsScope = "https://www.googleapis.com/auth/classroom.announcements"
 
@@ -174,6 +184,8 @@ const (
 // NewService creates a new Service.
 func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
 	scopesOption := internaloption.WithDefaultScopes(
+		"https://www.googleapis.com/auth/classroom.addons.student",
+		"https://www.googleapis.com/auth/classroom.addons.teacher",
 		"https://www.googleapis.com/auth/classroom.announcements",
 		"https://www.googleapis.com/auth/classroom.announcements.readonly",
 		"https://www.googleapis.com/auth/classroom.courses",
@@ -207,7 +219,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Courses = NewCoursesService(s)
+	s.Invitations = NewInvitationsService(s)
+	s.Registrations = NewRegistrationsService(s)
+	s.UserProfiles = NewUserProfilesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -226,16 +242,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Courses = NewCoursesService(s)
-	s.Invitations = NewInvitationsService(s)
-	s.Registrations = NewRegistrationsService(s)
-	s.UserProfiles = NewUserProfilesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -261,6 +273,7 @@ func NewCoursesService(s *Service) *CoursesService {
 	rs.Announcements = NewCoursesAnnouncementsService(s)
 	rs.CourseWork = NewCoursesCourseWorkService(s)
 	rs.CourseWorkMaterials = NewCoursesCourseWorkMaterialsService(s)
+	rs.Posts = NewCoursesPostsService(s)
 	rs.Students = NewCoursesStudentsService(s)
 	rs.Teachers = NewCoursesTeachersService(s)
 	rs.Topics = NewCoursesTopicsService(s)
@@ -277,6 +290,8 @@ type CoursesService struct {
 	CourseWork *CoursesCourseWorkService
 
 	CourseWorkMaterials *CoursesCourseWorkMaterialsService
+
+	Posts *CoursesPostsService
 
 	Students *CoursesStudentsService
 
@@ -296,15 +311,29 @@ type CoursesAliasesService struct {
 
 func NewCoursesAnnouncementsService(s *Service) *CoursesAnnouncementsService {
 	rs := &CoursesAnnouncementsService{s: s}
+	rs.AddOnAttachments = NewCoursesAnnouncementsAddOnAttachmentsService(s)
 	return rs
 }
 
 type CoursesAnnouncementsService struct {
 	s *Service
+
+	AddOnAttachments *CoursesAnnouncementsAddOnAttachmentsService
+}
+
+func NewCoursesAnnouncementsAddOnAttachmentsService(s *Service) *CoursesAnnouncementsAddOnAttachmentsService {
+	rs := &CoursesAnnouncementsAddOnAttachmentsService{s: s}
+	return rs
+}
+
+type CoursesAnnouncementsAddOnAttachmentsService struct {
+	s *Service
 }
 
 func NewCoursesCourseWorkService(s *Service) *CoursesCourseWorkService {
 	rs := &CoursesCourseWorkService{s: s}
+	rs.AddOnAttachments = NewCoursesCourseWorkAddOnAttachmentsService(s)
+	rs.Rubrics = NewCoursesCourseWorkRubricsService(s)
 	rs.StudentSubmissions = NewCoursesCourseWorkStudentSubmissionsService(s)
 	return rs
 }
@@ -312,7 +341,41 @@ func NewCoursesCourseWorkService(s *Service) *CoursesCourseWorkService {
 type CoursesCourseWorkService struct {
 	s *Service
 
+	AddOnAttachments *CoursesCourseWorkAddOnAttachmentsService
+
+	Rubrics *CoursesCourseWorkRubricsService
+
 	StudentSubmissions *CoursesCourseWorkStudentSubmissionsService
+}
+
+func NewCoursesCourseWorkAddOnAttachmentsService(s *Service) *CoursesCourseWorkAddOnAttachmentsService {
+	rs := &CoursesCourseWorkAddOnAttachmentsService{s: s}
+	rs.StudentSubmissions = NewCoursesCourseWorkAddOnAttachmentsStudentSubmissionsService(s)
+	return rs
+}
+
+type CoursesCourseWorkAddOnAttachmentsService struct {
+	s *Service
+
+	StudentSubmissions *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsService
+}
+
+func NewCoursesCourseWorkAddOnAttachmentsStudentSubmissionsService(s *Service) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsService {
+	rs := &CoursesCourseWorkAddOnAttachmentsStudentSubmissionsService{s: s}
+	return rs
+}
+
+type CoursesCourseWorkAddOnAttachmentsStudentSubmissionsService struct {
+	s *Service
+}
+
+func NewCoursesCourseWorkRubricsService(s *Service) *CoursesCourseWorkRubricsService {
+	rs := &CoursesCourseWorkRubricsService{s: s}
+	return rs
+}
+
+type CoursesCourseWorkRubricsService struct {
+	s *Service
 }
 
 func NewCoursesCourseWorkStudentSubmissionsService(s *Service) *CoursesCourseWorkStudentSubmissionsService {
@@ -326,10 +389,55 @@ type CoursesCourseWorkStudentSubmissionsService struct {
 
 func NewCoursesCourseWorkMaterialsService(s *Service) *CoursesCourseWorkMaterialsService {
 	rs := &CoursesCourseWorkMaterialsService{s: s}
+	rs.AddOnAttachments = NewCoursesCourseWorkMaterialsAddOnAttachmentsService(s)
 	return rs
 }
 
 type CoursesCourseWorkMaterialsService struct {
+	s *Service
+
+	AddOnAttachments *CoursesCourseWorkMaterialsAddOnAttachmentsService
+}
+
+func NewCoursesCourseWorkMaterialsAddOnAttachmentsService(s *Service) *CoursesCourseWorkMaterialsAddOnAttachmentsService {
+	rs := &CoursesCourseWorkMaterialsAddOnAttachmentsService{s: s}
+	return rs
+}
+
+type CoursesCourseWorkMaterialsAddOnAttachmentsService struct {
+	s *Service
+}
+
+func NewCoursesPostsService(s *Service) *CoursesPostsService {
+	rs := &CoursesPostsService{s: s}
+	rs.AddOnAttachments = NewCoursesPostsAddOnAttachmentsService(s)
+	return rs
+}
+
+type CoursesPostsService struct {
+	s *Service
+
+	AddOnAttachments *CoursesPostsAddOnAttachmentsService
+}
+
+func NewCoursesPostsAddOnAttachmentsService(s *Service) *CoursesPostsAddOnAttachmentsService {
+	rs := &CoursesPostsAddOnAttachmentsService{s: s}
+	rs.StudentSubmissions = NewCoursesPostsAddOnAttachmentsStudentSubmissionsService(s)
+	return rs
+}
+
+type CoursesPostsAddOnAttachmentsService struct {
+	s *Service
+
+	StudentSubmissions *CoursesPostsAddOnAttachmentsStudentSubmissionsService
+}
+
+func NewCoursesPostsAddOnAttachmentsStudentSubmissionsService(s *Service) *CoursesPostsAddOnAttachmentsStudentSubmissionsService {
+	rs := &CoursesPostsAddOnAttachmentsStudentSubmissionsService{s: s}
+	return rs
+}
+
+type CoursesPostsAddOnAttachmentsStudentSubmissionsService struct {
 	s *Service
 }
 
@@ -411,6 +519,186 @@ type UserProfilesGuardiansService struct {
 	s *Service
 }
 
+// AddOnAttachment: An add-on attachment on a post.
+type AddOnAttachment struct {
+	// CopyHistory: Output only. Identifiers of attachments that were previous
+	// copies of this attachment. If the attachment was previously copied by virtue
+	// of its parent post being copied, this enumerates the identifiers of
+	// attachments that were its previous copies in ascending chronological order
+	// of copy.
+	CopyHistory []*CopyHistory `json:"copyHistory,omitempty"`
+	// CourseId: Immutable. Identifier of the course.
+	CourseId string `json:"courseId,omitempty"`
+	// DueDate: Date, in UTC, that work on this attachment is due. This must be
+	// specified if `due_time` is specified.
+	DueDate *Date `json:"dueDate,omitempty"`
+	// DueTime: Time of day, in UTC, that work on this attachment is due. This must
+	// be specified if `due_date` is specified.
+	DueTime *TimeOfDay `json:"dueTime,omitempty"`
+	// Id: Immutable. Classroom-assigned identifier for this attachment, unique per
+	// post.
+	Id string `json:"id,omitempty"`
+	// ItemId: Immutable. Identifier of the `Announcement`, `CourseWork`, or
+	// `CourseWorkMaterial` under which the attachment is attached. Unique per
+	// course.
+	ItemId string `json:"itemId,omitempty"`
+	// MaxPoints: Maximum grade for this attachment. Can only be set if
+	// `studentWorkReviewUri` is set. Set to a non-zero value to indicate that the
+	// attachment supports grade passback. If set, this must be a non-negative
+	// integer value. When set to zero, the attachment will not support grade
+	// passback.
+	MaxPoints float64 `json:"maxPoints,omitempty"`
+	// PostId: Immutable. Deprecated, use `item_id` instead.
+	PostId string `json:"postId,omitempty"`
+	// StudentViewUri: Required. URI to show the student view of the attachment.
+	// The URI will be opened in an iframe with the `courseId`, `itemId`,
+	// `itemType`, and `attachmentId` query parameters set.
+	StudentViewUri *EmbedUri `json:"studentViewUri,omitempty"`
+	// StudentWorkReviewUri: URI for the teacher to see student work on the
+	// attachment, if applicable. The URI will be opened in an iframe with the
+	// `courseId`, `itemId`, `itemType`, `attachmentId`, and `submissionId` query
+	// parameters set. This is the same `submissionId` returned in the
+	// `AddOnContext.studentContext`
+	// (//devsite.google.com/classroom/reference/rest/v1/AddOnContext#StudentContext
+	// ) field when a student views the attachment. If the URI is omitted or
+	// removed, `max_points` will also be discarded.
+	StudentWorkReviewUri *EmbedUri `json:"studentWorkReviewUri,omitempty"`
+	// TeacherViewUri: Required. URI to show the teacher view of the attachment.
+	// The URI will be opened in an iframe with the `courseId`, `itemId`,
+	// `itemType`, and `attachmentId` query parameters set.
+	TeacherViewUri *EmbedUri `json:"teacherViewUri,omitempty"`
+	// Title: Required. Title of this attachment. The title must be between 1 and
+	// 1000 characters.
+	Title string `json:"title,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "CopyHistory") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CopyHistory") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AddOnAttachment) MarshalJSON() ([]byte, error) {
+	type NoMethod AddOnAttachment
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *AddOnAttachment) UnmarshalJSON(data []byte) error {
+	type NoMethod AddOnAttachment
+	var s1 struct {
+		MaxPoints gensupport.JSONFloat64 `json:"maxPoints"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.MaxPoints = float64(s1.MaxPoints)
+	return nil
+}
+
+// AddOnAttachmentStudentSubmission: Payload for grade update requests.
+type AddOnAttachmentStudentSubmission struct {
+	// PointsEarned: Student grade on this attachment. If unset, no grade was set.
+	PointsEarned float64 `json:"pointsEarned,omitempty"`
+	// PostSubmissionState: Submission state of add-on attachment's parent post
+	// (i.e. assignment).
+	//
+	// Possible values:
+	//   "SUBMISSION_STATE_UNSPECIFIED" - No state specified. This should never be
+	// returned.
+	//   "NEW" - The student has never accessed this submission. Attachments are
+	// not returned and timestamps is not set.
+	//   "CREATED" - Has been created.
+	//   "TURNED_IN" - Has been turned in to the teacher.
+	//   "RETURNED" - Has been returned to the student.
+	//   "RECLAIMED_BY_STUDENT" - Student chose to "unsubmit" the assignment.
+	PostSubmissionState string `json:"postSubmissionState,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "PointsEarned") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "PointsEarned") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AddOnAttachmentStudentSubmission) MarshalJSON() ([]byte, error) {
+	type NoMethod AddOnAttachmentStudentSubmission
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *AddOnAttachmentStudentSubmission) UnmarshalJSON(data []byte) error {
+	type NoMethod AddOnAttachmentStudentSubmission
+	var s1 struct {
+		PointsEarned gensupport.JSONFloat64 `json:"pointsEarned"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.PointsEarned = float64(s1.PointsEarned)
+	return nil
+}
+
+// AddOnContext: Attachment-relevant metadata for Classroom add-ons in the
+// context of a specific post.
+type AddOnContext struct {
+	// CourseId: Immutable. Identifier of the course.
+	CourseId string `json:"courseId,omitempty"`
+	// ItemId: Immutable. Identifier of the `Announcement`, `CourseWork`, or
+	// `CourseWorkMaterial` under which the attachment is attached.
+	ItemId string `json:"itemId,omitempty"`
+	// PostId: Immutable. Deprecated, use `item_id` instead.
+	PostId string `json:"postId,omitempty"`
+	// StudentContext: Add-on context corresponding to the requesting user's role
+	// as a student. Its presence implies that the requesting user is a student in
+	// the course.
+	StudentContext *StudentContext `json:"studentContext,omitempty"`
+	// SupportsStudentWork: Optional. Whether the post allows the teacher to see
+	// student work and passback grades.
+	SupportsStudentWork bool `json:"supportsStudentWork,omitempty"`
+	// TeacherContext: Add-on context corresponding to the requesting user's role
+	// as a teacher. Its presence implies that the requesting user is a teacher in
+	// the course.
+	TeacherContext *TeacherContext `json:"teacherContext,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "CourseId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CourseId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AddOnContext) MarshalJSON() ([]byte, error) {
+	type NoMethod AddOnContext
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // Announcement: Announcement created by a teacher for students of the course
 type Announcement struct {
 	// AlternateLink: Absolute link to this announcement in the Classroom web UI.
@@ -482,9 +770,9 @@ type Announcement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Announcement) MarshalJSON() ([]byte, error) {
+func (s Announcement) MarshalJSON() ([]byte, error) {
 	type NoMethod Announcement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Assignment: Additional details for assignments.
@@ -505,9 +793,9 @@ type Assignment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Assignment) MarshalJSON() ([]byte, error) {
+func (s Assignment) MarshalJSON() ([]byte, error) {
 	type NoMethod Assignment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AssignmentSubmission: Student work for an assignment.
@@ -532,9 +820,9 @@ type AssignmentSubmission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AssignmentSubmission) MarshalJSON() ([]byte, error) {
+func (s AssignmentSubmission) MarshalJSON() ([]byte, error) {
 	type NoMethod AssignmentSubmission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Attachment: Attachment added to student assignment work. When creating
@@ -561,9 +849,9 @@ type Attachment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Attachment) MarshalJSON() ([]byte, error) {
+func (s Attachment) MarshalJSON() ([]byte, error) {
 	type NoMethod Attachment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudPubsubTopic: A reference to a Cloud Pub/Sub topic. To register for
@@ -587,9 +875,38 @@ type CloudPubsubTopic struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudPubsubTopic) MarshalJSON() ([]byte, error) {
+func (s CloudPubsubTopic) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudPubsubTopic
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CopyHistory: Identifier of a previous copy of a given attachment.
+type CopyHistory struct {
+	// AttachmentId: Immutable. Identifier of the attachment.
+	AttachmentId string `json:"attachmentId,omitempty"`
+	// CourseId: Immutable. Identifier of the course.
+	CourseId string `json:"courseId,omitempty"`
+	// ItemId: Immutable. Identifier of the `Announcement`, `CourseWork`, or
+	// `CourseWorkMaterial` under which the attachment is attached.
+	ItemId string `json:"itemId,omitempty"`
+	// PostId: Immutable. Deprecated, use `item_id` instead.
+	PostId string `json:"postId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AttachmentId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AttachmentId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CopyHistory) MarshalJSON() ([]byte, error) {
+	type NoMethod CopyHistory
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Course: A Course in Classroom.
@@ -705,9 +1022,9 @@ type Course struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Course) MarshalJSON() ([]byte, error) {
+func (s Course) MarshalJSON() ([]byte, error) {
 	type NoMethod Course
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CourseAlias: Alternative identifier for a course. An alias uniquely
@@ -744,9 +1061,9 @@ type CourseAlias struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CourseAlias) MarshalJSON() ([]byte, error) {
+func (s CourseAlias) MarshalJSON() ([]byte, error) {
 	type NoMethod CourseAlias
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CourseMaterial: A material attached to a course as part of a material set.
@@ -772,9 +1089,9 @@ type CourseMaterial struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CourseMaterial) MarshalJSON() ([]byte, error) {
+func (s CourseMaterial) MarshalJSON() ([]byte, error) {
 	type NoMethod CourseMaterial
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CourseMaterialSet: A set of materials that appears on the "About" page of
@@ -798,9 +1115,9 @@ type CourseMaterialSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CourseMaterialSet) MarshalJSON() ([]byte, error) {
+func (s CourseMaterialSet) MarshalJSON() ([]byte, error) {
 	type NoMethod CourseMaterialSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CourseRosterChangesInfo: Information about a `Feed` with a `feed_type` of
@@ -821,9 +1138,9 @@ type CourseRosterChangesInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CourseRosterChangesInfo) MarshalJSON() ([]byte, error) {
+func (s CourseRosterChangesInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod CourseRosterChangesInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CourseWork: Course work created by a teacher for students of the course.
@@ -951,9 +1268,9 @@ type CourseWork struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CourseWork) MarshalJSON() ([]byte, error) {
+func (s CourseWork) MarshalJSON() ([]byte, error) {
 	type NoMethod CourseWork
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *CourseWork) UnmarshalJSON(data []byte) error {
@@ -988,9 +1305,9 @@ type CourseWorkChangesInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CourseWorkChangesInfo) MarshalJSON() ([]byte, error) {
+func (s CourseWorkChangesInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod CourseWorkChangesInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CourseWorkMaterial: Course work material created by a teacher for students
@@ -1073,9 +1390,38 @@ type CourseWorkMaterial struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CourseWorkMaterial) MarshalJSON() ([]byte, error) {
+func (s CourseWorkMaterial) MarshalJSON() ([]byte, error) {
 	type NoMethod CourseWorkMaterial
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Criterion: A rubric criterion. Each criterion is a dimension on which
+// performance is rated.
+type Criterion struct {
+	// Description: The description of the criterion.
+	Description string `json:"description,omitempty"`
+	// Id: The criterion ID. On creation, an ID is assigned.
+	Id string `json:"id,omitempty"`
+	// Levels: The list of levels within this criterion.
+	Levels []*Level `json:"levels,omitempty"`
+	// Title: The title of the criterion.
+	Title string `json:"title,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Description") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Description") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Criterion) MarshalJSON() ([]byte, error) {
+	type NoMethod Criterion
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -1111,9 +1457,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DriveFile: Representation of a Google Drive file.
@@ -1139,9 +1485,9 @@ type DriveFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DriveFile) MarshalJSON() ([]byte, error) {
+func (s DriveFile) MarshalJSON() ([]byte, error) {
 	type NoMethod DriveFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DriveFolder: Representation of a Google Drive folder.
@@ -1165,9 +1511,33 @@ type DriveFolder struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DriveFolder) MarshalJSON() ([]byte, error) {
+func (s DriveFolder) MarshalJSON() ([]byte, error) {
 	type NoMethod DriveFolder
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// EmbedUri: URI to be iframed after being populated with query parameters.
+type EmbedUri struct {
+	// Uri: Required. URI to be iframed after being populated with query
+	// parameters. This must be a valid UTF-8 string containing between 1 and 1800
+	// characters.
+	Uri string `json:"uri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Uri") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Uri") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s EmbedUri) MarshalJSON() ([]byte, error) {
+	type NoMethod EmbedUri
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1224,9 +1594,9 @@ type Feed struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Feed) MarshalJSON() ([]byte, error) {
+func (s Feed) MarshalJSON() ([]byte, error) {
 	type NoMethod Feed
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Form: Google Forms item.
@@ -1254,9 +1624,9 @@ type Form struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Form) MarshalJSON() ([]byte, error) {
+func (s Form) MarshalJSON() ([]byte, error) {
 	type NoMethod Form
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GlobalPermission: Global user permission description.
@@ -1281,9 +1651,9 @@ type GlobalPermission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GlobalPermission) MarshalJSON() ([]byte, error) {
+func (s GlobalPermission) MarshalJSON() ([]byte, error) {
 	type NoMethod GlobalPermission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GradeCategory: Details for a grade category in a course. Coursework may have
@@ -1316,9 +1686,9 @@ type GradeCategory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GradeCategory) MarshalJSON() ([]byte, error) {
+func (s GradeCategory) MarshalJSON() ([]byte, error) {
 	type NoMethod GradeCategory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GradeHistory: The history of each grade on this submission.
@@ -1358,9 +1728,9 @@ type GradeHistory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GradeHistory) MarshalJSON() ([]byte, error) {
+func (s GradeHistory) MarshalJSON() ([]byte, error) {
 	type NoMethod GradeHistory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GradeHistory) UnmarshalJSON(data []byte) error {
@@ -1420,9 +1790,9 @@ type GradebookSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GradebookSettings) MarshalJSON() ([]byte, error) {
+func (s GradebookSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod GradebookSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Guardian: Association between a student and a guardian of that student. The
@@ -1454,9 +1824,9 @@ type Guardian struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Guardian) MarshalJSON() ([]byte, error) {
+func (s Guardian) MarshalJSON() ([]byte, error) {
 	type NoMethod Guardian
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GuardianInvitation: An invitation to become the guardian of a specified
@@ -1495,9 +1865,9 @@ type GuardianInvitation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GuardianInvitation) MarshalJSON() ([]byte, error) {
+func (s GuardianInvitation) MarshalJSON() ([]byte, error) {
 	type NoMethod GuardianInvitation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IndividualStudentsOptions: Assignee details about a coursework/announcement.
@@ -1519,9 +1889,9 @@ type IndividualStudentsOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IndividualStudentsOptions) MarshalJSON() ([]byte, error) {
+func (s IndividualStudentsOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod IndividualStudentsOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Invitation: An invitation to join a course.
@@ -1560,9 +1930,54 @@ type Invitation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Invitation) MarshalJSON() ([]byte, error) {
+func (s Invitation) MarshalJSON() ([]byte, error) {
 	type NoMethod Invitation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Level: A level of the criterion.
+type Level struct {
+	// Description: The description of the level.
+	Description string `json:"description,omitempty"`
+	// Id: The level ID. On creation, an ID is assigned.
+	Id string `json:"id,omitempty"`
+	// Points: Optional points associated with this level. If set, all levels
+	// within the rubric must specify points and the value must be distinct across
+	// all levels within a single criterion. 0 is distinct from no points.
+	Points float64 `json:"points,omitempty"`
+	// Title: The title of the level. If the level has no points set, title must be
+	// set.
+	Title string `json:"title,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Description") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Description") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Level) MarshalJSON() ([]byte, error) {
+	type NoMethod Level
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *Level) UnmarshalJSON(data []byte) error {
+	type NoMethod Level
+	var s1 struct {
+		Points gensupport.JSONFloat64 `json:"points"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Points = float64(s1.Points)
+	return nil
 }
 
 // Link: URL item.
@@ -1587,9 +2002,37 @@ type Link struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Link) MarshalJSON() ([]byte, error) {
+func (s Link) MarshalJSON() ([]byte, error) {
 	type NoMethod Link
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListAddOnAttachmentsResponse: Response when listing add-on attachments.
+type ListAddOnAttachmentsResponse struct {
+	// AddOnAttachments: Attachments under the given post.
+	AddOnAttachments []*AddOnAttachment `json:"addOnAttachments,omitempty"`
+	// NextPageToken: A token, which can be sent as `pageToken` to retrieve the
+	// next page. If this field is omitted, there are no subsequent pages.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "AddOnAttachments") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AddOnAttachments") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListAddOnAttachmentsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListAddOnAttachmentsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAnnouncementsResponse: Response when listing course work.
@@ -1615,9 +2058,9 @@ type ListAnnouncementsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAnnouncementsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAnnouncementsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAnnouncementsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCourseAliasesResponse: Response when listing course aliases.
@@ -1643,9 +2086,9 @@ type ListCourseAliasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCourseAliasesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCourseAliasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCourseAliasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCourseWorkMaterialResponse: Response when listing course work material.
@@ -1671,9 +2114,9 @@ type ListCourseWorkMaterialResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCourseWorkMaterialResponse) MarshalJSON() ([]byte, error) {
+func (s ListCourseWorkMaterialResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCourseWorkMaterialResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCourseWorkResponse: Response when listing course work.
@@ -1699,9 +2142,9 @@ type ListCourseWorkResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCourseWorkResponse) MarshalJSON() ([]byte, error) {
+func (s ListCourseWorkResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCourseWorkResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCoursesResponse: Response when listing courses.
@@ -1727,9 +2170,9 @@ type ListCoursesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCoursesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCoursesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCoursesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGuardianInvitationsResponse: Response when listing guardian invitations.
@@ -1755,9 +2198,9 @@ type ListGuardianInvitationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGuardianInvitationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListGuardianInvitationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGuardianInvitationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListGuardiansResponse: Response when listing guardians.
@@ -1784,9 +2227,9 @@ type ListGuardiansResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListGuardiansResponse) MarshalJSON() ([]byte, error) {
+func (s ListGuardiansResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListGuardiansResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInvitationsResponse: Response when listing invitations.
@@ -1812,9 +2255,37 @@ type ListInvitationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInvitationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListInvitationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInvitationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListRubricsResponse: Response when listing rubrics.
+type ListRubricsResponse struct {
+	// NextPageToken: Token identifying the next page of results to return. If
+	// empty, no further results are available.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// Rubrics: Rubrics that match the request.
+	Rubrics []*Rubric `json:"rubrics,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListRubricsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListRubricsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListStudentSubmissionsResponse: Response when listing student submissions.
@@ -1840,9 +2311,9 @@ type ListStudentSubmissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListStudentSubmissionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListStudentSubmissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListStudentSubmissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListStudentsResponse: Response when listing students.
@@ -1868,9 +2339,9 @@ type ListStudentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListStudentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListStudentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListStudentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTeachersResponse: Response when listing teachers.
@@ -1896,9 +2367,9 @@ type ListTeachersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTeachersResponse) MarshalJSON() ([]byte, error) {
+func (s ListTeachersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTeachersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTopicResponse: Response when listing topics.
@@ -1924,9 +2395,9 @@ type ListTopicResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTopicResponse) MarshalJSON() ([]byte, error) {
+func (s ListTopicResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTopicResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Material: Material attached to course work. When creating attachments,
@@ -1954,9 +2425,9 @@ type Material struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Material) MarshalJSON() ([]byte, error) {
+func (s Material) MarshalJSON() ([]byte, error) {
 	type NoMethod Material
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyAnnouncementAssigneesRequest: Request to modify assignee mode and
@@ -1987,9 +2458,9 @@ type ModifyAnnouncementAssigneesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyAnnouncementAssigneesRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyAnnouncementAssigneesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyAnnouncementAssigneesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyAttachmentsRequest: Request to modify the attachments of a student
@@ -2011,9 +2482,9 @@ type ModifyAttachmentsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyAttachmentsRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyAttachmentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyAttachmentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyCourseWorkAssigneesRequest: Request to modify assignee mode and
@@ -2044,9 +2515,9 @@ type ModifyCourseWorkAssigneesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyCourseWorkAssigneesRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyCourseWorkAssigneesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyCourseWorkAssigneesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyIndividualStudentsOptions: Contains fields to add or remove students
@@ -2072,9 +2543,9 @@ type ModifyIndividualStudentsOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyIndividualStudentsOptions) MarshalJSON() ([]byte, error) {
+func (s ModifyIndividualStudentsOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyIndividualStudentsOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultipleChoiceQuestion: Additional details for multiple-choice questions.
@@ -2094,9 +2565,9 @@ type MultipleChoiceQuestion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultipleChoiceQuestion) MarshalJSON() ([]byte, error) {
+func (s MultipleChoiceQuestion) MarshalJSON() ([]byte, error) {
 	type NoMethod MultipleChoiceQuestion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MultipleChoiceSubmission: Student work for a multiple-choice question.
@@ -2116,9 +2587,9 @@ type MultipleChoiceSubmission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MultipleChoiceSubmission) MarshalJSON() ([]byte, error) {
+func (s MultipleChoiceSubmission) MarshalJSON() ([]byte, error) {
 	type NoMethod MultipleChoiceSubmission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Name: Details of the user's name.
@@ -2143,9 +2614,9 @@ type Name struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Name) MarshalJSON() ([]byte, error) {
+func (s Name) MarshalJSON() ([]byte, error) {
 	type NoMethod Name
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReclaimStudentSubmissionRequest: Request to reclaim a student submission.
@@ -2183,13 +2654,105 @@ type Registration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Registration) MarshalJSON() ([]byte, error) {
+func (s Registration) MarshalJSON() ([]byte, error) {
 	type NoMethod Registration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReturnStudentSubmissionRequest: Request to return a student submission.
 type ReturnStudentSubmissionRequest struct {
+}
+
+// Rubric: The rubric of the course work. A rubric is a scoring guide used to
+// evaluate student work and give feedback. For further details, see Rubrics
+// structure and known limitations (/classroom/rubrics/limitations).
+type Rubric struct {
+	// CourseId: Identifier of the course. Read-only.
+	CourseId string `json:"courseId,omitempty"`
+	// CourseWorkId: Identifier for the course work this corresponds to. Read-only.
+	CourseWorkId string `json:"courseWorkId,omitempty"`
+	// CreationTime: Output only. Timestamp when this rubric was created.
+	// Read-only.
+	CreationTime string `json:"creationTime,omitempty"`
+	// Criteria: List of criteria. Each criterion is a dimension on which
+	// performance is rated.
+	Criteria []*Criterion `json:"criteria,omitempty"`
+	// Id: Classroom-assigned identifier for the rubric. This is unique among
+	// rubrics for the relevant course work. Read-only.
+	Id string `json:"id,omitempty"`
+	// SourceSpreadsheetId: Input only. Immutable. Google Sheets ID of the
+	// spreadsheet. This spreadsheet must contain formatted rubric settings. See
+	// Create or reuse a rubric for an assignment
+	// (https://support.google.com/edu/classroom/answer/9335069). Use of this field
+	// requires the `https://www.googleapis.com/auth/spreadsheets.readonly` or
+	// `https://www.googleapis.com/auth/spreadsheets` scope.
+	SourceSpreadsheetId string `json:"sourceSpreadsheetId,omitempty"`
+	// UpdateTime: Output only. Timestamp of the most recent change to this rubric.
+	// Read-only.
+	UpdateTime string `json:"updateTime,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "CourseId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CourseId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Rubric) MarshalJSON() ([]byte, error) {
+	type NoMethod Rubric
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RubricGrade: A rubric grade set for the student submission. There is at most
+// one entry per rubric criterion.
+type RubricGrade struct {
+	// CriterionId: Optional. Criterion ID.
+	CriterionId string `json:"criterionId,omitempty"`
+	// LevelId: Optional. Optional level ID of the selected level. If empty, no
+	// level was selected.
+	LevelId string `json:"levelId,omitempty"`
+	// Points: Optional. Optional points assigned for this criterion, typically
+	// based on the level. Levels might or might not have points. If unset, no
+	// points were set for this criterion.
+	Points float64 `json:"points,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CriterionId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CriterionId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RubricGrade) MarshalJSON() ([]byte, error) {
+	type NoMethod RubricGrade
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *RubricGrade) UnmarshalJSON(data []byte) error {
+	type NoMethod RubricGrade
+	var s1 struct {
+		Points gensupport.JSONFloat64 `json:"points"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Points = float64(s1.Points)
+	return nil
 }
 
 // SharedDriveFile: Drive file that is used as material for course work.
@@ -2218,9 +2781,9 @@ type SharedDriveFile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SharedDriveFile) MarshalJSON() ([]byte, error) {
+func (s SharedDriveFile) MarshalJSON() ([]byte, error) {
 	type NoMethod SharedDriveFile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ShortAnswerSubmission: Student work for a short answer question.
@@ -2240,9 +2803,9 @@ type ShortAnswerSubmission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ShortAnswerSubmission) MarshalJSON() ([]byte, error) {
+func (s ShortAnswerSubmission) MarshalJSON() ([]byte, error) {
 	type NoMethod ShortAnswerSubmission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StateHistory: The history of each state this submission has been in.
@@ -2280,9 +2843,9 @@ type StateHistory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StateHistory) MarshalJSON() ([]byte, error) {
+func (s StateHistory) MarshalJSON() ([]byte, error) {
 	type NoMethod StateHistory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Student: Student in a course.
@@ -2316,9 +2879,33 @@ type Student struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Student) MarshalJSON() ([]byte, error) {
+func (s Student) MarshalJSON() ([]byte, error) {
 	type NoMethod Student
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StudentContext: Role-specific context if the requesting user is a student.
+type StudentContext struct {
+	// SubmissionId: Requesting user's submission id to be used for grade passback
+	// and to identify the student when showing student work to the teacher. This
+	// is set exactly when `supportsStudentWork` is `true`.
+	SubmissionId string `json:"submissionId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "SubmissionId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SubmissionId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StudentContext) MarshalJSON() ([]byte, error) {
+	type NoMethod StudentContext
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StudentSubmission: Student submission for course work. `StudentSubmission`
@@ -2333,6 +2920,12 @@ type StudentSubmission struct {
 	// be non-negative. Decimal (that is, non-integer) values are allowed, but are
 	// rounded to two decimal places. This may be modified only by course teachers.
 	AssignedGrade float64 `json:"assignedGrade,omitempty"`
+	// AssignedRubricGrades: Assigned rubric grades based on the rubric's Criteria.
+	// This map is empty if there is no rubric attached to this course work or if a
+	// rubric is attached, but no grades have been set on any Criteria. Entries are
+	// only populated for grades that have been set. Key: The rubric's criterion
+	// ID. Read-only.
+	AssignedRubricGrades map[string]RubricGrade `json:"assignedRubricGrades,omitempty"`
 	// AssignmentSubmission: Submission content when course_work_type is
 	// ASSIGNMENT. Students can modify this content using ModifyAttachments.
 	AssignmentSubmission *AssignmentSubmission `json:"assignmentSubmission,omitempty"`
@@ -2361,6 +2954,12 @@ type StudentSubmission struct {
 	// are rounded to two decimal places. This is only visible to and modifiable by
 	// course teachers.
 	DraftGrade float64 `json:"draftGrade,omitempty"`
+	// DraftRubricGrades: Pending rubric grades based on the rubric's criteria.
+	// This map is empty if there is no rubric attached to this course work or if a
+	// rubric is attached, but no grades have been set on any criteria. Entries are
+	// only populated for grades that have been set. Key: The rubric's criterion
+	// ID. Read-only.
+	DraftRubricGrades map[string]RubricGrade `json:"draftRubricGrades,omitempty"`
 	// Id: Classroom-assigned Identifier for the student submission. This is unique
 	// among submissions for the relevant course work. Read-only.
 	Id string `json:"id,omitempty"`
@@ -2408,9 +3007,9 @@ type StudentSubmission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StudentSubmission) MarshalJSON() ([]byte, error) {
+func (s StudentSubmission) MarshalJSON() ([]byte, error) {
 	type NoMethod StudentSubmission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *StudentSubmission) UnmarshalJSON(data []byte) error {
@@ -2449,9 +3048,9 @@ type SubmissionHistory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubmissionHistory) MarshalJSON() ([]byte, error) {
+func (s SubmissionHistory) MarshalJSON() ([]byte, error) {
 	type NoMethod SubmissionHistory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Teacher: Teacher of a course.
@@ -2481,25 +3080,32 @@ type Teacher struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Teacher) MarshalJSON() ([]byte, error) {
+func (s Teacher) MarshalJSON() ([]byte, error) {
 	type NoMethod Teacher
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TeacherContext: Role-specific context if the requesting user is a teacher.
+type TeacherContext struct {
 }
 
 // TimeOfDay: Represents a time of day. The date and time zone are either not
 // significant or are specified elsewhere. An API may choose to allow leap
 // seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 type TimeOfDay struct {
-	// Hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-	// choose to allow the value "24:00:00" for scenarios like business closing
-	// time.
+	// Hours: Hours of a day in 24 hour format. Must be greater than or equal to 0
+	// and typically must be less than or equal to 23. An API may choose to allow
+	// the value "24:00:00" for scenarios like business closing time.
 	Hours int64 `json:"hours,omitempty"`
-	// Minutes: Minutes of hour of day. Must be from 0 to 59.
+	// Minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+	// than or equal to 59.
 	Minutes int64 `json:"minutes,omitempty"`
-	// Nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+	// Nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+	// to 0 and less than or equal to 999,999,999.
 	Nanos int64 `json:"nanos,omitempty"`
-	// Seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-	// API may allow the value 60 if it allows leap-seconds.
+	// Seconds: Seconds of a minute. Must be greater than or equal to 0 and
+	// typically must be less than or equal to 59. An API may allow the value 60 if
+	// it allows leap-seconds.
 	Seconds int64 `json:"seconds,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -2514,9 +3120,9 @@ type TimeOfDay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeOfDay) MarshalJSON() ([]byte, error) {
+func (s TimeOfDay) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeOfDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Topic: Topic created by a teacher for the course
@@ -2548,9 +3154,9 @@ type Topic struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Topic) MarshalJSON() ([]byte, error) {
+func (s Topic) MarshalJSON() ([]byte, error) {
 	type NoMethod Topic
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TurnInStudentSubmissionRequest: Request to turn in a student submission.
@@ -2594,9 +3200,9 @@ type UserProfile struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserProfile) MarshalJSON() ([]byte, error) {
+func (s UserProfile) MarshalJSON() ([]byte, error) {
 	type NoMethod UserProfile
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YouTubeVideo: YouTube video item.
@@ -2622,9 +3228,9 @@ type YouTubeVideo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YouTubeVideo) MarshalJSON() ([]byte, error) {
+func (s YouTubeVideo) MarshalJSON() ([]byte, error) {
 	type NoMethod YouTubeVideo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CoursesCreateCall struct {
@@ -2676,8 +3282,7 @@ func (c *CoursesCreateCall) Header() http.Header {
 
 func (c *CoursesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.course)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.course)
 	if err != nil {
 		return nil, err
 	}
@@ -2690,6 +3295,7 @@ func (c *CoursesCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2724,9 +3330,11 @@ func (c *CoursesCreateCall) Do(opts ...googleapi.CallOption) (*Course, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2776,12 +3384,11 @@ func (c *CoursesDeleteCall) Header() http.Header {
 
 func (c *CoursesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2789,6 +3396,7 @@ func (c *CoursesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2823,9 +3431,11 @@ func (c *CoursesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2887,12 +3497,11 @@ func (c *CoursesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2900,6 +3509,7 @@ func (c *CoursesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2934,9 +3544,11 @@ func (c *CoursesGetCall) Do(opts ...googleapi.CallOption) (*Course, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3069,16 +3681,16 @@ func (c *CoursesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3114,9 +3726,11 @@ func (c *CoursesListCall) Do(opts ...googleapi.CallOption) (*ListCoursesResponse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3206,8 +3820,7 @@ func (c *CoursesPatchCall) Header() http.Header {
 
 func (c *CoursesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.course)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.course)
 	if err != nil {
 		return nil, err
 	}
@@ -3223,6 +3836,7 @@ func (c *CoursesPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3257,9 +3871,11 @@ func (c *CoursesPatchCall) Do(opts ...googleapi.CallOption) (*Course, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3312,8 +3928,7 @@ func (c *CoursesUpdateCall) Header() http.Header {
 
 func (c *CoursesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.course)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.course)
 	if err != nil {
 		return nil, err
 	}
@@ -3329,6 +3944,7 @@ func (c *CoursesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3363,9 +3979,11 @@ func (c *CoursesUpdateCall) Do(opts ...googleapi.CallOption) (*Course, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3420,8 +4038,7 @@ func (c *CoursesAliasesCreateCall) Header() http.Header {
 
 func (c *CoursesAliasesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.coursealias)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.coursealias)
 	if err != nil {
 		return nil, err
 	}
@@ -3437,6 +4054,7 @@ func (c *CoursesAliasesCreateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.aliases.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3471,9 +4089,11 @@ func (c *CoursesAliasesCreateCall) Do(opts ...googleapi.CallOption) (*CourseAlia
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.aliases.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3528,12 +4148,11 @@ func (c *CoursesAliasesDeleteCall) Header() http.Header {
 
 func (c *CoursesAliasesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/aliases/{alias}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3542,6 +4161,7 @@ func (c *CoursesAliasesDeleteCall) doRequest(alt string) (*http.Response, error)
 		"courseId": c.courseId,
 		"alias":    c.aliasid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.aliases.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3576,9 +4196,11 @@ func (c *CoursesAliasesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.aliases.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3657,12 +4279,11 @@ func (c *CoursesAliasesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/aliases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3670,6 +4291,7 @@ func (c *CoursesAliasesListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.aliases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3705,9 +4327,11 @@ func (c *CoursesAliasesListCall) Do(opts ...googleapi.CallOption) (*ListCourseAl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.aliases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3783,8 +4407,7 @@ func (c *CoursesAnnouncementsCreateCall) Header() http.Header {
 
 func (c *CoursesAnnouncementsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.announcement)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.announcement)
 	if err != nil {
 		return nil, err
 	}
@@ -3800,6 +4423,7 @@ func (c *CoursesAnnouncementsCreateCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3834,9 +4458,11 @@ func (c *CoursesAnnouncementsCreateCall) Do(opts ...googleapi.CallOption) (*Anno
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3895,12 +4521,11 @@ func (c *CoursesAnnouncementsDeleteCall) Header() http.Header {
 
 func (c *CoursesAnnouncementsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3909,6 +4534,7 @@ func (c *CoursesAnnouncementsDeleteCall) doRequest(alt string) (*http.Response, 
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3943,9 +4569,11 @@ func (c *CoursesAnnouncementsDeleteCall) Do(opts ...googleapi.CallOption) (*Empt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4011,12 +4639,11 @@ func (c *CoursesAnnouncementsGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4025,6 +4652,7 @@ func (c *CoursesAnnouncementsGetCall) doRequest(alt string) (*http.Response, err
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4059,9 +4687,160 @@ func (c *CoursesAnnouncementsGetCall) Do(opts ...googleapi.CallOption) (*Announc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesAnnouncementsGetAddOnContextCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetAddOnContext: Gets metadata for Classroom add-ons in the context of a
+// specific post. To maintain the integrity of its own data and permissions
+// model, an add-on should call this to validate query parameters and the
+// requesting user's role whenever the add-on is opened in an iframe
+// (https://developers.google.com/classroom/add-ons/get-started/iframes/iframes-overview).
+// This method returns the following error codes: * `PERMISSION_DENIED` for
+// access errors. * `INVALID_ARGUMENT` if the request is malformed. *
+// `NOT_FOUND` if one of the identified resources does not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesAnnouncementsService) GetAddOnContext(courseId string, itemId string) *CoursesAnnouncementsGetAddOnContextCall {
+	c := &CoursesAnnouncementsGetAddOnContextCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	return c
+}
+
+// AddOnToken sets the optional parameter "addOnToken": Token that authorizes
+// the request. The token is passed as a query parameter when the user is
+// redirected from Classroom to the add-on's URL. The authorization token is
+// required when neither of the following is true: * The add-on has attachments
+// on the post. * The developer project issuing the request is the same project
+// that created the post.
+func (c *CoursesAnnouncementsGetAddOnContextCall) AddOnToken(addOnToken string) *CoursesAnnouncementsGetAddOnContextCall {
+	c.urlParams_.Set("addOnToken", addOnToken)
+	return c
+}
+
+// AttachmentId sets the optional parameter "attachmentId": The identifier of
+// the attachment. This field is required for all requests except when the user
+// is in the Attachment Discovery iframe
+// (https://developers.google.com/classroom/add-ons/get-started/iframes/attachment-discovery-iframe).
+func (c *CoursesAnnouncementsGetAddOnContextCall) AttachmentId(attachmentId string) *CoursesAnnouncementsGetAddOnContextCall {
+	c.urlParams_.Set("attachmentId", attachmentId)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesAnnouncementsGetAddOnContextCall) PostId(postId string) *CoursesAnnouncementsGetAddOnContextCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesAnnouncementsGetAddOnContextCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsGetAddOnContextCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesAnnouncementsGetAddOnContextCall) IfNoneMatch(entityTag string) *CoursesAnnouncementsGetAddOnContextCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesAnnouncementsGetAddOnContextCall) Context(ctx context.Context) *CoursesAnnouncementsGetAddOnContextCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesAnnouncementsGetAddOnContextCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsGetAddOnContextCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{itemId}/addOnContext")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.getAddOnContext", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.getAddOnContext" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnContext.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesAnnouncementsGetAddOnContextCall) Do(opts ...googleapi.CallOption) (*AddOnContext, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnContext{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.getAddOnContext", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4181,12 +4960,11 @@ func (c *CoursesAnnouncementsListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4194,6 +4972,7 @@ func (c *CoursesAnnouncementsListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4229,9 +5008,11 @@ func (c *CoursesAnnouncementsListCall) Do(opts ...googleapi.CallOption) (*ListAn
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4309,8 +5090,7 @@ func (c *CoursesAnnouncementsModifyAssigneesCall) Header() http.Header {
 
 func (c *CoursesAnnouncementsModifyAssigneesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifyannouncementassigneesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifyannouncementassigneesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4327,6 +5107,7 @@ func (c *CoursesAnnouncementsModifyAssigneesCall) doRequest(alt string) (*http.R
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.modifyAssignees", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4361,9 +5142,11 @@ func (c *CoursesAnnouncementsModifyAssigneesCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.modifyAssignees", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4433,8 +5216,7 @@ func (c *CoursesAnnouncementsPatchCall) Header() http.Header {
 
 func (c *CoursesAnnouncementsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.announcement)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.announcement)
 	if err != nil {
 		return nil, err
 	}
@@ -4451,6 +5233,7 @@ func (c *CoursesAnnouncementsPatchCall) doRequest(alt string) (*http.Response, e
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4485,9 +5268,698 @@ func (c *CoursesAnnouncementsPatchCall) Do(opts ...googleapi.CallOption) (*Annou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesAnnouncementsAddOnAttachmentsCreateCall struct {
+	s               *Service
+	courseId        string
+	itemId          string
+	addonattachment *AddOnAttachment
+	urlParams_      gensupport.URLParams
+	ctx_            context.Context
+	header_         http.Header
+}
+
+// Create: Creates an add-on attachment under a post. Requires the add-on to
+// have permission to create new attachments on the post. This method returns
+// the following error codes: * `PERMISSION_DENIED` for access errors. *
+// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of the
+// identified resources does not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which to create the attachment. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesAnnouncementsAddOnAttachmentsService) Create(courseId string, itemId string, addonattachment *AddOnAttachment) *CoursesAnnouncementsAddOnAttachmentsCreateCall {
+	c := &CoursesAnnouncementsAddOnAttachmentsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.addonattachment = addonattachment
+	return c
+}
+
+// AddOnToken sets the optional parameter "addOnToken": Token that authorizes
+// the request. The token is passed as a query parameter when the user is
+// redirected from Classroom to the add-on's URL. This authorization token is
+// required for in-Classroom attachment creation but optional for partner-first
+// attachment creation. Returns an error if not provided for partner-first
+// attachment creation and the developer projects that created the attachment
+// and its parent stream item do not match.
+func (c *CoursesAnnouncementsAddOnAttachmentsCreateCall) AddOnToken(addOnToken string) *CoursesAnnouncementsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("addOnToken", addOnToken)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesAnnouncementsAddOnAttachmentsCreateCall) PostId(postId string) *CoursesAnnouncementsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesAnnouncementsAddOnAttachmentsCreateCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesAnnouncementsAddOnAttachmentsCreateCall) Context(ctx context.Context) *CoursesAnnouncementsAddOnAttachmentsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesAnnouncementsAddOnAttachmentsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsAddOnAttachmentsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{itemId}/addOnAttachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.addOnAttachments.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesAnnouncementsAddOnAttachmentsCreateCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesAnnouncementsAddOnAttachmentsDeleteCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	attachmentId string
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Delete: Deletes an add-on attachment. Requires the add-on to have been the
+// original creator of the attachment. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+//   - attachmentId: Identifier of the attachment.
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesAnnouncementsAddOnAttachmentsService) Delete(courseId string, itemId string, attachmentId string) *CoursesAnnouncementsAddOnAttachmentsDeleteCall {
+	c := &CoursesAnnouncementsAddOnAttachmentsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesAnnouncementsAddOnAttachmentsDeleteCall) PostId(postId string) *CoursesAnnouncementsAddOnAttachmentsDeleteCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesAnnouncementsAddOnAttachmentsDeleteCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsAddOnAttachmentsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesAnnouncementsAddOnAttachmentsDeleteCall) Context(ctx context.Context) *CoursesAnnouncementsAddOnAttachmentsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesAnnouncementsAddOnAttachmentsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsAddOnAttachmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.addOnAttachments.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesAnnouncementsAddOnAttachmentsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesAnnouncementsAddOnAttachmentsGetCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	attachmentId string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns an add-on attachment. Requires the add-on requesting the
+// attachment to be the original creator of the attachment. This method returns
+// the following error codes: * `PERMISSION_DENIED` for access errors. *
+// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of the
+// identified resources does not exist.
+//
+//   - attachmentId: Identifier of the attachment.
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesAnnouncementsAddOnAttachmentsService) Get(courseId string, itemId string, attachmentId string) *CoursesAnnouncementsAddOnAttachmentsGetCall {
+	c := &CoursesAnnouncementsAddOnAttachmentsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesAnnouncementsAddOnAttachmentsGetCall) PostId(postId string) *CoursesAnnouncementsAddOnAttachmentsGetCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesAnnouncementsAddOnAttachmentsGetCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsAddOnAttachmentsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesAnnouncementsAddOnAttachmentsGetCall) IfNoneMatch(entityTag string) *CoursesAnnouncementsAddOnAttachmentsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesAnnouncementsAddOnAttachmentsGetCall) Context(ctx context.Context) *CoursesAnnouncementsAddOnAttachmentsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesAnnouncementsAddOnAttachmentsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsAddOnAttachmentsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.addOnAttachments.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesAnnouncementsAddOnAttachmentsGetCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesAnnouncementsAddOnAttachmentsListCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns all attachments created by an add-on under the post. Requires
+// the add-on to have active attachments on the post or have permission to
+// create new attachments on the post. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` whose attachments should be enumerated. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesAnnouncementsAddOnAttachmentsService) List(courseId string, itemId string) *CoursesAnnouncementsAddOnAttachmentsListCall {
+	c := &CoursesAnnouncementsAddOnAttachmentsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// attachments to return. The service may return fewer than this value. If
+// unspecified, at most 20 attachments will be returned. The maximum value is
+// 20; values above 20 will be coerced to 20.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) PageSize(pageSize int64) *CoursesAnnouncementsAddOnAttachmentsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token, received
+// from a previous `ListAddOnAttachments` call. Provide this to retrieve the
+// subsequent page. When paginating, all other parameters provided to
+// `ListAddOnAttachments` must match the call that provided the page token.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) PageToken(pageToken string) *CoursesAnnouncementsAddOnAttachmentsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Identifier of the post under
+// the course whose attachments to enumerate. Deprecated, use `item_id`
+// instead.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) PostId(postId string) *CoursesAnnouncementsAddOnAttachmentsListCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsAddOnAttachmentsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) IfNoneMatch(entityTag string) *CoursesAnnouncementsAddOnAttachmentsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) Context(ctx context.Context) *CoursesAnnouncementsAddOnAttachmentsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{itemId}/addOnAttachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.addOnAttachments.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListAddOnAttachmentsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) Do(opts ...googleapi.CallOption) (*ListAddOnAttachmentsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListAddOnAttachmentsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *CoursesAnnouncementsAddOnAttachmentsListCall) Pages(ctx context.Context, f func(*ListAddOnAttachmentsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type CoursesAnnouncementsAddOnAttachmentsPatchCall struct {
+	s               *Service
+	courseId        string
+	itemId          string
+	attachmentId    string
+	addonattachment *AddOnAttachment
+	urlParams_      gensupport.URLParams
+	ctx_            context.Context
+	header_         http.Header
+}
+
+// Patch: Updates an add-on attachment. Requires the add-on to have been the
+// original creator of the attachment. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+// - attachmentId: Identifier of the attachment.
+// - courseId: Identifier of the course.
+// - itemId: Identifier of the post under which the attachment is attached.
+func (r *CoursesAnnouncementsAddOnAttachmentsService) Patch(courseId string, itemId string, attachmentId string, addonattachment *AddOnAttachment) *CoursesAnnouncementsAddOnAttachmentsPatchCall {
+	c := &CoursesAnnouncementsAddOnAttachmentsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	c.addonattachment = addonattachment
+	return c
+}
+
+// PostId sets the optional parameter "postId": Required. Identifier of the
+// post under which the attachment is attached.
+func (c *CoursesAnnouncementsAddOnAttachmentsPatchCall) PostId(postId string) *CoursesAnnouncementsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. Mask that
+// identifies which fields on the attachment to update. The update fails if
+// invalid fields are specified. If a field supports empty values, it can be
+// cleared by specifying it in the update mask and not in the `AddOnAttachment`
+// object. If a field that does not support empty values is included in the
+// update mask and not set in the `AddOnAttachment` object, an
+// `INVALID_ARGUMENT` error is returned. The following fields may be specified
+// by teachers: * `title` * `teacher_view_uri` * `student_view_uri` *
+// `student_work_review_uri` * `due_date` * `due_time` * `max_points`
+func (c *CoursesAnnouncementsAddOnAttachmentsPatchCall) UpdateMask(updateMask string) *CoursesAnnouncementsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesAnnouncementsAddOnAttachmentsPatchCall) Fields(s ...googleapi.Field) *CoursesAnnouncementsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesAnnouncementsAddOnAttachmentsPatchCall) Context(ctx context.Context) *CoursesAnnouncementsAddOnAttachmentsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesAnnouncementsAddOnAttachmentsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesAnnouncementsAddOnAttachmentsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/announcements/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.announcements.addOnAttachments.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesAnnouncementsAddOnAttachmentsPatchCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.announcements.addOnAttachments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4547,8 +6019,7 @@ func (c *CoursesCourseWorkCreateCall) Header() http.Header {
 
 func (c *CoursesCourseWorkCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.coursework)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.coursework)
 	if err != nil {
 		return nil, err
 	}
@@ -4564,6 +6035,7 @@ func (c *CoursesCourseWorkCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4598,9 +6070,11 @@ func (c *CoursesCourseWorkCreateCall) Do(opts ...googleapi.CallOption) (*CourseW
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4659,12 +6133,11 @@ func (c *CoursesCourseWorkDeleteCall) Header() http.Header {
 
 func (c *CoursesCourseWorkDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4673,6 +6146,7 @@ func (c *CoursesCourseWorkDeleteCall) doRequest(alt string) (*http.Response, err
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4707,9 +6181,11 @@ func (c *CoursesCourseWorkDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4775,12 +6251,11 @@ func (c *CoursesCourseWorkGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4789,6 +6264,7 @@ func (c *CoursesCourseWorkGetCall) doRequest(alt string) (*http.Response, error)
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4823,9 +6299,160 @@ func (c *CoursesCourseWorkGetCall) Do(opts ...googleapi.CallOption) (*CourseWork
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkGetAddOnContextCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetAddOnContext: Gets metadata for Classroom add-ons in the context of a
+// specific post. To maintain the integrity of its own data and permissions
+// model, an add-on should call this to validate query parameters and the
+// requesting user's role whenever the add-on is opened in an iframe
+// (https://developers.google.com/classroom/add-ons/get-started/iframes/iframes-overview).
+// This method returns the following error codes: * `PERMISSION_DENIED` for
+// access errors. * `INVALID_ARGUMENT` if the request is malformed. *
+// `NOT_FOUND` if one of the identified resources does not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkService) GetAddOnContext(courseId string, itemId string) *CoursesCourseWorkGetAddOnContextCall {
+	c := &CoursesCourseWorkGetAddOnContextCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	return c
+}
+
+// AddOnToken sets the optional parameter "addOnToken": Token that authorizes
+// the request. The token is passed as a query parameter when the user is
+// redirected from Classroom to the add-on's URL. The authorization token is
+// required when neither of the following is true: * The add-on has attachments
+// on the post. * The developer project issuing the request is the same project
+// that created the post.
+func (c *CoursesCourseWorkGetAddOnContextCall) AddOnToken(addOnToken string) *CoursesCourseWorkGetAddOnContextCall {
+	c.urlParams_.Set("addOnToken", addOnToken)
+	return c
+}
+
+// AttachmentId sets the optional parameter "attachmentId": The identifier of
+// the attachment. This field is required for all requests except when the user
+// is in the Attachment Discovery iframe
+// (https://developers.google.com/classroom/add-ons/get-started/iframes/attachment-discovery-iframe).
+func (c *CoursesCourseWorkGetAddOnContextCall) AttachmentId(attachmentId string) *CoursesCourseWorkGetAddOnContextCall {
+	c.urlParams_.Set("attachmentId", attachmentId)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkGetAddOnContextCall) PostId(postId string) *CoursesCourseWorkGetAddOnContextCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkGetAddOnContextCall) Fields(s ...googleapi.Field) *CoursesCourseWorkGetAddOnContextCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkGetAddOnContextCall) IfNoneMatch(entityTag string) *CoursesCourseWorkGetAddOnContextCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkGetAddOnContextCall) Context(ctx context.Context) *CoursesCourseWorkGetAddOnContextCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkGetAddOnContextCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkGetAddOnContextCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{itemId}/addOnContext")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.getAddOnContext", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.getAddOnContext" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnContext.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkGetAddOnContextCall) Do(opts ...googleapi.CallOption) (*AddOnContext, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnContext{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.getAddOnContext", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4945,12 +6572,11 @@ func (c *CoursesCourseWorkListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4958,6 +6584,7 @@ func (c *CoursesCourseWorkListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4993,9 +6620,11 @@ func (c *CoursesCourseWorkListCall) Do(opts ...googleapi.CallOption) (*ListCours
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5073,8 +6702,7 @@ func (c *CoursesCourseWorkModifyAssigneesCall) Header() http.Header {
 
 func (c *CoursesCourseWorkModifyAssigneesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifycourseworkassigneesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifycourseworkassigneesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5091,6 +6719,7 @@ func (c *CoursesCourseWorkModifyAssigneesCall) doRequest(alt string) (*http.Resp
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.modifyAssignees", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5125,9 +6754,11 @@ func (c *CoursesCourseWorkModifyAssigneesCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.modifyAssignees", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5152,7 +6783,7 @@ type CoursesCourseWorkPatchCall struct {
 // the requested modification to the student submission, or for access errors.
 // * `INVALID_ARGUMENT` if the request is malformed. * `FAILED_PRECONDITION` if
 // the requested course work has already been deleted. * `NOT_FOUND` if the
-// requested course, course work, or student submission does not exist.
+// requested course or course work does not exist.
 //
 //   - courseId: Identifier of the course. This identifier can be either the
 //     Classroom-assigned identifier or an alias.
@@ -5174,7 +6805,9 @@ func (r *CoursesCourseWorkService) Patch(courseId string, id string, coursework 
 // object, an `INVALID_ARGUMENT` error is returned. The following fields may be
 // specified by teachers: * `title` * `description` * `state` * `due_date` *
 // `due_time` * `max_points` * `scheduled_time` *
-// `submission_modification_mode` * `topic_id`
+// `submission_modification_mode` * `topic_id` * `grading_period_id` Available
+// in V1_20240401_PREVIEW
+// (https://developers.google.com/classroom/reference/preview) and later.
 func (c *CoursesCourseWorkPatchCall) UpdateMask(updateMask string) *CoursesCourseWorkPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
 	return c
@@ -5205,8 +6838,7 @@ func (c *CoursesCourseWorkPatchCall) Header() http.Header {
 
 func (c *CoursesCourseWorkPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.coursework)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.coursework)
 	if err != nil {
 		return nil, err
 	}
@@ -5223,6 +6855,7 @@ func (c *CoursesCourseWorkPatchCall) doRequest(alt string) (*http.Response, erro
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5257,9 +6890,1776 @@ func (c *CoursesCourseWorkPatchCall) Do(opts ...googleapi.CallOption) (*CourseWo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkUpdateRubricCall struct {
+	s            *Service
+	courseId     string
+	courseWorkId string
+	rubric       *Rubric
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// UpdateRubric: Updates a rubric. See google.classroom.v1.Rubric for details
+// of which fields can be updated. Rubric update capabilities are limited
+// (/classroom/rubrics/limitations) once grading has started. The requesting
+// user and course owner must have rubrics creation capabilities. For details,
+// see licensing requirements
+// (https://developers.google.com/classroom/rubrics/limitations#license-requirements).
+// This request must be made by the Google Cloud console of the OAuth client ID
+// (https://support.google.com/cloud/answer/6158849) used to create the parent
+// course work item. This method returns the following error codes: *
+// `PERMISSION_DENIED` if the requesting developer project didn't create the
+// corresponding course work, if the user isn't permitted to make the requested
+// modification to the rubric, or for access errors. This error code is also
+// returned if grading has already started on the rubric. * `INVALID_ARGUMENT`
+// if the request is malformed and for the following request error: *
+// `RubricCriteriaInvalidFormat` * `NOT_FOUND` if the requested course, course
+// work, or rubric doesn't exist or if the user doesn't have access to the
+// corresponding course work. * `INTERNAL` if grading has already started on
+// the rubric.
+//
+// - courseId: Identifier of the course.
+// - courseWorkId: Identifier of the course work.
+func (r *CoursesCourseWorkService) UpdateRubric(courseId string, courseWorkId string, rubric *Rubric) *CoursesCourseWorkUpdateRubricCall {
+	c := &CoursesCourseWorkUpdateRubricCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.courseWorkId = courseWorkId
+	c.rubric = rubric
+	return c
+}
+
+// Id sets the optional parameter "id": Identifier of the rubric.
+func (c *CoursesCourseWorkUpdateRubricCall) Id(id string) *CoursesCourseWorkUpdateRubricCall {
+	c.urlParams_.Set("id", id)
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Mask that identifies
+// which fields on the rubric to update. This field is required to do an
+// update. The update fails if invalid fields are specified. There are multiple
+// options to define the criteria of a rubric: the `source_spreadsheet_id` and
+// the `criteria` list. Only one of these can be used at a time to define a
+// rubric. The rubric `criteria` list is fully replaced by the rubric criteria
+// specified in the update request. For example, if a criterion or level is
+// missing from the request, it is deleted. New criteria and levels are added
+// and an ID is assigned. Existing criteria and levels retain the previously
+// assigned ID if the ID is specified in the request. The following fields can
+// be specified by teachers: * `criteria` * `source_spreadsheet_id`
+func (c *CoursesCourseWorkUpdateRubricCall) UpdateMask(updateMask string) *CoursesCourseWorkUpdateRubricCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkUpdateRubricCall) Fields(s ...googleapi.Field) *CoursesCourseWorkUpdateRubricCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkUpdateRubricCall) Context(ctx context.Context) *CoursesCourseWorkUpdateRubricCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkUpdateRubricCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkUpdateRubricCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rubric)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{courseWorkId}/rubric")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"courseWorkId": c.courseWorkId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.updateRubric", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.updateRubric" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Rubric.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkUpdateRubricCall) Do(opts ...googleapi.CallOption) (*Rubric, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Rubric{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.updateRubric", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkAddOnAttachmentsCreateCall struct {
+	s               *Service
+	courseId        string
+	itemId          string
+	addonattachment *AddOnAttachment
+	urlParams_      gensupport.URLParams
+	ctx_            context.Context
+	header_         http.Header
+}
+
+// Create: Creates an add-on attachment under a post. Requires the add-on to
+// have permission to create new attachments on the post. This method returns
+// the following error codes: * `PERMISSION_DENIED` for access errors. *
+// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of the
+// identified resources does not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which to create the attachment. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkAddOnAttachmentsService) Create(courseId string, itemId string, addonattachment *AddOnAttachment) *CoursesCourseWorkAddOnAttachmentsCreateCall {
+	c := &CoursesCourseWorkAddOnAttachmentsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.addonattachment = addonattachment
+	return c
+}
+
+// AddOnToken sets the optional parameter "addOnToken": Token that authorizes
+// the request. The token is passed as a query parameter when the user is
+// redirected from Classroom to the add-on's URL. This authorization token is
+// required for in-Classroom attachment creation but optional for partner-first
+// attachment creation. Returns an error if not provided for partner-first
+// attachment creation and the developer projects that created the attachment
+// and its parent stream item do not match.
+func (c *CoursesCourseWorkAddOnAttachmentsCreateCall) AddOnToken(addOnToken string) *CoursesCourseWorkAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("addOnToken", addOnToken)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkAddOnAttachmentsCreateCall) PostId(postId string) *CoursesCourseWorkAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkAddOnAttachmentsCreateCall) Fields(s ...googleapi.Field) *CoursesCourseWorkAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkAddOnAttachmentsCreateCall) Context(ctx context.Context) *CoursesCourseWorkAddOnAttachmentsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkAddOnAttachmentsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkAddOnAttachmentsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{itemId}/addOnAttachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.addOnAttachments.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesCourseWorkAddOnAttachmentsCreateCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkAddOnAttachmentsDeleteCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	attachmentId string
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Delete: Deletes an add-on attachment. Requires the add-on to have been the
+// original creator of the attachment. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+//   - attachmentId: Identifier of the attachment.
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkAddOnAttachmentsService) Delete(courseId string, itemId string, attachmentId string) *CoursesCourseWorkAddOnAttachmentsDeleteCall {
+	c := &CoursesCourseWorkAddOnAttachmentsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkAddOnAttachmentsDeleteCall) PostId(postId string) *CoursesCourseWorkAddOnAttachmentsDeleteCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkAddOnAttachmentsDeleteCall) Fields(s ...googleapi.Field) *CoursesCourseWorkAddOnAttachmentsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkAddOnAttachmentsDeleteCall) Context(ctx context.Context) *CoursesCourseWorkAddOnAttachmentsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkAddOnAttachmentsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkAddOnAttachmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.addOnAttachments.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkAddOnAttachmentsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkAddOnAttachmentsGetCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	attachmentId string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns an add-on attachment. Requires the add-on requesting the
+// attachment to be the original creator of the attachment. This method returns
+// the following error codes: * `PERMISSION_DENIED` for access errors. *
+// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of the
+// identified resources does not exist.
+//
+//   - attachmentId: Identifier of the attachment.
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkAddOnAttachmentsService) Get(courseId string, itemId string, attachmentId string) *CoursesCourseWorkAddOnAttachmentsGetCall {
+	c := &CoursesCourseWorkAddOnAttachmentsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkAddOnAttachmentsGetCall) PostId(postId string) *CoursesCourseWorkAddOnAttachmentsGetCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkAddOnAttachmentsGetCall) Fields(s ...googleapi.Field) *CoursesCourseWorkAddOnAttachmentsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkAddOnAttachmentsGetCall) IfNoneMatch(entityTag string) *CoursesCourseWorkAddOnAttachmentsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkAddOnAttachmentsGetCall) Context(ctx context.Context) *CoursesCourseWorkAddOnAttachmentsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkAddOnAttachmentsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkAddOnAttachmentsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.addOnAttachments.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesCourseWorkAddOnAttachmentsGetCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkAddOnAttachmentsListCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns all attachments created by an add-on under the post. Requires
+// the add-on to have active attachments on the post or have permission to
+// create new attachments on the post. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` whose attachments should be enumerated. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkAddOnAttachmentsService) List(courseId string, itemId string) *CoursesCourseWorkAddOnAttachmentsListCall {
+	c := &CoursesCourseWorkAddOnAttachmentsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// attachments to return. The service may return fewer than this value. If
+// unspecified, at most 20 attachments will be returned. The maximum value is
+// 20; values above 20 will be coerced to 20.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) PageSize(pageSize int64) *CoursesCourseWorkAddOnAttachmentsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token, received
+// from a previous `ListAddOnAttachments` call. Provide this to retrieve the
+// subsequent page. When paginating, all other parameters provided to
+// `ListAddOnAttachments` must match the call that provided the page token.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) PageToken(pageToken string) *CoursesCourseWorkAddOnAttachmentsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Identifier of the post under
+// the course whose attachments to enumerate. Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) PostId(postId string) *CoursesCourseWorkAddOnAttachmentsListCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) Fields(s ...googleapi.Field) *CoursesCourseWorkAddOnAttachmentsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) IfNoneMatch(entityTag string) *CoursesCourseWorkAddOnAttachmentsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) Context(ctx context.Context) *CoursesCourseWorkAddOnAttachmentsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{itemId}/addOnAttachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.addOnAttachments.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListAddOnAttachmentsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) Do(opts ...googleapi.CallOption) (*ListAddOnAttachmentsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListAddOnAttachmentsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *CoursesCourseWorkAddOnAttachmentsListCall) Pages(ctx context.Context, f func(*ListAddOnAttachmentsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type CoursesCourseWorkAddOnAttachmentsPatchCall struct {
+	s               *Service
+	courseId        string
+	itemId          string
+	attachmentId    string
+	addonattachment *AddOnAttachment
+	urlParams_      gensupport.URLParams
+	ctx_            context.Context
+	header_         http.Header
+}
+
+// Patch: Updates an add-on attachment. Requires the add-on to have been the
+// original creator of the attachment. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+// - attachmentId: Identifier of the attachment.
+// - courseId: Identifier of the course.
+// - itemId: Identifier of the post under which the attachment is attached.
+func (r *CoursesCourseWorkAddOnAttachmentsService) Patch(courseId string, itemId string, attachmentId string, addonattachment *AddOnAttachment) *CoursesCourseWorkAddOnAttachmentsPatchCall {
+	c := &CoursesCourseWorkAddOnAttachmentsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	c.addonattachment = addonattachment
+	return c
+}
+
+// PostId sets the optional parameter "postId": Required. Identifier of the
+// post under which the attachment is attached.
+func (c *CoursesCourseWorkAddOnAttachmentsPatchCall) PostId(postId string) *CoursesCourseWorkAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. Mask that
+// identifies which fields on the attachment to update. The update fails if
+// invalid fields are specified. If a field supports empty values, it can be
+// cleared by specifying it in the update mask and not in the `AddOnAttachment`
+// object. If a field that does not support empty values is included in the
+// update mask and not set in the `AddOnAttachment` object, an
+// `INVALID_ARGUMENT` error is returned. The following fields may be specified
+// by teachers: * `title` * `teacher_view_uri` * `student_view_uri` *
+// `student_work_review_uri` * `due_date` * `due_time` * `max_points`
+func (c *CoursesCourseWorkAddOnAttachmentsPatchCall) UpdateMask(updateMask string) *CoursesCourseWorkAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkAddOnAttachmentsPatchCall) Fields(s ...googleapi.Field) *CoursesCourseWorkAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkAddOnAttachmentsPatchCall) Context(ctx context.Context) *CoursesCourseWorkAddOnAttachmentsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkAddOnAttachmentsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkAddOnAttachmentsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.addOnAttachments.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesCourseWorkAddOnAttachmentsPatchCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	attachmentId string
+	submissionId string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns a student submission for an add-on attachment. This method
+// returns the following error codes: * `PERMISSION_DENIED` for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of
+// the identified resources does not exist.
+//
+//   - attachmentId: Identifier of the attachment.
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+//   - submissionId: Identifier of the student’s submission.
+func (r *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsService) Get(courseId string, itemId string, attachmentId string, submissionId string) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall {
+	c := &CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	c.submissionId = submissionId
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall) PostId(postId string) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall) Fields(s ...googleapi.Field) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall) IfNoneMatch(entityTag string) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall) Context(ctx context.Context) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{itemId}/addOnAttachments/{attachmentId}/studentSubmissions/{submissionId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+		"submissionId": c.submissionId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.studentSubmissions.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.addOnAttachments.studentSubmissions.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachmentStudentSubmission.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsGetCall) Do(opts ...googleapi.CallOption) (*AddOnAttachmentStudentSubmission, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachmentStudentSubmission{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.studentSubmissions.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall struct {
+	s                                *Service
+	courseId                         string
+	itemId                           string
+	attachmentId                     string
+	submissionId                     string
+	addonattachmentstudentsubmission *AddOnAttachmentStudentSubmission
+	urlParams_                       gensupport.URLParams
+	ctx_                             context.Context
+	header_                          http.Header
+}
+
+// Patch: Updates data associated with an add-on attachment submission.
+// Requires the add-on to have been the original creator of the attachment and
+// the attachment to have a positive `max_points` value set. This method
+// returns the following error codes: * `PERMISSION_DENIED` for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of
+// the identified resources does not exist.
+//
+//   - attachmentId: Identifier of the attachment.
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+//   - submissionId: Identifier of the student's submission.
+func (r *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsService) Patch(courseId string, itemId string, attachmentId string, submissionId string, addonattachmentstudentsubmission *AddOnAttachmentStudentSubmission) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall {
+	c := &CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	c.submissionId = submissionId
+	c.addonattachmentstudentsubmission = addonattachmentstudentsubmission
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall) PostId(postId string) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. Mask that
+// identifies which fields on the attachment to update. The update fails if
+// invalid fields are specified. If a field supports empty values, it can be
+// cleared by specifying it in the update mask and not in the
+// `AddOnAttachmentStudentSubmission` object. The following fields may be
+// specified by teachers: * `points_earned`
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall) UpdateMask(updateMask string) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall) Fields(s ...googleapi.Field) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall) Context(ctx context.Context) *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachmentstudentsubmission)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{itemId}/addOnAttachments/{attachmentId}/studentSubmissions/{submissionId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+		"submissionId": c.submissionId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.studentSubmissions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.addOnAttachments.studentSubmissions.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachmentStudentSubmission.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesCourseWorkAddOnAttachmentsStudentSubmissionsPatchCall) Do(opts ...googleapi.CallOption) (*AddOnAttachmentStudentSubmission, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachmentStudentSubmission{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.addOnAttachments.studentSubmissions.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkRubricsCreateCall struct {
+	s            *Service
+	courseId     string
+	courseWorkId string
+	rubric       *Rubric
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Create: Creates a rubric. The requesting user and course owner must have
+// rubrics creation capabilities. For details, see licensing requirements
+// (https://developers.google.com/classroom/rubrics/limitations#license-requirements).
+// For further details, see Rubrics structure and known limitations
+// (/classroom/rubrics/limitations). This request must be made by the Google
+// Cloud console of the OAuth client ID
+// (https://support.google.com/cloud/answer/6158849) used to create the parent
+// course work item. This method returns the following error codes: *
+// `PERMISSION_DENIED` if the requesting user isn't permitted to create rubrics
+// for course work in the requested course. * `INTERNAL` if the request has
+// insufficient OAuth scopes. * `INVALID_ARGUMENT` if the request is malformed
+// and for the following request error: * `RubricCriteriaInvalidFormat` *
+// `NOT_FOUND` if the requested course or course work don't exist or the user
+// doesn't have access to the course or course work. * `FAILED_PRECONDITION`
+// for the following request error: * `AttachmentNotVisible`
+//
+// - courseId: Identifier of the course.
+// - courseWorkId: Identifier of the course work.
+func (r *CoursesCourseWorkRubricsService) Create(courseId string, courseWorkId string, rubric *Rubric) *CoursesCourseWorkRubricsCreateCall {
+	c := &CoursesCourseWorkRubricsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.courseWorkId = courseWorkId
+	c.rubric = rubric
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkRubricsCreateCall) Fields(s ...googleapi.Field) *CoursesCourseWorkRubricsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkRubricsCreateCall) Context(ctx context.Context) *CoursesCourseWorkRubricsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkRubricsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkRubricsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rubric)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{courseWorkId}/rubrics")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"courseWorkId": c.courseWorkId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.rubrics.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Rubric.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkRubricsCreateCall) Do(opts ...googleapi.CallOption) (*Rubric, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Rubric{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkRubricsDeleteCall struct {
+	s            *Service
+	courseId     string
+	courseWorkId string
+	id           string
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Delete: Deletes a rubric. The requesting user and course owner must have
+// rubrics creation capabilities. For details, see licensing requirements
+// (https://developers.google.com/classroom/rubrics/limitations#license-requirements).
+// This request must be made by the Google Cloud console of the OAuth client ID
+// (https://support.google.com/cloud/answer/6158849) used to create the
+// corresponding rubric. This method returns the following error codes: *
+// `PERMISSION_DENIED` if the requesting developer project didn't create the
+// corresponding rubric, or if the requesting user isn't permitted to delete
+// the requested rubric. * `NOT_FOUND` if no rubric exists with the requested
+// ID or the user does not have access to the course, course work, or rubric. *
+// `INVALID_ARGUMENT` if grading has already started on the rubric.
+//
+// - courseId: Identifier of the course.
+// - courseWorkId: Identifier of the course work.
+// - id: Identifier of the rubric.
+func (r *CoursesCourseWorkRubricsService) Delete(courseId string, courseWorkId string, id string) *CoursesCourseWorkRubricsDeleteCall {
+	c := &CoursesCourseWorkRubricsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.courseWorkId = courseWorkId
+	c.id = id
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkRubricsDeleteCall) Fields(s ...googleapi.Field) *CoursesCourseWorkRubricsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkRubricsDeleteCall) Context(ctx context.Context) *CoursesCourseWorkRubricsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkRubricsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkRubricsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{courseWorkId}/rubrics/{id}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"courseWorkId": c.courseWorkId,
+		"id":           c.id,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.rubrics.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkRubricsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkRubricsGetCall struct {
+	s            *Service
+	courseId     string
+	courseWorkId string
+	id           string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns a rubric. This method returns the following error codes: *
+// `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the request
+// is malformed. * `NOT_FOUND` if the requested course, course work, or rubric
+// doesn't exist or if the user doesn't have access to the corresponding course
+// work.
+//
+// - courseId: Identifier of the course.
+// - courseWorkId: Identifier of the course work.
+// - id: Identifier of the rubric.
+func (r *CoursesCourseWorkRubricsService) Get(courseId string, courseWorkId string, id string) *CoursesCourseWorkRubricsGetCall {
+	c := &CoursesCourseWorkRubricsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.courseWorkId = courseWorkId
+	c.id = id
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkRubricsGetCall) Fields(s ...googleapi.Field) *CoursesCourseWorkRubricsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkRubricsGetCall) IfNoneMatch(entityTag string) *CoursesCourseWorkRubricsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkRubricsGetCall) Context(ctx context.Context) *CoursesCourseWorkRubricsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkRubricsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkRubricsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{courseWorkId}/rubrics/{id}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"courseWorkId": c.courseWorkId,
+		"id":           c.id,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.rubrics.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Rubric.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkRubricsGetCall) Do(opts ...googleapi.CallOption) (*Rubric, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Rubric{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkRubricsListCall struct {
+	s            *Service
+	courseId     string
+	courseWorkId string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns a list of rubrics that the requester is permitted to view.
+// This method returns the following error codes: * `PERMISSION_DENIED` for
+// access errors. * `INVALID_ARGUMENT` if the request is malformed. *
+// `NOT_FOUND` if the requested course or course work doesn't exist or if the
+// user doesn't have access to the corresponding course work.
+//
+// - courseId: Identifier of the course.
+// - courseWorkId: Identifier of the course work.
+func (r *CoursesCourseWorkRubricsService) List(courseId string, courseWorkId string) *CoursesCourseWorkRubricsListCall {
+	c := &CoursesCourseWorkRubricsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.courseWorkId = courseWorkId
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// rubrics to return. If unspecified, at most 1 rubric is returned. The maximum
+// value is 1; values above 1 are coerced to 1.
+func (c *CoursesCourseWorkRubricsListCall) PageSize(pageSize int64) *CoursesCourseWorkRubricsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": nextPageToken value
+// returned from a previous list call, indicating that the subsequent page of
+// results should be returned. The list request must be otherwise identical to
+// the one that resulted in this token.
+func (c *CoursesCourseWorkRubricsListCall) PageToken(pageToken string) *CoursesCourseWorkRubricsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkRubricsListCall) Fields(s ...googleapi.Field) *CoursesCourseWorkRubricsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkRubricsListCall) IfNoneMatch(entityTag string) *CoursesCourseWorkRubricsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkRubricsListCall) Context(ctx context.Context) *CoursesCourseWorkRubricsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkRubricsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkRubricsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{courseWorkId}/rubrics")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"courseWorkId": c.courseWorkId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.rubrics.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListRubricsResponse.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesCourseWorkRubricsListCall) Do(opts ...googleapi.CallOption) (*ListRubricsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListRubricsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *CoursesCourseWorkRubricsListCall) Pages(ctx context.Context, f func(*ListRubricsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type CoursesCourseWorkRubricsPatchCall struct {
+	s            *Service
+	courseId     string
+	courseWorkId string
+	id           string
+	rubric       *Rubric
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Patch: Updates a rubric. See google.classroom.v1.Rubric for details of which
+// fields can be updated. Rubric update capabilities are limited
+// (/classroom/rubrics/limitations) once grading has started. The requesting
+// user and course owner must have rubrics creation capabilities. For details,
+// see licensing requirements
+// (https://developers.google.com/classroom/rubrics/limitations#license-requirements).
+// This request must be made by the Google Cloud console of the OAuth client ID
+// (https://support.google.com/cloud/answer/6158849) used to create the parent
+// course work item. This method returns the following error codes: *
+// `PERMISSION_DENIED` if the requesting developer project didn't create the
+// corresponding course work, if the user isn't permitted to make the requested
+// modification to the rubric, or for access errors. This error code is also
+// returned if grading has already started on the rubric. * `INVALID_ARGUMENT`
+// if the request is malformed and for the following request error: *
+// `RubricCriteriaInvalidFormat` * `NOT_FOUND` if the requested course, course
+// work, or rubric doesn't exist or if the user doesn't have access to the
+// corresponding course work. * `INTERNAL` if grading has already started on
+// the rubric.
+//
+// - courseId: Identifier of the course.
+// - courseWorkId: Identifier of the course work.
+// - id: Optional. Identifier of the rubric.
+func (r *CoursesCourseWorkRubricsService) Patch(courseId string, courseWorkId string, id string, rubric *Rubric) *CoursesCourseWorkRubricsPatchCall {
+	c := &CoursesCourseWorkRubricsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.courseWorkId = courseWorkId
+	c.id = id
+	c.rubric = rubric
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Mask that identifies
+// which fields on the rubric to update. This field is required to do an
+// update. The update fails if invalid fields are specified. There are multiple
+// options to define the criteria of a rubric: the `source_spreadsheet_id` and
+// the `criteria` list. Only one of these can be used at a time to define a
+// rubric. The rubric `criteria` list is fully replaced by the rubric criteria
+// specified in the update request. For example, if a criterion or level is
+// missing from the request, it is deleted. New criteria and levels are added
+// and an ID is assigned. Existing criteria and levels retain the previously
+// assigned ID if the ID is specified in the request. The following fields can
+// be specified by teachers: * `criteria` * `source_spreadsheet_id`
+func (c *CoursesCourseWorkRubricsPatchCall) UpdateMask(updateMask string) *CoursesCourseWorkRubricsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkRubricsPatchCall) Fields(s ...googleapi.Field) *CoursesCourseWorkRubricsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkRubricsPatchCall) Context(ctx context.Context) *CoursesCourseWorkRubricsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkRubricsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkRubricsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.rubric)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{courseWorkId}/rubrics/{id}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"courseWorkId": c.courseWorkId,
+		"id":           c.id,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWork.rubrics.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Rubric.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkRubricsPatchCall) Do(opts ...googleapi.CallOption) (*Rubric, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Rubric{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.rubrics.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5328,12 +8728,11 @@ func (c *CoursesCourseWorkStudentSubmissionsGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{courseWorkId}/studentSubmissions/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5343,6 +8742,7 @@ func (c *CoursesCourseWorkStudentSubmissionsGetCall) doRequest(alt string) (*htt
 		"courseWorkId": c.courseWorkId,
 		"id":           c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5378,9 +8778,11 @@ func (c *CoursesCourseWorkStudentSubmissionsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5519,12 +8921,11 @@ func (c *CoursesCourseWorkStudentSubmissionsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWork/{courseWorkId}/studentSubmissions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5533,6 +8934,7 @@ func (c *CoursesCourseWorkStudentSubmissionsListCall) doRequest(alt string) (*ht
 		"courseId":     c.courseId,
 		"courseWorkId": c.courseWorkId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5568,9 +8970,11 @@ func (c *CoursesCourseWorkStudentSubmissionsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5656,8 +9060,7 @@ func (c *CoursesCourseWorkStudentSubmissionsModifyAttachmentsCall) Header() http
 
 func (c *CoursesCourseWorkStudentSubmissionsModifyAttachmentsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifyattachmentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifyattachmentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5675,6 +9078,7 @@ func (c *CoursesCourseWorkStudentSubmissionsModifyAttachmentsCall) doRequest(alt
 		"courseWorkId": c.courseWorkId,
 		"id":           c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.modifyAttachments", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5710,9 +9114,11 @@ func (c *CoursesCourseWorkStudentSubmissionsModifyAttachmentsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.modifyAttachments", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5787,8 +9193,7 @@ func (c *CoursesCourseWorkStudentSubmissionsPatchCall) Header() http.Header {
 
 func (c *CoursesCourseWorkStudentSubmissionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.studentsubmission)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.studentsubmission)
 	if err != nil {
 		return nil, err
 	}
@@ -5806,6 +9211,7 @@ func (c *CoursesCourseWorkStudentSubmissionsPatchCall) doRequest(alt string) (*h
 		"courseWorkId": c.courseWorkId,
 		"id":           c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5841,9 +9247,11 @@ func (c *CoursesCourseWorkStudentSubmissionsPatchCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5911,8 +9319,7 @@ func (c *CoursesCourseWorkStudentSubmissionsReclaimCall) Header() http.Header {
 
 func (c *CoursesCourseWorkStudentSubmissionsReclaimCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reclaimstudentsubmissionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reclaimstudentsubmissionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5930,6 +9337,7 @@ func (c *CoursesCourseWorkStudentSubmissionsReclaimCall) doRequest(alt string) (
 		"courseWorkId": c.courseWorkId,
 		"id":           c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.reclaim", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5964,9 +9372,11 @@ func (c *CoursesCourseWorkStudentSubmissionsReclaimCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.reclaim", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6033,8 +9443,7 @@ func (c *CoursesCourseWorkStudentSubmissionsReturnCall) Header() http.Header {
 
 func (c *CoursesCourseWorkStudentSubmissionsReturnCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.returnstudentsubmissionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.returnstudentsubmissionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6052,6 +9461,7 @@ func (c *CoursesCourseWorkStudentSubmissionsReturnCall) doRequest(alt string) (*
 		"courseWorkId": c.courseWorkId,
 		"id":           c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.return", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6086,9 +9496,11 @@ func (c *CoursesCourseWorkStudentSubmissionsReturnCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.return", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6154,8 +9566,7 @@ func (c *CoursesCourseWorkStudentSubmissionsTurnInCall) Header() http.Header {
 
 func (c *CoursesCourseWorkStudentSubmissionsTurnInCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.turninstudentsubmissionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.turninstudentsubmissionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6173,6 +9584,7 @@ func (c *CoursesCourseWorkStudentSubmissionsTurnInCall) doRequest(alt string) (*
 		"courseWorkId": c.courseWorkId,
 		"id":           c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.turnIn", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6207,9 +9619,11 @@ func (c *CoursesCourseWorkStudentSubmissionsTurnInCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWork.studentSubmissions.turnIn", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6264,8 +9678,7 @@ func (c *CoursesCourseWorkMaterialsCreateCall) Header() http.Header {
 
 func (c *CoursesCourseWorkMaterialsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.courseworkmaterial)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.courseworkmaterial)
 	if err != nil {
 		return nil, err
 	}
@@ -6281,6 +9694,7 @@ func (c *CoursesCourseWorkMaterialsCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6316,9 +9730,11 @@ func (c *CoursesCourseWorkMaterialsCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6377,12 +9793,11 @@ func (c *CoursesCourseWorkMaterialsDeleteCall) Header() http.Header {
 
 func (c *CoursesCourseWorkMaterialsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6391,6 +9806,7 @@ func (c *CoursesCourseWorkMaterialsDeleteCall) doRequest(alt string) (*http.Resp
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6425,9 +9841,11 @@ func (c *CoursesCourseWorkMaterialsDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6493,12 +9911,11 @@ func (c *CoursesCourseWorkMaterialsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6507,6 +9924,7 @@ func (c *CoursesCourseWorkMaterialsGetCall) doRequest(alt string) (*http.Respons
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6542,9 +9960,160 @@ func (c *CoursesCourseWorkMaterialsGetCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkMaterialsGetAddOnContextCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetAddOnContext: Gets metadata for Classroom add-ons in the context of a
+// specific post. To maintain the integrity of its own data and permissions
+// model, an add-on should call this to validate query parameters and the
+// requesting user's role whenever the add-on is opened in an iframe
+// (https://developers.google.com/classroom/add-ons/get-started/iframes/iframes-overview).
+// This method returns the following error codes: * `PERMISSION_DENIED` for
+// access errors. * `INVALID_ARGUMENT` if the request is malformed. *
+// `NOT_FOUND` if one of the identified resources does not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkMaterialsService) GetAddOnContext(courseId string, itemId string) *CoursesCourseWorkMaterialsGetAddOnContextCall {
+	c := &CoursesCourseWorkMaterialsGetAddOnContextCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	return c
+}
+
+// AddOnToken sets the optional parameter "addOnToken": Token that authorizes
+// the request. The token is passed as a query parameter when the user is
+// redirected from Classroom to the add-on's URL. The authorization token is
+// required when neither of the following is true: * The add-on has attachments
+// on the post. * The developer project issuing the request is the same project
+// that created the post.
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) AddOnToken(addOnToken string) *CoursesCourseWorkMaterialsGetAddOnContextCall {
+	c.urlParams_.Set("addOnToken", addOnToken)
+	return c
+}
+
+// AttachmentId sets the optional parameter "attachmentId": The identifier of
+// the attachment. This field is required for all requests except when the user
+// is in the Attachment Discovery iframe
+// (https://developers.google.com/classroom/add-ons/get-started/iframes/attachment-discovery-iframe).
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) AttachmentId(attachmentId string) *CoursesCourseWorkMaterialsGetAddOnContextCall {
+	c.urlParams_.Set("attachmentId", attachmentId)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) PostId(postId string) *CoursesCourseWorkMaterialsGetAddOnContextCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) Fields(s ...googleapi.Field) *CoursesCourseWorkMaterialsGetAddOnContextCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) IfNoneMatch(entityTag string) *CoursesCourseWorkMaterialsGetAddOnContextCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) Context(ctx context.Context) *CoursesCourseWorkMaterialsGetAddOnContextCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials/{itemId}/addOnContext")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.getAddOnContext", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWorkMaterials.getAddOnContext" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnContext.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkMaterialsGetAddOnContextCall) Do(opts ...googleapi.CallOption) (*AddOnContext, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnContext{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.getAddOnContext", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6683,12 +10252,11 @@ func (c *CoursesCourseWorkMaterialsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6696,6 +10264,7 @@ func (c *CoursesCourseWorkMaterialsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6731,9 +10300,11 @@ func (c *CoursesCourseWorkMaterialsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6825,8 +10396,7 @@ func (c *CoursesCourseWorkMaterialsPatchCall) Header() http.Header {
 
 func (c *CoursesCourseWorkMaterialsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.courseworkmaterial)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.courseworkmaterial)
 	if err != nil {
 		return nil, err
 	}
@@ -6843,6 +10413,7 @@ func (c *CoursesCourseWorkMaterialsPatchCall) doRequest(alt string) (*http.Respo
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6878,9 +10449,1809 @@ func (c *CoursesCourseWorkMaterialsPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall struct {
+	s               *Service
+	courseId        string
+	itemId          string
+	addonattachment *AddOnAttachment
+	urlParams_      gensupport.URLParams
+	ctx_            context.Context
+	header_         http.Header
+}
+
+// Create: Creates an add-on attachment under a post. Requires the add-on to
+// have permission to create new attachments on the post. This method returns
+// the following error codes: * `PERMISSION_DENIED` for access errors. *
+// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of the
+// identified resources does not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which to create the attachment. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkMaterialsAddOnAttachmentsService) Create(courseId string, itemId string, addonattachment *AddOnAttachment) *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall {
+	c := &CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.addonattachment = addonattachment
+	return c
+}
+
+// AddOnToken sets the optional parameter "addOnToken": Token that authorizes
+// the request. The token is passed as a query parameter when the user is
+// redirected from Classroom to the add-on's URL. This authorization token is
+// required for in-Classroom attachment creation but optional for partner-first
+// attachment creation. Returns an error if not provided for partner-first
+// attachment creation and the developer projects that created the attachment
+// and its parent stream item do not match.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall) AddOnToken(addOnToken string) *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("addOnToken", addOnToken)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall) PostId(postId string) *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall) Fields(s ...googleapi.Field) *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall) Context(ctx context.Context) *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials/{itemId}/addOnAttachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWorkMaterials.addOnAttachments.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsCreateCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	attachmentId string
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Delete: Deletes an add-on attachment. Requires the add-on to have been the
+// original creator of the attachment. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+//   - attachmentId: Identifier of the attachment.
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkMaterialsAddOnAttachmentsService) Delete(courseId string, itemId string, attachmentId string) *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall {
+	c := &CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall) PostId(postId string) *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall) Fields(s ...googleapi.Field) *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall) Context(ctx context.Context) *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWorkMaterials.addOnAttachments.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkMaterialsAddOnAttachmentsGetCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	attachmentId string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns an add-on attachment. Requires the add-on requesting the
+// attachment to be the original creator of the attachment. This method returns
+// the following error codes: * `PERMISSION_DENIED` for access errors. *
+// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of the
+// identified resources does not exist.
+//
+//   - attachmentId: Identifier of the attachment.
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` under which the attachment is attached. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkMaterialsAddOnAttachmentsService) Get(courseId string, itemId string, attachmentId string) *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall {
+	c := &CoursesCourseWorkMaterialsAddOnAttachmentsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	return c
+}
+
+// PostId sets the optional parameter "postId": Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall) PostId(postId string) *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall) Fields(s ...googleapi.Field) *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall) IfNoneMatch(entityTag string) *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall) Context(ctx context.Context) *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWorkMaterials.addOnAttachments.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsGetCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesCourseWorkMaterialsAddOnAttachmentsListCall struct {
+	s            *Service
+	courseId     string
+	itemId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns all attachments created by an add-on under the post. Requires
+// the add-on to have active attachments on the post or have permission to
+// create new attachments on the post. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+//   - courseId: Identifier of the course.
+//   - itemId: Identifier of the `Announcement`, `CourseWork`, or
+//     `CourseWorkMaterial` whose attachments should be enumerated. This field is
+//     required, but is not marked as such while we are migrating from post_id.
+func (r *CoursesCourseWorkMaterialsAddOnAttachmentsService) List(courseId string, itemId string) *CoursesCourseWorkMaterialsAddOnAttachmentsListCall {
+	c := &CoursesCourseWorkMaterialsAddOnAttachmentsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// attachments to return. The service may return fewer than this value. If
+// unspecified, at most 20 attachments will be returned. The maximum value is
+// 20; values above 20 will be coerced to 20.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) PageSize(pageSize int64) *CoursesCourseWorkMaterialsAddOnAttachmentsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token, received
+// from a previous `ListAddOnAttachments` call. Provide this to retrieve the
+// subsequent page. When paginating, all other parameters provided to
+// `ListAddOnAttachments` must match the call that provided the page token.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) PageToken(pageToken string) *CoursesCourseWorkMaterialsAddOnAttachmentsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// PostId sets the optional parameter "postId": Identifier of the post under
+// the course whose attachments to enumerate. Deprecated, use `item_id`
+// instead.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) PostId(postId string) *CoursesCourseWorkMaterialsAddOnAttachmentsListCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) Fields(s ...googleapi.Field) *CoursesCourseWorkMaterialsAddOnAttachmentsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) IfNoneMatch(entityTag string) *CoursesCourseWorkMaterialsAddOnAttachmentsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) Context(ctx context.Context) *CoursesCourseWorkMaterialsAddOnAttachmentsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials/{itemId}/addOnAttachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"itemId":   c.itemId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWorkMaterials.addOnAttachments.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListAddOnAttachmentsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) Do(opts ...googleapi.CallOption) (*ListAddOnAttachmentsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListAddOnAttachmentsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsListCall) Pages(ctx context.Context, f func(*ListAddOnAttachmentsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall struct {
+	s               *Service
+	courseId        string
+	itemId          string
+	attachmentId    string
+	addonattachment *AddOnAttachment
+	urlParams_      gensupport.URLParams
+	ctx_            context.Context
+	header_         http.Header
+}
+
+// Patch: Updates an add-on attachment. Requires the add-on to have been the
+// original creator of the attachment. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+// - attachmentId: Identifier of the attachment.
+// - courseId: Identifier of the course.
+// - itemId: Identifier of the post under which the attachment is attached.
+func (r *CoursesCourseWorkMaterialsAddOnAttachmentsService) Patch(courseId string, itemId string, attachmentId string, addonattachment *AddOnAttachment) *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall {
+	c := &CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.itemId = itemId
+	c.attachmentId = attachmentId
+	c.addonattachment = addonattachment
+	return c
+}
+
+// PostId sets the optional parameter "postId": Required. Identifier of the
+// post under which the attachment is attached.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall) PostId(postId string) *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("postId", postId)
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. Mask that
+// identifies which fields on the attachment to update. The update fails if
+// invalid fields are specified. If a field supports empty values, it can be
+// cleared by specifying it in the update mask and not in the `AddOnAttachment`
+// object. If a field that does not support empty values is included in the
+// update mask and not set in the `AddOnAttachment` object, an
+// `INVALID_ARGUMENT` error is returned. The following fields may be specified
+// by teachers: * `title` * `teacher_view_uri` * `student_view_uri` *
+// `student_work_review_uri` * `due_date` * `due_time` * `max_points`
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall) UpdateMask(updateMask string) *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall) Fields(s ...googleapi.Field) *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall) Context(ctx context.Context) *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/courseWorkMaterials/{itemId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"itemId":       c.itemId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.courseWorkMaterials.addOnAttachments.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesCourseWorkMaterialsAddOnAttachmentsPatchCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.courseWorkMaterials.addOnAttachments.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesPostsGetAddOnContextCall struct {
+	s            *Service
+	courseId     string
+	postId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// GetAddOnContext: Gets metadata for Classroom add-ons in the context of a
+// specific post. To maintain the integrity of its own data and permissions
+// model, an add-on should call this to validate query parameters and the
+// requesting user's role whenever the add-on is opened in an iframe
+// (https://developers.google.com/classroom/add-ons/get-started/iframes/iframes-overview).
+// This method returns the following error codes: * `PERMISSION_DENIED` for
+// access errors. * `INVALID_ARGUMENT` if the request is malformed. *
+// `NOT_FOUND` if one of the identified resources does not exist.
+//
+// - courseId: Identifier of the course.
+// - postId: Optional. Deprecated, use `item_id` instead.
+func (r *CoursesPostsService) GetAddOnContext(courseId string, postId string) *CoursesPostsGetAddOnContextCall {
+	c := &CoursesPostsGetAddOnContextCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.postId = postId
+	return c
+}
+
+// AddOnToken sets the optional parameter "addOnToken": Token that authorizes
+// the request. The token is passed as a query parameter when the user is
+// redirected from Classroom to the add-on's URL. The authorization token is
+// required when neither of the following is true: * The add-on has attachments
+// on the post. * The developer project issuing the request is the same project
+// that created the post.
+func (c *CoursesPostsGetAddOnContextCall) AddOnToken(addOnToken string) *CoursesPostsGetAddOnContextCall {
+	c.urlParams_.Set("addOnToken", addOnToken)
+	return c
+}
+
+// AttachmentId sets the optional parameter "attachmentId": The identifier of
+// the attachment. This field is required for all requests except when the user
+// is in the Attachment Discovery iframe
+// (https://developers.google.com/classroom/add-ons/get-started/iframes/attachment-discovery-iframe).
+func (c *CoursesPostsGetAddOnContextCall) AttachmentId(attachmentId string) *CoursesPostsGetAddOnContextCall {
+	c.urlParams_.Set("attachmentId", attachmentId)
+	return c
+}
+
+// ItemId sets the optional parameter "itemId": Identifier of the
+// `Announcement`, `CourseWork`, or `CourseWorkMaterial` under which the
+// attachment is attached. This field is required, but is not marked as such
+// while we are migrating from post_id.
+func (c *CoursesPostsGetAddOnContextCall) ItemId(itemId string) *CoursesPostsGetAddOnContextCall {
+	c.urlParams_.Set("itemId", itemId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesPostsGetAddOnContextCall) Fields(s ...googleapi.Field) *CoursesPostsGetAddOnContextCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesPostsGetAddOnContextCall) IfNoneMatch(entityTag string) *CoursesPostsGetAddOnContextCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesPostsGetAddOnContextCall) Context(ctx context.Context) *CoursesPostsGetAddOnContextCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesPostsGetAddOnContextCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesPostsGetAddOnContextCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/posts/{postId}/addOnContext")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"postId":   c.postId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.posts.getAddOnContext", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.posts.getAddOnContext" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnContext.ServerResponse.Header or (if a response was returned at all)
+// in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesPostsGetAddOnContextCall) Do(opts ...googleapi.CallOption) (*AddOnContext, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnContext{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.posts.getAddOnContext", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesPostsAddOnAttachmentsCreateCall struct {
+	s               *Service
+	courseId        string
+	postId          string
+	addonattachment *AddOnAttachment
+	urlParams_      gensupport.URLParams
+	ctx_            context.Context
+	header_         http.Header
+}
+
+// Create: Creates an add-on attachment under a post. Requires the add-on to
+// have permission to create new attachments on the post. This method returns
+// the following error codes: * `PERMISSION_DENIED` for access errors. *
+// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of the
+// identified resources does not exist.
+//
+// - courseId: Identifier of the course.
+// - postId: Optional. Deprecated, use `item_id` instead.
+func (r *CoursesPostsAddOnAttachmentsService) Create(courseId string, postId string, addonattachment *AddOnAttachment) *CoursesPostsAddOnAttachmentsCreateCall {
+	c := &CoursesPostsAddOnAttachmentsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.postId = postId
+	c.addonattachment = addonattachment
+	return c
+}
+
+// AddOnToken sets the optional parameter "addOnToken": Token that authorizes
+// the request. The token is passed as a query parameter when the user is
+// redirected from Classroom to the add-on's URL. This authorization token is
+// required for in-Classroom attachment creation but optional for partner-first
+// attachment creation. Returns an error if not provided for partner-first
+// attachment creation and the developer projects that created the attachment
+// and its parent stream item do not match.
+func (c *CoursesPostsAddOnAttachmentsCreateCall) AddOnToken(addOnToken string) *CoursesPostsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("addOnToken", addOnToken)
+	return c
+}
+
+// ItemId sets the optional parameter "itemId": Identifier of the
+// `Announcement`, `CourseWork`, or `CourseWorkMaterial` under which to create
+// the attachment. This field is required, but is not marked as such while we
+// are migrating from post_id.
+func (c *CoursesPostsAddOnAttachmentsCreateCall) ItemId(itemId string) *CoursesPostsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("itemId", itemId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesPostsAddOnAttachmentsCreateCall) Fields(s ...googleapi.Field) *CoursesPostsAddOnAttachmentsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesPostsAddOnAttachmentsCreateCall) Context(ctx context.Context) *CoursesPostsAddOnAttachmentsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesPostsAddOnAttachmentsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesPostsAddOnAttachmentsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/posts/{postId}/addOnAttachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"postId":   c.postId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.posts.addOnAttachments.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesPostsAddOnAttachmentsCreateCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesPostsAddOnAttachmentsDeleteCall struct {
+	s            *Service
+	courseId     string
+	postId       string
+	attachmentId string
+	urlParams_   gensupport.URLParams
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Delete: Deletes an add-on attachment. Requires the add-on to have been the
+// original creator of the attachment. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+// - attachmentId: Identifier of the attachment.
+// - courseId: Identifier of the course.
+// - postId: Optional. Deprecated, use `item_id` instead.
+func (r *CoursesPostsAddOnAttachmentsService) Delete(courseId string, postId string, attachmentId string) *CoursesPostsAddOnAttachmentsDeleteCall {
+	c := &CoursesPostsAddOnAttachmentsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.postId = postId
+	c.attachmentId = attachmentId
+	return c
+}
+
+// ItemId sets the optional parameter "itemId": Identifier of the
+// `Announcement`, `CourseWork`, or `CourseWorkMaterial` under which the
+// attachment is attached. This field is required, but is not marked as such
+// while we are migrating from post_id.
+func (c *CoursesPostsAddOnAttachmentsDeleteCall) ItemId(itemId string) *CoursesPostsAddOnAttachmentsDeleteCall {
+	c.urlParams_.Set("itemId", itemId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesPostsAddOnAttachmentsDeleteCall) Fields(s ...googleapi.Field) *CoursesPostsAddOnAttachmentsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesPostsAddOnAttachmentsDeleteCall) Context(ctx context.Context) *CoursesPostsAddOnAttachmentsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesPostsAddOnAttachmentsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesPostsAddOnAttachmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/posts/{postId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"postId":       c.postId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.posts.addOnAttachments.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *CoursesPostsAddOnAttachmentsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesPostsAddOnAttachmentsGetCall struct {
+	s            *Service
+	courseId     string
+	postId       string
+	attachmentId string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns an add-on attachment. Requires the add-on requesting the
+// attachment to be the original creator of the attachment. This method returns
+// the following error codes: * `PERMISSION_DENIED` for access errors. *
+// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of the
+// identified resources does not exist.
+//
+// - attachmentId: Identifier of the attachment.
+// - courseId: Identifier of the course.
+// - postId: Optional. Deprecated, use `item_id` instead.
+func (r *CoursesPostsAddOnAttachmentsService) Get(courseId string, postId string, attachmentId string) *CoursesPostsAddOnAttachmentsGetCall {
+	c := &CoursesPostsAddOnAttachmentsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.postId = postId
+	c.attachmentId = attachmentId
+	return c
+}
+
+// ItemId sets the optional parameter "itemId": Identifier of the
+// `Announcement`, `CourseWork`, or `CourseWorkMaterial` under which the
+// attachment is attached. This field is required, but is not marked as such
+// while we are migrating from post_id.
+func (c *CoursesPostsAddOnAttachmentsGetCall) ItemId(itemId string) *CoursesPostsAddOnAttachmentsGetCall {
+	c.urlParams_.Set("itemId", itemId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesPostsAddOnAttachmentsGetCall) Fields(s ...googleapi.Field) *CoursesPostsAddOnAttachmentsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesPostsAddOnAttachmentsGetCall) IfNoneMatch(entityTag string) *CoursesPostsAddOnAttachmentsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesPostsAddOnAttachmentsGetCall) Context(ctx context.Context) *CoursesPostsAddOnAttachmentsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesPostsAddOnAttachmentsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesPostsAddOnAttachmentsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/posts/{postId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"postId":       c.postId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.posts.addOnAttachments.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesPostsAddOnAttachmentsGetCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesPostsAddOnAttachmentsListCall struct {
+	s            *Service
+	courseId     string
+	postId       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Returns all attachments created by an add-on under the post. Requires
+// the add-on to have active attachments on the post or have permission to
+// create new attachments on the post. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+//   - courseId: Identifier of the course.
+//   - postId: Optional. Identifier of the post under the course whose
+//     attachments to enumerate. Deprecated, use `item_id` instead.
+func (r *CoursesPostsAddOnAttachmentsService) List(courseId string, postId string) *CoursesPostsAddOnAttachmentsListCall {
+	c := &CoursesPostsAddOnAttachmentsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.postId = postId
+	return c
+}
+
+// ItemId sets the optional parameter "itemId": Identifier of the
+// `Announcement`, `CourseWork`, or `CourseWorkMaterial` whose attachments
+// should be enumerated. This field is required, but is not marked as such
+// while we are migrating from post_id.
+func (c *CoursesPostsAddOnAttachmentsListCall) ItemId(itemId string) *CoursesPostsAddOnAttachmentsListCall {
+	c.urlParams_.Set("itemId", itemId)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// attachments to return. The service may return fewer than this value. If
+// unspecified, at most 20 attachments will be returned. The maximum value is
+// 20; values above 20 will be coerced to 20.
+func (c *CoursesPostsAddOnAttachmentsListCall) PageSize(pageSize int64) *CoursesPostsAddOnAttachmentsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token, received
+// from a previous `ListAddOnAttachments` call. Provide this to retrieve the
+// subsequent page. When paginating, all other parameters provided to
+// `ListAddOnAttachments` must match the call that provided the page token.
+func (c *CoursesPostsAddOnAttachmentsListCall) PageToken(pageToken string) *CoursesPostsAddOnAttachmentsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesPostsAddOnAttachmentsListCall) Fields(s ...googleapi.Field) *CoursesPostsAddOnAttachmentsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesPostsAddOnAttachmentsListCall) IfNoneMatch(entityTag string) *CoursesPostsAddOnAttachmentsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesPostsAddOnAttachmentsListCall) Context(ctx context.Context) *CoursesPostsAddOnAttachmentsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesPostsAddOnAttachmentsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesPostsAddOnAttachmentsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/posts/{postId}/addOnAttachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId": c.courseId,
+		"postId":   c.postId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.posts.addOnAttachments.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListAddOnAttachmentsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesPostsAddOnAttachmentsListCall) Do(opts ...googleapi.CallOption) (*ListAddOnAttachmentsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListAddOnAttachmentsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *CoursesPostsAddOnAttachmentsListCall) Pages(ctx context.Context, f func(*ListAddOnAttachmentsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type CoursesPostsAddOnAttachmentsPatchCall struct {
+	s               *Service
+	courseId        string
+	postId          string
+	attachmentId    string
+	addonattachment *AddOnAttachment
+	urlParams_      gensupport.URLParams
+	ctx_            context.Context
+	header_         http.Header
+}
+
+// Patch: Updates an add-on attachment. Requires the add-on to have been the
+// original creator of the attachment. This method returns the following error
+// codes: * `PERMISSION_DENIED` for access errors. * `INVALID_ARGUMENT` if the
+// request is malformed. * `NOT_FOUND` if one of the identified resources does
+// not exist.
+//
+// - attachmentId: Identifier of the attachment.
+// - courseId: Identifier of the course.
+// - postId: Identifier of the post under which the attachment is attached.
+func (r *CoursesPostsAddOnAttachmentsService) Patch(courseId string, postId string, attachmentId string, addonattachment *AddOnAttachment) *CoursesPostsAddOnAttachmentsPatchCall {
+	c := &CoursesPostsAddOnAttachmentsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.postId = postId
+	c.attachmentId = attachmentId
+	c.addonattachment = addonattachment
+	return c
+}
+
+// ItemId sets the optional parameter "itemId": Identifier of the post under
+// which the attachment is attached.
+func (c *CoursesPostsAddOnAttachmentsPatchCall) ItemId(itemId string) *CoursesPostsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("itemId", itemId)
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. Mask that
+// identifies which fields on the attachment to update. The update fails if
+// invalid fields are specified. If a field supports empty values, it can be
+// cleared by specifying it in the update mask and not in the `AddOnAttachment`
+// object. If a field that does not support empty values is included in the
+// update mask and not set in the `AddOnAttachment` object, an
+// `INVALID_ARGUMENT` error is returned. The following fields may be specified
+// by teachers: * `title` * `teacher_view_uri` * `student_view_uri` *
+// `student_work_review_uri` * `due_date` * `due_time` * `max_points`
+func (c *CoursesPostsAddOnAttachmentsPatchCall) UpdateMask(updateMask string) *CoursesPostsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesPostsAddOnAttachmentsPatchCall) Fields(s ...googleapi.Field) *CoursesPostsAddOnAttachmentsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesPostsAddOnAttachmentsPatchCall) Context(ctx context.Context) *CoursesPostsAddOnAttachmentsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesPostsAddOnAttachmentsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesPostsAddOnAttachmentsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/posts/{postId}/addOnAttachments/{attachmentId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"postId":       c.postId,
+		"attachmentId": c.attachmentId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.posts.addOnAttachments.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachment.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *CoursesPostsAddOnAttachmentsPatchCall) Do(opts ...googleapi.CallOption) (*AddOnAttachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall struct {
+	s            *Service
+	courseId     string
+	postId       string
+	attachmentId string
+	submissionId string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Returns a student submission for an add-on attachment. This method
+// returns the following error codes: * `PERMISSION_DENIED` for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of
+// the identified resources does not exist.
+//
+// - attachmentId: Identifier of the attachment.
+// - courseId: Identifier of the course.
+// - postId: Optional. Deprecated, use `item_id` instead.
+// - submissionId: Identifier of the student’s submission.
+func (r *CoursesPostsAddOnAttachmentsStudentSubmissionsService) Get(courseId string, postId string, attachmentId string, submissionId string) *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall {
+	c := &CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.postId = postId
+	c.attachmentId = attachmentId
+	c.submissionId = submissionId
+	return c
+}
+
+// ItemId sets the optional parameter "itemId": Identifier of the
+// `Announcement`, `CourseWork`, or `CourseWorkMaterial` under which the
+// attachment is attached. This field is required, but is not marked as such
+// while we are migrating from post_id.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall) ItemId(itemId string) *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall {
+	c.urlParams_.Set("itemId", itemId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall) Fields(s ...googleapi.Field) *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall) IfNoneMatch(entityTag string) *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall) Context(ctx context.Context) *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/posts/{postId}/addOnAttachments/{attachmentId}/studentSubmissions/{submissionId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"postId":       c.postId,
+		"attachmentId": c.attachmentId,
+		"submissionId": c.submissionId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.studentSubmissions.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.posts.addOnAttachments.studentSubmissions.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachmentStudentSubmission.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsGetCall) Do(opts ...googleapi.CallOption) (*AddOnAttachmentStudentSubmission, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachmentStudentSubmission{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.studentSubmissions.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall struct {
+	s                                *Service
+	courseId                         string
+	postId                           string
+	attachmentId                     string
+	submissionId                     string
+	addonattachmentstudentsubmission *AddOnAttachmentStudentSubmission
+	urlParams_                       gensupport.URLParams
+	ctx_                             context.Context
+	header_                          http.Header
+}
+
+// Patch: Updates data associated with an add-on attachment submission.
+// Requires the add-on to have been the original creator of the attachment and
+// the attachment to have a positive `max_points` value set. This method
+// returns the following error codes: * `PERMISSION_DENIED` for access errors.
+// * `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if one of
+// the identified resources does not exist.
+//
+// - attachmentId: Identifier of the attachment.
+// - courseId: Identifier of the course.
+// - postId: Optional. Deprecated, use `item_id` instead.
+// - submissionId: Identifier of the student's submission.
+func (r *CoursesPostsAddOnAttachmentsStudentSubmissionsService) Patch(courseId string, postId string, attachmentId string, submissionId string, addonattachmentstudentsubmission *AddOnAttachmentStudentSubmission) *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall {
+	c := &CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.courseId = courseId
+	c.postId = postId
+	c.attachmentId = attachmentId
+	c.submissionId = submissionId
+	c.addonattachmentstudentsubmission = addonattachmentstudentsubmission
+	return c
+}
+
+// ItemId sets the optional parameter "itemId": Identifier of the
+// `Announcement`, `CourseWork`, or `CourseWorkMaterial` under which the
+// attachment is attached. This field is required, but is not marked as such
+// while we are migrating from post_id.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall) ItemId(itemId string) *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall {
+	c.urlParams_.Set("itemId", itemId)
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. Mask that
+// identifies which fields on the attachment to update. The update fails if
+// invalid fields are specified. If a field supports empty values, it can be
+// cleared by specifying it in the update mask and not in the
+// `AddOnAttachmentStudentSubmission` object. The following fields may be
+// specified by teachers: * `points_earned`
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall) UpdateMask(updateMask string) *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall) Fields(s ...googleapi.Field) *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall) Context(ctx context.Context) *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addonattachmentstudentsubmission)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/posts/{postId}/addOnAttachments/{attachmentId}/studentSubmissions/{submissionId}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"courseId":     c.courseId,
+		"postId":       c.postId,
+		"attachmentId": c.attachmentId,
+		"submissionId": c.submissionId,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.studentSubmissions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "classroom.courses.posts.addOnAttachments.studentSubmissions.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AddOnAttachmentStudentSubmission.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *CoursesPostsAddOnAttachmentsStudentSubmissionsPatchCall) Do(opts ...googleapi.CallOption) (*AddOnAttachmentStudentSubmission, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AddOnAttachmentStudentSubmission{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.posts.addOnAttachments.studentSubmissions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6949,8 +12320,7 @@ func (c *CoursesStudentsCreateCall) Header() http.Header {
 
 func (c *CoursesStudentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.student)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.student)
 	if err != nil {
 		return nil, err
 	}
@@ -6966,6 +12336,7 @@ func (c *CoursesStudentsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.students.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7000,9 +12371,11 @@ func (c *CoursesStudentsCreateCall) Do(opts ...googleapi.CallOption) (*Student, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.students.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7057,12 +12430,11 @@ func (c *CoursesStudentsDeleteCall) Header() http.Header {
 
 func (c *CoursesStudentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/students/{userId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7071,6 +12443,7 @@ func (c *CoursesStudentsDeleteCall) doRequest(alt string) (*http.Response, error
 		"courseId": c.courseId,
 		"userId":   c.userId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.students.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7105,9 +12478,11 @@ func (c *CoursesStudentsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.students.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7174,12 +12549,11 @@ func (c *CoursesStudentsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/students/{userId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7188,6 +12562,7 @@ func (c *CoursesStudentsGetCall) doRequest(alt string) (*http.Response, error) {
 		"courseId": c.courseId,
 		"userId":   c.userId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.students.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7222,9 +12597,11 @@ func (c *CoursesStudentsGetCall) Do(opts ...googleapi.CallOption) (*Student, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.students.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7303,12 +12680,11 @@ func (c *CoursesStudentsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/students")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7316,6 +12692,7 @@ func (c *CoursesStudentsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.students.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7351,9 +12728,11 @@ func (c *CoursesStudentsListCall) Do(opts ...googleapi.CallOption) (*ListStudent
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.students.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7434,8 +12813,7 @@ func (c *CoursesTeachersCreateCall) Header() http.Header {
 
 func (c *CoursesTeachersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.teacher)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.teacher)
 	if err != nil {
 		return nil, err
 	}
@@ -7451,6 +12829,7 @@ func (c *CoursesTeachersCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.teachers.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7485,9 +12864,11 @@ func (c *CoursesTeachersCreateCall) Do(opts ...googleapi.CallOption) (*Teacher, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.teachers.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7546,12 +12927,11 @@ func (c *CoursesTeachersDeleteCall) Header() http.Header {
 
 func (c *CoursesTeachersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/teachers/{userId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7560,6 +12940,7 @@ func (c *CoursesTeachersDeleteCall) doRequest(alt string) (*http.Response, error
 		"courseId": c.courseId,
 		"userId":   c.userId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.teachers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7594,9 +12975,11 @@ func (c *CoursesTeachersDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.teachers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7663,12 +13046,11 @@ func (c *CoursesTeachersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/teachers/{userId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7677,6 +13059,7 @@ func (c *CoursesTeachersGetCall) doRequest(alt string) (*http.Response, error) {
 		"courseId": c.courseId,
 		"userId":   c.userId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.teachers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7711,9 +13094,11 @@ func (c *CoursesTeachersGetCall) Do(opts ...googleapi.CallOption) (*Teacher, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.teachers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7792,12 +13177,11 @@ func (c *CoursesTeachersListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/teachers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7805,6 +13189,7 @@ func (c *CoursesTeachersListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.teachers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7840,9 +13225,11 @@ func (c *CoursesTeachersListCall) Do(opts ...googleapi.CallOption) (*ListTeacher
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.teachers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7879,8 +13266,11 @@ type CoursesTopicsCreateCall struct {
 // Create: Creates a topic. This method returns the following error codes: *
 // `PERMISSION_DENIED` if the requesting user is not permitted to access the
 // requested course, create a topic in the requested course, or for access
-// errors. * `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if
-// the requested course does not exist.
+// errors. * `INVALID_ARGUMENT` if the request is malformed. * `ALREADY_EXISTS`
+// if there exists a topic in the course with the same name. *
+// `FAILED_PRECONDITION` for the following request error: *
+// CourseTopicLimitReached * `NOT_FOUND` if the requested course does not
+// exist.
 //
 //   - courseId: Identifier of the course. This identifier can be either the
 //     Classroom-assigned identifier or an alias.
@@ -7916,8 +13306,7 @@ func (c *CoursesTopicsCreateCall) Header() http.Header {
 
 func (c *CoursesTopicsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.topic)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.topic)
 	if err != nil {
 		return nil, err
 	}
@@ -7933,6 +13322,7 @@ func (c *CoursesTopicsCreateCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.topics.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7967,9 +13357,11 @@ func (c *CoursesTopicsCreateCall) Do(opts ...googleapi.CallOption) (*Topic, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.topics.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8023,12 +13415,11 @@ func (c *CoursesTopicsDeleteCall) Header() http.Header {
 
 func (c *CoursesTopicsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/topics/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8037,6 +13428,7 @@ func (c *CoursesTopicsDeleteCall) doRequest(alt string) (*http.Response, error) 
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.topics.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8071,9 +13463,11 @@ func (c *CoursesTopicsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.topics.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8138,12 +13532,11 @@ func (c *CoursesTopicsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/topics/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8152,6 +13545,7 @@ func (c *CoursesTopicsGetCall) doRequest(alt string) (*http.Response, error) {
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.topics.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8186,9 +13580,11 @@ func (c *CoursesTopicsGetCall) Do(opts ...googleapi.CallOption) (*Topic, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.topics.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8268,12 +13664,11 @@ func (c *CoursesTopicsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/courses/{courseId}/topics")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8281,6 +13676,7 @@ func (c *CoursesTopicsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"courseId": c.courseId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.topics.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8316,9 +13712,11 @@ func (c *CoursesTopicsListCall) Do(opts ...googleapi.CallOption) (*ListTopicResp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.topics.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8356,7 +13754,8 @@ type CoursesTopicsPatchCall struct {
 // Patch: Updates one or more fields of a topic. This method returns the
 // following error codes: * `PERMISSION_DENIED` if the requesting developer
 // project did not create the corresponding topic or for access errors. *
-// `INVALID_ARGUMENT` if the request is malformed. * `NOT_FOUND` if the
+// `INVALID_ARGUMENT` if the request is malformed. * `FAILED_PRECONDITION` if
+// there exists a topic in the course with the same name. * `NOT_FOUND` if the
 // requested course or topic does not exist
 //
 //   - courseId: Identifier of the course. This identifier can be either the
@@ -8407,8 +13806,7 @@ func (c *CoursesTopicsPatchCall) Header() http.Header {
 
 func (c *CoursesTopicsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.topic)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.topic)
 	if err != nil {
 		return nil, err
 	}
@@ -8425,6 +13823,7 @@ func (c *CoursesTopicsPatchCall) doRequest(alt string) (*http.Response, error) {
 		"courseId": c.courseId,
 		"id":       c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.courses.topics.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8459,9 +13858,11 @@ func (c *CoursesTopicsPatchCall) Do(opts ...googleapi.CallOption) (*Topic, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.courses.topics.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8515,12 +13916,11 @@ func (c *InvitationsAcceptCall) Header() http.Header {
 
 func (c *InvitationsAcceptCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/invitations/{id}:accept")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8528,6 +13928,7 @@ func (c *InvitationsAcceptCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.invitations.accept", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8562,9 +13963,11 @@ func (c *InvitationsAcceptCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.invitations.accept", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8616,8 +14019,7 @@ func (c *InvitationsCreateCall) Header() http.Header {
 
 func (c *InvitationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.invitation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.invitation)
 	if err != nil {
 		return nil, err
 	}
@@ -8630,6 +14032,7 @@ func (c *InvitationsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.invitations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8664,9 +14067,11 @@ func (c *InvitationsCreateCall) Do(opts ...googleapi.CallOption) (*Invitation, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.invitations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8715,12 +14120,11 @@ func (c *InvitationsDeleteCall) Header() http.Header {
 
 func (c *InvitationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/invitations/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8728,6 +14132,7 @@ func (c *InvitationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.invitations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8762,9 +14167,11 @@ func (c *InvitationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.invitations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8825,12 +14232,11 @@ func (c *InvitationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/invitations/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8838,6 +14244,7 @@ func (c *InvitationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.invitations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8872,9 +14279,11 @@ func (c *InvitationsGetCall) Do(opts ...googleapi.CallOption) (*Invitation, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.invitations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8965,16 +14374,16 @@ func (c *InvitationsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/invitations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.invitations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9010,9 +14419,11 @@ func (c *InvitationsListCall) Do(opts ...googleapi.CallOption) (*ListInvitations
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.invitations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9098,8 +14509,7 @@ func (c *RegistrationsCreateCall) Header() http.Header {
 
 func (c *RegistrationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.registration)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.registration)
 	if err != nil {
 		return nil, err
 	}
@@ -9112,6 +14522,7 @@ func (c *RegistrationsCreateCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.registrations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9146,9 +14557,11 @@ func (c *RegistrationsCreateCall) Do(opts ...googleapi.CallOption) (*Registratio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.registrations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9195,12 +14608,11 @@ func (c *RegistrationsDeleteCall) Header() http.Header {
 
 func (c *RegistrationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/registrations/{registrationId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9208,6 +14620,7 @@ func (c *RegistrationsDeleteCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"registrationId": c.registrationId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.registrations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9242,9 +14655,11 @@ func (c *RegistrationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.registrations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9307,12 +14722,11 @@ func (c *UserProfilesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/userProfiles/{userId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9320,6 +14734,7 @@ func (c *UserProfilesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": c.userId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.userProfiles.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9354,9 +14769,11 @@ func (c *UserProfilesGetCall) Do(opts ...googleapi.CallOption) (*UserProfile, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.userProfiles.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9426,8 +14843,7 @@ func (c *UserProfilesGuardianInvitationsCreateCall) Header() http.Header {
 
 func (c *UserProfilesGuardianInvitationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.guardianinvitation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.guardianinvitation)
 	if err != nil {
 		return nil, err
 	}
@@ -9443,6 +14859,7 @@ func (c *UserProfilesGuardianInvitationsCreateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"studentId": c.studentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardianInvitations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9478,9 +14895,11 @@ func (c *UserProfilesGuardianInvitationsCreateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardianInvitations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9551,12 +14970,11 @@ func (c *UserProfilesGuardianInvitationsGetCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/userProfiles/{studentId}/guardianInvitations/{invitationId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9565,6 +14983,7 @@ func (c *UserProfilesGuardianInvitationsGetCall) doRequest(alt string) (*http.Re
 		"studentId":    c.studentId,
 		"invitationId": c.invitationId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardianInvitations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9600,9 +15019,11 @@ func (c *UserProfilesGuardianInvitationsGetCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardianInvitations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9717,12 +15138,11 @@ func (c *UserProfilesGuardianInvitationsListCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/userProfiles/{studentId}/guardianInvitations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9730,6 +15150,7 @@ func (c *UserProfilesGuardianInvitationsListCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"studentId": c.studentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardianInvitations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9765,9 +15186,11 @@ func (c *UserProfilesGuardianInvitationsListCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardianInvitations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9862,8 +15285,7 @@ func (c *UserProfilesGuardianInvitationsPatchCall) Header() http.Header {
 
 func (c *UserProfilesGuardianInvitationsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.guardianinvitation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.guardianinvitation)
 	if err != nil {
 		return nil, err
 	}
@@ -9880,6 +15302,7 @@ func (c *UserProfilesGuardianInvitationsPatchCall) doRequest(alt string) (*http.
 		"studentId":    c.studentId,
 		"invitationId": c.invitationId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardianInvitations.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9915,9 +15338,11 @@ func (c *UserProfilesGuardianInvitationsPatchCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardianInvitations.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9979,12 +15404,11 @@ func (c *UserProfilesGuardiansDeleteCall) Header() http.Header {
 
 func (c *UserProfilesGuardiansDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/userProfiles/{studentId}/guardians/{guardianId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9993,6 +15417,7 @@ func (c *UserProfilesGuardiansDeleteCall) doRequest(alt string) (*http.Response,
 		"studentId":  c.studentId,
 		"guardianId": c.guardianId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardians.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10027,9 +15452,11 @@ func (c *UserProfilesGuardiansDeleteCall) Do(opts ...googleapi.CallOption) (*Emp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardians.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10102,12 +15529,11 @@ func (c *UserProfilesGuardiansGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/userProfiles/{studentId}/guardians/{guardianId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10116,6 +15542,7 @@ func (c *UserProfilesGuardiansGetCall) doRequest(alt string) (*http.Response, er
 		"studentId":  c.studentId,
 		"guardianId": c.guardianId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardians.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10150,9 +15577,11 @@ func (c *UserProfilesGuardiansGetCall) Do(opts ...googleapi.CallOption) (*Guardi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardians.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10255,12 +15684,11 @@ func (c *UserProfilesGuardiansListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/userProfiles/{studentId}/guardians")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10268,6 +15696,7 @@ func (c *UserProfilesGuardiansListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"studentId": c.studentId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardians.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10303,9 +15732,11 @@ func (c *UserProfilesGuardiansListCall) Do(opts ...googleapi.CallOption) (*ListG
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "classroom.userProfiles.guardians.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

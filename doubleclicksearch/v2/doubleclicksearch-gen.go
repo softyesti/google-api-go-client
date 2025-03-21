@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "doubleclicksearch:v2"
 const apiName = "doubleclicksearch"
@@ -114,7 +117,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Conversion = NewConversionService(s)
+	s.Reports = NewReportsService(s)
+	s.SavedColumns = NewSavedColumnsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,15 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Conversion = NewConversionService(s)
-	s.Reports = NewReportsService(s)
-	s.SavedColumns = NewSavedColumnsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -221,9 +224,9 @@ type Availability struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Availability) MarshalJSON() ([]byte, error) {
+func (s Availability) MarshalJSON() ([]byte, error) {
 	type NoMethod Availability
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Conversion: A conversion containing data relevant to DoubleClick Search.
@@ -347,9 +350,9 @@ type Conversion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Conversion) MarshalJSON() ([]byte, error) {
+func (s Conversion) MarshalJSON() ([]byte, error) {
 	type NoMethod Conversion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConversionList: A list of conversions.
@@ -375,9 +378,9 @@ type ConversionList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConversionList) MarshalJSON() ([]byte, error) {
+func (s ConversionList) MarshalJSON() ([]byte, error) {
 	type NoMethod ConversionList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomDimension: A message containing the custom dimension.
@@ -399,9 +402,9 @@ type CustomDimension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomDimension) MarshalJSON() ([]byte, error) {
+func (s CustomDimension) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomDimension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CustomMetric: A message containing the custom metric.
@@ -423,9 +426,9 @@ type CustomMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomMetric) MarshalJSON() ([]byte, error) {
+func (s CustomMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *CustomMetric) UnmarshalJSON(data []byte) error {
@@ -497,9 +500,9 @@ type Report struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Report) MarshalJSON() ([]byte, error) {
+func (s Report) MarshalJSON() ([]byte, error) {
 	type NoMethod Report
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ReportFiles struct {
@@ -520,9 +523,9 @@ type ReportFiles struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportFiles) MarshalJSON() ([]byte, error) {
+func (s ReportFiles) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportFiles
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportApiColumnSpec: A request object used to create a DoubleClick Search
@@ -584,9 +587,9 @@ type ReportApiColumnSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportApiColumnSpec) MarshalJSON() ([]byte, error) {
+func (s ReportApiColumnSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportApiColumnSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportRequest: A request object used to create a DoubleClick Search report.
@@ -661,9 +664,9 @@ type ReportRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportRequest) MarshalJSON() ([]byte, error) {
+func (s ReportRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ReportRequestFilters struct {
@@ -689,9 +692,9 @@ type ReportRequestFilters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportRequestFilters) MarshalJSON() ([]byte, error) {
+func (s ReportRequestFilters) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportRequestFilters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ReportRequestOrderBy struct {
@@ -713,9 +716,9 @@ type ReportRequestOrderBy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportRequestOrderBy) MarshalJSON() ([]byte, error) {
+func (s ReportRequestOrderBy) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportRequestOrderBy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportRequestReportScope: The reportScope is a set of IDs that are used to
@@ -750,9 +753,9 @@ type ReportRequestReportScope struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportRequestReportScope) MarshalJSON() ([]byte, error) {
+func (s ReportRequestReportScope) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportRequestReportScope
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportRequestTimeRange: If metrics are requested in a report, this argument
@@ -784,9 +787,9 @@ type ReportRequestTimeRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportRequestTimeRange) MarshalJSON() ([]byte, error) {
+func (s ReportRequestTimeRange) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportRequestTimeRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SavedColumn: A saved column
@@ -811,9 +814,9 @@ type SavedColumn struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SavedColumn) MarshalJSON() ([]byte, error) {
+func (s SavedColumn) MarshalJSON() ([]byte, error) {
 	type NoMethod SavedColumn
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SavedColumnList: A list of saved columns. Advertisers create saved columns
@@ -842,9 +845,9 @@ type SavedColumnList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SavedColumnList) MarshalJSON() ([]byte, error) {
+func (s SavedColumnList) MarshalJSON() ([]byte, error) {
 	type NoMethod SavedColumnList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateAvailabilityRequest: The request to update availability.
@@ -864,9 +867,9 @@ type UpdateAvailabilityRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateAvailabilityRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateAvailabilityRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateAvailabilityRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateAvailabilityResponse: The response to a update availability request.
@@ -889,9 +892,9 @@ type UpdateAvailabilityResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateAvailabilityResponse) MarshalJSON() ([]byte, error) {
+func (s UpdateAvailabilityResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateAvailabilityResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ConversionGetCall struct {
@@ -999,12 +1002,11 @@ func (c *ConversionGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "doubleclicksearch/v2/agency/{agencyId}/advertiser/{advertiserId}/engine/{engineAccountId}/conversion")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1014,6 +1016,7 @@ func (c *ConversionGetCall) doRequest(alt string) (*http.Response, error) {
 		"advertiserId":    strconv.FormatInt(c.advertiserId, 10),
 		"engineAccountId": strconv.FormatInt(c.engineAccountId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1048,9 +1051,11 @@ func (c *ConversionGetCall) Do(opts ...googleapi.CallOption) (*ConversionList, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1167,12 +1172,11 @@ func (c *ConversionGetByCustomerIdCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "doubleclicksearch/v2/customer/{customerId}/conversion")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1180,6 +1184,7 @@ func (c *ConversionGetByCustomerIdCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"customerId": c.customerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.getByCustomerId", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1214,9 +1219,11 @@ func (c *ConversionGetByCustomerIdCall) Do(opts ...googleapi.CallOption) (*Conve
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.getByCustomerId", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1260,8 +1267,7 @@ func (c *ConversionInsertCall) Header() http.Header {
 
 func (c *ConversionInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.conversionlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.conversionlist)
 	if err != nil {
 		return nil, err
 	}
@@ -1274,6 +1280,7 @@ func (c *ConversionInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1308,9 +1315,11 @@ func (c *ConversionInsertCall) Do(opts ...googleapi.CallOption) (*ConversionList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1354,8 +1363,7 @@ func (c *ConversionUpdateCall) Header() http.Header {
 
 func (c *ConversionUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.conversionlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.conversionlist)
 	if err != nil {
 		return nil, err
 	}
@@ -1368,6 +1376,7 @@ func (c *ConversionUpdateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1402,9 +1411,11 @@ func (c *ConversionUpdateCall) Do(opts ...googleapi.CallOption) (*ConversionList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1449,8 +1460,7 @@ func (c *ConversionUpdateAvailabilityCall) Header() http.Header {
 
 func (c *ConversionUpdateAvailabilityCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updateavailabilityrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updateavailabilityrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1463,6 +1473,7 @@ func (c *ConversionUpdateAvailabilityCall) doRequest(alt string) (*http.Response
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.updateAvailability", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1498,9 +1509,11 @@ func (c *ConversionUpdateAvailabilityCall) Do(opts ...googleapi.CallOption) (*Up
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.conversion.updateAvailability", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1544,8 +1557,7 @@ func (c *ReportsGenerateCall) Header() http.Header {
 
 func (c *ReportsGenerateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reportrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1558,6 +1570,7 @@ func (c *ReportsGenerateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.generate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1592,9 +1605,11 @@ func (c *ReportsGenerateCall) Do(opts ...googleapi.CallOption) (*Report, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.generate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1652,12 +1667,11 @@ func (c *ReportsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "doubleclicksearch/v2/reports/{reportId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1665,6 +1679,7 @@ func (c *ReportsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"reportId": c.reportId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1699,9 +1714,11 @@ func (c *ReportsGetCall) Do(opts ...googleapi.CallOption) (*Report, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1762,12 +1779,11 @@ func (c *ReportsGetFileCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "doubleclicksearch/v2/reports/{reportId}/files/{reportFragment}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1776,6 +1792,7 @@ func (c *ReportsGetFileCall) doRequest(alt string) (*http.Response, error) {
 		"reportId":       c.reportId,
 		"reportFragment": strconv.FormatInt(c.reportFragment, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.getFile", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1806,6 +1823,7 @@ func (c *ReportsGetFileCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.getFile", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -1869,12 +1887,11 @@ func (c *ReportsGetIdMappingFileCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "doubleclicksearch/v2/agency/{agencyId}/advertiser/{advertiserId}/idmapping")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1883,6 +1900,7 @@ func (c *ReportsGetIdMappingFileCall) doRequest(alt string) (*http.Response, err
 		"agencyId":     strconv.FormatInt(c.agencyId, 10),
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.getIdMappingFile", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1933,9 +1951,11 @@ func (c *ReportsGetIdMappingFileCall) Do(opts ...googleapi.CallOption) (*IdMappi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.getIdMappingFile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1979,8 +1999,7 @@ func (c *ReportsRequestCall) Header() http.Header {
 
 func (c *ReportsRequestCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reportrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1993,6 +2012,7 @@ func (c *ReportsRequestCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.request", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2027,9 +2047,11 @@ func (c *ReportsRequestCall) Do(opts ...googleapi.CallOption) (*Report, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.reports.request", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2090,12 +2112,11 @@ func (c *SavedColumnsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "doubleclicksearch/v2/agency/{agencyId}/advertiser/{advertiserId}/savedcolumns")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2104,6 +2125,7 @@ func (c *SavedColumnsListCall) doRequest(alt string) (*http.Response, error) {
 		"agencyId":     strconv.FormatInt(c.agencyId, 10),
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclicksearch.savedColumns.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2139,8 +2161,10 @@ func (c *SavedColumnsListCall) Do(opts ...googleapi.CallOption) (*SavedColumnLis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclicksearch.savedColumns.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

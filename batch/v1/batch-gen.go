@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "batch:v1"
 const apiName = "batch"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -265,9 +268,9 @@ type Accelerator struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Accelerator) MarshalJSON() ([]byte, error) {
+func (s Accelerator) MarshalJSON() ([]byte, error) {
 	type NoMethod Accelerator
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ActionCondition: Conditions for actions to deal with task failures.
@@ -289,9 +292,9 @@ type ActionCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActionCondition) MarshalJSON() ([]byte, error) {
+func (s ActionCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod ActionCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentContainer: Container runnable representation on the agent side.
@@ -324,9 +327,9 @@ type AgentContainer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentContainer) MarshalJSON() ([]byte, error) {
+func (s AgentContainer) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentContainer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentEnvironment: AgentEnvironment is the Environment representation between
@@ -355,9 +358,9 @@ type AgentEnvironment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentEnvironment) MarshalJSON() ([]byte, error) {
+func (s AgentEnvironment) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentEnvironment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentInfo: VM Agent Info.
@@ -393,9 +396,9 @@ type AgentInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentInfo) MarshalJSON() ([]byte, error) {
+func (s AgentInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentKMSEnvMap: AgentKMSEnvMap contains the encrypted key/value pair to be
@@ -419,9 +422,9 @@ type AgentKMSEnvMap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentKMSEnvMap) MarshalJSON() ([]byte, error) {
+func (s AgentKMSEnvMap) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentKMSEnvMap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentMetadata: VM Agent Metadata.
@@ -462,9 +465,9 @@ type AgentMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentMetadata) MarshalJSON() ([]byte, error) {
+func (s AgentMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentScript: Script runnable representation on the agent side.
@@ -496,9 +499,9 @@ type AgentScript struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentScript) MarshalJSON() ([]byte, error) {
+func (s AgentScript) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentScript
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentTask: TODO(b/182501497) The message needs to be redefined when the
@@ -552,9 +555,9 @@ type AgentTask struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentTask) MarshalJSON() ([]byte, error) {
+func (s AgentTask) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentTask
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentTaskInfo: Task Info
@@ -581,9 +584,33 @@ type AgentTaskInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentTaskInfo) MarshalJSON() ([]byte, error) {
+func (s AgentTaskInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentTaskInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AgentTaskLoggingOption: AgentTaskLoggingOption contains the options for the
+// logging of the task.
+type AgentTaskLoggingOption struct {
+	// Labels: Labels to be added to the log entry. Now only cloud logging is
+	// supported.
+	Labels map[string]string `json:"labels,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Labels") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Labels") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AgentTaskLoggingOption) MarshalJSON() ([]byte, error) {
+	type NoMethod AgentTaskLoggingOption
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentTaskRunnable: AgentTaskRunnable is the Runnable representation between
@@ -626,9 +653,9 @@ type AgentTaskRunnable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentTaskRunnable) MarshalJSON() ([]byte, error) {
+func (s AgentTaskRunnable) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentTaskRunnable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentTaskSpec: AgentTaskSpec is the user's TaskSpec representation between
@@ -636,6 +663,8 @@ func (s *AgentTaskRunnable) MarshalJSON() ([]byte, error) {
 type AgentTaskSpec struct {
 	// Environment: Environment variables to set before running the Task.
 	Environment *AgentEnvironment `json:"environment,omitempty"`
+	// LoggingOption: Logging option for the task.
+	LoggingOption *AgentTaskLoggingOption `json:"loggingOption,omitempty"`
 	// MaxRunDuration: Maximum duration the task should run before being
 	// automatically retried (if enabled) or automatically failed. Format the value
 	// of this field as a time limit in seconds followed by `s`—for example,
@@ -665,9 +694,9 @@ type AgentTaskSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentTaskSpec) MarshalJSON() ([]byte, error) {
+func (s AgentTaskSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentTaskSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentTaskUserAccount: AgentTaskUserAccount contains the information of a
@@ -692,9 +721,9 @@ type AgentTaskUserAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentTaskUserAccount) MarshalJSON() ([]byte, error) {
+func (s AgentTaskUserAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentTaskUserAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentTimingInfo: VM timing information
@@ -718,9 +747,9 @@ type AgentTimingInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentTimingInfo) MarshalJSON() ([]byte, error) {
+func (s AgentTimingInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentTimingInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AllocationPolicy: A Job's resource allocation policy describes when, where,
@@ -729,11 +758,15 @@ type AllocationPolicy struct {
 	// Instances: Describe instances that can be created by this AllocationPolicy.
 	// Only instances[0] is supported now.
 	Instances []*InstancePolicyOrTemplate `json:"instances,omitempty"`
-	// Labels: Labels applied to all VM instances and other resources created by
-	// AllocationPolicy. Labels could be user provided or system generated. You can
-	// assign up to 64 labels. Google Compute Engine label restrictions
-	// (https://cloud.google.com/compute/docs/labeling-resources#restrictions)
-	// apply. Label names that start with "goog-" or "google-" are reserved.
+	// Labels: Custom labels to apply to the job and all the Compute Engine
+	// resources that both are created by this allocation policy and support
+	// labels. Use labels to group and describe the resources they are applied to.
+	// Batch automatically applies predefined labels and supports multiple `labels`
+	// fields for each job, which each let you apply custom labels to various
+	// resources. Label names that start with "goog-" or "google-" are reserved for
+	// predefined labels. For more information about labels with Batch, see
+	// Organize resources using labels
+	// (https://cloud.google.com/batch/docs/organize-resources-using-labels).
 	Labels map[string]string `json:"labels,omitempty"`
 	// Location: Location where compute resources should be allocated for the Job.
 	Location *LocationPolicy `json:"location,omitempty"`
@@ -770,9 +803,9 @@ type AllocationPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllocationPolicy) MarshalJSON() ([]byte, error) {
+func (s AllocationPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod AllocationPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttachedDisk: A new or an existing persistent disk (PD) or a local ssd
@@ -799,12 +832,13 @@ type AttachedDisk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttachedDisk) MarshalJSON() ([]byte, error) {
+func (s AttachedDisk) MarshalJSON() ([]byte, error) {
 	type NoMethod AttachedDisk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Barrier: Barrier runnable blocks until all tasks in a taskgroup reach it.
+// Barrier: A barrier runnable automatically blocks the execution of subsequent
+// runnables until all the tasks in the task group reach the barrier.
 type Barrier struct {
 	// Name: Barriers are identified by their index in runnable list. Names are not
 	// required, but if present should be an identifier.
@@ -822,9 +856,41 @@ type Barrier struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Barrier) MarshalJSON() ([]byte, error) {
+func (s Barrier) MarshalJSON() ([]byte, error) {
 	type NoMethod Barrier
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CancelJobRequest: CancelJob Request.
+type CancelJobRequest struct {
+	// RequestId: Optional. An optional request ID to identify requests. Specify a
+	// unique request ID so that if you must retry your request, the server will
+	// know to ignore the request if it has already been completed. The server will
+	// guarantee that for at least 60 minutes after the first request. For example,
+	// consider a situation where you make an initial request and the request times
+	// out. If you make the request again with the same request ID, the server can
+	// check if original operation with the same request ID was received, and if
+	// so, will ignore the second request. This prevents clients from accidentally
+	// creating duplicate commitments. The request ID must be a valid UUID with the
+	// exception that zero UUID is not supported
+	// (00000000-0000-0000-0000-000000000000).
+	RequestId string `json:"requestId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "RequestId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "RequestId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CancelJobRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod CancelJobRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -834,8 +900,8 @@ type CancelOperationRequest struct {
 // CloudLoggingOption: `CloudLoggingOption` contains additional settings for
 // Cloud Logging logs generated by Batch job.
 type CloudLoggingOption struct {
-	// UseGenericTaskMonitoredResource: Optional. Set this flag to true to change
-	// the monitored resource type
+	// UseGenericTaskMonitoredResource: Optional. Set this field to `true` to
+	// change the monitored resource type
 	// (https://cloud.google.com/monitoring/api/resources) for Cloud Logging logs
 	// generated by this Batch job from the `batch.googleapis.com/Job`
 	// (https://cloud.google.com/monitoring/api/resources#tag_batch.googleapis.com/Job)
@@ -856,9 +922,9 @@ type CloudLoggingOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudLoggingOption) MarshalJSON() ([]byte, error) {
+func (s CloudLoggingOption) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudLoggingOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComputeResource: Compute resource requirements. ComputeResource defines the
@@ -910,9 +976,9 @@ type ComputeResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputeResource) MarshalJSON() ([]byte, error) {
+func (s ComputeResource) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputeResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Container: Container runnable.
@@ -922,9 +988,10 @@ type Container struct {
 	// as true can still communicate with each other, network cannot be specified
 	// in the `container.options` field.
 	BlockExternalNetwork bool `json:"blockExternalNetwork,omitempty"`
-	// Commands: Overrides the `CMD` specified in the container. If there is an
-	// ENTRYPOINT (either in the container image or with the entrypoint field
-	// below) then commands are appended as arguments to the ENTRYPOINT.
+	// Commands: Required for some container images. Overrides the `CMD` specified
+	// in the container. If there is an `ENTRYPOINT` (either in the container image
+	// or with the `entrypoint` field below) then these commands are appended as
+	// arguments to the `ENTRYPOINT`.
 	Commands []string `json:"commands,omitempty"`
 	// EnableImageStreaming: Optional. If set to true, this container runnable uses
 	// Image streaming. Use Image streaming to allow the runnable to initialize
@@ -938,12 +1005,15 @@ type Container struct {
 	// using Image streaming with Batch, see the `image-streaming` sample on GitHub
 	// (https://github.com/GoogleCloudPlatform/batch-samples/tree/main/api-samples/image-streaming).
 	EnableImageStreaming bool `json:"enableImageStreaming,omitempty"`
-	// Entrypoint: Overrides the `ENTRYPOINT` specified in the container.
+	// Entrypoint: Required for some container images. Overrides the `ENTRYPOINT`
+	// specified in the container.
 	Entrypoint string `json:"entrypoint,omitempty"`
-	// ImageUri: The URI to pull the container image from.
+	// ImageUri: Required. The URI to pull the container image from.
 	ImageUri string `json:"imageUri,omitempty"`
-	// Options: Arbitrary additional options to include in the "docker run" command
-	// when running this container, e.g. "--network host".
+	// Options: Required for some container images. Arbitrary additional options to
+	// include in the `docker run` command when running this container—for
+	// example, `--network host`. For the `--volume` option, use the `volumes`
+	// field for the container.
 	Options string `json:"options,omitempty"`
 	// Password: Required if the container image is from a private Docker registry.
 	// The password to login to the Docker registry that contains the image. For
@@ -970,14 +1040,15 @@ type Container struct {
 	// (https://cloud.google.com/batch/docs/create-run-job-secret-manager).
 	Username string `json:"username,omitempty"`
 	// Volumes: Volumes to mount (bind mount) from the host machine files or
-	// directories into the container, formatted to match docker run's --volume
-	// option, e.g. /foo:/bar, or /foo:/bar:ro If the `TaskSpec.Volumes` field is
-	// specified but this field is not, Batch will mount each volume from the host
-	// machine to the container with the same mount path by default. In this case,
-	// the default mount option for containers will be read-only (ro) for existing
-	// persistent disks and read-write (rw) for other volume types, regardless of
-	// the original mount options specified in `TaskSpec.Volumes`. If you need
-	// different mount settings, you can explicitly configure them in this field.
+	// directories into the container, formatted to match `--volume` option for the
+	// `docker run` command—for example, `/foo:/bar` or `/foo:/bar:ro`. If the
+	// `TaskSpec.Volumes` field is specified but this field is not, Batch will
+	// mount each volume from the host machine to the container with the same mount
+	// path by default. In this case, the default mount option for containers will
+	// be read-only (`ro`) for existing persistent disks and read-write (`rw`) for
+	// other volume types, regardless of the original mount options specified in
+	// `TaskSpec.Volumes`. If you need different mount settings, you can explicitly
+	// configure them in this field.
 	Volumes []string `json:"volumes,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "BlockExternalNetwork") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -992,9 +1063,9 @@ type Container struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Container) MarshalJSON() ([]byte, error) {
+func (s Container) MarshalJSON() ([]byte, error) {
 	type NoMethod Container
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Disk: A new persistent disk or a local ssd. A VM can only have one local SSD
@@ -1014,9 +1085,8 @@ type Disk struct {
 	// image version: projects/{project}/global/images/{image_version} You can also
 	// use Batch customized image in short names. The following image values are
 	// supported for a boot disk: * `batch-debian`: use Batch Debian images. *
-	// `batch-centos`: use Batch CentOS images. * `batch-cos`: use Batch
-	// Container-Optimized images. * `batch-hpc-centos`: use Batch HPC CentOS
-	// images. * `batch-hpc-rocky`: use Batch HPC Rocky Linux images.
+	// `batch-cos`: use Batch Container-Optimized images. * `batch-hpc-rocky`: use
+	// Batch HPC Rocky Linux images.
 	Image string `json:"image,omitempty"`
 	// SizeGb: Disk size in GB. **Non-Boot Disk**: If the `type` specifies a
 	// persistent disk, this field is ignored if `data_source` is set as `image` or
@@ -1036,7 +1106,9 @@ type Disk struct {
 	Snapshot string `json:"snapshot,omitempty"`
 	// Type: Disk type as shown in `gcloud compute disk-types list`. For example,
 	// local SSD uses type "local-ssd". Persistent disks and boot disks use
-	// "pd-balanced", "pd-extreme", "pd-ssd" or "pd-standard".
+	// "pd-balanced", "pd-extreme", "pd-ssd" or "pd-standard". If not specified,
+	// "pd-standard" will be used as the default type for non-boot disks,
+	// "pd-balanced" will be used as the default type for boot disks.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DiskInterface") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1051,9 +1123,9 @@ type Disk struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Disk) MarshalJSON() ([]byte, error) {
+func (s Disk) MarshalJSON() ([]byte, error) {
 	type NoMethod Disk
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1090,9 +1162,9 @@ type Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Environment) MarshalJSON() ([]byte, error) {
+func (s Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GCS: Represents a Google Cloud Storage volume.
@@ -1113,9 +1185,9 @@ type GCS struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GCS) MarshalJSON() ([]byte, error) {
+func (s GCS) MarshalJSON() ([]byte, error) {
 	type NoMethod GCS
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstancePolicy: InstancePolicy describes an instance type and resources
@@ -1148,9 +1220,10 @@ type InstancePolicy struct {
 	// by this field) is the older model, and has been migrated to use the SPOT
 	// model as the underlying technology. This old model will still be supported.
 	ProvisioningModel string `json:"provisioningModel,omitempty"`
-	// Reservation: Optional. If specified, VMs will consume only the specified
-	// reservation. If not specified (default), VMs will consume any applicable
-	// reservation.
+	// Reservation: Optional. If not specified (default), VMs will consume any
+	// applicable reservation. If "NO_RESERVATION" is specified, VMs will not
+	// consume any reservation. Otherwise, if specified, VMs will consume only the
+	// specified reservation.
 	Reservation string `json:"reservation,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Accelerators") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1165,9 +1238,9 @@ type InstancePolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstancePolicy) MarshalJSON() ([]byte, error) {
+func (s InstancePolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod InstancePolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstancePolicyOrTemplate: InstancePolicyOrTemplate lets you define the type
@@ -1175,6 +1248,18 @@ func (s *InstancePolicy) MarshalJSON() ([]byte, error) {
 // instance template. If undefined, Batch picks the type of VM to use and
 // doesn't include optional VM resources such as GPUs and extra disks.
 type InstancePolicyOrTemplate struct {
+	// BlockProjectSshKeys: Optional. Set this field to `true` if you want Batch to
+	// block project-level SSH keys from accessing this job's VMs. Alternatively,
+	// you can configure the job to specify a VM instance template that blocks
+	// project-level SSH keys. In either case, Batch blocks project-level SSH keys
+	// while creating the VMs for this job. Batch allows project-level SSH keys for
+	// a job's VMs only if all the following are true: + This field is undefined or
+	// set to `false`. + The job's VM instance template (if any) doesn't block
+	// project-level SSH keys. Notably, you can override this behavior by manually
+	// updating a VM to block or allow project-level SSH keys. For more information
+	// about blocking project-level SSH keys, see the Compute Engine documentation:
+	// https://cloud.google.com/compute/docs/connect/restrict-ssh-keys#block-keys
+	BlockProjectSshKeys bool `json:"blockProjectSshKeys,omitempty"`
 	// InstallGpuDrivers: Set this field true if you want Batch to help fetch
 	// drivers from a third party location and install them for GPUs specified in
 	// `policy.accelerators` or `instance_template` on your behalf. Default is
@@ -1184,28 +1269,33 @@ type InstancePolicyOrTemplate struct {
 	// Container-Optimized Image cases, following
 	// https://github.com/GoogleCloudPlatform/compute-gpu-installation/blob/main/linux/install_gpu_driver.py.
 	InstallGpuDrivers bool `json:"installGpuDrivers,omitempty"`
+	// InstallOpsAgent: Optional. Set this field true if you want Batch to install
+	// Ops Agent on your behalf. Default is false.
+	InstallOpsAgent bool `json:"installOpsAgent,omitempty"`
 	// InstanceTemplate: Name of an instance template used to create VMs. Named the
-	// field as 'instance_template' instead of 'template' to avoid c++ keyword
-	// conflict.
+	// field as 'instance_template' instead of 'template' to avoid C++ keyword
+	// conflict. Batch only supports global instance templates from the same
+	// project as the job. You can specify the global instance template as a full
+	// or partial URL.
 	InstanceTemplate string `json:"instanceTemplate,omitempty"`
 	// Policy: InstancePolicy.
 	Policy *InstancePolicy `json:"policy,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "InstallGpuDrivers") to
+	// ForceSendFields is a list of field names (e.g. "BlockProjectSshKeys") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "InstallGpuDrivers") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "BlockProjectSshKeys") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *InstancePolicyOrTemplate) MarshalJSON() ([]byte, error) {
+func (s InstancePolicyOrTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod InstancePolicyOrTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceStatus: VM instance status.
@@ -1240,9 +1330,9 @@ type InstanceStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceStatus) MarshalJSON() ([]byte, error) {
+func (s InstanceStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Job: The Cloud Batch Job description.
@@ -1251,12 +1341,15 @@ type Job struct {
 	AllocationPolicy *AllocationPolicy `json:"allocationPolicy,omitempty"`
 	// CreateTime: Output only. When the Job was created.
 	CreateTime string `json:"createTime,omitempty"`
-	// Labels: Labels for the Job. Labels could be user provided or system
-	// generated. For example, "labels": { "department": "finance", "environment":
-	// "test" } You can assign up to 64 labels. Google Compute Engine label
-	// restrictions
-	// (https://cloud.google.com/compute/docs/labeling-resources#restrictions)
-	// apply. Label names that start with "goog-" or "google-" are reserved.
+	// Labels: Custom labels to apply to the job and any Cloud Logging LogEntry
+	// (https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry) that
+	// it generates. Use labels to group and describe the resources they are
+	// applied to. Batch automatically applies predefined labels and supports
+	// multiple `labels` fields for each job, which each let you apply custom
+	// labels to various resources. Label names that start with "goog-" or
+	// "google-" are reserved for predefined labels. For more information about
+	// labels with Batch, see Organize resources using labels
+	// (https://cloud.google.com/batch/docs/organize-resources-using-labels).
 	Labels map[string]string `json:"labels,omitempty"`
 	// LogsPolicy: Log preservation policy for the Job.
 	LogsPolicy *LogsPolicy `json:"logsPolicy,omitempty"`
@@ -1295,9 +1388,9 @@ type Job struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Job) MarshalJSON() ([]byte, error) {
+func (s Job) MarshalJSON() ([]byte, error) {
 	type NoMethod Job
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobNotification: Notification configurations.
@@ -1305,11 +1398,15 @@ type JobNotification struct {
 	// Message: The attribute requirements of messages to be sent to this Pub/Sub
 	// topic. Without this field, no message will be sent.
 	Message *Message `json:"message,omitempty"`
-	// PubsubTopic: The Pub/Sub topic where notifications like the job state
-	// changes will be published. The topic must exist in the same project as the
-	// job and billings will be charged to this project. If not specified, no
-	// Pub/Sub messages will be sent. Topic format:
-	// `projects/{project}/topics/{topic}`.
+	// PubsubTopic: The Pub/Sub topic where notifications for the job, like state
+	// changes, will be published. If undefined, no Pub/Sub notifications are sent
+	// for this job. Specify the topic using the following format:
+	// `projects/{project}/topics/{topic}`. Notably, if you want to specify a
+	// Pub/Sub topic that is in a different project than the job, your
+	// administrator must grant your project's Batch service agent permission to
+	// publish to that topic. For more information about configuring Pub/Sub
+	// notifications for a job, see
+	// https://cloud.google.com/batch/docs/enable-notifications.
 	PubsubTopic string `json:"pubsubTopic,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Message") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1324,9 +1421,9 @@ type JobNotification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobNotification) MarshalJSON() ([]byte, error) {
+func (s JobNotification) MarshalJSON() ([]byte, error) {
 	type NoMethod JobNotification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobStatus: Job status.
@@ -1349,6 +1446,10 @@ type JobStatus struct {
 	//   "DELETION_IN_PROGRESS" - The Job will be deleted, but has not been deleted
 	// yet. Typically this is because resources used by the Job are still being
 	// cleaned up.
+	//   "CANCELLATION_IN_PROGRESS" - The Job cancellation is in progress, this is
+	// because the resources used by the Job are still being cleaned up.
+	//   "CANCELLED" - The Job has been cancelled, the task executions were stopped
+	// and the resources were cleaned up.
 	State string `json:"state,omitempty"`
 	// StatusEvents: Job status events
 	StatusEvents []*StatusEvent `json:"statusEvents,omitempty"`
@@ -1368,9 +1469,9 @@ type JobStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobStatus) MarshalJSON() ([]byte, error) {
+func (s JobStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod JobStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type KMSEnvMap struct {
@@ -1392,9 +1493,9 @@ type KMSEnvMap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KMSEnvMap) MarshalJSON() ([]byte, error) {
+func (s KMSEnvMap) MarshalJSON() ([]byte, error) {
 	type NoMethod KMSEnvMap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LifecyclePolicy: LifecyclePolicy describes how to deal with task failures
@@ -1428,9 +1529,9 @@ type LifecyclePolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LifecyclePolicy) MarshalJSON() ([]byte, error) {
+func (s LifecyclePolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod LifecyclePolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListJobsResponse: ListJob Response.
@@ -1457,9 +1558,9 @@ type ListJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListJobsResponse) MarshalJSON() ([]byte, error) {
+func (s ListJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -1485,9 +1586,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1513,9 +1614,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTasksResponse: ListTasks Response.
@@ -1542,9 +1643,9 @@ type ListTasksResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTasksResponse) MarshalJSON() ([]byte, error) {
+func (s ListTasksResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTasksResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -1580,9 +1681,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LocationPolicy struct {
@@ -1610,28 +1711,37 @@ type LocationPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LocationPolicy) MarshalJSON() ([]byte, error) {
+func (s LocationPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod LocationPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// LogsPolicy: LogsPolicy describes how outputs from a Job's Tasks
-// (stdout/stderr) will be preserved.
+// LogsPolicy: LogsPolicy describes if and how a job's logs are preserved. Logs
+// include information that is automatically written by the Batch service agent
+// and any information that you configured the job's runnables to write to the
+// `stdout` or `stderr` streams.
 type LogsPolicy struct {
-	// CloudLoggingOption: Optional. Additional settings for Cloud Logging. It will
-	// only take effect when the destination of `LogsPolicy` is set to
-	// `CLOUD_LOGGING`.
+	// CloudLoggingOption: Optional. When `destination` is set to `CLOUD_LOGGING`,
+	// you can optionally set this field to configure additional settings for Cloud
+	// Logging.
 	CloudLoggingOption *CloudLoggingOption `json:"cloudLoggingOption,omitempty"`
-	// Destination: Where logs should be saved.
+	// Destination: If and where logs should be saved.
 	//
 	// Possible values:
-	//   "DESTINATION_UNSPECIFIED" - Logs are not preserved.
-	//   "CLOUD_LOGGING" - Logs are streamed to Cloud Logging.
-	//   "PATH" - Logs are saved to a file path.
+	//   "DESTINATION_UNSPECIFIED" - (Default) Logs are not preserved.
+	//   "CLOUD_LOGGING" - Logs are streamed to Cloud Logging. Optionally, you can
+	// configure additional settings in the `cloudLoggingOption` field.
+	//   "PATH" - Logs are saved to the file path specified in the `logsPath`
+	// field.
 	Destination string `json:"destination,omitempty"`
-	// LogsPath: The path to which logs are saved when the destination = PATH. This
-	// can be a local file path on the VM, or under the mount point of a Persistent
-	// Disk or Filestore, or a Cloud Storage path.
+	// LogsPath: When `destination` is set to `PATH`, you must set this field to
+	// the path where you want logs to be saved. This path can point to a local
+	// directory on the VM or (if congifured) a directory under the mount path of
+	// any Cloud Storage bucket, network file system (NFS), or writable persistent
+	// disk that is mounted to the job. For example, if the job has a bucket with
+	// `mountPath` set to `/mnt/disks/my-bucket`, you can write logs to the root
+	// directory of the `remotePath` of that bucket by setting this field to
+	// `/mnt/disks/my-bucket/`.
 	LogsPath string `json:"logsPath,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CloudLoggingOption") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1646,9 +1756,9 @@ type LogsPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LogsPolicy) MarshalJSON() ([]byte, error) {
+func (s LogsPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod LogsPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Message: Message details. Describe the conditions under which messages will
@@ -1674,6 +1784,10 @@ type Message struct {
 	//   "DELETION_IN_PROGRESS" - The Job will be deleted, but has not been deleted
 	// yet. Typically this is because resources used by the Job are still being
 	// cleaned up.
+	//   "CANCELLATION_IN_PROGRESS" - The Job cancellation is in progress, this is
+	// because the resources used by the Job are still being cleaned up.
+	//   "CANCELLED" - The Job has been cancelled, the task executions were stopped
+	// and the resources were cleaned up.
 	NewJobState string `json:"newJobState,omitempty"`
 	// NewTaskState: The new task state.
 	//
@@ -1706,9 +1820,9 @@ type Message struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Message) MarshalJSON() ([]byte, error) {
+func (s Message) MarshalJSON() ([]byte, error) {
 	type NoMethod Message
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NFS: Represents an NFS volume.
@@ -1730,9 +1844,9 @@ type NFS struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NFS) MarshalJSON() ([]byte, error) {
+func (s NFS) MarshalJSON() ([]byte, error) {
 	type NoMethod NFS
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkInterface: A network interface.
@@ -1771,9 +1885,9 @@ type NetworkInterface struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkInterface) MarshalJSON() ([]byte, error) {
+func (s NetworkInterface) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkInterface
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkPolicy: NetworkPolicy describes VM instance network configurations.
@@ -1793,9 +1907,9 @@ type NetworkPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkPolicy) MarshalJSON() ([]byte, error) {
+func (s NetworkPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1840,9 +1954,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of the long-running operation.
@@ -1855,8 +1969,8 @@ type OperationMetadata struct {
 	EndTime string `json:"endTime,omitempty"`
 	// RequestedCancellation: Output only. Identifies whether the user has
 	// requested cancellation of the operation. Operations that have successfully
-	// been cancelled have Operation.error value with a google.rpc.Status.code of
-	// 1, corresponding to `Code.CANCELLED`.
+	// been cancelled have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
 	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
 	// StatusMessage: Output only. Human-readable status of the operation, if any.
 	StatusMessage string `json:"statusMessage,omitempty"`
@@ -1878,9 +1992,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlacementPolicy: PlacementPolicy describes a group placement policy for the
@@ -1910,9 +2024,9 @@ type PlacementPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlacementPolicy) MarshalJSON() ([]byte, error) {
+func (s PlacementPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod PlacementPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportAgentStateRequest: Request to report agent's state. The Request itself
@@ -1937,9 +2051,9 @@ type ReportAgentStateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportAgentStateRequest) MarshalJSON() ([]byte, error) {
+func (s ReportAgentStateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportAgentStateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportAgentStateResponse: Response to ReportAgentStateRequest.
@@ -1970,9 +2084,9 @@ type ReportAgentStateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportAgentStateResponse) MarshalJSON() ([]byte, error) {
+func (s ReportAgentStateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportAgentStateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Runnable: Runnable describes instructions for executing a specific script or
@@ -1985,10 +2099,16 @@ type Runnable struct {
 	// Task's overall max_run_duration. If the max_run_duration has expired then no
 	// further Runnables will execute, not even always_run Runnables.
 	AlwaysRun bool `json:"alwaysRun,omitempty"`
-	// Background: This flag allows a Runnable to continue running in the
-	// background while the Task executes subsequent Runnables. This is useful to
-	// provide services to other Runnables (or to provide debugging support tools
-	// like SSH servers).
+	// Background: Normally, a runnable that doesn't exit causes its task to fail.
+	// However, you can set this field to `true` to configure a background
+	// runnable. Background runnables are allowed continue running in the
+	// background while the task executes subsequent runnables. For example,
+	// background runnables are useful for providing services to other runnables or
+	// providing debugging-support tools like SSH servers. Specifically, background
+	// runnables are killed automatically (if they have not already exited) a short
+	// time after all foreground runnables have completed. Even though this is
+	// likely to result in a non-zero exit status for the background runnable,
+	// these automatic kills are not treated as task failures.
 	Background bool `json:"background,omitempty"`
 	// Barrier: Barrier runnable.
 	Barrier *Barrier `json:"barrier,omitempty"`
@@ -2002,8 +2122,10 @@ type Runnable struct {
 	// Environment: Environment variables for this Runnable (overrides variables
 	// set for the whole Task or TaskGroup).
 	Environment *Environment `json:"environment,omitempty"`
-	// IgnoreExitStatus: Normally, a non-zero exit status causes the Task to fail.
-	// This flag allows execution of other Runnables to continue instead.
+	// IgnoreExitStatus: Normally, a runnable that returns a non-zero exit status
+	// fails and causes the task to fail. However, you can set this field to `true`
+	// to allow the task to continue executing its other runnables even if this
+	// runnable fails.
 	IgnoreExitStatus bool `json:"ignoreExitStatus,omitempty"`
 	// Labels: Labels for this Runnable.
 	Labels map[string]string `json:"labels,omitempty"`
@@ -2024,26 +2146,28 @@ type Runnable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Runnable) MarshalJSON() ([]byte, error) {
+func (s Runnable) MarshalJSON() ([]byte, error) {
 	type NoMethod Runnable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Script: Script runnable.
 type Script struct {
-	// Path: Script file path on the host VM. To specify an interpreter, please add
-	// a `#!`(also known as shebang line
-	// (https://en.wikipedia.org/wiki/Shebang_(Unix))) as the first line of the
-	// file.(For example, to execute the script using bash, `#!/bin/bash` should be
-	// the first line of the file. To execute the script using`Python3`,
-	// `#!/usr/bin/env python3` should be the first line of the file.) Otherwise,
-	// the file will by default be executed by `/bin/sh`.
+	// Path: The path to a script file that is accessible from the host VM(s).
+	// Unless the script file supports the default `#!/bin/sh` shell interpreter,
+	// you must specify an interpreter by including a shebang line
+	// (https://en.wikipedia.org/wiki/Shebang_(Unix) as the first line of the file.
+	// For example, to execute the script using bash, include `#!/bin/bash` as the
+	// first line of the file. Alternatively, to execute the script using Python3,
+	// include `#!/usr/bin/env python3` as the first line of the file.
 	Path string `json:"path,omitempty"`
-	// Text: Shell script text. To specify an interpreter, please add a `#!\n` at
-	// the beginning of the text.(For example, to execute the script using bash,
-	// `#!/bin/bash\n` should be added. To execute the script using`Python3`,
-	// `#!/usr/bin/env python3\n` should be added.) Otherwise, the script will by
-	// default be executed by `/bin/sh`.
+	// Text: The text for a script. Unless the script text supports the default
+	// `#!/bin/sh` shell interpreter, you must specify an interpreter by including
+	// a shebang line (https://en.wikipedia.org/wiki/Shebang_(Unix) at the
+	// beginning of the text. For example, to execute the script using bash,
+	// include `#!/bin/bash\n` at the beginning of the text. Alternatively, to
+	// execute the script using Python3, include `#!/usr/bin/env python3\n` at the
+	// beginning of the text.
 	Text string `json:"text,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Path") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -2058,9 +2182,9 @@ type Script struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Script) MarshalJSON() ([]byte, error) {
+func (s Script) MarshalJSON() ([]byte, error) {
 	type NoMethod Script
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ServiceAccount: Carries information about a Google Cloud service account.
@@ -2082,9 +2206,9 @@ type ServiceAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ServiceAccount) MarshalJSON() ([]byte, error) {
+func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod ServiceAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2116,20 +2240,22 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// StatusEvent: Status event
+// StatusEvent: Status event.
 type StatusEvent struct {
 	// Description: Description of the event.
 	Description string `json:"description,omitempty"`
 	// EventTime: The time this event occurred.
 	EventTime string `json:"eventTime,omitempty"`
-	// TaskExecution: Task Execution
+	// TaskExecution: Task Execution. This field is only defined for task-level
+	// status events where the task fails.
 	TaskExecution *TaskExecution `json:"taskExecution,omitempty"`
-	// TaskState: Task State
+	// TaskState: Task State. This field is only defined for task-level status
+	// events.
 	//
 	// Possible values:
 	//   "STATE_UNSPECIFIED" - Unknown state.
@@ -2155,9 +2281,9 @@ type StatusEvent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StatusEvent) MarshalJSON() ([]byte, error) {
+func (s StatusEvent) MarshalJSON() ([]byte, error) {
 	type NoMethod StatusEvent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Task: A Cloud Batch task.
@@ -2185,9 +2311,9 @@ type Task struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Task) MarshalJSON() ([]byte, error) {
+func (s Task) MarshalJSON() ([]byte, error) {
 	type NoMethod Task
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TaskExecution: This Task Execution field includes detail information for
@@ -2215,9 +2341,9 @@ type TaskExecution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TaskExecution) MarshalJSON() ([]byte, error) {
+func (s TaskExecution) MarshalJSON() ([]byte, error) {
 	type NoMethod TaskExecution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TaskGroup: A TaskGroup defines one or more Tasks that all share the same
@@ -2286,9 +2412,9 @@ type TaskGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TaskGroup) MarshalJSON() ([]byte, error) {
+func (s TaskGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod TaskGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TaskGroupStatus: Aggregated task status for a TaskGroup.
@@ -2311,9 +2437,9 @@ type TaskGroupStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TaskGroupStatus) MarshalJSON() ([]byte, error) {
+func (s TaskGroupStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod TaskGroupStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TaskSpec: Spec of a task
@@ -2345,14 +2471,14 @@ type TaskSpec struct {
 	// time for a job listed at
 	// https://cloud.google.com/batch/quotas#max-job-duration.
 	MaxRunDuration string `json:"maxRunDuration,omitempty"`
-	// Runnables: The sequence of scripts or containers to run for this Task. Each
-	// Task using this TaskSpec executes its list of runnables in order. The Task
-	// succeeds if all of its runnables either exit with a zero status or any that
-	// exit with a non-zero status have the ignore_exit_status flag. Background
-	// runnables are killed automatically (if they have not already exited) a short
-	// time after all foreground runnables have completed. Even though this is
-	// likely to result in a non-zero exit status for the background runnable,
-	// these automatic kills are not treated as Task failures.
+	// Runnables: Required. The sequence of one or more runnables (executable
+	// scripts, executable containers, and/or barriers) for each task in this task
+	// group to run. Each task runs this list of runnables in order. For a task to
+	// succeed, all of its script and container runnables each must meet at least
+	// one of the following conditions: + The runnable exited with a zero status. +
+	// The runnable didn't finish, but you enabled its `background` subfield. + The
+	// runnable exited with a non-zero status, but you enabled its
+	// `ignore_exit_status` subfield.
 	Runnables []*Runnable `json:"runnables,omitempty"`
 	// Volumes: Volumes to mount before running Tasks using this TaskSpec.
 	Volumes []*Volume `json:"volumes,omitempty"`
@@ -2369,14 +2495,14 @@ type TaskSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TaskSpec) MarshalJSON() ([]byte, error) {
+func (s TaskSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod TaskSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// TaskStatus: Status of a task
+// TaskStatus: Status of a task.
 type TaskStatus struct {
-	// State: Task state
+	// State: Task state.
 	//
 	// Possible values:
 	//   "STATE_UNSPECIFIED" - Unknown state.
@@ -2402,9 +2528,9 @@ type TaskStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TaskStatus) MarshalJSON() ([]byte, error) {
+func (s TaskStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod TaskStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Volume: Volume describes a volume and parameters for it to be mounted to a
@@ -2418,16 +2544,15 @@ type Volume struct {
 	DeviceName string `json:"deviceName,omitempty"`
 	// Gcs: A Google Cloud Storage (GCS) volume.
 	Gcs *GCS `json:"gcs,omitempty"`
-	// MountOptions: For Google Cloud Storage (GCS), mount options are the options
-	// supported by the gcsfuse tool
-	// (https://github.com/GoogleCloudPlatform/gcsfuse). For existing persistent
-	// disks, mount options provided by the mount command
+	// MountOptions: Mount options vary based on the type of storage volume: * For
+	// a Cloud Storage bucket, all the mount options provided by the `gcsfuse` tool
+	// (https://cloud.google.com/storage/docs/gcsfuse-cli) are supported. * For an
+	// existing persistent disk, all mount options provided by the `mount` command
 	// (https://man7.org/linux/man-pages/man8/mount.8.html) except writing are
 	// supported. This is due to restrictions of multi-writer mode
-	// (https://cloud.google.com/compute/docs/disks/sharing-disks-between-vms). For
-	// other attached disks and Network File System (NFS), mount options are these
-	// supported by the mount command
-	// (https://man7.org/linux/man-pages/man8/mount.8.html).
+	// (https://cloud.google.com/compute/docs/disks/sharing-disks-between-vms). *
+	// For any other disk or a Network File System (NFS), all the mount options
+	// provided by the `mount` command are supported.
 	MountOptions []string `json:"mountOptions,omitempty"`
 	// MountPath: The mount path for the volume, e.g. /mnt/disks/share.
 	MountPath string `json:"mountPath,omitempty"`
@@ -2447,9 +2572,9 @@ type Volume struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Volume) MarshalJSON() ([]byte, error) {
+func (s Volume) MarshalJSON() ([]byte, error) {
 	type NoMethod Volume
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -2506,12 +2631,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2519,6 +2643,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2553,9 +2678,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2637,12 +2764,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2650,6 +2776,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2685,9 +2812,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2710,6 +2839,109 @@ func (c *ProjectsLocationsListCall) Pages(ctx context.Context, f func(*ListLocat
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsLocationsJobsCancelCall struct {
+	s                *Service
+	name             string
+	canceljobrequest *CancelJobRequest
+	urlParams_       gensupport.URLParams
+	ctx_             context.Context
+	header_          http.Header
+}
+
+// Cancel: Cancel a Job.
+//
+// - name: Job name.
+func (r *ProjectsLocationsJobsService) Cancel(name string, canceljobrequest *CancelJobRequest) *ProjectsLocationsJobsCancelCall {
+	c := &ProjectsLocationsJobsCancelCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.canceljobrequest = canceljobrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsJobsCancelCall) Fields(s ...googleapi.Field) *ProjectsLocationsJobsCancelCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsJobsCancelCall) Context(ctx context.Context) *ProjectsLocationsJobsCancelCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsJobsCancelCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsJobsCancelCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceljobrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:cancel")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "batch.projects.locations.jobs.cancel" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsJobsCancelCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.cancel", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsLocationsJobsCreateCall struct {
@@ -2785,8 +3017,7 @@ func (c *ProjectsLocationsJobsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.job)
 	if err != nil {
 		return nil, err
 	}
@@ -2802,6 +3033,7 @@ func (c *ProjectsLocationsJobsCreateCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2836,9 +3068,11 @@ func (c *ProjectsLocationsJobsCreateCall) Do(opts ...googleapi.CallOption) (*Job
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2906,12 +3140,11 @@ func (c *ProjectsLocationsJobsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2919,6 +3152,7 @@ func (c *ProjectsLocationsJobsDeleteCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2953,9 +3187,11 @@ func (c *ProjectsLocationsJobsDeleteCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3013,12 +3249,11 @@ func (c *ProjectsLocationsJobsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3026,6 +3261,7 @@ func (c *ProjectsLocationsJobsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3060,9 +3296,11 @@ func (c *ProjectsLocationsJobsGetCall) Do(opts ...googleapi.CallOption) (*Job, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3145,12 +3383,11 @@ func (c *ProjectsLocationsJobsListCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/jobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3158,6 +3395,7 @@ func (c *ProjectsLocationsJobsListCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3193,9 +3431,11 @@ func (c *ProjectsLocationsJobsListCall) Do(opts ...googleapi.CallOption) (*ListJ
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3274,12 +3514,11 @@ func (c *ProjectsLocationsJobsTaskGroupsTasksGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3287,6 +3526,7 @@ func (c *ProjectsLocationsJobsTaskGroupsTasksGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.taskGroups.tasks.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3321,9 +3561,11 @@ func (c *ProjectsLocationsJobsTaskGroupsTasksGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.taskGroups.tasks.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3403,12 +3645,11 @@ func (c *ProjectsLocationsJobsTaskGroupsTasksListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/tasks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3416,6 +3657,7 @@ func (c *ProjectsLocationsJobsTaskGroupsTasksListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.taskGroups.tasks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3451,9 +3693,11 @@ func (c *ProjectsLocationsJobsTaskGroupsTasksListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.jobs.taskGroups.tasks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3494,7 +3738,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -3530,8 +3774,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3547,6 +3790,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3581,9 +3825,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3632,12 +3878,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3645,6 +3890,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3679,9 +3925,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3741,12 +3989,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3754,6 +4001,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3788,9 +4036,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3869,12 +4119,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3882,6 +4131,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3917,9 +4167,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3989,8 +4241,7 @@ func (c *ProjectsLocationsStateReportCall) Header() http.Header {
 
 func (c *ProjectsLocationsStateReportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportagentstaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reportagentstaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4006,6 +4257,7 @@ func (c *ProjectsLocationsStateReportCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "batch.projects.locations.state.report", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4041,8 +4293,10 @@ func (c *ProjectsLocationsStateReportCall) Do(opts ...googleapi.CallOption) (*Re
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "batch.projects.locations.state.report", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

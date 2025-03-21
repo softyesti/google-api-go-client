@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -59,11 +59,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -87,6 +89,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "dataproc:v1"
 const apiName = "dataproc"
@@ -117,7 +120,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -136,13 +140,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -209,10 +212,22 @@ type ProjectsLocationsAutoscalingPoliciesService struct {
 
 func NewProjectsLocationsBatchesService(s *Service) *ProjectsLocationsBatchesService {
 	rs := &ProjectsLocationsBatchesService{s: s}
+	rs.SparkApplications = NewProjectsLocationsBatchesSparkApplicationsService(s)
 	return rs
 }
 
 type ProjectsLocationsBatchesService struct {
+	s *Service
+
+	SparkApplications *ProjectsLocationsBatchesSparkApplicationsService
+}
+
+func NewProjectsLocationsBatchesSparkApplicationsService(s *Service) *ProjectsLocationsBatchesSparkApplicationsService {
+	rs := &ProjectsLocationsBatchesSparkApplicationsService{s: s}
+	return rs
+}
+
+type ProjectsLocationsBatchesSparkApplicationsService struct {
 	s *Service
 }
 
@@ -236,10 +251,22 @@ type ProjectsLocationsSessionTemplatesService struct {
 
 func NewProjectsLocationsSessionsService(s *Service) *ProjectsLocationsSessionsService {
 	rs := &ProjectsLocationsSessionsService{s: s}
+	rs.SparkApplications = NewProjectsLocationsSessionsSparkApplicationsService(s)
 	return rs
 }
 
 type ProjectsLocationsSessionsService struct {
+	s *Service
+
+	SparkApplications *ProjectsLocationsSessionsSparkApplicationsService
+}
+
+func NewProjectsLocationsSessionsSparkApplicationsService(s *Service) *ProjectsLocationsSessionsSparkApplicationsService {
+	rs := &ProjectsLocationsSessionsSparkApplicationsService{s: s}
+	return rs
+}
+
+type ProjectsLocationsSessionsSparkApplicationsService struct {
 	s *Service
 }
 
@@ -365,9 +392,502 @@ type AcceleratorConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AcceleratorConfig) MarshalJSON() ([]byte, error) {
+func (s AcceleratorConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AcceleratorConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationEnvironmentInfoResponse: Environment details of
+// a Saprk Application.
+type AccessSessionSparkApplicationEnvironmentInfoResponse struct {
+	// ApplicationEnvironmentInfo: Details about the Environment that the
+	// application is running in.
+	ApplicationEnvironmentInfo *ApplicationEnvironmentInfo `json:"applicationEnvironmentInfo,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ApplicationEnvironmentInfo")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ApplicationEnvironmentInfo") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationEnvironmentInfoResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationEnvironmentInfoResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationJobResponse: Details of a particular job
+// associated with Spark Application
+type AccessSessionSparkApplicationJobResponse struct {
+	// JobData: Output only. Data corresponding to a spark job.
+	JobData *JobData `json:"jobData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "JobData") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "JobData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationJobResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationJobResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationNativeBuildInfoResponse: Details of a native
+// build info for a Spark Application
+type AccessSessionSparkApplicationNativeBuildInfoResponse struct {
+	// ExecutionData: Native SQL Execution Data
+	ExecutionData *NativeBuildInfoUiData `json:"executionData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ExecutionData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExecutionData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationNativeBuildInfoResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationNativeBuildInfoResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationNativeSqlQueryResponse: Details of a native
+// query for a Spark Application
+type AccessSessionSparkApplicationNativeSqlQueryResponse struct {
+	// ExecutionData: Native SQL Execution Data
+	ExecutionData *NativeSqlExecutionUiData `json:"executionData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ExecutionData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExecutionData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationNativeSqlQueryResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationNativeSqlQueryResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationResponse: A summary of Spark Application
+type AccessSessionSparkApplicationResponse struct {
+	// Application: Output only. High level information corresponding to an
+	// application.
+	Application *ApplicationInfo `json:"application,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Application") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Application") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationSqlQueryResponse: Details of a query for a
+// Spark Application
+type AccessSessionSparkApplicationSqlQueryResponse struct {
+	// ExecutionData: SQL Execution Data
+	ExecutionData *SqlExecutionUiData `json:"executionData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ExecutionData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExecutionData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationSqlQueryResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationSqlQueryResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationSqlSparkPlanGraphResponse: SparkPlanGraph for a
+// Spark Application execution limited to maximum 10000 clusters.
+type AccessSessionSparkApplicationSqlSparkPlanGraphResponse struct {
+	// SparkPlanGraph: SparkPlanGraph for a Spark Application execution.
+	SparkPlanGraph *SparkPlanGraph `json:"sparkPlanGraph,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "SparkPlanGraph") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SparkPlanGraph") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationSqlSparkPlanGraphResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationSqlSparkPlanGraphResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationStageAttemptResponse: Stage Attempt for a Stage
+// of a Spark Application
+type AccessSessionSparkApplicationStageAttemptResponse struct {
+	// StageData: Output only. Data corresponding to a stage.
+	StageData *StageData `json:"stageData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "StageData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "StageData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationStageAttemptResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationStageAttemptResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSessionSparkApplicationStageRddOperationGraphResponse: RDD operation
+// graph for a Spark Application Stage limited to maximum 10000 clusters.
+type AccessSessionSparkApplicationStageRddOperationGraphResponse struct {
+	// RddOperationGraph: RDD operation graph for a Spark Application Stage.
+	RddOperationGraph *RddOperationGraph `json:"rddOperationGraph,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "RddOperationGraph") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "RddOperationGraph") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSessionSparkApplicationStageRddOperationGraphResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSessionSparkApplicationStageRddOperationGraphResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationEnvironmentInfoResponse: Environment details of a
+// Saprk Application.
+type AccessSparkApplicationEnvironmentInfoResponse struct {
+	// ApplicationEnvironmentInfo: Details about the Environment that the
+	// application is running in.
+	ApplicationEnvironmentInfo *ApplicationEnvironmentInfo `json:"applicationEnvironmentInfo,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ApplicationEnvironmentInfo")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ApplicationEnvironmentInfo") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationEnvironmentInfoResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationEnvironmentInfoResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationJobResponse: Details of a particular job associated
+// with Spark Application
+type AccessSparkApplicationJobResponse struct {
+	// JobData: Output only. Data corresponding to a spark job.
+	JobData *JobData `json:"jobData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "JobData") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "JobData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationJobResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationJobResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationNativeBuildInfoResponse: Details of Native Build Info
+// for a Spark Application
+type AccessSparkApplicationNativeBuildInfoResponse struct {
+	// BuildInfo: Native Build Info Data
+	BuildInfo *NativeBuildInfoUiData `json:"buildInfo,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "BuildInfo") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BuildInfo") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationNativeBuildInfoResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationNativeBuildInfoResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationNativeSqlQueryResponse: Details of a query for a Spark
+// Application
+type AccessSparkApplicationNativeSqlQueryResponse struct {
+	// ExecutionData: Native SQL Execution Data
+	ExecutionData *NativeSqlExecutionUiData `json:"executionData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ExecutionData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExecutionData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationNativeSqlQueryResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationNativeSqlQueryResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationResponse: A summary of Spark Application
+type AccessSparkApplicationResponse struct {
+	// Application: Output only. High level information corresponding to an
+	// application.
+	Application *ApplicationInfo `json:"application,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Application") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Application") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationSqlQueryResponse: Details of a query for a Spark
+// Application
+type AccessSparkApplicationSqlQueryResponse struct {
+	// ExecutionData: SQL Execution Data
+	ExecutionData *SqlExecutionUiData `json:"executionData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ExecutionData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExecutionData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationSqlQueryResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationSqlQueryResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationSqlSparkPlanGraphResponse: SparkPlanGraph for a Spark
+// Application execution limited to maximum 10000 clusters.
+type AccessSparkApplicationSqlSparkPlanGraphResponse struct {
+	// SparkPlanGraph: SparkPlanGraph for a Spark Application execution.
+	SparkPlanGraph *SparkPlanGraph `json:"sparkPlanGraph,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "SparkPlanGraph") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "SparkPlanGraph") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationSqlSparkPlanGraphResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationSqlSparkPlanGraphResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationStageAttemptResponse: Stage Attempt for a Stage of a
+// Spark Application
+type AccessSparkApplicationStageAttemptResponse struct {
+	// StageData: Output only. Data corresponding to a stage.
+	StageData *StageData `json:"stageData,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "StageData") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "StageData") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationStageAttemptResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationStageAttemptResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AccessSparkApplicationStageRddOperationGraphResponse: RDD operation graph
+// for a Spark Application Stage limited to maximum 10000 clusters.
+type AccessSparkApplicationStageRddOperationGraphResponse struct {
+	// RddOperationGraph: RDD operation graph for a Spark Application Stage.
+	RddOperationGraph *RddOperationGraph `json:"rddOperationGraph,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "RddOperationGraph") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "RddOperationGraph") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccessSparkApplicationStageRddOperationGraphResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod AccessSparkApplicationStageRddOperationGraphResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type AccumulableInfo struct {
+	AccumullableInfoId int64  `json:"accumullableInfoId,omitempty,string"`
+	Name               string `json:"name,omitempty"`
+	Update             string `json:"update,omitempty"`
+	Value              string `json:"value,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccumullableInfoId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccumullableInfoId") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AccumulableInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod AccumulableInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyzeBatchRequest: A request to analyze a batch workload.
@@ -395,9 +915,9 @@ type AnalyzeBatchRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyzeBatchRequest) MarshalJSON() ([]byte, error) {
+func (s AnalyzeBatchRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyzeBatchRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyzeOperationMetadata: Metadata describing the Analyze operation.
@@ -436,9 +956,160 @@ type AnalyzeOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyzeOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s AnalyzeOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyzeOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type AppSummary struct {
+	NumCompletedJobs   int64 `json:"numCompletedJobs,omitempty"`
+	NumCompletedStages int64 `json:"numCompletedStages,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "NumCompletedJobs") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NumCompletedJobs") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AppSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod AppSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ApplicationAttemptInfo: Specific attempt of an application.
+type ApplicationAttemptInfo struct {
+	AppSparkVersion string `json:"appSparkVersion,omitempty"`
+	AttemptId       string `json:"attemptId,omitempty"`
+	Completed       bool   `json:"completed,omitempty"`
+	DurationMillis  int64  `json:"durationMillis,omitempty,string"`
+	EndTime         string `json:"endTime,omitempty"`
+	LastUpdated     string `json:"lastUpdated,omitempty"`
+	SparkUser       string `json:"sparkUser,omitempty"`
+	StartTime       string `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AppSparkVersion") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AppSparkVersion") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ApplicationAttemptInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod ApplicationAttemptInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ApplicationEnvironmentInfo: Details about the Environment that the
+// application is running in.
+type ApplicationEnvironmentInfo struct {
+	ClasspathEntries  map[string]string      `json:"classpathEntries,omitempty"`
+	HadoopProperties  map[string]string      `json:"hadoopProperties,omitempty"`
+	MetricsProperties map[string]string      `json:"metricsProperties,omitempty"`
+	ResourceProfiles  []*ResourceProfileInfo `json:"resourceProfiles,omitempty"`
+	Runtime           *SparkRuntimeInfo      `json:"runtime,omitempty"`
+	SparkProperties   map[string]string      `json:"sparkProperties,omitempty"`
+	SystemProperties  map[string]string      `json:"systemProperties,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ClasspathEntries") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ClasspathEntries") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ApplicationEnvironmentInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod ApplicationEnvironmentInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ApplicationInfo: High level information corresponding to an application.
+type ApplicationInfo struct {
+	// Possible values:
+	//   "APPLICATION_CONTEXT_INGESTION_STATUS_UNSPECIFIED"
+	//   "APPLICATION_CONTEXT_INGESTION_STATUS_COMPLETED"
+	ApplicationContextIngestionStatus string                    `json:"applicationContextIngestionStatus,omitempty"`
+	ApplicationId                     string                    `json:"applicationId,omitempty"`
+	Attempts                          []*ApplicationAttemptInfo `json:"attempts,omitempty"`
+	CoresGranted                      int64                     `json:"coresGranted,omitempty"`
+	CoresPerExecutor                  int64                     `json:"coresPerExecutor,omitempty"`
+	MaxCores                          int64                     `json:"maxCores,omitempty"`
+	MemoryPerExecutorMb               int64                     `json:"memoryPerExecutorMb,omitempty"`
+	Name                              string                    `json:"name,omitempty"`
+	// Possible values:
+	//   "QUANTILE_DATA_STATUS_UNSPECIFIED"
+	//   "QUANTILE_DATA_STATUS_COMPLETED"
+	//   "QUANTILE_DATA_STATUS_FAILED"
+	QuantileDataStatus string `json:"quantileDataStatus,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "ApplicationContextIngestionStatus") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g.
+	// "ApplicationContextIngestionStatus") to include in API requests with the
+	// JSON null value. By default, fields with empty values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-NullFields for
+	// more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ApplicationInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod ApplicationInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// AuthenticationConfig: Authentication configuration for a workload is used to
+// set the default identity for the workload execution. The config specifies
+// the type of identity (service account or user) that will be used by
+// workloads to access resources on the project(s).
+type AuthenticationConfig struct {
+	// UserWorkloadAuthenticationType: Optional. Authentication type for the user
+	// workload running in containers.
+	//
+	// Possible values:
+	//   "AUTHENTICATION_TYPE_UNSPECIFIED" - If AuthenticationType is unspecified
+	// then END_USER_CREDENTIALS is used for 3.0 and newer runtimes, and
+	// SERVICE_ACCOUNT is used for older runtimes.
+	//   "SERVICE_ACCOUNT" - Use service account credentials for authenticating to
+	// other services.
+	//   "END_USER_CREDENTIALS" - Use OAuth credentials associated with the
+	// workload creator/user for authenticating to other services.
+	UserWorkloadAuthenticationType string `json:"userWorkloadAuthenticationType,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "UserWorkloadAuthenticationType") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "UserWorkloadAuthenticationType")
+	// to include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s AuthenticationConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod AuthenticationConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutoscalingConfig: Autoscaling Policy config associated with the cluster.
@@ -463,9 +1134,9 @@ type AutoscalingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoscalingConfig) MarshalJSON() ([]byte, error) {
+func (s AutoscalingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoscalingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutoscalingPolicy: Describes an autoscaling policy for Dataproc cluster
@@ -514,9 +1185,9 @@ type AutoscalingPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutoscalingPolicy) MarshalJSON() ([]byte, error) {
+func (s AutoscalingPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod AutoscalingPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutotuningConfig: Autotuning configuration of the workload.
@@ -542,9 +1213,9 @@ type AutotuningConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutotuningConfig) MarshalJSON() ([]byte, error) {
+func (s AutotuningConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AutotuningConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuxiliaryNodeGroup: Node group identification and configuration information.
@@ -569,9 +1240,9 @@ type AuxiliaryNodeGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuxiliaryNodeGroup) MarshalJSON() ([]byte, error) {
+func (s AuxiliaryNodeGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod AuxiliaryNodeGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuxiliaryServicesConfig: Auxiliary services configuration for a Cluster.
@@ -595,9 +1266,9 @@ type AuxiliaryServicesConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuxiliaryServicesConfig) MarshalJSON() ([]byte, error) {
+func (s AuxiliaryServicesConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuxiliaryServicesConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BasicAutoscalingAlgorithm: Basic algorithm for autoscaling.
@@ -623,9 +1294,9 @@ type BasicAutoscalingAlgorithm struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BasicAutoscalingAlgorithm) MarshalJSON() ([]byte, error) {
+func (s BasicAutoscalingAlgorithm) MarshalJSON() ([]byte, error) {
 	type NoMethod BasicAutoscalingAlgorithm
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BasicYarnAutoscalingConfig: Basic autoscaling configurations for YARN.
@@ -680,9 +1351,9 @@ type BasicYarnAutoscalingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BasicYarnAutoscalingConfig) MarshalJSON() ([]byte, error) {
+func (s BasicYarnAutoscalingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod BasicYarnAutoscalingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *BasicYarnAutoscalingConfig) UnmarshalJSON(data []byte) error {
@@ -775,9 +1446,9 @@ type Batch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Batch) MarshalJSON() ([]byte, error) {
+func (s Batch) MarshalJSON() ([]byte, error) {
 	type NoMethod Batch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchOperationMetadata: Metadata describing the Batch operation.
@@ -815,9 +1486,9 @@ type BatchOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s BatchOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates members, or principals, with a role.
@@ -911,9 +1582,33 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// BuildInfo: Native Build Info
+type BuildInfo struct {
+	// BuildKey: Optional. Build key.
+	BuildKey string `json:"buildKey,omitempty"`
+	// BuildValue: Optional. Build value.
+	BuildValue string `json:"buildValue,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BuildKey") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BuildKey") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s BuildInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod BuildInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelJobRequest: A request to cancel a job.
@@ -977,9 +1672,9 @@ type Cluster struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Cluster) MarshalJSON() ([]byte, error) {
+func (s Cluster) MarshalJSON() ([]byte, error) {
 	type NoMethod Cluster
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterConfig: The cluster config.
@@ -1066,9 +1761,9 @@ type ClusterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterConfig) MarshalJSON() ([]byte, error) {
+func (s ClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterMetrics: Contains cluster daemon metrics, such as HDFS and YARN
@@ -1092,9 +1787,9 @@ type ClusterMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterMetrics) MarshalJSON() ([]byte, error) {
+func (s ClusterMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterOperation: The cluster operation triggered by a workflow.
@@ -1118,9 +1813,9 @@ type ClusterOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterOperation) MarshalJSON() ([]byte, error) {
+func (s ClusterOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterOperationMetadata: Metadata describing the operation.
@@ -1156,9 +1851,9 @@ type ClusterOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s ClusterOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterOperationStatus: The status of the operation.
@@ -1190,9 +1885,9 @@ type ClusterOperationStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterOperationStatus) MarshalJSON() ([]byte, error) {
+func (s ClusterOperationStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterOperationStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterSelector: A selector that chooses target cluster for jobs based on
@@ -1218,9 +1913,9 @@ type ClusterSelector struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterSelector) MarshalJSON() ([]byte, error) {
+func (s ClusterSelector) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterSelector
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClusterStatus: The status of a cluster and its instances.
@@ -1248,6 +1943,9 @@ type ClusterStatus struct {
 	//   "STOPPED" - The cluster is currently stopped. It is not ready for use.
 	//   "STARTING" - The cluster is being started. It is not ready for use.
 	//   "REPAIRING" - The cluster is being repaired. It is not ready for use.
+	//   "SCHEDULED" - Cluster creation is currently waiting for resources to be
+	// available. Once all resources are available, it will transition to CREATING
+	// and then RUNNING.
 	State string `json:"state,omitempty"`
 	// StateStartTime: Output only. Time when this state was entered (see JSON
 	// representation of Timestamp
@@ -1277,9 +1975,37 @@ type ClusterStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClusterStatus) MarshalJSON() ([]byte, error) {
+func (s ClusterStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod ClusterStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ClusterToRepair: Cluster to be repaired
+type ClusterToRepair struct {
+	// ClusterRepairAction: Required. Repair action to take on the cluster
+	// resource.
+	//
+	// Possible values:
+	//   "CLUSTER_REPAIR_ACTION_UNSPECIFIED" - No action will be taken by default.
+	//   "REPAIR_ERROR_DUE_TO_UPDATE_CLUSTER" - Repair cluster in
+	// ERROR_DUE_TO_UPDATE states.
+	ClusterRepairAction string `json:"clusterRepairAction,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ClusterRepairAction") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ClusterRepairAction") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ClusterToRepair) MarshalJSON() ([]byte, error) {
+	type NoMethod ClusterToRepair
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConfidentialInstanceConfig: Confidential Instance Config for clusters using
@@ -1301,9 +2027,47 @@ type ConfidentialInstanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConfidentialInstanceConfig) MarshalJSON() ([]byte, error) {
+func (s ConfidentialInstanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ConfidentialInstanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ConsolidatedExecutorSummary: Consolidated summary about executors used by
+// the application.
+type ConsolidatedExecutorSummary struct {
+	ActiveTasks         int64          `json:"activeTasks,omitempty"`
+	CompletedTasks      int64          `json:"completedTasks,omitempty"`
+	Count               int64          `json:"count,omitempty"`
+	DiskUsed            int64          `json:"diskUsed,omitempty,string"`
+	FailedTasks         int64          `json:"failedTasks,omitempty"`
+	IsExcluded          int64          `json:"isExcluded,omitempty"`
+	MaxMemory           int64          `json:"maxMemory,omitempty,string"`
+	MemoryMetrics       *MemoryMetrics `json:"memoryMetrics,omitempty"`
+	MemoryUsed          int64          `json:"memoryUsed,omitempty,string"`
+	RddBlocks           int64          `json:"rddBlocks,omitempty"`
+	TotalCores          int64          `json:"totalCores,omitempty"`
+	TotalDurationMillis int64          `json:"totalDurationMillis,omitempty,string"`
+	TotalGcTimeMillis   int64          `json:"totalGcTimeMillis,omitempty,string"`
+	TotalInputBytes     int64          `json:"totalInputBytes,omitempty,string"`
+	TotalShuffleRead    int64          `json:"totalShuffleRead,omitempty,string"`
+	TotalShuffleWrite   int64          `json:"totalShuffleWrite,omitempty,string"`
+	TotalTasks          int64          `json:"totalTasks,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ActiveTasks") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ActiveTasks") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ConsolidatedExecutorSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod ConsolidatedExecutorSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DataprocMetricConfig: Dataproc metric config.
@@ -1323,9 +2087,9 @@ type DataprocMetricConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataprocMetricConfig) MarshalJSON() ([]byte, error) {
+func (s DataprocMetricConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DataprocMetricConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiagnoseClusterRequest: A request to collect cluster diagnostic information.
@@ -1373,9 +2137,9 @@ type DiagnoseClusterRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiagnoseClusterRequest) MarshalJSON() ([]byte, error) {
+func (s DiagnoseClusterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DiagnoseClusterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiagnoseClusterResults: The location of diagnostic output.
@@ -1396,14 +2160,24 @@ type DiagnoseClusterResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiagnoseClusterResults) MarshalJSON() ([]byte, error) {
+func (s DiagnoseClusterResults) MarshalJSON() ([]byte, error) {
 	type NoMethod DiagnoseClusterResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiskConfig: Specifies the config of disk options for a group of VM
 // instances.
 type DiskConfig struct {
+	// BootDiskProvisionedIops: Optional. Indicates how many IOPS to provision for
+	// the disk. This sets the number of I/O operations per second that the disk
+	// can handle. This field is supported only if boot_disk_type is
+	// hyperdisk-balanced.
+	BootDiskProvisionedIops int64 `json:"bootDiskProvisionedIops,omitempty,string"`
+	// BootDiskProvisionedThroughput: Optional. Indicates how much throughput to
+	// provision for the disk. This sets the number of throughput mb per second
+	// that the disk can handle. Values must be greater than or equal to 1. This
+	// field is supported only if boot_disk_type is hyperdisk-balanced.
+	BootDiskProvisionedThroughput int64 `json:"bootDiskProvisionedThroughput,omitempty,string"`
 	// BootDiskSizeGb: Optional. Size in GB of the boot disk (default is 500GB).
 	BootDiskSizeGb int64 `json:"bootDiskSizeGb,omitempty"`
 	// BootDiskType: Optional. Type of the boot disk (default is "pd-standard").
@@ -1424,22 +2198,22 @@ type DiskConfig struct {
 	// and the boot disk contains only basic config and installed binaries.Note:
 	// Local SSD options may vary by machine type and number of vCPUs selected.
 	NumLocalSsds int64 `json:"numLocalSsds,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "BootDiskSizeGb") to
+	// ForceSendFields is a list of field names (e.g. "BootDiskProvisionedIops") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "BootDiskSizeGb") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "BootDiskProvisionedIops") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *DiskConfig) MarshalJSON() ([]byte, error) {
+func (s DiskConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DiskConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DriverSchedulingConfig: Driver scheduling configuration.
@@ -1461,9 +2235,9 @@ type DriverSchedulingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DriverSchedulingConfig) MarshalJSON() ([]byte, error) {
+func (s DriverSchedulingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DriverSchedulingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1521,9 +2295,9 @@ type EncryptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionConfig) MarshalJSON() ([]byte, error) {
+func (s EncryptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EndpointConfig: Endpoint config for this cluster
@@ -1547,9 +2321,9 @@ type EndpointConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EndpointConfig) MarshalJSON() ([]byte, error) {
+func (s EndpointConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EndpointConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EnvironmentConfig: Environment configuration for a workload.
@@ -1572,13 +2346,18 @@ type EnvironmentConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnvironmentConfig) MarshalJSON() ([]byte, error) {
+func (s EnvironmentConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EnvironmentConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecutionConfig: Execution configuration for a workload.
 type ExecutionConfig struct {
+	// AuthenticationConfig: Optional. Authentication configuration used to set the
+	// default identity for the workload execution. The config specifies the type
+	// of identity (service account or user) that will be used by workloads to
+	// access resources on the project(s).
+	AuthenticationConfig *AuthenticationConfig `json:"authenticationConfig,omitempty"`
 	// IdleTtl: Optional. Applies to sessions only. The duration to keep the
 	// session alive while it's idling. Exceeding this threshold causes the session
 	// to terminate. This field cannot be set on a batch workload. Minimum value is
@@ -1622,22 +2401,315 @@ type ExecutionConfig struct {
 	// workload will be terminated when it has been idle for idle_ttl or when ttl
 	// has been exceeded, whichever occurs first.
 	Ttl string `json:"ttl,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "IdleTtl") to unconditionally
+	// ForceSendFields is a list of field names (e.g. "AuthenticationConfig") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AuthenticationConfig") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExecutionConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod ExecutionConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ExecutorMetrics struct {
+	Metrics map[string]string `json:"metrics,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Metrics") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "IdleTtl") to include in API
+	// NullFields is a list of field names (e.g. "Metrics") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecutionConfig) MarshalJSON() ([]byte, error) {
-	type NoMethod ExecutionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+func (s ExecutorMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod ExecutorMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ExecutorMetricsDistributions struct {
+	DiskBytesSpilled    []float64                         `json:"diskBytesSpilled,omitempty"`
+	FailedTasks         []float64                         `json:"failedTasks,omitempty"`
+	InputBytes          []float64                         `json:"inputBytes,omitempty"`
+	InputRecords        []float64                         `json:"inputRecords,omitempty"`
+	KilledTasks         []float64                         `json:"killedTasks,omitempty"`
+	MemoryBytesSpilled  []float64                         `json:"memoryBytesSpilled,omitempty"`
+	OutputBytes         []float64                         `json:"outputBytes,omitempty"`
+	OutputRecords       []float64                         `json:"outputRecords,omitempty"`
+	PeakMemoryMetrics   *ExecutorPeakMetricsDistributions `json:"peakMemoryMetrics,omitempty"`
+	Quantiles           []float64                         `json:"quantiles,omitempty"`
+	ShuffleRead         []float64                         `json:"shuffleRead,omitempty"`
+	ShuffleReadRecords  []float64                         `json:"shuffleReadRecords,omitempty"`
+	ShuffleWrite        []float64                         `json:"shuffleWrite,omitempty"`
+	ShuffleWriteRecords []float64                         `json:"shuffleWriteRecords,omitempty"`
+	SucceededTasks      []float64                         `json:"succeededTasks,omitempty"`
+	TaskTimeMillis      []float64                         `json:"taskTimeMillis,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DiskBytesSpilled") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DiskBytesSpilled") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExecutorMetricsDistributions) MarshalJSON() ([]byte, error) {
+	type NoMethod ExecutorMetricsDistributions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *ExecutorMetricsDistributions) UnmarshalJSON(data []byte) error {
+	type NoMethod ExecutorMetricsDistributions
+	var s1 struct {
+		DiskBytesSpilled    []gensupport.JSONFloat64 `json:"diskBytesSpilled"`
+		FailedTasks         []gensupport.JSONFloat64 `json:"failedTasks"`
+		InputBytes          []gensupport.JSONFloat64 `json:"inputBytes"`
+		InputRecords        []gensupport.JSONFloat64 `json:"inputRecords"`
+		KilledTasks         []gensupport.JSONFloat64 `json:"killedTasks"`
+		MemoryBytesSpilled  []gensupport.JSONFloat64 `json:"memoryBytesSpilled"`
+		OutputBytes         []gensupport.JSONFloat64 `json:"outputBytes"`
+		OutputRecords       []gensupport.JSONFloat64 `json:"outputRecords"`
+		Quantiles           []gensupport.JSONFloat64 `json:"quantiles"`
+		ShuffleRead         []gensupport.JSONFloat64 `json:"shuffleRead"`
+		ShuffleReadRecords  []gensupport.JSONFloat64 `json:"shuffleReadRecords"`
+		ShuffleWrite        []gensupport.JSONFloat64 `json:"shuffleWrite"`
+		ShuffleWriteRecords []gensupport.JSONFloat64 `json:"shuffleWriteRecords"`
+		SucceededTasks      []gensupport.JSONFloat64 `json:"succeededTasks"`
+		TaskTimeMillis      []gensupport.JSONFloat64 `json:"taskTimeMillis"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.DiskBytesSpilled = make([]float64, len(s1.DiskBytesSpilled))
+	for i := range s1.DiskBytesSpilled {
+		s.DiskBytesSpilled[i] = float64(s1.DiskBytesSpilled[i])
+	}
+	s.FailedTasks = make([]float64, len(s1.FailedTasks))
+	for i := range s1.FailedTasks {
+		s.FailedTasks[i] = float64(s1.FailedTasks[i])
+	}
+	s.InputBytes = make([]float64, len(s1.InputBytes))
+	for i := range s1.InputBytes {
+		s.InputBytes[i] = float64(s1.InputBytes[i])
+	}
+	s.InputRecords = make([]float64, len(s1.InputRecords))
+	for i := range s1.InputRecords {
+		s.InputRecords[i] = float64(s1.InputRecords[i])
+	}
+	s.KilledTasks = make([]float64, len(s1.KilledTasks))
+	for i := range s1.KilledTasks {
+		s.KilledTasks[i] = float64(s1.KilledTasks[i])
+	}
+	s.MemoryBytesSpilled = make([]float64, len(s1.MemoryBytesSpilled))
+	for i := range s1.MemoryBytesSpilled {
+		s.MemoryBytesSpilled[i] = float64(s1.MemoryBytesSpilled[i])
+	}
+	s.OutputBytes = make([]float64, len(s1.OutputBytes))
+	for i := range s1.OutputBytes {
+		s.OutputBytes[i] = float64(s1.OutputBytes[i])
+	}
+	s.OutputRecords = make([]float64, len(s1.OutputRecords))
+	for i := range s1.OutputRecords {
+		s.OutputRecords[i] = float64(s1.OutputRecords[i])
+	}
+	s.Quantiles = make([]float64, len(s1.Quantiles))
+	for i := range s1.Quantiles {
+		s.Quantiles[i] = float64(s1.Quantiles[i])
+	}
+	s.ShuffleRead = make([]float64, len(s1.ShuffleRead))
+	for i := range s1.ShuffleRead {
+		s.ShuffleRead[i] = float64(s1.ShuffleRead[i])
+	}
+	s.ShuffleReadRecords = make([]float64, len(s1.ShuffleReadRecords))
+	for i := range s1.ShuffleReadRecords {
+		s.ShuffleReadRecords[i] = float64(s1.ShuffleReadRecords[i])
+	}
+	s.ShuffleWrite = make([]float64, len(s1.ShuffleWrite))
+	for i := range s1.ShuffleWrite {
+		s.ShuffleWrite[i] = float64(s1.ShuffleWrite[i])
+	}
+	s.ShuffleWriteRecords = make([]float64, len(s1.ShuffleWriteRecords))
+	for i := range s1.ShuffleWriteRecords {
+		s.ShuffleWriteRecords[i] = float64(s1.ShuffleWriteRecords[i])
+	}
+	s.SucceededTasks = make([]float64, len(s1.SucceededTasks))
+	for i := range s1.SucceededTasks {
+		s.SucceededTasks[i] = float64(s1.SucceededTasks[i])
+	}
+	s.TaskTimeMillis = make([]float64, len(s1.TaskTimeMillis))
+	for i := range s1.TaskTimeMillis {
+		s.TaskTimeMillis[i] = float64(s1.TaskTimeMillis[i])
+	}
+	return nil
+}
+
+type ExecutorPeakMetricsDistributions struct {
+	ExecutorMetrics []*ExecutorMetrics `json:"executorMetrics,omitempty"`
+	Quantiles       []float64          `json:"quantiles,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ExecutorMetrics") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExecutorMetrics") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExecutorPeakMetricsDistributions) MarshalJSON() ([]byte, error) {
+	type NoMethod ExecutorPeakMetricsDistributions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *ExecutorPeakMetricsDistributions) UnmarshalJSON(data []byte) error {
+	type NoMethod ExecutorPeakMetricsDistributions
+	var s1 struct {
+		Quantiles []gensupport.JSONFloat64 `json:"quantiles"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Quantiles = make([]float64, len(s1.Quantiles))
+	for i := range s1.Quantiles {
+		s.Quantiles[i] = float64(s1.Quantiles[i])
+	}
+	return nil
+}
+
+// ExecutorResourceRequest: Resources used per executor used by the
+// application.
+type ExecutorResourceRequest struct {
+	Amount          int64  `json:"amount,omitempty,string"`
+	DiscoveryScript string `json:"discoveryScript,omitempty"`
+	ResourceName    string `json:"resourceName,omitempty"`
+	Vendor          string `json:"vendor,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Amount") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Amount") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExecutorResourceRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ExecutorResourceRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ExecutorStageSummary: Executor resources consumed by a stage.
+type ExecutorStageSummary struct {
+	DiskBytesSpilled    int64            `json:"diskBytesSpilled,omitempty,string"`
+	ExecutorId          string           `json:"executorId,omitempty"`
+	FailedTasks         int64            `json:"failedTasks,omitempty"`
+	InputBytes          int64            `json:"inputBytes,omitempty,string"`
+	InputRecords        int64            `json:"inputRecords,omitempty,string"`
+	IsExcludedForStage  bool             `json:"isExcludedForStage,omitempty"`
+	KilledTasks         int64            `json:"killedTasks,omitempty"`
+	MemoryBytesSpilled  int64            `json:"memoryBytesSpilled,omitempty,string"`
+	OutputBytes         int64            `json:"outputBytes,omitempty,string"`
+	OutputRecords       int64            `json:"outputRecords,omitempty,string"`
+	PeakMemoryMetrics   *ExecutorMetrics `json:"peakMemoryMetrics,omitempty"`
+	ShuffleRead         int64            `json:"shuffleRead,omitempty,string"`
+	ShuffleReadRecords  int64            `json:"shuffleReadRecords,omitempty,string"`
+	ShuffleWrite        int64            `json:"shuffleWrite,omitempty,string"`
+	ShuffleWriteRecords int64            `json:"shuffleWriteRecords,omitempty,string"`
+	StageAttemptId      int64            `json:"stageAttemptId,omitempty"`
+	StageId             int64            `json:"stageId,omitempty,string"`
+	SucceededTasks      int64            `json:"succeededTasks,omitempty"`
+	TaskTimeMillis      int64            `json:"taskTimeMillis,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "DiskBytesSpilled") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DiskBytesSpilled") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExecutorStageSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod ExecutorStageSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ExecutorSummary: Details about executors used by the application.
+type ExecutorSummary struct {
+	ActiveTasks         int64                          `json:"activeTasks,omitempty"`
+	AddTime             string                         `json:"addTime,omitempty"`
+	Attributes          map[string]string              `json:"attributes,omitempty"`
+	CompletedTasks      int64                          `json:"completedTasks,omitempty"`
+	DiskUsed            int64                          `json:"diskUsed,omitempty,string"`
+	ExcludedInStages    googleapi.Int64s               `json:"excludedInStages,omitempty"`
+	ExecutorId          string                         `json:"executorId,omitempty"`
+	ExecutorLogs        map[string]string              `json:"executorLogs,omitempty"`
+	FailedTasks         int64                          `json:"failedTasks,omitempty"`
+	HostPort            string                         `json:"hostPort,omitempty"`
+	IsActive            bool                           `json:"isActive,omitempty"`
+	IsExcluded          bool                           `json:"isExcluded,omitempty"`
+	MaxMemory           int64                          `json:"maxMemory,omitempty,string"`
+	MaxTasks            int64                          `json:"maxTasks,omitempty"`
+	MemoryMetrics       *MemoryMetrics                 `json:"memoryMetrics,omitempty"`
+	MemoryUsed          int64                          `json:"memoryUsed,omitempty,string"`
+	PeakMemoryMetrics   *ExecutorMetrics               `json:"peakMemoryMetrics,omitempty"`
+	RddBlocks           int64                          `json:"rddBlocks,omitempty"`
+	RemoveReason        string                         `json:"removeReason,omitempty"`
+	RemoveTime          string                         `json:"removeTime,omitempty"`
+	ResourceProfileId   int64                          `json:"resourceProfileId,omitempty"`
+	Resources           map[string]ResourceInformation `json:"resources,omitempty"`
+	TotalCores          int64                          `json:"totalCores,omitempty"`
+	TotalDurationMillis int64                          `json:"totalDurationMillis,omitempty,string"`
+	TotalGcTimeMillis   int64                          `json:"totalGcTimeMillis,omitempty,string"`
+	TotalInputBytes     int64                          `json:"totalInputBytes,omitempty,string"`
+	TotalShuffleRead    int64                          `json:"totalShuffleRead,omitempty,string"`
+	TotalShuffleWrite   int64                          `json:"totalShuffleWrite,omitempty,string"`
+	TotalTasks          int64                          `json:"totalTasks,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ActiveTasks") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ActiveTasks") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExecutorSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod ExecutorSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -1683,9 +2755,33 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// FallbackReason: Native SQL Execution Data
+type FallbackReason struct {
+	// FallbackNode: Optional. Fallback node information.
+	FallbackNode string `json:"fallbackNode,omitempty"`
+	// FallbackReason: Optional. Fallback to Spark reason.
+	FallbackReason string `json:"fallbackReason,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FallbackNode") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FallbackNode") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s FallbackReason) MarshalJSON() ([]byte, error) {
+	type NoMethod FallbackReason
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FlinkJob: A Dataproc job for running Apache Flink applications on YARN.
@@ -1706,8 +2802,8 @@ type FlinkJob struct {
 	MainJarFileUri string `json:"mainJarFileUri,omitempty"`
 	// Properties: Optional. A mapping of property names to values, used to
 	// configure Flink. Properties that conflict with values set by the Dataproc
-	// API might beoverwritten. Can include properties set
-	// in/etc/flink/conf/flink-defaults.conf and classes in user code.
+	// API might be overwritten. Can include properties set in
+	// /etc/flink/conf/flink-defaults.conf and classes in user code.
 	Properties map[string]string `json:"properties,omitempty"`
 	// SavepointUri: Optional. HCFS URI of the savepoint, which contains the last
 	// saved progress for starting the current job.
@@ -1725,9 +2821,9 @@ type FlinkJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlinkJob) MarshalJSON() ([]byte, error) {
+func (s FlinkJob) MarshalJSON() ([]byte, error) {
 	type NoMethod FlinkJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GceClusterConfig: Common config settings for resources of Compute Engine
@@ -1779,6 +2875,11 @@ type GceClusterConfig struct {
 	// ReservationAffinity: Optional. Reservation Affinity for consuming Zonal
 	// reservation.
 	ReservationAffinity *ReservationAffinity `json:"reservationAffinity,omitempty"`
+	// ResourceManagerTags: Optional. Resource manager tags
+	// (https://cloud.google.com/resource-manager/docs/tags/tags-creating-and-managing)
+	// to add to all instances (see Use secure tags in Dataproc
+	// (https://cloud.google.com/dataproc/docs/guides/attach-secure-tags)).
+	ResourceManagerTags map[string]string `json:"resourceManagerTags,omitempty"`
 	// ServiceAccount: Optional. The Dataproc service account
 	// (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/service-accounts#service_accounts_in_dataproc)
 	// (also see VM Data Plane identity
@@ -1809,8 +2910,8 @@ type GceClusterConfig struct {
 	// https://www.googleapis.com/compute/v1/projects/[project_id]/regions/[region]/subnetworks/sub0
 	// projects/[project_id]/regions/[region]/subnetworks/sub0 sub0
 	SubnetworkUri string `json:"subnetworkUri,omitempty"`
-	// Tags: The Compute Engine tags to add to all instances (see Tagging instances
-	// (https://cloud.google.com/compute/docs/label-or-tag-resources#tags)).
+	// Tags: The Compute Engine network tags to add to all instances (see Tagging
+	// instances (https://cloud.google.com/vpc/docs/add-remove-network-tags)).
 	Tags []string `json:"tags,omitempty"`
 	// ZoneUri: Optional. The Compute Engine zone where the Dataproc cluster will
 	// be located. If omitted, the service will pick a zone in the cluster's
@@ -1832,9 +2933,9 @@ type GceClusterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GceClusterConfig) MarshalJSON() ([]byte, error) {
+func (s GceClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GceClusterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIamPolicyRequest: Request message for GetIamPolicy method.
@@ -1855,9 +2956,9 @@ type GetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetPolicyOptions: Encapsulates settings provided to GetIamPolicy.
@@ -1887,9 +2988,9 @@ type GetPolicyOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetPolicyOptions) MarshalJSON() ([]byte, error) {
+func (s GetPolicyOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GetPolicyOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GkeClusterConfig: The cluster's GKE config.
@@ -1921,9 +3022,9 @@ type GkeClusterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GkeClusterConfig) MarshalJSON() ([]byte, error) {
+func (s GkeClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GkeClusterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GkeNodeConfig: Parameters that describe cluster nodes.
@@ -1979,9 +3080,9 @@ type GkeNodeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GkeNodeConfig) MarshalJSON() ([]byte, error) {
+func (s GkeNodeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GkeNodeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GkeNodePoolAcceleratorConfig: A GkeNodeConfigAcceleratorConfig represents a
@@ -2009,9 +3110,9 @@ type GkeNodePoolAcceleratorConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GkeNodePoolAcceleratorConfig) MarshalJSON() ([]byte, error) {
+func (s GkeNodePoolAcceleratorConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GkeNodePoolAcceleratorConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GkeNodePoolAutoscalingConfig: GkeNodePoolAutoscaling contains information
@@ -2038,9 +3139,9 @@ type GkeNodePoolAutoscalingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GkeNodePoolAutoscalingConfig) MarshalJSON() ([]byte, error) {
+func (s GkeNodePoolAutoscalingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GkeNodePoolAutoscalingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GkeNodePoolConfig: The configuration of a GKE node pool used by a
@@ -2073,9 +3174,9 @@ type GkeNodePoolConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GkeNodePoolConfig) MarshalJSON() ([]byte, error) {
+func (s GkeNodePoolConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GkeNodePoolConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GkeNodePoolTarget: GKE node pools that Dataproc workloads run on.
@@ -2120,9 +3221,9 @@ type GkeNodePoolTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GkeNodePoolTarget) MarshalJSON() ([]byte, error) {
+func (s GkeNodePoolTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod GkeNodePoolTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDataprocV1WorkflowTemplateEncryptionConfig: Encryption settings
@@ -2167,9 +3268,9 @@ type GoogleCloudDataprocV1WorkflowTemplateEncryptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDataprocV1WorkflowTemplateEncryptionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDataprocV1WorkflowTemplateEncryptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDataprocV1WorkflowTemplateEncryptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HadoopJob: A Dataproc job for running Apache Hadoop MapReduce
@@ -2220,9 +3321,9 @@ type HadoopJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HadoopJob) MarshalJSON() ([]byte, error) {
+func (s HadoopJob) MarshalJSON() ([]byte, error) {
 	type NoMethod HadoopJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HiveJob: A Dataproc job for running Apache Hive (https://hive.apache.org/)
@@ -2262,9 +3363,9 @@ type HiveJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HiveJob) MarshalJSON() ([]byte, error) {
+func (s HiveJob) MarshalJSON() ([]byte, error) {
 	type NoMethod HiveJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IdentityConfig: Identity related configuration, including service account
@@ -2285,9 +3386,9 @@ type IdentityConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IdentityConfig) MarshalJSON() ([]byte, error) {
+func (s IdentityConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod IdentityConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InjectCredentialsRequest: A request to inject credentials into a cluster.
@@ -2313,9 +3414,52 @@ type InjectCredentialsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InjectCredentialsRequest) MarshalJSON() ([]byte, error) {
+func (s InjectCredentialsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InjectCredentialsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// InputMetrics: Metrics about the input data read by the task.
+type InputMetrics struct {
+	BytesRead   int64 `json:"bytesRead,omitempty,string"`
+	RecordsRead int64 `json:"recordsRead,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "BytesRead") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesRead") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s InputMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod InputMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type InputQuantileMetrics struct {
+	BytesRead   *Quantiles `json:"bytesRead,omitempty"`
+	RecordsRead *Quantiles `json:"recordsRead,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BytesRead") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesRead") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s InputQuantileMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod InputQuantileMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceFlexibilityPolicy: Instance flexibility Policy allowing a mixture of
@@ -2327,6 +3471,9 @@ type InstanceFlexibilityPolicy struct {
 	// InstanceSelectionResults: Output only. A list of instance selection results
 	// in the group.
 	InstanceSelectionResults []*InstanceSelectionResult `json:"instanceSelectionResults,omitempty"`
+	// ProvisioningModelMix: Optional. Defines how the Group selects the
+	// provisioning model to ensure required reliability.
+	ProvisioningModelMix *ProvisioningModelMix `json:"provisioningModelMix,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "InstanceSelectionList") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -2340,9 +3487,9 @@ type InstanceFlexibilityPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceFlexibilityPolicy) MarshalJSON() ([]byte, error) {
+func (s InstanceFlexibilityPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceFlexibilityPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceGroupAutoscalingPolicyConfig: Configuration for the size bounds of
@@ -2386,9 +3533,9 @@ type InstanceGroupAutoscalingPolicyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceGroupAutoscalingPolicyConfig) MarshalJSON() ([]byte, error) {
+func (s InstanceGroupAutoscalingPolicyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceGroupAutoscalingPolicyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceGroupConfig: The config settings for Compute Engine resources in an
@@ -2492,9 +3639,9 @@ type InstanceGroupConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceGroupConfig) MarshalJSON() ([]byte, error) {
+func (s InstanceGroupConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceGroupConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceReference: A reference to a Compute Engine instance.
@@ -2521,9 +3668,9 @@ type InstanceReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceReference) MarshalJSON() ([]byte, error) {
+func (s InstanceReference) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceSelection: Defines machines types and a rank to which the machines
@@ -2550,9 +3697,9 @@ type InstanceSelection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceSelection) MarshalJSON() ([]byte, error) {
+func (s InstanceSelection) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceSelection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstanceSelectionResult: Defines a mapping from machine types to the number
@@ -2575,9 +3722,9 @@ type InstanceSelectionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceSelectionResult) MarshalJSON() ([]byte, error) {
+func (s InstanceSelectionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceSelectionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InstantiateWorkflowTemplateRequest: A request to instantiate a workflow
@@ -2611,9 +3758,9 @@ type InstantiateWorkflowTemplateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstantiateWorkflowTemplateRequest) MarshalJSON() ([]byte, error) {
+func (s InstantiateWorkflowTemplateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InstantiateWorkflowTemplateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Interval: Represents a time interval, encoded as a Timestamp start
@@ -2642,9 +3789,9 @@ type Interval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Interval) MarshalJSON() ([]byte, error) {
+func (s Interval) MarshalJSON() ([]byte, error) {
 	type NoMethod Interval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Job: A Dataproc job resource.
@@ -2729,9 +3876,57 @@ type Job struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Job) MarshalJSON() ([]byte, error) {
+func (s Job) MarshalJSON() ([]byte, error) {
 	type NoMethod Job
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// JobData: Data corresponding to a spark job.
+type JobData struct {
+	CompletionTime      string           `json:"completionTime,omitempty"`
+	Description         string           `json:"description,omitempty"`
+	JobGroup            string           `json:"jobGroup,omitempty"`
+	JobId               int64            `json:"jobId,omitempty,string"`
+	KillTasksSummary    map[string]int64 `json:"killTasksSummary,omitempty"`
+	Name                string           `json:"name,omitempty"`
+	NumActiveStages     int64            `json:"numActiveStages,omitempty"`
+	NumActiveTasks      int64            `json:"numActiveTasks,omitempty"`
+	NumCompletedIndices int64            `json:"numCompletedIndices,omitempty"`
+	NumCompletedStages  int64            `json:"numCompletedStages,omitempty"`
+	NumCompletedTasks   int64            `json:"numCompletedTasks,omitempty"`
+	NumFailedStages     int64            `json:"numFailedStages,omitempty"`
+	NumFailedTasks      int64            `json:"numFailedTasks,omitempty"`
+	NumKilledTasks      int64            `json:"numKilledTasks,omitempty"`
+	NumSkippedStages    int64            `json:"numSkippedStages,omitempty"`
+	NumSkippedTasks     int64            `json:"numSkippedTasks,omitempty"`
+	NumTasks            int64            `json:"numTasks,omitempty"`
+	SkippedStages       []int64          `json:"skippedStages,omitempty"`
+	SqlExecutionId      int64            `json:"sqlExecutionId,omitempty,string"`
+	StageIds            googleapi.Int64s `json:"stageIds,omitempty"`
+	// Possible values:
+	//   "JOB_EXECUTION_STATUS_UNSPECIFIED"
+	//   "JOB_EXECUTION_STATUS_RUNNING"
+	//   "JOB_EXECUTION_STATUS_SUCCEEDED"
+	//   "JOB_EXECUTION_STATUS_FAILED"
+	//   "JOB_EXECUTION_STATUS_UNKNOWN"
+	Status         string `json:"status,omitempty"`
+	SubmissionTime string `json:"submissionTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CompletionTime") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CompletionTime") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s JobData) MarshalJSON() ([]byte, error) {
+	type NoMethod JobData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobMetadata: Job Operation metadata.
@@ -2757,9 +3952,9 @@ type JobMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobMetadata) MarshalJSON() ([]byte, error) {
+func (s JobMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod JobMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobPlacement: Dataproc job config.
@@ -2786,9 +3981,9 @@ type JobPlacement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobPlacement) MarshalJSON() ([]byte, error) {
+func (s JobPlacement) MarshalJSON() ([]byte, error) {
 	type NoMethod JobPlacement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobReference: Encapsulates the full scoping used to reference a job.
@@ -2814,9 +4009,9 @@ type JobReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobReference) MarshalJSON() ([]byte, error) {
+func (s JobReference) MarshalJSON() ([]byte, error) {
 	type NoMethod JobReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobScheduling: Job scheduling options.
@@ -2849,9 +4044,9 @@ type JobScheduling struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobScheduling) MarshalJSON() ([]byte, error) {
+func (s JobScheduling) MarshalJSON() ([]byte, error) {
 	type NoMethod JobScheduling
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JobStatus: Dataproc job status.
@@ -2906,9 +4101,41 @@ type JobStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JobStatus) MarshalJSON() ([]byte, error) {
+func (s JobStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod JobStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// JobsSummary: Data related to Jobs page summary
+type JobsSummary struct {
+	// ActiveJobs: Number of active jobs
+	ActiveJobs int64 `json:"activeJobs,omitempty"`
+	// ApplicationId: Spark Application Id
+	ApplicationId string `json:"applicationId,omitempty"`
+	// Attempts: Attempts info
+	Attempts []*ApplicationAttemptInfo `json:"attempts,omitempty"`
+	// CompletedJobs: Number of completed jobs
+	CompletedJobs int64 `json:"completedJobs,omitempty"`
+	// FailedJobs: Number of failed jobs
+	FailedJobs int64 `json:"failedJobs,omitempty"`
+	// SchedulingMode: Spark Scheduling mode
+	SchedulingMode string `json:"schedulingMode,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ActiveJobs") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ActiveJobs") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s JobsSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod JobsSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // JupyterConfig: Jupyter configuration for an interactive session.
@@ -2935,9 +4162,9 @@ type JupyterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JupyterConfig) MarshalJSON() ([]byte, error) {
+func (s JupyterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod JupyterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KerberosConfig: Specifies Kerberos related configuration.
@@ -3007,9 +4234,9 @@ type KerberosConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KerberosConfig) MarshalJSON() ([]byte, error) {
+func (s KerberosConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod KerberosConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KubernetesClusterConfig: The configuration for running the Dataproc cluster
@@ -3039,9 +4266,9 @@ type KubernetesClusterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KubernetesClusterConfig) MarshalJSON() ([]byte, error) {
+func (s KubernetesClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod KubernetesClusterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KubernetesSoftwareConfig: The software configuration for this Dataproc
@@ -3072,9 +4299,9 @@ type KubernetesSoftwareConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KubernetesSoftwareConfig) MarshalJSON() ([]byte, error) {
+func (s KubernetesSoftwareConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod KubernetesSoftwareConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LifecycleConfig: Specifies the cluster auto-delete schedule configuration.
@@ -3112,9 +4339,9 @@ type LifecycleConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LifecycleConfig) MarshalJSON() ([]byte, error) {
+func (s LifecycleConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod LifecycleConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAutoscalingPoliciesResponse: A response to a request to list autoscaling
@@ -3141,9 +4368,9 @@ type ListAutoscalingPoliciesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAutoscalingPoliciesResponse) MarshalJSON() ([]byte, error) {
+func (s ListAutoscalingPoliciesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAutoscalingPoliciesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBatchesResponse: A list of batch workloads.
@@ -3173,9 +4400,9 @@ type ListBatchesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBatchesResponse) MarshalJSON() ([]byte, error) {
+func (s ListBatchesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBatchesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListClustersResponse: The list of all clusters in a project.
@@ -3202,9 +4429,9 @@ type ListClustersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListClustersResponse) MarshalJSON() ([]byte, error) {
+func (s ListClustersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListClustersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListJobsResponse: A list of jobs in a project.
@@ -3235,9 +4462,9 @@ type ListJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListJobsResponse) MarshalJSON() ([]byte, error) {
+func (s ListJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -3263,9 +4490,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSessionTemplatesResponse: A list of session templates.
@@ -3291,9 +4518,9 @@ type ListSessionTemplatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSessionTemplatesResponse) MarshalJSON() ([]byte, error) {
+func (s ListSessionTemplatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSessionTemplatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSessionsResponse: A list of interactive sessions.
@@ -3319,9 +4546,9 @@ type ListSessionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSessionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSessionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSessionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkflowTemplatesResponse: A response to a request to list workflow
@@ -3353,9 +4580,9 @@ type ListWorkflowTemplatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkflowTemplatesResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkflowTemplatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkflowTemplatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoggingConfig: The runtime logging config of the job.
@@ -3377,9 +4604,9 @@ type LoggingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoggingConfig) MarshalJSON() ([]byte, error) {
+func (s LoggingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod LoggingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManagedCluster: Cluster that is managed by the workflow.
@@ -3412,9 +4639,9 @@ type ManagedCluster struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedCluster) MarshalJSON() ([]byte, error) {
+func (s ManagedCluster) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedCluster
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ManagedGroupConfig: Specifies the resources used to actively manage an
@@ -3443,9 +4670,32 @@ type ManagedGroupConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ManagedGroupConfig) MarshalJSON() ([]byte, error) {
+func (s ManagedGroupConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ManagedGroupConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type MemoryMetrics struct {
+	TotalOffHeapStorageMemory int64 `json:"totalOffHeapStorageMemory,omitempty,string"`
+	TotalOnHeapStorageMemory  int64 `json:"totalOnHeapStorageMemory,omitempty,string"`
+	UsedOffHeapStorageMemory  int64 `json:"usedOffHeapStorageMemory,omitempty,string"`
+	UsedOnHeapStorageMemory   int64 `json:"usedOnHeapStorageMemory,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "TotalOffHeapStorageMemory")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "TotalOffHeapStorageMemory") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MemoryMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod MemoryMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetastoreConfig: Specifies a Metastore configuration.
@@ -3467,9 +4717,9 @@ type MetastoreConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetastoreConfig) MarshalJSON() ([]byte, error) {
+func (s MetastoreConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod MetastoreConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Metric: A Dataproc custom metric.
@@ -3487,7 +4737,7 @@ type Metric struct {
 	// overridden metrics are collected for the metric source. For example, if one
 	// or more spark:executive metrics are listed as metric overrides, other SPARK
 	// metrics are not collected. The collection of the metrics for other enabled
-	// custom metric sources is unaffected. For example, if both SPARK andd YARN
+	// custom metric sources is unaffected. For example, if both SPARK and YARN
 	// metric sources are enabled, and overrides are provided for Spark metrics
 	// only, all YARN metrics are collected.
 	MetricOverrides []string `json:"metricOverrides,omitempty"`
@@ -3523,9 +4773,9 @@ type Metric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Metric) MarshalJSON() ([]byte, error) {
+func (s Metric) MarshalJSON() ([]byte, error) {
 	type NoMethod Metric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NamespacedGkeDeploymentTarget: Deprecated. Used only for the deprecated
@@ -3551,9 +4801,64 @@ type NamespacedGkeDeploymentTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NamespacedGkeDeploymentTarget) MarshalJSON() ([]byte, error) {
+func (s NamespacedGkeDeploymentTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod NamespacedGkeDeploymentTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type NativeBuildInfoUiData struct {
+	// BuildClass: Optional. Build class of Native.
+	BuildClass string `json:"buildClass,omitempty"`
+	// BuildInfo: Optional. Build related details.
+	BuildInfo []*BuildInfo `json:"buildInfo,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BuildClass") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BuildClass") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s NativeBuildInfoUiData) MarshalJSON() ([]byte, error) {
+	type NoMethod NativeBuildInfoUiData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// NativeSqlExecutionUiData: Native SQL Execution Data
+type NativeSqlExecutionUiData struct {
+	// Description: Optional. Description of the execution.
+	Description string `json:"description,omitempty"`
+	// ExecutionId: Required. Execution ID of the Native SQL Execution.
+	ExecutionId int64 `json:"executionId,omitempty,string"`
+	// FallbackDescription: Optional. Description of the fallback.
+	FallbackDescription string `json:"fallbackDescription,omitempty"`
+	// FallbackNodeToReason: Optional. Fallback node to reason.
+	FallbackNodeToReason []*FallbackReason `json:"fallbackNodeToReason,omitempty"`
+	// NumFallbackNodes: Optional. Number of nodes fallen back to Spark.
+	NumFallbackNodes int64 `json:"numFallbackNodes,omitempty"`
+	// NumNativeNodes: Optional. Number of nodes in Native.
+	NumNativeNodes int64 `json:"numNativeNodes,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Description") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Description") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s NativeSqlExecutionUiData) MarshalJSON() ([]byte, error) {
+	type NoMethod NativeSqlExecutionUiData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NodeGroup: Dataproc Node Group. The Dataproc NodeGroup resource is not
@@ -3563,7 +4868,7 @@ type NodeGroup struct {
 	// characters and conform to RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt).
 	// Label values can be empty. If specified, they must consist of from 1 to 63
 	// characters and conform to RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt).
-	// The node group must have no more than 32 labelsn.
+	// The node group must have no more than 32 labels.
 	Labels map[string]string `json:"labels,omitempty"`
 	// Name: The Node group resource name (https://aip.dev/122).
 	Name string `json:"name,omitempty"`
@@ -3591,9 +4896,9 @@ type NodeGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NodeGroup) MarshalJSON() ([]byte, error) {
+func (s NodeGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod NodeGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NodeGroupAffinity: Node Group Affinity for clusters using sole-tenant node
@@ -3620,9 +4925,9 @@ type NodeGroupAffinity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NodeGroupAffinity) MarshalJSON() ([]byte, error) {
+func (s NodeGroupAffinity) MarshalJSON() ([]byte, error) {
 	type NoMethod NodeGroupAffinity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NodeGroupOperationMetadata: Metadata describing the node group operation.
@@ -3649,6 +4954,10 @@ type NodeGroupOperationMetadata struct {
 	//   "UPDATE_LABELS" - Update node group label operation type.
 	//   "START" - Start node group operation type.
 	//   "STOP" - Stop node group operation type.
+	//   "UPDATE_METADATA_CONFIG" - This operation type is used to update the
+	// metadata config of a node group. We update the metadata of the VMs in the
+	// node group and await for intended config change to be completed at the node
+	// group level. Currently, only the identity config update is supported.
 	OperationType string `json:"operationType,omitempty"`
 	// Status: Output only. Current operation status.
 	Status *ClusterOperationStatus `json:"status,omitempty"`
@@ -3669,9 +4978,9 @@ type NodeGroupOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NodeGroupOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s NodeGroupOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod NodeGroupOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NodeInitializationAction: Specifies an executable to run on a fully
@@ -3699,9 +5008,9 @@ type NodeInitializationAction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NodeInitializationAction) MarshalJSON() ([]byte, error) {
+func (s NodeInitializationAction) MarshalJSON() ([]byte, error) {
 	type NoMethod NodeInitializationAction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NodePool: indicating a list of workers of same type
@@ -3734,9 +5043,9 @@ type NodePool struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NodePool) MarshalJSON() ([]byte, error) {
+func (s NodePool) MarshalJSON() ([]byte, error) {
 	type NoMethod NodePool
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -3780,9 +5089,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OrderedJob: A job executed by the workflow.
@@ -3839,9 +5148,52 @@ type OrderedJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OrderedJob) MarshalJSON() ([]byte, error) {
+func (s OrderedJob) MarshalJSON() ([]byte, error) {
 	type NoMethod OrderedJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// OutputMetrics: Metrics about the data written by the task.
+type OutputMetrics struct {
+	BytesWritten   int64 `json:"bytesWritten,omitempty,string"`
+	RecordsWritten int64 `json:"recordsWritten,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "BytesWritten") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesWritten") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OutputMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod OutputMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type OutputQuantileMetrics struct {
+	BytesWritten   *Quantiles `json:"bytesWritten,omitempty"`
+	RecordsWritten *Quantiles `json:"recordsWritten,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BytesWritten") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesWritten") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s OutputQuantileMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod OutputQuantileMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ParameterValidation: Configuration for parameter validation.
@@ -3863,9 +5215,9 @@ type ParameterValidation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ParameterValidation) MarshalJSON() ([]byte, error) {
+func (s ParameterValidation) MarshalJSON() ([]byte, error) {
 	type NoMethod ParameterValidation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PeripheralsConfig: Auxiliary services configuration for a workload.
@@ -3890,9 +5242,9 @@ type PeripheralsConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PeripheralsConfig) MarshalJSON() ([]byte, error) {
+func (s PeripheralsConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PeripheralsConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PigJob: A Dataproc job for running Apache Pig (https://pig.apache.org/)
@@ -3933,9 +5285,9 @@ type PigJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PigJob) MarshalJSON() ([]byte, error) {
+func (s PigJob) MarshalJSON() ([]byte, error) {
 	type NoMethod PigJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -4021,9 +5373,31 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PoolData: Pool Data
+type PoolData struct {
+	Name     string           `json:"name,omitempty"`
+	StageIds googleapi.Int64s `json:"stageIds,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Name") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Name") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PoolData) MarshalJSON() ([]byte, error) {
+	type NoMethod PoolData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrestoJob: A Dataproc job for running Presto (https://prestosql.io/)
@@ -4064,9 +5438,74 @@ type PrestoJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrestoJob) MarshalJSON() ([]byte, error) {
+func (s PrestoJob) MarshalJSON() ([]byte, error) {
 	type NoMethod PrestoJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ProcessSummary: Process Summary
+type ProcessSummary struct {
+	AddTime     string            `json:"addTime,omitempty"`
+	HostPort    string            `json:"hostPort,omitempty"`
+	IsActive    bool              `json:"isActive,omitempty"`
+	ProcessId   string            `json:"processId,omitempty"`
+	ProcessLogs map[string]string `json:"processLogs,omitempty"`
+	RemoveTime  string            `json:"removeTime,omitempty"`
+	TotalCores  int64             `json:"totalCores,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AddTime") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AddTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ProcessSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod ProcessSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ProvisioningModelMix: Defines how Dataproc should create VMs with a mixture
+// of provisioning models.
+type ProvisioningModelMix struct {
+	// StandardCapacityBase: Optional. The base capacity that will always use
+	// Standard VMs to avoid risk of more preemption than the minimum capacity you
+	// need. Dataproc will create only standard VMs until it reaches
+	// standard_capacity_base, then it will start using
+	// standard_capacity_percent_above_base to mix Spot with Standard VMs. eg. If
+	// 15 instances are requested and standard_capacity_base is 5, Dataproc will
+	// create 5 standard VMs and then start mixing spot and standard VMs for
+	// remaining 10 instances.
+	StandardCapacityBase int64 `json:"standardCapacityBase,omitempty"`
+	// StandardCapacityPercentAboveBase: Optional. The percentage of target
+	// capacity that should use Standard VM. The remaining percentage will use Spot
+	// VMs. The percentage applies only to the capacity above
+	// standard_capacity_base. eg. If 15 instances are requested and
+	// standard_capacity_base is 5 and standard_capacity_percent_above_base is 30,
+	// Dataproc will create 5 standard VMs and then start mixing spot and standard
+	// VMs for remaining 10 instances. The mix will be 30% standard and 70% spot.
+	StandardCapacityPercentAboveBase int64 `json:"standardCapacityPercentAboveBase,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "StandardCapacityBase") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "StandardCapacityBase") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ProvisioningModelMix) MarshalJSON() ([]byte, error) {
+	type NoMethod ProvisioningModelMix
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PyPiRepositoryConfig: Configuration for PyPi repository
@@ -4086,9 +5525,9 @@ type PyPiRepositoryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PyPiRepositoryConfig) MarshalJSON() ([]byte, error) {
+func (s PyPiRepositoryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PyPiRepositoryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PySparkBatch: A configuration for running an Apache PySpark
@@ -4128,13 +5567,13 @@ type PySparkBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PySparkBatch) MarshalJSON() ([]byte, error) {
+func (s PySparkBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod PySparkBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PySparkJob: A Dataproc job for running Apache PySpark
-// (https://spark.apache.org/docs/0.9.0/python-programming-guide.html)
+// (https://spark.apache.org/docs/latest/api/python/index.html#pyspark-overview)
 // applications on YARN.
 type PySparkJob struct {
 	// ArchiveUris: Optional. HCFS URIs of archives to be extracted into the
@@ -4177,9 +5616,37 @@ type PySparkJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PySparkJob) MarshalJSON() ([]byte, error) {
+func (s PySparkJob) MarshalJSON() ([]byte, error) {
 	type NoMethod PySparkJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Quantiles: Quantile metrics data related to Tasks. Units can be seconds,
+// bytes, milliseconds, etc depending on the message type.
+type Quantiles struct {
+	Count        int64 `json:"count,omitempty,string"`
+	Maximum      int64 `json:"maximum,omitempty,string"`
+	Minimum      int64 `json:"minimum,omitempty,string"`
+	Percentile25 int64 `json:"percentile25,omitempty,string"`
+	Percentile50 int64 `json:"percentile50,omitempty,string"`
+	Percentile75 int64 `json:"percentile75,omitempty,string"`
+	Sum          int64 `json:"sum,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "Count") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Count") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Quantiles) MarshalJSON() ([]byte, error) {
+	type NoMethod Quantiles
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryList: A list of queries to run on a cluster.
@@ -4203,9 +5670,196 @@ type QueryList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryList) MarshalJSON() ([]byte, error) {
+func (s QueryList) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RddDataDistribution: Details about RDD usage.
+type RddDataDistribution struct {
+	Address                string `json:"address,omitempty"`
+	DiskUsed               int64  `json:"diskUsed,omitempty,string"`
+	MemoryRemaining        int64  `json:"memoryRemaining,omitempty,string"`
+	MemoryUsed             int64  `json:"memoryUsed,omitempty,string"`
+	OffHeapMemoryRemaining int64  `json:"offHeapMemoryRemaining,omitempty,string"`
+	OffHeapMemoryUsed      int64  `json:"offHeapMemoryUsed,omitempty,string"`
+	OnHeapMemoryRemaining  int64  `json:"onHeapMemoryRemaining,omitempty,string"`
+	OnHeapMemoryUsed       int64  `json:"onHeapMemoryUsed,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "Address") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Address") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RddDataDistribution) MarshalJSON() ([]byte, error) {
+	type NoMethod RddDataDistribution
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RddOperationCluster: A grouping of nodes representing higher level
+// constructs (stage, job etc.).
+type RddOperationCluster struct {
+	ChildClusters []*RddOperationCluster `json:"childClusters,omitempty"`
+	ChildNodes    []*RddOperationNode    `json:"childNodes,omitempty"`
+	Name          string                 `json:"name,omitempty"`
+	RddClusterId  string                 `json:"rddClusterId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ChildClusters") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ChildClusters") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RddOperationCluster) MarshalJSON() ([]byte, error) {
+	type NoMethod RddOperationCluster
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RddOperationEdge: A directed edge representing dependency between two RDDs.
+type RddOperationEdge struct {
+	FromId int64 `json:"fromId,omitempty"`
+	ToId   int64 `json:"toId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FromId") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FromId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RddOperationEdge) MarshalJSON() ([]byte, error) {
+	type NoMethod RddOperationEdge
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RddOperationGraph: Graph representing RDD dependencies. Consists of edges
+// and a root cluster.
+type RddOperationGraph struct {
+	Edges         []*RddOperationEdge  `json:"edges,omitempty"`
+	IncomingEdges []*RddOperationEdge  `json:"incomingEdges,omitempty"`
+	OutgoingEdges []*RddOperationEdge  `json:"outgoingEdges,omitempty"`
+	RootCluster   *RddOperationCluster `json:"rootCluster,omitempty"`
+	StageId       int64                `json:"stageId,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "Edges") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Edges") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RddOperationGraph) MarshalJSON() ([]byte, error) {
+	type NoMethod RddOperationGraph
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RddOperationNode: A node in the RDD operation graph. Corresponds to a single
+// RDD.
+type RddOperationNode struct {
+	Barrier  bool   `json:"barrier,omitempty"`
+	Cached   bool   `json:"cached,omitempty"`
+	Callsite string `json:"callsite,omitempty"`
+	Name     string `json:"name,omitempty"`
+	NodeId   int64  `json:"nodeId,omitempty"`
+	// Possible values:
+	//   "DETERMINISTIC_LEVEL_UNSPECIFIED"
+	//   "DETERMINISTIC_LEVEL_DETERMINATE"
+	//   "DETERMINISTIC_LEVEL_UNORDERED"
+	//   "DETERMINISTIC_LEVEL_INDETERMINATE"
+	OutputDeterministicLevel string `json:"outputDeterministicLevel,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Barrier") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Barrier") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RddOperationNode) MarshalJSON() ([]byte, error) {
+	type NoMethod RddOperationNode
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RddPartitionInfo: Information about RDD partitions.
+type RddPartitionInfo struct {
+	BlockName    string   `json:"blockName,omitempty"`
+	DiskUsed     int64    `json:"diskUsed,omitempty,string"`
+	Executors    []string `json:"executors,omitempty"`
+	MemoryUsed   int64    `json:"memoryUsed,omitempty,string"`
+	StorageLevel string   `json:"storageLevel,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BlockName") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BlockName") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RddPartitionInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod RddPartitionInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RddStorageInfo: Overall data about RDD storage.
+type RddStorageInfo struct {
+	DataDistribution    []*RddDataDistribution `json:"dataDistribution,omitempty"`
+	DiskUsed            int64                  `json:"diskUsed,omitempty,string"`
+	MemoryUsed          int64                  `json:"memoryUsed,omitempty,string"`
+	Name                string                 `json:"name,omitempty"`
+	NumCachedPartitions int64                  `json:"numCachedPartitions,omitempty"`
+	NumPartitions       int64                  `json:"numPartitions,omitempty"`
+	Partitions          []*RddPartitionInfo    `json:"partitions,omitempty"`
+	RddStorageId        int64                  `json:"rddStorageId,omitempty"`
+	StorageLevel        string                 `json:"storageLevel,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DataDistribution") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DataDistribution") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RddStorageInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod RddStorageInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RegexValidation: Validation based on regular expressions.
@@ -4227,13 +5881,15 @@ type RegexValidation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RegexValidation) MarshalJSON() ([]byte, error) {
+func (s RegexValidation) MarshalJSON() ([]byte, error) {
 	type NoMethod RegexValidation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RepairClusterRequest: A request to repair a cluster.
 type RepairClusterRequest struct {
+	// Cluster: Optional. Cluster to be repaired
+	Cluster *ClusterToRepair `json:"cluster,omitempty"`
 	// ClusterUuid: Optional. Specifying the cluster_uuid means the RPC will fail
 	// (with error NOT_FOUND) if a cluster with the specified UUID does not exist.
 	ClusterUuid string `json:"clusterUuid,omitempty"`
@@ -4261,22 +5917,22 @@ type RepairClusterRequest struct {
 	// contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens
 	// (-). The maximum length is 40 characters.
 	RequestId string `json:"requestId,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "ClusterUuid") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "Cluster") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ClusterUuid") to include in API
+	// NullFields is a list of field names (e.g. "Cluster") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *RepairClusterRequest) MarshalJSON() ([]byte, error) {
+func (s RepairClusterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RepairClusterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RepairNodeGroupRequest struct {
@@ -4311,9 +5967,9 @@ type RepairNodeGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RepairNodeGroupRequest) MarshalJSON() ([]byte, error) {
+func (s RepairNodeGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RepairNodeGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RepositoryConfig: Configuration for dependency repositories
@@ -4333,9 +5989,9 @@ type RepositoryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RepositoryConfig) MarshalJSON() ([]byte, error) {
+func (s RepositoryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RepositoryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReservationAffinity: Reservation Affinity for consuming Zonal reservation.
@@ -4366,9 +6022,9 @@ type ReservationAffinity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReservationAffinity) MarshalJSON() ([]byte, error) {
+func (s ReservationAffinity) MarshalJSON() ([]byte, error) {
 	type NoMethod ReservationAffinity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResizeNodeGroupRequest: A request to resize a node group.
@@ -4414,9 +6070,54 @@ type ResizeNodeGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResizeNodeGroupRequest) MarshalJSON() ([]byte, error) {
+func (s ResizeNodeGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ResizeNodeGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ResourceInformation struct {
+	Addresses []string `json:"addresses,omitempty"`
+	Name      string   `json:"name,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Addresses") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Addresses") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ResourceInformation) MarshalJSON() ([]byte, error) {
+	type NoMethod ResourceInformation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ResourceProfileInfo: Resource profile that contains information about all
+// the resources required by executors and tasks.
+type ResourceProfileInfo struct {
+	ExecutorResources map[string]ExecutorResourceRequest `json:"executorResources,omitempty"`
+	ResourceProfileId int64                              `json:"resourceProfileId,omitempty"`
+	TaskResources     map[string]TaskResourceRequest     `json:"taskResources,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ExecutorResources") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExecutorResources") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ResourceProfileInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod ResourceProfileInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuntimeConfig: Runtime configuration for a workload.
@@ -4450,9 +6151,9 @@ type RuntimeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuntimeConfig) MarshalJSON() ([]byte, error) {
+func (s RuntimeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RuntimeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RuntimeInfo: Runtime information about workload execution.
@@ -4490,9 +6191,559 @@ type RuntimeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RuntimeInfo) MarshalJSON() ([]byte, error) {
+func (s RuntimeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod RuntimeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationExecutorStageSummaryResponse: List of Executors
+// associated with a Spark Application Stage.
+type SearchSessionSparkApplicationExecutorStageSummaryResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent
+	// SearchSessionSparkApplicationExecutorStageSummaryRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationStageExecutors: Details about executors used by the
+	// application stage.
+	SparkApplicationStageExecutors []*ExecutorStageSummary `json:"sparkApplicationStageExecutors,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationExecutorStageSummaryResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationExecutorStageSummaryResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationExecutorsResponse: List of Executors associated
+// with a Spark Application.
+type SearchSessionSparkApplicationExecutorsResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSessionSparkApplicationExecutorsRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationExecutors: Details about executors used by the application.
+	SparkApplicationExecutors []*ExecutorSummary `json:"sparkApplicationExecutors,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationExecutorsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationExecutorsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationJobsResponse: A list of Jobs associated with a
+// Spark Application.
+type SearchSessionSparkApplicationJobsResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSessionSparkApplicationJobsRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationJobs: Output only. Data corresponding to a spark job.
+	SparkApplicationJobs []*JobData `json:"sparkApplicationJobs,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationJobsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationJobsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationNativeSqlQueriesResponse: List of all Native
+// queries for a Spark Application.
+type SearchSessionSparkApplicationNativeSqlQueriesResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSessionSparkApplicationSqlQueriesRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationNativeSqlQueries: Output only. Native SQL Execution Data
+	SparkApplicationNativeSqlQueries []*NativeSqlExecutionUiData `json:"sparkApplicationNativeSqlQueries,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationNativeSqlQueriesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationNativeSqlQueriesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationSqlQueriesResponse: List of all queries for a
+// Spark Application.
+type SearchSessionSparkApplicationSqlQueriesResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSessionSparkApplicationSqlQueriesRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationSqlQueries: Output only. SQL Execution Data
+	SparkApplicationSqlQueries []*SqlExecutionUiData `json:"sparkApplicationSqlQueries,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationSqlQueriesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationSqlQueriesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationStageAttemptTasksResponse: List of tasks for a
+// stage of a Spark Application
+type SearchSessionSparkApplicationStageAttemptTasksResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent
+	// SearchSessionSparkApplicationStageAttemptTasksRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationStageAttemptTasks: Output only. Data corresponding to tasks
+	// created by spark.
+	SparkApplicationStageAttemptTasks []*TaskData `json:"sparkApplicationStageAttemptTasks,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationStageAttemptTasksResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationStageAttemptTasksResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationStageAttemptsResponse: A list of Stage Attempts
+// for a Stage of a Spark Application.
+type SearchSessionSparkApplicationStageAttemptsResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent
+	// SearchSessionSparkApplicationStageAttemptsRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationStageAttempts: Output only. Data corresponding to a stage
+	// attempts
+	SparkApplicationStageAttempts []*StageData `json:"sparkApplicationStageAttempts,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationStageAttemptsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationStageAttemptsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationStagesResponse: A list of stages associated
+// with a Spark Application.
+type SearchSessionSparkApplicationStagesResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSessionSparkApplicationStages.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationStages: Output only. Data corresponding to a stage.
+	SparkApplicationStages []*StageData `json:"sparkApplicationStages,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationStagesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationStagesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSessionSparkApplicationsResponse: A list of summary of Spark
+// Applications
+type SearchSessionSparkApplicationsResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSessionSparkApplicationsRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplications: Output only. High level information corresponding to an
+	// application.
+	SparkApplications []*SparkApplication `json:"sparkApplications,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSessionSparkApplicationsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSessionSparkApplicationsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationExecutorStageSummaryResponse: List of Executors
+// associated with a Spark Application Stage.
+type SearchSparkApplicationExecutorStageSummaryResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSparkApplicationExecutorsListRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationStageExecutors: Details about executors used by the
+	// application stage.
+	SparkApplicationStageExecutors []*ExecutorStageSummary `json:"sparkApplicationStageExecutors,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationExecutorStageSummaryResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationExecutorStageSummaryResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationExecutorsResponse: List of Executors associated with a
+// Spark Application.
+type SearchSparkApplicationExecutorsResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSparkApplicationExecutorsListRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationExecutors: Details about executors used by the application.
+	SparkApplicationExecutors []*ExecutorSummary `json:"sparkApplicationExecutors,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationExecutorsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationExecutorsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationJobsResponse: A list of Jobs associated with a Spark
+// Application.
+type SearchSparkApplicationJobsResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSparkApplicationJobsRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationJobs: Output only. Data corresponding to a spark job.
+	SparkApplicationJobs []*JobData `json:"sparkApplicationJobs,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationJobsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationJobsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationNativeSqlQueriesResponse: List of all Native SQL
+// queries details for a Spark Application.
+type SearchSparkApplicationNativeSqlQueriesResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSparkApplicationNativeSqlQueriesRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationNativeSqlQueries: Output only. Native SQL Execution Data
+	SparkApplicationNativeSqlQueries []*NativeSqlExecutionUiData `json:"sparkApplicationNativeSqlQueries,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationNativeSqlQueriesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationNativeSqlQueriesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationSqlQueriesResponse: List of all queries for a Spark
+// Application.
+type SearchSparkApplicationSqlQueriesResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSparkApplicationSqlQueriesRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationSqlQueries: Output only. SQL Execution Data
+	SparkApplicationSqlQueries []*SqlExecutionUiData `json:"sparkApplicationSqlQueries,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationSqlQueriesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationSqlQueriesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationStageAttemptTasksResponse: List of tasks for a stage
+// of a Spark Application
+type SearchSparkApplicationStageAttemptTasksResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent ListSparkApplicationStageAttemptTasksRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationStageAttemptTasks: Output only. Data corresponding to tasks
+	// created by spark.
+	SparkApplicationStageAttemptTasks []*TaskData `json:"sparkApplicationStageAttemptTasks,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationStageAttemptTasksResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationStageAttemptTasksResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationStageAttemptsResponse: A list of Stage Attempts for a
+// Stage of a Spark Application.
+type SearchSparkApplicationStageAttemptsResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent ListSparkApplicationStageAttemptsRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationStageAttempts: Output only. Data corresponding to a stage
+	// attempts
+	SparkApplicationStageAttempts []*StageData `json:"sparkApplicationStageAttempts,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationStageAttemptsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationStageAttemptsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationStagesResponse: A list of stages associated with a
+// Spark Application.
+type SearchSparkApplicationStagesResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSparkApplicationStages.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplicationStages: Output only. Data corresponding to a stage.
+	SparkApplicationStages []*StageData `json:"sparkApplicationStages,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationStagesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationStagesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SearchSparkApplicationsResponse: A list of summary of Spark Applications
+type SearchSparkApplicationsResponse struct {
+	// NextPageToken: This token is included in the response if there are more
+	// results to fetch. To fetch additional results, provide this value as the
+	// page_token in a subsequent SearchSparkApplicationsRequest.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// SparkApplications: Output only. High level information corresponding to an
+	// application.
+	SparkApplications []*SparkApplication `json:"sparkApplications,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SearchSparkApplicationsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SearchSparkApplicationsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SecurityConfig: Security related configuration, including encryption,
@@ -4516,9 +6767,9 @@ type SecurityConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SecurityConfig) MarshalJSON() ([]byte, error) {
+func (s SecurityConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SecurityConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Session: A representation of a session.
@@ -4539,7 +6790,7 @@ type Session struct {
 	// (https://www.ietf.org/rfc/rfc1035.txt). No more than 32 labels can be
 	// associated with a session.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name: Required. The resource name of the session.
+	// Name: Identifier. The resource name of the session.
 	Name string `json:"name,omitempty"`
 	// RuntimeConfig: Optional. Runtime configuration for the session execution.
 	RuntimeConfig *RuntimeConfig `json:"runtimeConfig,omitempty"`
@@ -4553,6 +6804,8 @@ type Session struct {
 	// id]The template must be in the same project and Dataproc region as the
 	// session.
 	SessionTemplate string `json:"sessionTemplate,omitempty"`
+	// SparkConnectSession: Optional. Spark connect session config.
+	SparkConnectSession *SparkConnectConfig `json:"sparkConnectSession,omitempty"`
 	// State: Output only. A state of the session.
 	//
 	// Possible values:
@@ -4591,9 +6844,9 @@ type Session struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Session) MarshalJSON() ([]byte, error) {
+func (s Session) MarshalJSON() ([]byte, error) {
 	type NoMethod Session
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SessionOperationMetadata: Metadata describing the Session operation.
@@ -4633,9 +6886,9 @@ type SessionOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SessionOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s SessionOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod SessionOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SessionStateHistory: Historical state information.
@@ -4670,9 +6923,9 @@ type SessionStateHistory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SessionStateHistory) MarshalJSON() ([]byte, error) {
+func (s SessionStateHistory) MarshalJSON() ([]byte, error) {
 	type NoMethod SessionStateHistory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SessionTemplate: A representation of a session template.
@@ -4700,6 +6953,8 @@ type SessionTemplate struct {
 	Name string `json:"name,omitempty"`
 	// RuntimeConfig: Optional. Runtime configuration for session execution.
 	RuntimeConfig *RuntimeConfig `json:"runtimeConfig,omitempty"`
+	// SparkConnectSession: Optional. Spark connect session config.
+	SparkConnectSession *SparkConnectConfig `json:"sparkConnectSession,omitempty"`
 	// UpdateTime: Output only. The time the template was last updated.
 	UpdateTime string `json:"updateTime,omitempty"`
 	// Uuid: Output only. A session template UUID (Unique Universal Identifier).
@@ -4721,9 +6976,9 @@ type SessionTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SessionTemplate) MarshalJSON() ([]byte, error) {
+func (s SessionTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod SessionTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for SetIamPolicy method.
@@ -4746,9 +7001,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ShieldedInstanceConfig: Shielded Instance Config for clusters using Compute
@@ -4776,9 +7031,190 @@ type ShieldedInstanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ShieldedInstanceConfig) MarshalJSON() ([]byte, error) {
+func (s ShieldedInstanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ShieldedInstanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ShufflePushReadMetrics struct {
+	CorruptMergedBlockChunks  int64 `json:"corruptMergedBlockChunks,omitempty,string"`
+	LocalMergedBlocksFetched  int64 `json:"localMergedBlocksFetched,omitempty,string"`
+	LocalMergedBytesRead      int64 `json:"localMergedBytesRead,omitempty,string"`
+	LocalMergedChunksFetched  int64 `json:"localMergedChunksFetched,omitempty,string"`
+	MergedFetchFallbackCount  int64 `json:"mergedFetchFallbackCount,omitempty,string"`
+	RemoteMergedBlocksFetched int64 `json:"remoteMergedBlocksFetched,omitempty,string"`
+	RemoteMergedBytesRead     int64 `json:"remoteMergedBytesRead,omitempty,string"`
+	RemoteMergedChunksFetched int64 `json:"remoteMergedChunksFetched,omitempty,string"`
+	RemoteMergedReqsDuration  int64 `json:"remoteMergedReqsDuration,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "CorruptMergedBlockChunks")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CorruptMergedBlockChunks") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ShufflePushReadMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod ShufflePushReadMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ShufflePushReadQuantileMetrics struct {
+	CorruptMergedBlockChunks  *Quantiles `json:"corruptMergedBlockChunks,omitempty"`
+	LocalMergedBlocksFetched  *Quantiles `json:"localMergedBlocksFetched,omitempty"`
+	LocalMergedBytesRead      *Quantiles `json:"localMergedBytesRead,omitempty"`
+	LocalMergedChunksFetched  *Quantiles `json:"localMergedChunksFetched,omitempty"`
+	MergedFetchFallbackCount  *Quantiles `json:"mergedFetchFallbackCount,omitempty"`
+	RemoteMergedBlocksFetched *Quantiles `json:"remoteMergedBlocksFetched,omitempty"`
+	RemoteMergedBytesRead     *Quantiles `json:"remoteMergedBytesRead,omitempty"`
+	RemoteMergedChunksFetched *Quantiles `json:"remoteMergedChunksFetched,omitempty"`
+	RemoteMergedReqsDuration  *Quantiles `json:"remoteMergedReqsDuration,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CorruptMergedBlockChunks")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CorruptMergedBlockChunks") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ShufflePushReadQuantileMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod ShufflePushReadQuantileMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ShuffleReadMetrics: Shuffle data read by the task.
+type ShuffleReadMetrics struct {
+	FetchWaitTimeMillis    int64                   `json:"fetchWaitTimeMillis,omitempty,string"`
+	LocalBlocksFetched     int64                   `json:"localBlocksFetched,omitempty,string"`
+	LocalBytesRead         int64                   `json:"localBytesRead,omitempty,string"`
+	RecordsRead            int64                   `json:"recordsRead,omitempty,string"`
+	RemoteBlocksFetched    int64                   `json:"remoteBlocksFetched,omitempty,string"`
+	RemoteBytesRead        int64                   `json:"remoteBytesRead,omitempty,string"`
+	RemoteBytesReadToDisk  int64                   `json:"remoteBytesReadToDisk,omitempty,string"`
+	RemoteReqsDuration     int64                   `json:"remoteReqsDuration,omitempty,string"`
+	ShufflePushReadMetrics *ShufflePushReadMetrics `json:"shufflePushReadMetrics,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FetchWaitTimeMillis") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FetchWaitTimeMillis") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ShuffleReadMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod ShuffleReadMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ShuffleReadQuantileMetrics struct {
+	FetchWaitTimeMillis    *Quantiles                      `json:"fetchWaitTimeMillis,omitempty"`
+	LocalBlocksFetched     *Quantiles                      `json:"localBlocksFetched,omitempty"`
+	ReadBytes              *Quantiles                      `json:"readBytes,omitempty"`
+	ReadRecords            *Quantiles                      `json:"readRecords,omitempty"`
+	RemoteBlocksFetched    *Quantiles                      `json:"remoteBlocksFetched,omitempty"`
+	RemoteBytesRead        *Quantiles                      `json:"remoteBytesRead,omitempty"`
+	RemoteBytesReadToDisk  *Quantiles                      `json:"remoteBytesReadToDisk,omitempty"`
+	RemoteReqsDuration     *Quantiles                      `json:"remoteReqsDuration,omitempty"`
+	ShufflePushReadMetrics *ShufflePushReadQuantileMetrics `json:"shufflePushReadMetrics,omitempty"`
+	TotalBlocksFetched     *Quantiles                      `json:"totalBlocksFetched,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FetchWaitTimeMillis") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FetchWaitTimeMillis") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ShuffleReadQuantileMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod ShuffleReadQuantileMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ShuffleWriteMetrics: Shuffle data written by task.
+type ShuffleWriteMetrics struct {
+	BytesWritten   int64 `json:"bytesWritten,omitempty,string"`
+	RecordsWritten int64 `json:"recordsWritten,omitempty,string"`
+	WriteTimeNanos int64 `json:"writeTimeNanos,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "BytesWritten") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesWritten") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ShuffleWriteMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod ShuffleWriteMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type ShuffleWriteQuantileMetrics struct {
+	WriteBytes     *Quantiles `json:"writeBytes,omitempty"`
+	WriteRecords   *Quantiles `json:"writeRecords,omitempty"`
+	WriteTimeNanos *Quantiles `json:"writeTimeNanos,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "WriteBytes") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "WriteBytes") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ShuffleWriteQuantileMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod ShuffleWriteQuantileMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type SinkProgress struct {
+	Description   string            `json:"description,omitempty"`
+	Metrics       map[string]string `json:"metrics,omitempty"`
+	NumOutputRows int64             `json:"numOutputRows,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "Description") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Description") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SinkProgress) MarshalJSON() ([]byte, error) {
+	type NoMethod SinkProgress
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SoftwareConfig: Specifies the selection and config of software inside the
@@ -4786,7 +7222,7 @@ func (s *ShieldedInstanceConfig) MarshalJSON() ([]byte, error) {
 type SoftwareConfig struct {
 	// ImageVersion: Optional. The version of software inside the cluster. It must
 	// be one of the supported Dataproc Versions
-	// (https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-versions#supported_dataproc_versions),
+	// (https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-versions#supported-dataproc-image-versions),
 	// such as "1.2" (including a subminor version, such as "1.2.29"), or the
 	// "preview" version
 	// (https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-versions#other_versions).
@@ -4798,9 +7234,12 @@ type SoftwareConfig struct {
 	// Possible values:
 	//   "COMPONENT_UNSPECIFIED" - Unspecified component. Specifying this will
 	// cause Cluster creation to fail.
-	//   "ANACONDA" - The Anaconda python distribution. The Anaconda component is
-	// not supported in the Dataproc 2.0 image. The 2.0 image is pre-installed with
-	// Miniconda.
+	//   "ANACONDA" - The Anaconda component is no longer supported or applicable
+	// to supported Dataproc on Compute Engine image versions
+	// (https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-version-clusters#supported-dataproc-image-versions).
+	// It cannot be activated on clusters created with supported Dataproc on
+	// Compute Engine image versions.
+	//   "DELTA" - Delta Lake.
 	//   "DOCKER" - Docker
 	//   "DRUID" - The Druid query engine. (alpha)
 	//   "FLINK" - Flink
@@ -4808,7 +7247,9 @@ type SoftwareConfig struct {
 	//   "HIVE_WEBHCAT" - The Hive Web HCatalog (the REST service for accessing
 	// HCatalog).
 	//   "HUDI" - Hudi.
+	//   "ICEBERG" - Iceberg.
 	//   "JUPYTER" - The Jupyter Notebook.
+	//   "PIG" - The Pig component.
 	//   "PRESTO" - The Presto query engine.
 	//   "TRINO" - The Trino query engine.
 	//   "RANGER" - The Ranger service.
@@ -4838,9 +7279,77 @@ type SoftwareConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareConfig) MarshalJSON() ([]byte, error) {
+func (s SoftwareConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type SourceProgress struct {
+	Description            string            `json:"description,omitempty"`
+	EndOffset              string            `json:"endOffset,omitempty"`
+	InputRowsPerSecond     float64           `json:"inputRowsPerSecond,omitempty"`
+	LatestOffset           string            `json:"latestOffset,omitempty"`
+	Metrics                map[string]string `json:"metrics,omitempty"`
+	NumInputRows           int64             `json:"numInputRows,omitempty,string"`
+	ProcessedRowsPerSecond float64           `json:"processedRowsPerSecond,omitempty"`
+	StartOffset            string            `json:"startOffset,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Description") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Description") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SourceProgress) MarshalJSON() ([]byte, error) {
+	type NoMethod SourceProgress
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *SourceProgress) UnmarshalJSON(data []byte) error {
+	type NoMethod SourceProgress
+	var s1 struct {
+		InputRowsPerSecond     gensupport.JSONFloat64 `json:"inputRowsPerSecond"`
+		ProcessedRowsPerSecond gensupport.JSONFloat64 `json:"processedRowsPerSecond"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.InputRowsPerSecond = float64(s1.InputRowsPerSecond)
+	s.ProcessedRowsPerSecond = float64(s1.ProcessedRowsPerSecond)
+	return nil
+}
+
+// SparkApplication: A summary of Spark Application
+type SparkApplication struct {
+	// Application: Output only. High level information corresponding to an
+	// application.
+	Application *ApplicationInfo `json:"application,omitempty"`
+	// Name: Identifier. Name of the spark application
+	Name string `json:"name,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Application") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Application") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SparkApplication) MarshalJSON() ([]byte, error) {
+	type NoMethod SparkApplication
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SparkBatch: A configuration for running an Apache Spark
@@ -4879,9 +7388,13 @@ type SparkBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SparkBatch) MarshalJSON() ([]byte, error) {
+func (s SparkBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod SparkBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SparkConnectConfig: Spark connect configuration for an interactive session.
+type SparkConnectConfig struct {
 }
 
 // SparkHistoryServerConfig: Spark History Server configuration for the
@@ -4904,9 +7417,9 @@ type SparkHistoryServerConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SparkHistoryServerConfig) MarshalJSON() ([]byte, error) {
+func (s SparkHistoryServerConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SparkHistoryServerConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SparkJob: A Dataproc job for running Apache Spark
@@ -4952,9 +7465,128 @@ type SparkJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SparkJob) MarshalJSON() ([]byte, error) {
+func (s SparkJob) MarshalJSON() ([]byte, error) {
 	type NoMethod SparkJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SparkPlanGraph: A graph used for storing information of an executionPlan of
+// DataFrame.
+type SparkPlanGraph struct {
+	Edges       []*SparkPlanGraphEdge        `json:"edges,omitempty"`
+	ExecutionId int64                        `json:"executionId,omitempty,string"`
+	Nodes       []*SparkPlanGraphNodeWrapper `json:"nodes,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Edges") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Edges") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SparkPlanGraph) MarshalJSON() ([]byte, error) {
+	type NoMethod SparkPlanGraph
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SparkPlanGraphCluster: Represents a tree of spark plan.
+type SparkPlanGraphCluster struct {
+	Desc                    string                       `json:"desc,omitempty"`
+	Metrics                 []*SqlPlanMetric             `json:"metrics,omitempty"`
+	Name                    string                       `json:"name,omitempty"`
+	Nodes                   []*SparkPlanGraphNodeWrapper `json:"nodes,omitempty"`
+	SparkPlanGraphClusterId int64                        `json:"sparkPlanGraphClusterId,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "Desc") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Desc") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SparkPlanGraphCluster) MarshalJSON() ([]byte, error) {
+	type NoMethod SparkPlanGraphCluster
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SparkPlanGraphEdge: Represents a directed edge in the spark plan tree from
+// child to parent.
+type SparkPlanGraphEdge struct {
+	FromId int64 `json:"fromId,omitempty,string"`
+	ToId   int64 `json:"toId,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "FromId") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FromId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SparkPlanGraphEdge) MarshalJSON() ([]byte, error) {
+	type NoMethod SparkPlanGraphEdge
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SparkPlanGraphNode: Represents a node in the spark plan tree.
+type SparkPlanGraphNode struct {
+	Desc                 string           `json:"desc,omitempty"`
+	Metrics              []*SqlPlanMetric `json:"metrics,omitempty"`
+	Name                 string           `json:"name,omitempty"`
+	SparkPlanGraphNodeId int64            `json:"sparkPlanGraphNodeId,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "Desc") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Desc") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SparkPlanGraphNode) MarshalJSON() ([]byte, error) {
+	type NoMethod SparkPlanGraphNode
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SparkPlanGraphNodeWrapper: Wrapper user to represent either a node or a
+// cluster.
+type SparkPlanGraphNodeWrapper struct {
+	Cluster *SparkPlanGraphCluster `json:"cluster,omitempty"`
+	Node    *SparkPlanGraphNode    `json:"node,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Cluster") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Cluster") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SparkPlanGraphNodeWrapper) MarshalJSON() ([]byte, error) {
+	type NoMethod SparkPlanGraphNodeWrapper
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SparkRBatch: A configuration for running an Apache SparkR
@@ -4987,9 +7619,9 @@ type SparkRBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SparkRBatch) MarshalJSON() ([]byte, error) {
+func (s SparkRBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod SparkRBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SparkRJob: A Dataproc job for running Apache SparkR
@@ -5029,9 +7661,31 @@ type SparkRJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SparkRJob) MarshalJSON() ([]byte, error) {
+func (s SparkRJob) MarshalJSON() ([]byte, error) {
 	type NoMethod SparkRJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type SparkRuntimeInfo struct {
+	JavaHome     string `json:"javaHome,omitempty"`
+	JavaVersion  string `json:"javaVersion,omitempty"`
+	ScalaVersion string `json:"scalaVersion,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "JavaHome") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "JavaHome") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SparkRuntimeInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod SparkRuntimeInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SparkSqlBatch: A configuration for running Apache Spark SQL
@@ -5059,9 +7713,9 @@ type SparkSqlBatch struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SparkSqlBatch) MarshalJSON() ([]byte, error) {
+func (s SparkSqlBatch) MarshalJSON() ([]byte, error) {
 	type NoMethod SparkSqlBatch
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SparkSqlJob: A Dataproc job for running Apache Spark SQL
@@ -5096,9 +7750,9 @@ type SparkSqlJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SparkSqlJob) MarshalJSON() ([]byte, error) {
+func (s SparkSqlJob) MarshalJSON() ([]byte, error) {
 	type NoMethod SparkSqlJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SparkStandaloneAutoscalingConfig: Basic autoscaling configurations for Spark
@@ -5151,9 +7805,9 @@ type SparkStandaloneAutoscalingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SparkStandaloneAutoscalingConfig) MarshalJSON() ([]byte, error) {
+func (s SparkStandaloneAutoscalingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SparkStandaloneAutoscalingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *SparkStandaloneAutoscalingConfig) UnmarshalJSON(data []byte) error {
@@ -5174,6 +7828,416 @@ func (s *SparkStandaloneAutoscalingConfig) UnmarshalJSON(data []byte) error {
 	s.ScaleUpFactor = float64(s1.ScaleUpFactor)
 	s.ScaleUpMinWorkerFraction = float64(s1.ScaleUpMinWorkerFraction)
 	return nil
+}
+
+// SparkWrapperObject: Outer message that contains the data obtained from spark
+// listener, packaged with information that is required to process it.
+type SparkWrapperObject struct {
+	AppSummary                 *AppSummary                 `json:"appSummary,omitempty"`
+	ApplicationEnvironmentInfo *ApplicationEnvironmentInfo `json:"applicationEnvironmentInfo,omitempty"`
+	// ApplicationId: Application Id created by Spark.
+	ApplicationId   string           `json:"applicationId,omitempty"`
+	ApplicationInfo *ApplicationInfo `json:"applicationInfo,omitempty"`
+	// EventTimestamp: VM Timestamp associated with the data object.
+	EventTimestamp       string                `json:"eventTimestamp,omitempty"`
+	ExecutorStageSummary *ExecutorStageSummary `json:"executorStageSummary,omitempty"`
+	ExecutorSummary      *ExecutorSummary      `json:"executorSummary,omitempty"`
+	JobData              *JobData              `json:"jobData,omitempty"`
+	// NativeBuildInfoUiData: Native Build Info
+	NativeBuildInfoUiData *NativeBuildInfoUiData `json:"nativeBuildInfoUiData,omitempty"`
+	// NativeSqlExecutionUiData: Native SQL Execution Info
+	NativeSqlExecutionUiData *NativeSqlExecutionUiData `json:"nativeSqlExecutionUiData,omitempty"`
+	PoolData                 *PoolData                 `json:"poolData,omitempty"`
+	ProcessSummary           *ProcessSummary           `json:"processSummary,omitempty"`
+	RddOperationGraph        *RddOperationGraph        `json:"rddOperationGraph,omitempty"`
+	RddStorageInfo           *RddStorageInfo           `json:"rddStorageInfo,omitempty"`
+	ResourceProfileInfo      *ResourceProfileInfo      `json:"resourceProfileInfo,omitempty"`
+	SparkPlanGraph           *SparkPlanGraph           `json:"sparkPlanGraph,omitempty"`
+	SpeculationStageSummary  *SpeculationStageSummary  `json:"speculationStageSummary,omitempty"`
+	SqlExecutionUiData       *SqlExecutionUiData       `json:"sqlExecutionUiData,omitempty"`
+	StageData                *StageData                `json:"stageData,omitempty"`
+	StreamBlockData          *StreamBlockData          `json:"streamBlockData,omitempty"`
+	StreamingQueryData       *StreamingQueryData       `json:"streamingQueryData,omitempty"`
+	StreamingQueryProgress   *StreamingQueryProgress   `json:"streamingQueryProgress,omitempty"`
+	TaskData                 *TaskData                 `json:"taskData,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AppSummary") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AppSummary") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SparkWrapperObject) MarshalJSON() ([]byte, error) {
+	type NoMethod SparkWrapperObject
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SpeculationStageSummary: Details of the speculation task when speculative
+// execution is enabled.
+type SpeculationStageSummary struct {
+	NumActiveTasks    int64 `json:"numActiveTasks,omitempty"`
+	NumCompletedTasks int64 `json:"numCompletedTasks,omitempty"`
+	NumFailedTasks    int64 `json:"numFailedTasks,omitempty"`
+	NumKilledTasks    int64 `json:"numKilledTasks,omitempty"`
+	NumTasks          int64 `json:"numTasks,omitempty"`
+	StageAttemptId    int64 `json:"stageAttemptId,omitempty"`
+	StageId           int64 `json:"stageId,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "NumActiveTasks") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NumActiveTasks") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SpeculationStageSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod SpeculationStageSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SqlExecutionUiData: SQL Execution Data
+type SqlExecutionUiData struct {
+	CompletionTime          string            `json:"completionTime,omitempty"`
+	Description             string            `json:"description,omitempty"`
+	Details                 string            `json:"details,omitempty"`
+	ErrorMessage            string            `json:"errorMessage,omitempty"`
+	ExecutionId             int64             `json:"executionId,omitempty,string"`
+	Jobs                    map[string]string `json:"jobs,omitempty"`
+	MetricValues            map[string]string `json:"metricValues,omitempty"`
+	MetricValuesIsNull      bool              `json:"metricValuesIsNull,omitempty"`
+	Metrics                 []*SqlPlanMetric  `json:"metrics,omitempty"`
+	ModifiedConfigs         map[string]string `json:"modifiedConfigs,omitempty"`
+	PhysicalPlanDescription string            `json:"physicalPlanDescription,omitempty"`
+	RootExecutionId         int64             `json:"rootExecutionId,omitempty,string"`
+	Stages                  googleapi.Int64s  `json:"stages,omitempty"`
+	SubmissionTime          string            `json:"submissionTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CompletionTime") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CompletionTime") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SqlExecutionUiData) MarshalJSON() ([]byte, error) {
+	type NoMethod SqlExecutionUiData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SqlPlanMetric: Metrics related to SQL execution.
+type SqlPlanMetric struct {
+	AccumulatorId int64  `json:"accumulatorId,omitempty,string"`
+	MetricType    string `json:"metricType,omitempty"`
+	Name          string `json:"name,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccumulatorId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccumulatorId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SqlPlanMetric) MarshalJSON() ([]byte, error) {
+	type NoMethod SqlPlanMetric
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageAttemptTasksSummary: Data related to tasks summary for a Spark Stage
+// Attempt
+type StageAttemptTasksSummary struct {
+	ApplicationId   string `json:"applicationId,omitempty"`
+	NumFailedTasks  int64  `json:"numFailedTasks,omitempty"`
+	NumKilledTasks  int64  `json:"numKilledTasks,omitempty"`
+	NumPendingTasks int64  `json:"numPendingTasks,omitempty"`
+	NumRunningTasks int64  `json:"numRunningTasks,omitempty"`
+	NumSuccessTasks int64  `json:"numSuccessTasks,omitempty"`
+	NumTasks        int64  `json:"numTasks,omitempty"`
+	StageAttemptId  int64  `json:"stageAttemptId,omitempty"`
+	StageId         int64  `json:"stageId,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "ApplicationId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ApplicationId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageAttemptTasksSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod StageAttemptTasksSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageData: Data corresponding to a stage.
+type StageData struct {
+	AccumulatorUpdates           []*AccumulableInfo              `json:"accumulatorUpdates,omitempty"`
+	CompletionTime               string                          `json:"completionTime,omitempty"`
+	Description                  string                          `json:"description,omitempty"`
+	Details                      string                          `json:"details,omitempty"`
+	ExecutorMetricsDistributions *ExecutorMetricsDistributions   `json:"executorMetricsDistributions,omitempty"`
+	ExecutorSummary              map[string]ExecutorStageSummary `json:"executorSummary,omitempty"`
+	FailureReason                string                          `json:"failureReason,omitempty"`
+	FirstTaskLaunchedTime        string                          `json:"firstTaskLaunchedTime,omitempty"`
+	IsShufflePushEnabled         bool                            `json:"isShufflePushEnabled,omitempty"`
+	JobIds                       googleapi.Int64s                `json:"jobIds,omitempty"`
+	KilledTasksSummary           map[string]int64                `json:"killedTasksSummary,omitempty"`
+	Locality                     map[string]string               `json:"locality,omitempty"`
+	Name                         string                          `json:"name,omitempty"`
+	NumActiveTasks               int64                           `json:"numActiveTasks,omitempty"`
+	NumCompleteTasks             int64                           `json:"numCompleteTasks,omitempty"`
+	NumCompletedIndices          int64                           `json:"numCompletedIndices,omitempty"`
+	NumFailedTasks               int64                           `json:"numFailedTasks,omitempty"`
+	NumKilledTasks               int64                           `json:"numKilledTasks,omitempty"`
+	NumTasks                     int64                           `json:"numTasks,omitempty"`
+	ParentStageIds               googleapi.Int64s                `json:"parentStageIds,omitempty"`
+	PeakExecutorMetrics          *ExecutorMetrics                `json:"peakExecutorMetrics,omitempty"`
+	RddIds                       googleapi.Int64s                `json:"rddIds,omitempty"`
+	ResourceProfileId            int64                           `json:"resourceProfileId,omitempty"`
+	SchedulingPool               string                          `json:"schedulingPool,omitempty"`
+	ShuffleMergersCount          int64                           `json:"shuffleMergersCount,omitempty"`
+	SpeculationSummary           *SpeculationStageSummary        `json:"speculationSummary,omitempty"`
+	StageAttemptId               int64                           `json:"stageAttemptId,omitempty"`
+	StageId                      int64                           `json:"stageId,omitempty,string"`
+	StageMetrics                 *StageMetrics                   `json:"stageMetrics,omitempty"`
+	// Possible values:
+	//   "STAGE_STATUS_UNSPECIFIED"
+	//   "STAGE_STATUS_ACTIVE"
+	//   "STAGE_STATUS_COMPLETE"
+	//   "STAGE_STATUS_FAILED"
+	//   "STAGE_STATUS_PENDING"
+	//   "STAGE_STATUS_SKIPPED"
+	Status         string `json:"status,omitempty"`
+	SubmissionTime string `json:"submissionTime,omitempty"`
+	// TaskQuantileMetrics: Summary metrics fields. These are included in response
+	// only if present in summary_metrics_mask field in request
+	TaskQuantileMetrics *TaskQuantileMetrics `json:"taskQuantileMetrics,omitempty"`
+	Tasks               map[string]TaskData  `json:"tasks,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccumulatorUpdates") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccumulatorUpdates") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageData) MarshalJSON() ([]byte, error) {
+	type NoMethod StageData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageInputMetrics: Metrics about the input read by the stage.
+type StageInputMetrics struct {
+	BytesRead   int64 `json:"bytesRead,omitempty,string"`
+	RecordsRead int64 `json:"recordsRead,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "BytesRead") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesRead") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageInputMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod StageInputMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageMetrics: Stage Level Aggregated Metrics
+type StageMetrics struct {
+	DiskBytesSpilled                int64                     `json:"diskBytesSpilled,omitempty,string"`
+	ExecutorCpuTimeNanos            int64                     `json:"executorCpuTimeNanos,omitempty,string"`
+	ExecutorDeserializeCpuTimeNanos int64                     `json:"executorDeserializeCpuTimeNanos,omitempty,string"`
+	ExecutorDeserializeTimeMillis   int64                     `json:"executorDeserializeTimeMillis,omitempty,string"`
+	ExecutorRunTimeMillis           int64                     `json:"executorRunTimeMillis,omitempty,string"`
+	JvmGcTimeMillis                 int64                     `json:"jvmGcTimeMillis,omitempty,string"`
+	MemoryBytesSpilled              int64                     `json:"memoryBytesSpilled,omitempty,string"`
+	PeakExecutionMemoryBytes        int64                     `json:"peakExecutionMemoryBytes,omitempty,string"`
+	ResultSerializationTimeMillis   int64                     `json:"resultSerializationTimeMillis,omitempty,string"`
+	ResultSize                      int64                     `json:"resultSize,omitempty,string"`
+	StageInputMetrics               *StageInputMetrics        `json:"stageInputMetrics,omitempty"`
+	StageOutputMetrics              *StageOutputMetrics       `json:"stageOutputMetrics,omitempty"`
+	StageShuffleReadMetrics         *StageShuffleReadMetrics  `json:"stageShuffleReadMetrics,omitempty"`
+	StageShuffleWriteMetrics        *StageShuffleWriteMetrics `json:"stageShuffleWriteMetrics,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DiskBytesSpilled") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DiskBytesSpilled") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod StageMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageOutputMetrics: Metrics about the output written by the stage.
+type StageOutputMetrics struct {
+	BytesWritten   int64 `json:"bytesWritten,omitempty,string"`
+	RecordsWritten int64 `json:"recordsWritten,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "BytesWritten") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesWritten") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageOutputMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod StageOutputMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type StageShufflePushReadMetrics struct {
+	CorruptMergedBlockChunks  int64 `json:"corruptMergedBlockChunks,omitempty,string"`
+	LocalMergedBlocksFetched  int64 `json:"localMergedBlocksFetched,omitempty,string"`
+	LocalMergedBytesRead      int64 `json:"localMergedBytesRead,omitempty,string"`
+	LocalMergedChunksFetched  int64 `json:"localMergedChunksFetched,omitempty,string"`
+	MergedFetchFallbackCount  int64 `json:"mergedFetchFallbackCount,omitempty,string"`
+	RemoteMergedBlocksFetched int64 `json:"remoteMergedBlocksFetched,omitempty,string"`
+	RemoteMergedBytesRead     int64 `json:"remoteMergedBytesRead,omitempty,string"`
+	RemoteMergedChunksFetched int64 `json:"remoteMergedChunksFetched,omitempty,string"`
+	RemoteMergedReqsDuration  int64 `json:"remoteMergedReqsDuration,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "CorruptMergedBlockChunks")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CorruptMergedBlockChunks") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageShufflePushReadMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod StageShufflePushReadMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageShuffleReadMetrics: Shuffle data read for the stage.
+type StageShuffleReadMetrics struct {
+	BytesRead                   int64                        `json:"bytesRead,omitempty,string"`
+	FetchWaitTimeMillis         int64                        `json:"fetchWaitTimeMillis,omitempty,string"`
+	LocalBlocksFetched          int64                        `json:"localBlocksFetched,omitempty,string"`
+	LocalBytesRead              int64                        `json:"localBytesRead,omitempty,string"`
+	RecordsRead                 int64                        `json:"recordsRead,omitempty,string"`
+	RemoteBlocksFetched         int64                        `json:"remoteBlocksFetched,omitempty,string"`
+	RemoteBytesRead             int64                        `json:"remoteBytesRead,omitempty,string"`
+	RemoteBytesReadToDisk       int64                        `json:"remoteBytesReadToDisk,omitempty,string"`
+	RemoteReqsDuration          int64                        `json:"remoteReqsDuration,omitempty,string"`
+	StageShufflePushReadMetrics *StageShufflePushReadMetrics `json:"stageShufflePushReadMetrics,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BytesRead") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesRead") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageShuffleReadMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod StageShuffleReadMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageShuffleWriteMetrics: Shuffle data written for the stage.
+type StageShuffleWriteMetrics struct {
+	BytesWritten   int64 `json:"bytesWritten,omitempty,string"`
+	RecordsWritten int64 `json:"recordsWritten,omitempty,string"`
+	WriteTimeNanos int64 `json:"writeTimeNanos,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "BytesWritten") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesWritten") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageShuffleWriteMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod StageShuffleWriteMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StagesSummary: Data related to Stages page summary
+type StagesSummary struct {
+	ApplicationId      string `json:"applicationId,omitempty"`
+	NumActiveStages    int64  `json:"numActiveStages,omitempty"`
+	NumCompletedStages int64  `json:"numCompletedStages,omitempty"`
+	NumFailedStages    int64  `json:"numFailedStages,omitempty"`
+	NumPendingStages   int64  `json:"numPendingStages,omitempty"`
+	NumSkippedStages   int64  `json:"numSkippedStages,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ApplicationId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ApplicationId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StagesSummary) MarshalJSON() ([]byte, error) {
+	type NoMethod StagesSummary
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartClusterRequest: A request to start a cluster.
@@ -5204,9 +8268,9 @@ type StartClusterRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartClusterRequest) MarshalJSON() ([]byte, error) {
+func (s StartClusterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod StartClusterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StartupConfig: Configuration to handle the startup of instances during
@@ -5233,9 +8297,9 @@ type StartupConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StartupConfig) MarshalJSON() ([]byte, error) {
+func (s StartupConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod StartupConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *StartupConfig) UnmarshalJSON(data []byte) error {
@@ -5283,9 +8347,40 @@ type StateHistory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StateHistory) MarshalJSON() ([]byte, error) {
+func (s StateHistory) MarshalJSON() ([]byte, error) {
 	type NoMethod StateHistory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type StateOperatorProgress struct {
+	AllRemovalsTimeMs         int64             `json:"allRemovalsTimeMs,omitempty,string"`
+	AllUpdatesTimeMs          int64             `json:"allUpdatesTimeMs,omitempty,string"`
+	CommitTimeMs              int64             `json:"commitTimeMs,omitempty,string"`
+	CustomMetrics             map[string]string `json:"customMetrics,omitempty"`
+	MemoryUsedBytes           int64             `json:"memoryUsedBytes,omitempty,string"`
+	NumRowsDroppedByWatermark int64             `json:"numRowsDroppedByWatermark,omitempty,string"`
+	NumRowsRemoved            int64             `json:"numRowsRemoved,omitempty,string"`
+	NumRowsTotal              int64             `json:"numRowsTotal,omitempty,string"`
+	NumRowsUpdated            int64             `json:"numRowsUpdated,omitempty,string"`
+	NumShufflePartitions      int64             `json:"numShufflePartitions,omitempty,string"`
+	NumStateStoreInstances    int64             `json:"numStateStoreInstances,omitempty,string"`
+	OperatorName              string            `json:"operatorName,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AllRemovalsTimeMs") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AllRemovalsTimeMs") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StateOperatorProgress) MarshalJSON() ([]byte, error) {
+	type NoMethod StateOperatorProgress
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The Status type defines a logical error model that is suitable for
@@ -5317,9 +8412,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopClusterRequest: A request to stop a cluster.
@@ -5350,9 +8445,96 @@ type StopClusterRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StopClusterRequest) MarshalJSON() ([]byte, error) {
+func (s StopClusterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod StopClusterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StreamBlockData: Stream Block Data.
+type StreamBlockData struct {
+	Deserialized bool   `json:"deserialized,omitempty"`
+	DiskSize     int64  `json:"diskSize,omitempty,string"`
+	ExecutorId   string `json:"executorId,omitempty"`
+	HostPort     string `json:"hostPort,omitempty"`
+	MemSize      int64  `json:"memSize,omitempty,string"`
+	Name         string `json:"name,omitempty"`
+	StorageLevel string `json:"storageLevel,omitempty"`
+	UseDisk      bool   `json:"useDisk,omitempty"`
+	UseMemory    bool   `json:"useMemory,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Deserialized") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Deserialized") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StreamBlockData) MarshalJSON() ([]byte, error) {
+	type NoMethod StreamBlockData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StreamingQueryData: Streaming
+type StreamingQueryData struct {
+	EndTimestamp     int64  `json:"endTimestamp,omitempty,string"`
+	Exception        string `json:"exception,omitempty"`
+	IsActive         bool   `json:"isActive,omitempty"`
+	Name             string `json:"name,omitempty"`
+	RunId            string `json:"runId,omitempty"`
+	StartTimestamp   int64  `json:"startTimestamp,omitempty,string"`
+	StreamingQueryId string `json:"streamingQueryId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndTimestamp") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndTimestamp") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StreamingQueryData) MarshalJSON() ([]byte, error) {
+	type NoMethod StreamingQueryData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type StreamingQueryProgress struct {
+	BatchDuration            int64                    `json:"batchDuration,omitempty,string"`
+	BatchId                  int64                    `json:"batchId,omitempty,string"`
+	DurationMillis           map[string]string        `json:"durationMillis,omitempty"`
+	EventTime                map[string]string        `json:"eventTime,omitempty"`
+	Name                     string                   `json:"name,omitempty"`
+	ObservedMetrics          map[string]string        `json:"observedMetrics,omitempty"`
+	RunId                    string                   `json:"runId,omitempty"`
+	Sink                     *SinkProgress            `json:"sink,omitempty"`
+	Sources                  []*SourceProgress        `json:"sources,omitempty"`
+	StateOperators           []*StateOperatorProgress `json:"stateOperators,omitempty"`
+	StreamingQueryProgressId string                   `json:"streamingQueryProgressId,omitempty"`
+	Timestamp                string                   `json:"timestamp,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BatchDuration") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BatchDuration") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StreamingQueryProgress) MarshalJSON() ([]byte, error) {
+	type NoMethod StreamingQueryProgress
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubmitJobRequest: A request to submit a job.
@@ -5382,9 +8564,377 @@ type SubmitJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubmitJobRequest) MarshalJSON() ([]byte, error) {
+func (s SubmitJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SubmitJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SummarizeSessionSparkApplicationExecutorsResponse: Consolidated summary of
+// executors for a Spark Application.
+type SummarizeSessionSparkApplicationExecutorsResponse struct {
+	// ActiveExecutorSummary: Consolidated summary for active executors.
+	ActiveExecutorSummary *ConsolidatedExecutorSummary `json:"activeExecutorSummary,omitempty"`
+	// ApplicationId: Spark Application Id
+	ApplicationId string `json:"applicationId,omitempty"`
+	// DeadExecutorSummary: Consolidated summary for dead executors.
+	DeadExecutorSummary *ConsolidatedExecutorSummary `json:"deadExecutorSummary,omitempty"`
+	// TotalExecutorSummary: Overall consolidated summary for all executors.
+	TotalExecutorSummary *ConsolidatedExecutorSummary `json:"totalExecutorSummary,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ActiveExecutorSummary") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ActiveExecutorSummary") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SummarizeSessionSparkApplicationExecutorsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SummarizeSessionSparkApplicationExecutorsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SummarizeSessionSparkApplicationJobsResponse: Summary of a Spark Application
+// jobs.
+type SummarizeSessionSparkApplicationJobsResponse struct {
+	// JobsSummary: Summary of a Spark Application Jobs
+	JobsSummary *JobsSummary `json:"jobsSummary,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "JobsSummary") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "JobsSummary") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SummarizeSessionSparkApplicationJobsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SummarizeSessionSparkApplicationJobsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SummarizeSessionSparkApplicationStageAttemptTasksResponse: Summary of tasks
+// for a Spark Application stage attempt.
+type SummarizeSessionSparkApplicationStageAttemptTasksResponse struct {
+	// StageAttemptTasksSummary: Summary of tasks for a Spark Application Stage
+	// Attempt
+	StageAttemptTasksSummary *StageAttemptTasksSummary `json:"stageAttemptTasksSummary,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "StageAttemptTasksSummary")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "StageAttemptTasksSummary") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SummarizeSessionSparkApplicationStageAttemptTasksResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SummarizeSessionSparkApplicationStageAttemptTasksResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SummarizeSessionSparkApplicationStagesResponse: Summary of a Spark
+// Application stages.
+type SummarizeSessionSparkApplicationStagesResponse struct {
+	// StagesSummary: Summary of a Spark Application Stages
+	StagesSummary *StagesSummary `json:"stagesSummary,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "StagesSummary") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "StagesSummary") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SummarizeSessionSparkApplicationStagesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SummarizeSessionSparkApplicationStagesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SummarizeSparkApplicationExecutorsResponse: Consolidated summary of
+// executors for a Spark Application.
+type SummarizeSparkApplicationExecutorsResponse struct {
+	// ActiveExecutorSummary: Consolidated summary for active executors.
+	ActiveExecutorSummary *ConsolidatedExecutorSummary `json:"activeExecutorSummary,omitempty"`
+	// ApplicationId: Spark Application Id
+	ApplicationId string `json:"applicationId,omitempty"`
+	// DeadExecutorSummary: Consolidated summary for dead executors.
+	DeadExecutorSummary *ConsolidatedExecutorSummary `json:"deadExecutorSummary,omitempty"`
+	// TotalExecutorSummary: Overall consolidated summary for all executors.
+	TotalExecutorSummary *ConsolidatedExecutorSummary `json:"totalExecutorSummary,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "ActiveExecutorSummary") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ActiveExecutorSummary") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SummarizeSparkApplicationExecutorsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SummarizeSparkApplicationExecutorsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SummarizeSparkApplicationJobsResponse: Summary of a Spark Application jobs.
+type SummarizeSparkApplicationJobsResponse struct {
+	// JobsSummary: Summary of a Spark Application Jobs
+	JobsSummary *JobsSummary `json:"jobsSummary,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "JobsSummary") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "JobsSummary") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SummarizeSparkApplicationJobsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SummarizeSparkApplicationJobsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SummarizeSparkApplicationStageAttemptTasksResponse: Summary of tasks for a
+// Spark Application stage attempt.
+type SummarizeSparkApplicationStageAttemptTasksResponse struct {
+	// StageAttemptTasksSummary: Summary of tasks for a Spark Application Stage
+	// Attempt
+	StageAttemptTasksSummary *StageAttemptTasksSummary `json:"stageAttemptTasksSummary,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "StageAttemptTasksSummary")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "StageAttemptTasksSummary") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SummarizeSparkApplicationStageAttemptTasksResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SummarizeSparkApplicationStageAttemptTasksResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SummarizeSparkApplicationStagesResponse: Summary of a Spark Application
+// stages.
+type SummarizeSparkApplicationStagesResponse struct {
+	// StagesSummary: Summary of a Spark Application Stages
+	StagesSummary *StagesSummary `json:"stagesSummary,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "StagesSummary") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "StagesSummary") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SummarizeSparkApplicationStagesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod SummarizeSparkApplicationStagesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TaskData: Data corresponding to tasks created by spark.
+type TaskData struct {
+	AccumulatorUpdates      []*AccumulableInfo `json:"accumulatorUpdates,omitempty"`
+	Attempt                 int64              `json:"attempt,omitempty"`
+	DurationMillis          int64              `json:"durationMillis,omitempty,string"`
+	ErrorMessage            string             `json:"errorMessage,omitempty"`
+	ExecutorId              string             `json:"executorId,omitempty"`
+	ExecutorLogs            map[string]string  `json:"executorLogs,omitempty"`
+	GettingResultTimeMillis int64              `json:"gettingResultTimeMillis,omitempty,string"`
+	HasMetrics              bool               `json:"hasMetrics,omitempty"`
+	Host                    string             `json:"host,omitempty"`
+	Index                   int64              `json:"index,omitempty"`
+	LaunchTime              string             `json:"launchTime,omitempty"`
+	PartitionId             int64              `json:"partitionId,omitempty"`
+	ResultFetchStart        string             `json:"resultFetchStart,omitempty"`
+	SchedulerDelayMillis    int64              `json:"schedulerDelayMillis,omitempty,string"`
+	Speculative             bool               `json:"speculative,omitempty"`
+	StageAttemptId          int64              `json:"stageAttemptId,omitempty"`
+	StageId                 int64              `json:"stageId,omitempty,string"`
+	Status                  string             `json:"status,omitempty"`
+	TaskId                  int64              `json:"taskId,omitempty,string"`
+	TaskLocality            string             `json:"taskLocality,omitempty"`
+	TaskMetrics             *TaskMetrics       `json:"taskMetrics,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AccumulatorUpdates") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AccumulatorUpdates") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TaskData) MarshalJSON() ([]byte, error) {
+	type NoMethod TaskData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TaskMetrics: Executor Task Metrics
+type TaskMetrics struct {
+	DiskBytesSpilled                int64                `json:"diskBytesSpilled,omitempty,string"`
+	ExecutorCpuTimeNanos            int64                `json:"executorCpuTimeNanos,omitempty,string"`
+	ExecutorDeserializeCpuTimeNanos int64                `json:"executorDeserializeCpuTimeNanos,omitempty,string"`
+	ExecutorDeserializeTimeMillis   int64                `json:"executorDeserializeTimeMillis,omitempty,string"`
+	ExecutorRunTimeMillis           int64                `json:"executorRunTimeMillis,omitempty,string"`
+	InputMetrics                    *InputMetrics        `json:"inputMetrics,omitempty"`
+	JvmGcTimeMillis                 int64                `json:"jvmGcTimeMillis,omitempty,string"`
+	MemoryBytesSpilled              int64                `json:"memoryBytesSpilled,omitempty,string"`
+	OutputMetrics                   *OutputMetrics       `json:"outputMetrics,omitempty"`
+	PeakExecutionMemoryBytes        int64                `json:"peakExecutionMemoryBytes,omitempty,string"`
+	ResultSerializationTimeMillis   int64                `json:"resultSerializationTimeMillis,omitempty,string"`
+	ResultSize                      int64                `json:"resultSize,omitempty,string"`
+	ShuffleReadMetrics              *ShuffleReadMetrics  `json:"shuffleReadMetrics,omitempty"`
+	ShuffleWriteMetrics             *ShuffleWriteMetrics `json:"shuffleWriteMetrics,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DiskBytesSpilled") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DiskBytesSpilled") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TaskMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod TaskMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type TaskQuantileMetrics struct {
+	DiskBytesSpilled                *Quantiles                   `json:"diskBytesSpilled,omitempty"`
+	DurationMillis                  *Quantiles                   `json:"durationMillis,omitempty"`
+	ExecutorCpuTimeNanos            *Quantiles                   `json:"executorCpuTimeNanos,omitempty"`
+	ExecutorDeserializeCpuTimeNanos *Quantiles                   `json:"executorDeserializeCpuTimeNanos,omitempty"`
+	ExecutorDeserializeTimeMillis   *Quantiles                   `json:"executorDeserializeTimeMillis,omitempty"`
+	ExecutorRunTimeMillis           *Quantiles                   `json:"executorRunTimeMillis,omitempty"`
+	GettingResultTimeMillis         *Quantiles                   `json:"gettingResultTimeMillis,omitempty"`
+	InputMetrics                    *InputQuantileMetrics        `json:"inputMetrics,omitempty"`
+	JvmGcTimeMillis                 *Quantiles                   `json:"jvmGcTimeMillis,omitempty"`
+	MemoryBytesSpilled              *Quantiles                   `json:"memoryBytesSpilled,omitempty"`
+	OutputMetrics                   *OutputQuantileMetrics       `json:"outputMetrics,omitempty"`
+	PeakExecutionMemoryBytes        *Quantiles                   `json:"peakExecutionMemoryBytes,omitempty"`
+	ResultSerializationTimeMillis   *Quantiles                   `json:"resultSerializationTimeMillis,omitempty"`
+	ResultSize                      *Quantiles                   `json:"resultSize,omitempty"`
+	SchedulerDelayMillis            *Quantiles                   `json:"schedulerDelayMillis,omitempty"`
+	ShuffleReadMetrics              *ShuffleReadQuantileMetrics  `json:"shuffleReadMetrics,omitempty"`
+	ShuffleWriteMetrics             *ShuffleWriteQuantileMetrics `json:"shuffleWriteMetrics,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DiskBytesSpilled") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DiskBytesSpilled") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TaskQuantileMetrics) MarshalJSON() ([]byte, error) {
+	type NoMethod TaskQuantileMetrics
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TaskResourceRequest: Resources used per task created by the application.
+type TaskResourceRequest struct {
+	Amount       float64 `json:"amount,omitempty"`
+	ResourceName string  `json:"resourceName,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Amount") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Amount") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TaskResourceRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod TaskResourceRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *TaskResourceRequest) UnmarshalJSON(data []byte) error {
+	type NoMethod TaskResourceRequest
+	var s1 struct {
+		Amount gensupport.JSONFloat64 `json:"amount"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Amount = float64(s1.Amount)
+	return nil
 }
 
 // TemplateParameter: A configurable parameter that replaces one or more fields
@@ -5441,9 +8991,9 @@ type TemplateParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TemplateParameter) MarshalJSON() ([]byte, error) {
+func (s TemplateParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod TemplateParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TerminateSessionRequest: A request to terminate an interactive session.
@@ -5470,9 +9020,9 @@ type TerminateSessionRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TerminateSessionRequest) MarshalJSON() ([]byte, error) {
+func (s TerminateSessionRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TerminateSessionRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for TestIamPermissions method.
@@ -5495,9 +9045,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for TestIamPermissions method.
@@ -5521,9 +9071,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TrinoJob: A Dataproc job for running Trino (https://trino.io/) queries.
@@ -5564,9 +9114,9 @@ type TrinoJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TrinoJob) MarshalJSON() ([]byte, error) {
+func (s TrinoJob) MarshalJSON() ([]byte, error) {
 	type NoMethod TrinoJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UsageMetrics: Usage metrics represent approximate total resources consumed
@@ -5582,10 +9132,14 @@ type UsageMetrics struct {
 	// seconds) (see Dataproc Serverless pricing
 	// (https://cloud.google.com/dataproc-serverless/pricing)).
 	MilliDcuSeconds int64 `json:"milliDcuSeconds,omitempty,string"`
+	// MilliSlotSeconds: Optional. Slot usage in (milliSlot x seconds).
+	MilliSlotSeconds int64 `json:"milliSlotSeconds,omitempty,string"`
 	// ShuffleStorageGbSeconds: Optional. Shuffle storage usage in (GB x seconds)
 	// (see Dataproc Serverless pricing
 	// (https://cloud.google.com/dataproc-serverless/pricing)).
 	ShuffleStorageGbSeconds int64 `json:"shuffleStorageGbSeconds,omitempty,string"`
+	// UpdateTime: Optional. The timestamp of the usage metrics.
+	UpdateTime string `json:"updateTime,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AcceleratorType") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -5599,9 +9153,9 @@ type UsageMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsageMetrics) MarshalJSON() ([]byte, error) {
+func (s UsageMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod UsageMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UsageSnapshot: The usage snapshot represents the resources consumed by a
@@ -5621,6 +9175,8 @@ type UsageSnapshot struct {
 	// (DCUs) charged at premium tier (see Dataproc Serverless pricing
 	// (https://cloud.google.com/dataproc-serverless/pricing)).
 	MilliDcuPremium int64 `json:"milliDcuPremium,omitempty,string"`
+	// MilliSlot: Optional. Milli (one-thousandth) Slot usage of the workload.
+	MilliSlot int64 `json:"milliSlot,omitempty,string"`
 	// ShuffleStorageGb: Optional. Shuffle Storage in gigabytes (GB). (see Dataproc
 	// Serverless pricing (https://cloud.google.com/dataproc-serverless/pricing))
 	ShuffleStorageGb int64 `json:"shuffleStorageGb,omitempty,string"`
@@ -5643,9 +9199,9 @@ type UsageSnapshot struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsageSnapshot) MarshalJSON() ([]byte, error) {
+func (s UsageSnapshot) MarshalJSON() ([]byte, error) {
 	type NoMethod UsageSnapshot
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValueValidation: Validation based on a list of allowed values.
@@ -5665,9 +9221,9 @@ type ValueValidation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValueValidation) MarshalJSON() ([]byte, error) {
+func (s ValueValidation) MarshalJSON() ([]byte, error) {
 	type NoMethod ValueValidation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualClusterConfig: The Dataproc cluster config for a cluster that does
@@ -5705,9 +9261,9 @@ type VirtualClusterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualClusterConfig) MarshalJSON() ([]byte, error) {
+func (s VirtualClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualClusterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowGraph: The workflow graph.
@@ -5727,9 +9283,9 @@ type WorkflowGraph struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowGraph) MarshalJSON() ([]byte, error) {
+func (s WorkflowGraph) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowGraph
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowMetadata: A Dataproc workflow template resource.
@@ -5794,9 +9350,9 @@ type WorkflowMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowMetadata) MarshalJSON() ([]byte, error) {
+func (s WorkflowMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowNode: The workflow node.
@@ -5834,9 +9390,9 @@ type WorkflowNode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowNode) MarshalJSON() ([]byte, error) {
+func (s WorkflowNode) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowNode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowTemplate: A Dataproc workflow template resource.
@@ -5908,9 +9464,9 @@ type WorkflowTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowTemplate) MarshalJSON() ([]byte, error) {
+func (s WorkflowTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WorkflowTemplatePlacement: Specifies workflow execution target.Either
@@ -5935,9 +9491,73 @@ type WorkflowTemplatePlacement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkflowTemplatePlacement) MarshalJSON() ([]byte, error) {
+func (s WorkflowTemplatePlacement) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkflowTemplatePlacement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// WriteSessionSparkApplicationContextRequest: Write Spark Application data to
+// internal storage systems
+type WriteSessionSparkApplicationContextRequest struct {
+	// Parent: Required. Parent (Batch) resource reference.
+	Parent string `json:"parent,omitempty"`
+	// SparkWrapperObjects: Required. The batch of spark application context
+	// objects sent for ingestion.
+	SparkWrapperObjects []*SparkWrapperObject `json:"sparkWrapperObjects,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Parent") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Parent") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s WriteSessionSparkApplicationContextRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod WriteSessionSparkApplicationContextRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// WriteSessionSparkApplicationContextResponse: Response returned as an
+// acknowledgement of receipt of data.
+type WriteSessionSparkApplicationContextResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+}
+
+// WriteSparkApplicationContextRequest: Write Spark Application data to
+// internal storage systems
+type WriteSparkApplicationContextRequest struct {
+	// Parent: Required. Parent (Batch) resource reference.
+	Parent              string                `json:"parent,omitempty"`
+	SparkWrapperObjects []*SparkWrapperObject `json:"sparkWrapperObjects,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Parent") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Parent") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s WriteSparkApplicationContextRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod WriteSparkApplicationContextRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// WriteSparkApplicationContextResponse: Response returned as an
+// acknowledgement of receipt of data.
+type WriteSparkApplicationContextResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 // YarnApplication: A YARN application created by a job. Application
@@ -5982,9 +9602,9 @@ type YarnApplication struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YarnApplication) MarshalJSON() ([]byte, error) {
+func (s YarnApplication) MarshalJSON() ([]byte, error) {
 	type NoMethod YarnApplication
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *YarnApplication) UnmarshalJSON(data []byte) error {
@@ -6051,8 +9671,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAutoscalingPoliciesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.autoscalingpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.autoscalingpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -6068,6 +9687,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6103,9 +9723,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6159,12 +9781,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsAutoscalingPoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6172,6 +9793,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6206,9 +9828,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6273,12 +9897,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6286,6 +9909,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6321,9 +9945,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6374,8 +10000,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesGetIamPolicyCall) Header() http.Hea
 
 func (c *ProjectsLocationsAutoscalingPoliciesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6391,6 +10016,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesGetIamPolicyCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6425,9 +10051,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesGetIamPolicyCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6506,12 +10134,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/autoscalingPolicies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6519,6 +10146,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6554,9 +10182,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6629,8 +10259,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesSetIamPolicyCall) Header() http.Hea
 
 func (c *ProjectsLocationsAutoscalingPoliciesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6646,6 +10275,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesSetIamPolicyCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6680,9 +10310,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesSetIamPolicyCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6737,8 +10369,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesTestIamPermissionsCall) Header() ht
 
 func (c *ProjectsLocationsAutoscalingPoliciesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6754,6 +10385,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesTestIamPermissionsCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6789,9 +10421,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesTestIamPermissionsCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6847,8 +10481,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesUpdateCall) Header() http.Header {
 
 func (c *ProjectsLocationsAutoscalingPoliciesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.autoscalingpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.autoscalingpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -6864,6 +10497,7 @@ func (c *ProjectsLocationsAutoscalingPoliciesUpdateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6899,9 +10533,11 @@ func (c *ProjectsLocationsAutoscalingPoliciesUpdateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.autoscalingPolicies.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6950,8 +10586,7 @@ func (c *ProjectsLocationsBatchesAnalyzeCall) Header() http.Header {
 
 func (c *ProjectsLocationsBatchesAnalyzeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.analyzebatchrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.analyzebatchrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6967,6 +10602,7 @@ func (c *ProjectsLocationsBatchesAnalyzeCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.analyze", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7001,9 +10637,11 @@ func (c *ProjectsLocationsBatchesAnalyzeCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.analyze", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7073,8 +10711,7 @@ func (c *ProjectsLocationsBatchesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsBatchesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batch)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batch)
 	if err != nil {
 		return nil, err
 	}
@@ -7090,6 +10727,7 @@ func (c *ProjectsLocationsBatchesCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7124,9 +10762,11 @@ func (c *ProjectsLocationsBatchesCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7175,12 +10815,11 @@ func (c *ProjectsLocationsBatchesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsBatchesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7188,6 +10827,7 @@ func (c *ProjectsLocationsBatchesDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7222,9 +10862,11 @@ func (c *ProjectsLocationsBatchesDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7283,12 +10925,11 @@ func (c *ProjectsLocationsBatchesGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7296,6 +10937,7 @@ func (c *ProjectsLocationsBatchesGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7330,9 +10972,11 @@ func (c *ProjectsLocationsBatchesGetCall) Do(opts ...googleapi.CallOption) (*Bat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7431,12 +11075,11 @@ func (c *ProjectsLocationsBatchesListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/batches")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7444,6 +11087,7 @@ func (c *ProjectsLocationsBatchesListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7479,9 +11123,11 @@ func (c *ProjectsLocationsBatchesListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7504,6 +11150,3333 @@ func (c *ProjectsLocationsBatchesListCall) Pages(ctx context.Context, f func(*Li
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Access: Obtain high level information corresponding to a single Spark
+// Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) Access(name string) *ProjectsLocationsBatchesSparkApplicationsAccessCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:access")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.access", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.access" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.access", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessEnvironmentInfo: Obtain environment details for a Spark Application
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) AccessEnvironmentInfo(name string) *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessEnvironmentInfo")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessEnvironmentInfo", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.accessEnvironmentInfo" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationEnvironmentInfoResponse.ServerResponse.Header or (if
+// a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessEnvironmentInfoCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationEnvironmentInfoResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationEnvironmentInfoResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessEnvironmentInfo", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessJobCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessJob: Obtain data corresponding to a spark job for a Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) AccessJob(name string) *ProjectsLocationsBatchesSparkApplicationsAccessJobCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessJobCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// JobId sets the optional parameter "jobId": Required. Job ID to fetch data
+// for.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessJobCall) JobId(jobId int64) *ProjectsLocationsBatchesSparkApplicationsAccessJobCall {
+	c.urlParams_.Set("jobId", fmt.Sprint(jobId))
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessJobCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessJobCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessJobCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessJobCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessJobCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessJobCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessJobCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessJobCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessJobCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessJobCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessJob")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessJob", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.accessJob" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationJobResponse.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessJobCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationJobResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationJobResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessJob", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessNativeBuildInfo: Obtain build data for Native Job
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) AccessNativeBuildInfo(name string) *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessNativeBuildInfo")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessNativeBuildInfo", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.accessNativeBuildInfo" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationNativeBuildInfoResponse.ServerResponse.Header or (if
+// a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationNativeBuildInfoResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationNativeBuildInfoResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessNativeBuildInfo", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessNativeSqlQuery: Obtain data corresponding to a particular Native SQL
+// Query for a Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) AccessNativeSqlQuery(name string) *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// ExecutionId sets the optional parameter "executionId": Required. Execution
+// ID
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall) ExecutionId(executionId int64) *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall {
+	c.urlParams_.Set("executionId", fmt.Sprint(executionId))
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessNativeSqlQuery")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessNativeSqlQuery", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.accessNativeSqlQuery" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationNativeSqlQueryResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationNativeSqlQueryResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationNativeSqlQueryResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessNativeSqlQuery", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessSqlPlan: Obtain Spark Plan Graph for a Spark Application SQL
+// execution. Limits the number of clusters returned as part of the graph to
+// 10000.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) AccessSqlPlan(name string) *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// ExecutionId sets the optional parameter "executionId": Required. Execution
+// ID
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall) ExecutionId(executionId int64) *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall {
+	c.urlParams_.Set("executionId", fmt.Sprint(executionId))
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessSqlPlan")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessSqlPlan", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.accessSqlPlan" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationSqlSparkPlanGraphResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlPlanCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationSqlSparkPlanGraphResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationSqlSparkPlanGraphResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessSqlPlan", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessSqlQuery: Obtain data corresponding to a particular SQL Query for a
+// Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) AccessSqlQuery(name string) *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Details sets the optional parameter "details": Lists/ hides details of Spark
+// plan nodes. True is set to list and false to hide.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) Details(details bool) *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("details", fmt.Sprint(details))
+	return c
+}
+
+// ExecutionId sets the optional parameter "executionId": Required. Execution
+// ID
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) ExecutionId(executionId int64) *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("executionId", fmt.Sprint(executionId))
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// PlanDescription sets the optional parameter "planDescription": Enables/
+// disables physical plan description on demand
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) PlanDescription(planDescription bool) *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("planDescription", fmt.Sprint(planDescription))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessSqlQuery")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessSqlQuery", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.accessSqlQuery" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationSqlQueryResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessSqlQueryCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationSqlQueryResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationSqlQueryResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessSqlQuery", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessStageAttempt: Obtain data corresponding to a spark stage attempt for a
+// Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) AccessStageAttempt(name string) *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageAttemptId sets the optional parameter "stageAttemptId": Required. Stage
+// Attempt ID
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) StageAttemptId(stageAttemptId int64) *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("stageAttemptId", fmt.Sprint(stageAttemptId))
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) StageId(stageId int64) *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// SummaryMetricsMask sets the optional parameter "summaryMetricsMask": The
+// list of summary metrics fields to include. Empty list will default to skip
+// all summary metrics fields. Example, if the response should include
+// TaskQuantileMetrics, the request should have task_quantile_metrics in
+// summary_metrics_mask field
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) SummaryMetricsMask(summaryMetricsMask string) *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("summaryMetricsMask", summaryMetricsMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessStageAttempt")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessStageAttempt", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.accessStageAttempt" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationStageAttemptResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageAttemptCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationStageAttemptResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationStageAttemptResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessStageAttempt", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessStageRddGraph: Obtain RDD operation graph for a Spark Application
+// Stage. Limits the number of clusters returned as part of the graph to 10000.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) AccessStageRddGraph(name string) *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall) StageId(stageId int64) *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessStageRddGraph")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessStageRddGraph", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.accessStageRddGraph" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSparkApplicationStageRddOperationGraphResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsAccessStageRddGraphCall) Do(opts ...googleapi.CallOption) (*AccessSparkApplicationStageRddOperationGraphResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSparkApplicationStageRddOperationGraphResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.accessStageRddGraph", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Search: Obtain high level information and list of Spark Applications
+// corresponding to a batch
+//
+//   - parent: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) Search(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// ApplicationStatus sets the optional parameter "applicationStatus": Search
+// only applications in the chosen state.
+//
+// Possible values:
+//
+//	"APPLICATION_STATUS_UNSPECIFIED"
+//	"APPLICATION_STATUS_RUNNING"
+//	"APPLICATION_STATUS_COMPLETED"
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) ApplicationStatus(applicationStatus string) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.urlParams_.Set("applicationStatus", applicationStatus)
+	return c
+}
+
+// MaxEndTime sets the optional parameter "maxEndTime": Latest end timestamp to
+// list.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) MaxEndTime(maxEndTime string) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.urlParams_.Set("maxEndTime", maxEndTime)
+	return c
+}
+
+// MaxTime sets the optional parameter "maxTime": Latest start timestamp to
+// list.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) MaxTime(maxTime string) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.urlParams_.Set("maxTime", maxTime)
+	return c
+}
+
+// MinEndTime sets the optional parameter "minEndTime": Earliest end timestamp
+// to list.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) MinEndTime(minEndTime string) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.urlParams_.Set("minEndTime", minEndTime)
+	return c
+}
+
+// MinTime sets the optional parameter "minTime": Earliest start timestamp to
+// list.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) MinTime(minTime string) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.urlParams_.Set("minTime", minTime)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of
+// applications to return in each response. The service may return fewer than
+// this. The default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSparkApplications call. Provide this token to retrieve
+// the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/sparkApplications:search")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.search", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.search" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.search", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchCall) Pages(ctx context.Context, f func(*SearchSparkApplicationsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchExecutorStageSummary: Obtain executor summary with respect to a spark
+// stage attempt.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SearchExecutorStageSummary(name string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of executors
+// to return in each response. The service may return fewer than this. The
+// default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous AccessSparkApplicationExecutorsList call. Provide this token
+// to retrieve the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageAttemptId sets the optional parameter "stageAttemptId": Required. Stage
+// Attempt ID
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) StageAttemptId(stageAttemptId int64) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("stageAttemptId", fmt.Sprint(stageAttemptId))
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) StageId(stageId int64) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchExecutorStageSummary")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchExecutorStageSummary", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.searchExecutorStageSummary" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationExecutorStageSummaryResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationExecutorStageSummaryResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationExecutorStageSummaryResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchExecutorStageSummary", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorStageSummaryCall) Pages(ctx context.Context, f func(*SearchSparkApplicationExecutorStageSummaryResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchExecutors: Obtain data corresponding to executors for a Spark
+// Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SearchExecutors(name string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// ExecutorStatus sets the optional parameter "executorStatus": Filter to
+// select whether active/ dead or all executors should be selected.
+//
+// Possible values:
+//
+//	"EXECUTOR_STATUS_UNSPECIFIED"
+//	"EXECUTOR_STATUS_ACTIVE"
+//	"EXECUTOR_STATUS_DEAD"
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) ExecutorStatus(executorStatus string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("executorStatus", executorStatus)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of executors
+// to return in each response. The service may return fewer than this. The
+// default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous AccessSparkApplicationExecutorsList call. Provide this token
+// to retrieve the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchExecutors")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchExecutors", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.searchExecutors" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationExecutorsResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationExecutorsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationExecutorsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchExecutors", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchExecutorsCall) Pages(ctx context.Context, f func(*SearchSparkApplicationExecutorsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchJobsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchJobs: Obtain list of spark jobs corresponding to a Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SearchJobs(name string) *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchJobsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// JobStatus sets the optional parameter "jobStatus": List only jobs in the
+// specific state.
+//
+// Possible values:
+//
+//	"JOB_EXECUTION_STATUS_UNSPECIFIED"
+//	"JOB_EXECUTION_STATUS_RUNNING"
+//	"JOB_EXECUTION_STATUS_SUCCEEDED"
+//	"JOB_EXECUTION_STATUS_FAILED"
+//	"JOB_EXECUTION_STATUS_UNKNOWN"
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) JobStatus(jobStatus string) *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("jobStatus", jobStatus)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of jobs to
+// return in each response. The service may return fewer than this. The default
+// page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSparkApplicationJobs call. Provide this token to
+// retrieve the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchJobs")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchJobs", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.searchJobs" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationJobsResponse.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationJobsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationJobsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchJobs", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchJobsCall) Pages(ctx context.Context, f func(*SearchSparkApplicationJobsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchNativeSqlQueries: Obtain data corresponding to Native SQL Queries for
+// a Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SearchNativeSqlQueries(name string) *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of queries
+// to return in each response. The service may return fewer than this. The
+// default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSparkApplicationNativeSqlQueries call. Provide this
+// token to retrieve the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchNativeSqlQueries")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchNativeSqlQueries", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.searchNativeSqlQueries" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationNativeSqlQueriesResponse.ServerResponse.Header or (if
+// a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationNativeSqlQueriesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationNativeSqlQueriesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchNativeSqlQueries", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesCall) Pages(ctx context.Context, f func(*SearchSparkApplicationNativeSqlQueriesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchSqlQueries: Obtain data corresponding to SQL Queries for a Spark
+// Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SearchSqlQueries(name string) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Details sets the optional parameter "details": Lists/ hides details of Spark
+// plan nodes. True is set to list and false to hide.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) Details(details bool) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("details", fmt.Sprint(details))
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of queries
+// to return in each response. The service may return fewer than this. The
+// default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSparkApplicationSqlQueries call. Provide this token to
+// retrieve the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// PlanDescription sets the optional parameter "planDescription": Enables/
+// disables physical plan description on demand
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) PlanDescription(planDescription bool) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("planDescription", fmt.Sprint(planDescription))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchSqlQueries")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchSqlQueries", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.searchSqlQueries" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationSqlQueriesResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationSqlQueriesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationSqlQueriesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchSqlQueries", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchSqlQueriesCall) Pages(ctx context.Context, f func(*SearchSparkApplicationSqlQueriesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchStageAttemptTasks: Obtain data corresponding to tasks for a spark
+// stage attempt for a Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SearchStageAttemptTasks(name string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of tasks to
+// return in each response. The service may return fewer than this. The default
+// page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous ListSparkApplicationStageAttemptTasks call. Provide this
+// token to retrieve the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// SortRuntime sets the optional parameter "sortRuntime": Sort the tasks by
+// runtime.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) SortRuntime(sortRuntime bool) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("sortRuntime", fmt.Sprint(sortRuntime))
+	return c
+}
+
+// StageAttemptId sets the optional parameter "stageAttemptId": Stage Attempt
+// ID
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) StageAttemptId(stageAttemptId int64) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("stageAttemptId", fmt.Sprint(stageAttemptId))
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Stage ID
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) StageId(stageId int64) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// TaskStatus sets the optional parameter "taskStatus": List only tasks in the
+// state.
+//
+// Possible values:
+//
+//	"TASK_STATUS_UNSPECIFIED"
+//	"TASK_STATUS_RUNNING"
+//	"TASK_STATUS_SUCCESS"
+//	"TASK_STATUS_FAILED"
+//	"TASK_STATUS_KILLED"
+//	"TASK_STATUS_PENDING"
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) TaskStatus(taskStatus string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("taskStatus", taskStatus)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchStageAttemptTasks")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchStageAttemptTasks", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.searchStageAttemptTasks" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationStageAttemptTasksResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationStageAttemptTasksResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationStageAttemptTasksResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchStageAttemptTasks", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptTasksCall) Pages(ctx context.Context, f func(*SearchSparkApplicationStageAttemptTasksResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchStageAttempts: Obtain data corresponding to a spark stage attempts for
+// a Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SearchStageAttempts(name string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of stage
+// attempts (paging based on stage_attempt_id) to return in each response. The
+// service may return fewer than this. The default page size is 10; the maximum
+// page size is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSparkApplicationStageAttempts call. Provide this token
+// to retrieve the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID for which
+// attempts are to be fetched
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) StageId(stageId int64) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// SummaryMetricsMask sets the optional parameter "summaryMetricsMask": The
+// list of summary metrics fields to include. Empty list will default to skip
+// all summary metrics fields. Example, if the response should include
+// TaskQuantileMetrics, the request should have task_quantile_metrics in
+// summary_metrics_mask field
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) SummaryMetricsMask(summaryMetricsMask string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("summaryMetricsMask", summaryMetricsMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchStageAttempts")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchStageAttempts", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.searchStageAttempts" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationStageAttemptsResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationStageAttemptsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationStageAttemptsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchStageAttempts", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStageAttemptsCall) Pages(ctx context.Context, f func(*SearchSparkApplicationStageAttemptsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSearchStagesCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchStages: Obtain data corresponding to stages for a Spark Application.
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SearchStages(name string) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSearchStagesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of stages
+// (paging based on stage_id) to return in each response. The service may
+// return fewer than this. The default page size is 10; the maximum page size
+// is 100.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) PageSize(pageSize int64) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous FetchSparkApplicationStagesList call. Provide this token to
+// retrieve the subsequent page.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) PageToken(pageToken string) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageStatus sets the optional parameter "stageStatus": List only stages in
+// the given state.
+//
+// Possible values:
+//
+//	"STAGE_STATUS_UNSPECIFIED"
+//	"STAGE_STATUS_ACTIVE"
+//	"STAGE_STATUS_COMPLETE"
+//	"STAGE_STATUS_FAILED"
+//	"STAGE_STATUS_PENDING"
+//	"STAGE_STATUS_SKIPPED"
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) StageStatus(stageStatus string) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("stageStatus", stageStatus)
+	return c
+}
+
+// SummaryMetricsMask sets the optional parameter "summaryMetricsMask": The
+// list of summary metrics fields to include. Empty list will default to skip
+// all summary metrics fields. Example, if the response should include
+// TaskQuantileMetrics, the request should have task_quantile_metrics in
+// summary_metrics_mask field
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) SummaryMetricsMask(summaryMetricsMask string) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("summaryMetricsMask", summaryMetricsMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchStages")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchStages", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.searchStages" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSparkApplicationStagesResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) Do(opts ...googleapi.CallOption) (*SearchSparkApplicationStagesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSparkApplicationStagesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.searchStages", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSearchStagesCall) Pages(ctx context.Context, f func(*SearchSparkApplicationStagesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SummarizeExecutors: Obtain summary of Executor Summary for a Spark
+// Application
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SummarizeExecutors(name string) *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:summarizeExecutors")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.summarizeExecutors", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.summarizeExecutors" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SummarizeSparkApplicationExecutorsResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeExecutorsCall) Do(opts ...googleapi.CallOption) (*SummarizeSparkApplicationExecutorsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SummarizeSparkApplicationExecutorsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.summarizeExecutors", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SummarizeJobs: Obtain summary of Jobs for a Spark Application
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SummarizeJobs(name string) *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:summarizeJobs")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.summarizeJobs", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.summarizeJobs" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SummarizeSparkApplicationJobsResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeJobsCall) Do(opts ...googleapi.CallOption) (*SummarizeSparkApplicationJobsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SummarizeSparkApplicationJobsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.summarizeJobs", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SummarizeStageAttemptTasks: Obtain summary of Tasks for a Spark Application
+// Stage Attempt
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SummarizeStageAttemptTasks(name string) *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageAttemptId sets the optional parameter "stageAttemptId": Required. Stage
+// Attempt ID
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) StageAttemptId(stageAttemptId int64) *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.urlParams_.Set("stageAttemptId", fmt.Sprint(stageAttemptId))
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) StageId(stageId int64) *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:summarizeStageAttemptTasks")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.summarizeStageAttemptTasks", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.summarizeStageAttemptTasks" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SummarizeSparkApplicationStageAttemptTasksResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStageAttemptTasksCall) Do(opts ...googleapi.CallOption) (*SummarizeSparkApplicationStageAttemptTasksResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SummarizeSparkApplicationStageAttemptTasksResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.summarizeStageAttemptTasks", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SummarizeStages: Obtain summary of Stages for a Spark Application
+//
+//   - name: The fully qualified name of the batch to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) SummarizeStages(name string) *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Batch)
+// resource reference.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall) Parent(parent string) *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall) IfNoneMatch(entityTag string) *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:summarizeStages")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.summarizeStages", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.summarizeStages" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SummarizeSparkApplicationStagesResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsSummarizeStagesCall) Do(opts ...googleapi.CallOption) (*SummarizeSparkApplicationStagesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SummarizeSparkApplicationStagesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.summarizeStages", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsBatchesSparkApplicationsWriteCall struct {
+	s                                   *Service
+	name                                string
+	writesparkapplicationcontextrequest *WriteSparkApplicationContextRequest
+	urlParams_                          gensupport.URLParams
+	ctx_                                context.Context
+	header_                             http.Header
+}
+
+// Write: Write wrapper objects from dataplane to spanner
+//
+//   - name: The fully qualified name of the spark application to write data
+//     about in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/sparkApplic
+//     ations/APPLICATION_ID".
+func (r *ProjectsLocationsBatchesSparkApplicationsService) Write(name string, writesparkapplicationcontextrequest *WriteSparkApplicationContextRequest) *ProjectsLocationsBatchesSparkApplicationsWriteCall {
+	c := &ProjectsLocationsBatchesSparkApplicationsWriteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.writesparkapplicationcontextrequest = writesparkapplicationcontextrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsBatchesSparkApplicationsWriteCall) Fields(s ...googleapi.Field) *ProjectsLocationsBatchesSparkApplicationsWriteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsBatchesSparkApplicationsWriteCall) Context(ctx context.Context) *ProjectsLocationsBatchesSparkApplicationsWriteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsBatchesSparkApplicationsWriteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsBatchesSparkApplicationsWriteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.writesparkapplicationcontextrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:write")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.write", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.batches.sparkApplications.write" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *WriteSparkApplicationContextResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsBatchesSparkApplicationsWriteCall) Do(opts ...googleapi.CallOption) (*WriteSparkApplicationContextResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &WriteSparkApplicationContextResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.batches.sparkApplications.write", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsLocationsOperationsCancelCall struct {
@@ -7556,12 +14529,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7569,6 +14541,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7603,9 +14576,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7654,12 +14629,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7667,6 +14641,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7701,9 +14676,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7763,12 +14740,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7776,6 +14752,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7810,9 +14787,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7891,12 +14870,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7904,6 +14882,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7939,9 +14918,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8010,8 +14991,7 @@ func (c *ProjectsLocationsSessionTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsSessionTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sessiontemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sessiontemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -8027,6 +15007,7 @@ func (c *ProjectsLocationsSessionTemplatesCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8062,9 +15043,11 @@ func (c *ProjectsLocationsSessionTemplatesCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8110,12 +15093,11 @@ func (c *ProjectsLocationsSessionTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsSessionTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8123,6 +15105,7 @@ func (c *ProjectsLocationsSessionTemplatesDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8157,9 +15140,11 @@ func (c *ProjectsLocationsSessionTemplatesDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8217,12 +15202,11 @@ func (c *ProjectsLocationsSessionTemplatesGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8230,6 +15214,7 @@ func (c *ProjectsLocationsSessionTemplatesGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8265,9 +15250,11 @@ func (c *ProjectsLocationsSessionTemplatesGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8349,12 +15336,11 @@ func (c *ProjectsLocationsSessionTemplatesListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/sessionTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8362,6 +15348,7 @@ func (c *ProjectsLocationsSessionTemplatesListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8397,9 +15384,11 @@ func (c *ProjectsLocationsSessionTemplatesListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8468,8 +15457,7 @@ func (c *ProjectsLocationsSessionTemplatesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsSessionTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.sessiontemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.sessiontemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -8485,6 +15473,7 @@ func (c *ProjectsLocationsSessionTemplatesPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8520,9 +15509,11 @@ func (c *ProjectsLocationsSessionTemplatesPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessionTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8591,8 +15582,7 @@ func (c *ProjectsLocationsSessionsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsSessionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.session)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.session)
 	if err != nil {
 		return nil, err
 	}
@@ -8608,6 +15598,7 @@ func (c *ProjectsLocationsSessionsCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8642,9 +15633,11 @@ func (c *ProjectsLocationsSessionsCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8704,12 +15697,11 @@ func (c *ProjectsLocationsSessionsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsSessionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8717,6 +15709,7 @@ func (c *ProjectsLocationsSessionsDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8751,9 +15744,11 @@ func (c *ProjectsLocationsSessionsDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8811,12 +15806,11 @@ func (c *ProjectsLocationsSessionsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8824,6 +15818,7 @@ func (c *ProjectsLocationsSessionsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8858,9 +15853,11 @@ func (c *ProjectsLocationsSessionsGetCall) Do(opts ...googleapi.CallOption) (*Se
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8951,12 +15948,11 @@ func (c *ProjectsLocationsSessionsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/sessions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8964,6 +15960,7 @@ func (c *ProjectsLocationsSessionsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8999,9 +15996,11 @@ func (c *ProjectsLocationsSessionsListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9070,8 +16069,7 @@ func (c *ProjectsLocationsSessionsTerminateCall) Header() http.Header {
 
 func (c *ProjectsLocationsSessionsTerminateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.terminatesessionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.terminatesessionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9087,6 +16085,7 @@ func (c *ProjectsLocationsSessionsTerminateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.terminate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9121,9 +16120,3343 @@ func (c *ProjectsLocationsSessionsTerminateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.terminate", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Access: Obtain high level information corresponding to a single Spark
+// Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) Access(name string) *ProjectsLocationsSessionsSparkApplicationsAccessCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:access")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.access", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.access" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.access", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessEnvironmentInfo: Obtain environment details for a Spark Application
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) AccessEnvironmentInfo(name string) *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessEnvironmentInfo")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessEnvironmentInfo", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.accessEnvironmentInfo" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationEnvironmentInfoResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessEnvironmentInfoCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationEnvironmentInfoResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationEnvironmentInfoResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessEnvironmentInfo", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessJobCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessJob: Obtain data corresponding to a spark job for a Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) AccessJob(name string) *ProjectsLocationsSessionsSparkApplicationsAccessJobCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessJobCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// JobId sets the optional parameter "jobId": Required. Job ID to fetch data
+// for.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessJobCall) JobId(jobId int64) *ProjectsLocationsSessionsSparkApplicationsAccessJobCall {
+	c.urlParams_.Set("jobId", fmt.Sprint(jobId))
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessJobCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessJobCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessJobCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessJobCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessJobCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessJobCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessJobCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessJobCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessJobCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessJobCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessJob")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessJob", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.accessJob" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationJobResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessJobCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationJobResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationJobResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessJob", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessNativeBuildInfo: Obtain data corresponding to Native Build Information
+// for a Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) AccessNativeBuildInfo(name string) *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessNativeBuildInfo")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessNativeBuildInfo", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.accessNativeBuildInfo" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationNativeBuildInfoResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationNativeBuildInfoResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationNativeBuildInfoResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessNativeBuildInfo", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessNativeSqlQuery: Obtain data corresponding to a particular Native SQL
+// Query for a Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) AccessNativeSqlQuery(name string) *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// ExecutionId sets the optional parameter "executionId": Required. Execution
+// ID
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall) ExecutionId(executionId int64) *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall {
+	c.urlParams_.Set("executionId", fmt.Sprint(executionId))
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessNativeSqlQuery")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessNativeSqlQuery", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.accessNativeSqlQuery" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationNativeSqlQueryResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationNativeSqlQueryResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationNativeSqlQueryResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessNativeSqlQuery", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessSqlPlan: Obtain Spark Plan Graph for a Spark Application SQL
+// execution. Limits the number of clusters returned as part of the graph to
+// 10000.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) AccessSqlPlan(name string) *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// ExecutionId sets the optional parameter "executionId": Required. Execution
+// ID
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall) ExecutionId(executionId int64) *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall {
+	c.urlParams_.Set("executionId", fmt.Sprint(executionId))
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessSqlPlan")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessSqlPlan", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.accessSqlPlan" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationSqlSparkPlanGraphResponse.ServerResponse.Header
+//
+//	or (if a response was returned at all) in error.(*googleapi.Error).Header.
+//
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlPlanCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationSqlSparkPlanGraphResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationSqlSparkPlanGraphResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessSqlPlan", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessSqlQuery: Obtain data corresponding to a particular SQL Query for a
+// Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) AccessSqlQuery(name string) *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Details sets the optional parameter "details": Lists/ hides details of Spark
+// plan nodes. True is set to list and false to hide.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) Details(details bool) *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("details", fmt.Sprint(details))
+	return c
+}
+
+// ExecutionId sets the optional parameter "executionId": Required. Execution
+// ID
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) ExecutionId(executionId int64) *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("executionId", fmt.Sprint(executionId))
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// PlanDescription sets the optional parameter "planDescription": Enables/
+// disables physical plan description on demand
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) PlanDescription(planDescription bool) *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("planDescription", fmt.Sprint(planDescription))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessSqlQuery")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessSqlQuery", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.accessSqlQuery" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationSqlQueryResponse.ServerResponse.Header or (if
+// a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessSqlQueryCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationSqlQueryResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationSqlQueryResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessSqlQuery", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessStageAttempt: Obtain data corresponding to a spark stage attempt for a
+// Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) AccessStageAttempt(name string) *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageAttemptId sets the optional parameter "stageAttemptId": Required. Stage
+// Attempt ID
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) StageAttemptId(stageAttemptId int64) *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("stageAttemptId", fmt.Sprint(stageAttemptId))
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) StageId(stageId int64) *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// SummaryMetricsMask sets the optional parameter "summaryMetricsMask": The
+// list of summary metrics fields to include. Empty list will default to skip
+// all summary metrics fields. Example, if the response should include
+// TaskQuantileMetrics, the request should have task_quantile_metrics in
+// summary_metrics_mask field
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) SummaryMetricsMask(summaryMetricsMask string) *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("summaryMetricsMask", summaryMetricsMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessStageAttempt")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessStageAttempt", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.accessStageAttempt" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationStageAttemptResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageAttemptCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationStageAttemptResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationStageAttemptResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessStageAttempt", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// AccessStageRddGraph: Obtain RDD operation graph for a Spark Application
+// Stage. Limits the number of clusters returned as part of the graph to 10000.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) AccessStageRddGraph(name string) *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall) StageId(stageId int64) *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:accessStageRddGraph")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessStageRddGraph", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.accessStageRddGraph" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *AccessSessionSparkApplicationStageRddOperationGraphResponse.ServerResponse.H
+// eader or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsAccessStageRddGraphCall) Do(opts ...googleapi.CallOption) (*AccessSessionSparkApplicationStageRddOperationGraphResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &AccessSessionSparkApplicationStageRddOperationGraphResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.accessStageRddGraph", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Search: Obtain high level information and list of Spark Applications
+// corresponding to a batch
+//
+//   - parent: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) Search(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// ApplicationStatus sets the optional parameter "applicationStatus": Search
+// only applications in the chosen state.
+//
+// Possible values:
+//
+//	"APPLICATION_STATUS_UNSPECIFIED"
+//	"APPLICATION_STATUS_RUNNING"
+//	"APPLICATION_STATUS_COMPLETED"
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) ApplicationStatus(applicationStatus string) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.urlParams_.Set("applicationStatus", applicationStatus)
+	return c
+}
+
+// MaxEndTime sets the optional parameter "maxEndTime": Latest end timestamp to
+// list.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) MaxEndTime(maxEndTime string) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.urlParams_.Set("maxEndTime", maxEndTime)
+	return c
+}
+
+// MaxTime sets the optional parameter "maxTime": Latest start timestamp to
+// list.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) MaxTime(maxTime string) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.urlParams_.Set("maxTime", maxTime)
+	return c
+}
+
+// MinEndTime sets the optional parameter "minEndTime": Earliest end timestamp
+// to list.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) MinEndTime(minEndTime string) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.urlParams_.Set("minEndTime", minEndTime)
+	return c
+}
+
+// MinTime sets the optional parameter "minTime": Earliest start timestamp to
+// list.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) MinTime(minTime string) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.urlParams_.Set("minTime", minTime)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of
+// applications to return in each response. The service may return fewer than
+// this. The default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplications call. Provide this token to
+// retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/sparkApplications:search")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.search", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.search" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationsResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.search", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchExecutorStageSummary: Obtain executor summary with respect to a spark
+// stage attempt.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SearchExecutorStageSummary(name string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of executors
+// to return in each response. The service may return fewer than this. The
+// default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplicationExecutorStageSummary call.
+// Provide this token to retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageAttemptId sets the optional parameter "stageAttemptId": Required. Stage
+// Attempt ID
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) StageAttemptId(stageAttemptId int64) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("stageAttemptId", fmt.Sprint(stageAttemptId))
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) StageId(stageId int64) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchExecutorStageSummary")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchExecutorStageSummary", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.searchExecutorStageSummary" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationExecutorStageSummaryResponse.ServerResponse.Hea
+// der or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationExecutorStageSummaryResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationExecutorStageSummaryResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchExecutorStageSummary", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorStageSummaryCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationExecutorStageSummaryResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchExecutors: Obtain data corresponding to executors for a Spark
+// Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SearchExecutors(name string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// ExecutorStatus sets the optional parameter "executorStatus": Filter to
+// select whether active/ dead or all executors should be selected.
+//
+// Possible values:
+//
+//	"EXECUTOR_STATUS_UNSPECIFIED"
+//	"EXECUTOR_STATUS_ACTIVE"
+//	"EXECUTOR_STATUS_DEAD"
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) ExecutorStatus(executorStatus string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("executorStatus", executorStatus)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of executors
+// to return in each response. The service may return fewer than this. The
+// default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplicationExecutors call. Provide this
+// token to retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchExecutors")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchExecutors", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.searchExecutors" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationExecutorsResponse.ServerResponse.Header or (if
+// a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationExecutorsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationExecutorsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchExecutors", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchExecutorsCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationExecutorsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchJobsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchJobs: Obtain list of spark jobs corresponding to a Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SearchJobs(name string) *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchJobsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// JobStatus sets the optional parameter "jobStatus": List only jobs in the
+// specific state.
+//
+// Possible values:
+//
+//	"JOB_EXECUTION_STATUS_UNSPECIFIED"
+//	"JOB_EXECUTION_STATUS_RUNNING"
+//	"JOB_EXECUTION_STATUS_SUCCEEDED"
+//	"JOB_EXECUTION_STATUS_FAILED"
+//	"JOB_EXECUTION_STATUS_UNKNOWN"
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) JobStatus(jobStatus string) *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("jobStatus", jobStatus)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of jobs to
+// return in each response. The service may return fewer than this. The default
+// page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplicationJobs call. Provide this token
+// to retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchJobs")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchJobs", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.searchJobs" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationJobsResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationJobsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationJobsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchJobs", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchJobsCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationJobsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchNativeSqlQueries: Obtain data corresponding to Native SQL Queries for
+// a Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SearchNativeSqlQueries(name string) *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of queries
+// to return in each response. The service may return fewer than this. The
+// default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplicationSqlQueries call. Provide this
+// token to retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchNativeSqlQueries")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchNativeSqlQueries", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.searchNativeSqlQueries" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationNativeSqlQueriesResponse.ServerResponse.Header
+// or (if a response was returned at all) in error.(*googleapi.Error).Header.
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationNativeSqlQueriesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationNativeSqlQueriesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchNativeSqlQueries", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationNativeSqlQueriesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchSqlQueries: Obtain data corresponding to SQL Queries for a Spark
+// Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SearchSqlQueries(name string) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Details sets the optional parameter "details": Lists/ hides details of Spark
+// plan nodes. True is set to list and false to hide.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) Details(details bool) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("details", fmt.Sprint(details))
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of queries
+// to return in each response. The service may return fewer than this. The
+// default page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplicationSqlQueries call. Provide this
+// token to retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// PlanDescription sets the optional parameter "planDescription": Enables/
+// disables physical plan description on demand
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) PlanDescription(planDescription bool) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("planDescription", fmt.Sprint(planDescription))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchSqlQueries")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchSqlQueries", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.searchSqlQueries" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationSqlQueriesResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationSqlQueriesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationSqlQueriesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchSqlQueries", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationSqlQueriesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchStageAttemptTasks: Obtain data corresponding to tasks for a spark
+// stage attempt for a Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SearchStageAttemptTasks(name string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of tasks to
+// return in each response. The service may return fewer than this. The default
+// page size is 10; the maximum page size is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplicationStageAttemptTasks call. Provide
+// this token to retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// SortRuntime sets the optional parameter "sortRuntime": Sort the tasks by
+// runtime.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) SortRuntime(sortRuntime bool) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("sortRuntime", fmt.Sprint(sortRuntime))
+	return c
+}
+
+// StageAttemptId sets the optional parameter "stageAttemptId": Stage Attempt
+// ID
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) StageAttemptId(stageAttemptId int64) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("stageAttemptId", fmt.Sprint(stageAttemptId))
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Stage ID
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) StageId(stageId int64) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// TaskStatus sets the optional parameter "taskStatus": List only tasks in the
+// state.
+//
+// Possible values:
+//
+//	"TASK_STATUS_UNSPECIFIED"
+//	"TASK_STATUS_RUNNING"
+//	"TASK_STATUS_SUCCESS"
+//	"TASK_STATUS_FAILED"
+//	"TASK_STATUS_KILLED"
+//	"TASK_STATUS_PENDING"
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) TaskStatus(taskStatus string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("taskStatus", taskStatus)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchStageAttemptTasks")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchStageAttemptTasks", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.searchStageAttemptTasks" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationStageAttemptTasksResponse.ServerResponse.Header
+//
+//	or (if a response was returned at all) in error.(*googleapi.Error).Header.
+//
+// Use googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationStageAttemptTasksResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationStageAttemptTasksResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchStageAttemptTasks", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationStageAttemptTasksResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchStageAttempts: Obtain data corresponding to a spark stage attempts for
+// a Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SearchStageAttempts(name string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of stage
+// attempts (paging based on stage_attempt_id) to return in each response. The
+// service may return fewer than this. The default page size is 10; the maximum
+// page size is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplicationStageAttempts call. Provide
+// this token to retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID for which
+// attempts are to be fetched
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) StageId(stageId int64) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// SummaryMetricsMask sets the optional parameter "summaryMetricsMask": The
+// list of summary metrics fields to include. Empty list will default to skip
+// all summary metrics fields. Example, if the response should include
+// TaskQuantileMetrics, the request should have task_quantile_metrics in
+// summary_metrics_mask field
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) SummaryMetricsMask(summaryMetricsMask string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("summaryMetricsMask", summaryMetricsMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchStageAttempts")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchStageAttempts", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.searchStageAttempts" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationStageAttemptsResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationStageAttemptsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationStageAttemptsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchStageAttempts", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStageAttemptsCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationStageAttemptsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSearchStagesCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SearchStages: Obtain data corresponding to stages for a Spark Application.
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SearchStages(name string) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSearchStagesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Maximum number of stages
+// (paging based on stage_id) to return in each response. The service may
+// return fewer than this. The default page size is 10; the maximum page size
+// is 100.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) PageSize(pageSize int64) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": A page token received
+// from a previous SearchSessionSparkApplicationStages call. Provide this token
+// to retrieve the subsequent page.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) PageToken(pageToken string) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageStatus sets the optional parameter "stageStatus": List only stages in
+// the given state.
+//
+// Possible values:
+//
+//	"STAGE_STATUS_UNSPECIFIED"
+//	"STAGE_STATUS_ACTIVE"
+//	"STAGE_STATUS_COMPLETE"
+//	"STAGE_STATUS_FAILED"
+//	"STAGE_STATUS_PENDING"
+//	"STAGE_STATUS_SKIPPED"
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) StageStatus(stageStatus string) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("stageStatus", stageStatus)
+	return c
+}
+
+// SummaryMetricsMask sets the optional parameter "summaryMetricsMask": The
+// list of summary metrics fields to include. Empty list will default to skip
+// all summary metrics fields. Example, if the response should include
+// TaskQuantileMetrics, the request should have task_quantile_metrics in
+// summary_metrics_mask field
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) SummaryMetricsMask(summaryMetricsMask string) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("summaryMetricsMask", summaryMetricsMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:searchStages")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchStages", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.searchStages" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SearchSessionSparkApplicationStagesResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) Do(opts ...googleapi.CallOption) (*SearchSessionSparkApplicationStagesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SearchSessionSparkApplicationStagesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.searchStages", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSearchStagesCall) Pages(ctx context.Context, f func(*SearchSessionSparkApplicationStagesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SummarizeExecutors: Obtain summary of Executor Summary for a Spark
+// Application
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SummarizeExecutors(name string) *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:summarizeExecutors")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.summarizeExecutors", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.summarizeExecutors" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SummarizeSessionSparkApplicationExecutorsResponse.ServerResponse.Header or
+// (if a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsCall) Do(opts ...googleapi.CallOption) (*SummarizeSessionSparkApplicationExecutorsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SummarizeSessionSparkApplicationExecutorsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.summarizeExecutors", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SummarizeJobs: Obtain summary of Jobs for a Spark Application
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SummarizeJobs(name string) *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:summarizeJobs")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.summarizeJobs", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.summarizeJobs" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SummarizeSessionSparkApplicationJobsResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeJobsCall) Do(opts ...googleapi.CallOption) (*SummarizeSessionSparkApplicationJobsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SummarizeSessionSparkApplicationJobsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.summarizeJobs", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SummarizeStageAttemptTasks: Obtain summary of Tasks for a Spark Application
+// Stage Attempt
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SummarizeStageAttemptTasks(name string) *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// StageAttemptId sets the optional parameter "stageAttemptId": Required. Stage
+// Attempt ID
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) StageAttemptId(stageAttemptId int64) *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.urlParams_.Set("stageAttemptId", fmt.Sprint(stageAttemptId))
+	return c
+}
+
+// StageId sets the optional parameter "stageId": Required. Stage ID
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) StageId(stageId int64) *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.urlParams_.Set("stageId", fmt.Sprint(stageId))
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:summarizeStageAttemptTasks")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.summarizeStageAttemptTasks", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.summarizeStageAttemptTasks" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SummarizeSessionSparkApplicationStageAttemptTasksResponse.ServerResponse.Hea
+// der or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksCall) Do(opts ...googleapi.CallOption) (*SummarizeSessionSparkApplicationStageAttemptTasksResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SummarizeSessionSparkApplicationStageAttemptTasksResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.summarizeStageAttemptTasks", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// SummarizeStages: Obtain summary of Stages for a Spark Application
+//
+//   - name: The fully qualified name of the session to retrieve in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) SummarizeStages(name string) *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Parent sets the optional parameter "parent": Required. Parent (Session)
+// resource reference.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall) Parent(parent string) *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall {
+	c.urlParams_.Set("parent", parent)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall) IfNoneMatch(entityTag string) *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:summarizeStages")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.summarizeStages", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.summarizeStages" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SummarizeSessionSparkApplicationStagesResponse.ServerResponse.Header or (if
+// a response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsSummarizeStagesCall) Do(opts ...googleapi.CallOption) (*SummarizeSessionSparkApplicationStagesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SummarizeSessionSparkApplicationStagesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.summarizeStages", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSessionsSparkApplicationsWriteCall struct {
+	s                                          *Service
+	name                                       string
+	writesessionsparkapplicationcontextrequest *WriteSessionSparkApplicationContextRequest
+	urlParams_                                 gensupport.URLParams
+	ctx_                                       context.Context
+	header_                                    http.Header
+}
+
+// Write: Write wrapper objects from dataplane to spanner
+//
+//   - name: The fully qualified name of the spark application to write data
+//     about in the format
+//     "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_ID/sparkApp
+//     lications/APPLICATION_ID".
+func (r *ProjectsLocationsSessionsSparkApplicationsService) Write(name string, writesessionsparkapplicationcontextrequest *WriteSessionSparkApplicationContextRequest) *ProjectsLocationsSessionsSparkApplicationsWriteCall {
+	c := &ProjectsLocationsSessionsSparkApplicationsWriteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.writesessionsparkapplicationcontextrequest = writesessionsparkapplicationcontextrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSessionsSparkApplicationsWriteCall) Fields(s ...googleapi.Field) *ProjectsLocationsSessionsSparkApplicationsWriteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSessionsSparkApplicationsWriteCall) Context(ctx context.Context) *ProjectsLocationsSessionsSparkApplicationsWriteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSessionsSparkApplicationsWriteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSessionsSparkApplicationsWriteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.writesessionsparkapplicationcontextrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:write")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.write", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataproc.projects.locations.sessions.sparkApplications.write" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *WriteSessionSparkApplicationContextResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSessionsSparkApplicationsWriteCall) Do(opts ...googleapi.CallOption) (*WriteSessionSparkApplicationContextResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &WriteSessionSparkApplicationContextResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.sessions.sparkApplications.write", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9177,8 +19510,7 @@ func (c *ProjectsLocationsWorkflowTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsWorkflowTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -9194,6 +19526,7 @@ func (c *ProjectsLocationsWorkflowTemplatesCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9229,9 +19562,11 @@ func (c *ProjectsLocationsWorkflowTemplatesCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9293,12 +19628,11 @@ func (c *ProjectsLocationsWorkflowTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsWorkflowTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9306,6 +19640,7 @@ func (c *ProjectsLocationsWorkflowTemplatesDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9340,9 +19675,11 @@ func (c *ProjectsLocationsWorkflowTemplatesDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9416,12 +19753,11 @@ func (c *ProjectsLocationsWorkflowTemplatesGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9429,6 +19765,7 @@ func (c *ProjectsLocationsWorkflowTemplatesGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9464,9 +19801,11 @@ func (c *ProjectsLocationsWorkflowTemplatesGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9517,8 +19856,7 @@ func (c *ProjectsLocationsWorkflowTemplatesGetIamPolicyCall) Header() http.Heade
 
 func (c *ProjectsLocationsWorkflowTemplatesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9534,6 +19872,7 @@ func (c *ProjectsLocationsWorkflowTemplatesGetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9568,9 +19907,11 @@ func (c *ProjectsLocationsWorkflowTemplatesGetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9634,8 +19975,7 @@ func (c *ProjectsLocationsWorkflowTemplatesInstantiateCall) Header() http.Header
 
 func (c *ProjectsLocationsWorkflowTemplatesInstantiateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instantiateworkflowtemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.instantiateworkflowtemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9651,6 +19991,7 @@ func (c *ProjectsLocationsWorkflowTemplatesInstantiateCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.instantiate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9685,9 +20026,11 @@ func (c *ProjectsLocationsWorkflowTemplatesInstantiateCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.instantiate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9765,8 +20108,7 @@ func (c *ProjectsLocationsWorkflowTemplatesInstantiateInlineCall) Header() http.
 
 func (c *ProjectsLocationsWorkflowTemplatesInstantiateInlineCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -9782,6 +20124,7 @@ func (c *ProjectsLocationsWorkflowTemplatesInstantiateInlineCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.instantiateInline", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9816,9 +20159,11 @@ func (c *ProjectsLocationsWorkflowTemplatesInstantiateInlineCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.instantiateInline", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9896,12 +20241,11 @@ func (c *ProjectsLocationsWorkflowTemplatesListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/workflowTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9909,6 +20253,7 @@ func (c *ProjectsLocationsWorkflowTemplatesListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9944,9 +20289,11 @@ func (c *ProjectsLocationsWorkflowTemplatesListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10019,8 +20366,7 @@ func (c *ProjectsLocationsWorkflowTemplatesSetIamPolicyCall) Header() http.Heade
 
 func (c *ProjectsLocationsWorkflowTemplatesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10036,6 +20382,7 @@ func (c *ProjectsLocationsWorkflowTemplatesSetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10070,9 +20417,11 @@ func (c *ProjectsLocationsWorkflowTemplatesSetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10127,8 +20476,7 @@ func (c *ProjectsLocationsWorkflowTemplatesTestIamPermissionsCall) Header() http
 
 func (c *ProjectsLocationsWorkflowTemplatesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10144,6 +20492,7 @@ func (c *ProjectsLocationsWorkflowTemplatesTestIamPermissionsCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10179,9 +20528,11 @@ func (c *ProjectsLocationsWorkflowTemplatesTestIamPermissionsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10237,8 +20588,7 @@ func (c *ProjectsLocationsWorkflowTemplatesUpdateCall) Header() http.Header {
 
 func (c *ProjectsLocationsWorkflowTemplatesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -10254,6 +20604,7 @@ func (c *ProjectsLocationsWorkflowTemplatesUpdateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10289,9 +20640,11 @@ func (c *ProjectsLocationsWorkflowTemplatesUpdateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.locations.workflowTemplates.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10345,8 +20698,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesCreateCall) Header() http.Header {
 
 func (c *ProjectsRegionsAutoscalingPoliciesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.autoscalingpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.autoscalingpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -10362,6 +20714,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10397,9 +20750,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10453,12 +20808,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesDeleteCall) Header() http.Header {
 
 func (c *ProjectsRegionsAutoscalingPoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10466,6 +20820,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10500,9 +20855,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10567,12 +20924,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10580,6 +20936,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10615,9 +20972,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10668,8 +21027,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesGetIamPolicyCall) Header() http.Heade
 
 func (c *ProjectsRegionsAutoscalingPoliciesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10685,6 +21043,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesGetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10719,9 +21078,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesGetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10800,12 +21161,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/autoscalingPolicies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10813,6 +21173,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10848,9 +21209,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10923,8 +21286,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesSetIamPolicyCall) Header() http.Heade
 
 func (c *ProjectsRegionsAutoscalingPoliciesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10940,6 +21302,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesSetIamPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10974,9 +21337,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesSetIamPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11031,8 +21396,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesTestIamPermissionsCall) Header() http
 
 func (c *ProjectsRegionsAutoscalingPoliciesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11048,6 +21412,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesTestIamPermissionsCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11083,9 +21448,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesTestIamPermissionsCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11141,8 +21508,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesUpdateCall) Header() http.Header {
 
 func (c *ProjectsRegionsAutoscalingPoliciesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.autoscalingpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.autoscalingpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -11158,6 +21524,7 @@ func (c *ProjectsRegionsAutoscalingPoliciesUpdateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11193,9 +21560,11 @@ func (c *ProjectsRegionsAutoscalingPoliciesUpdateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.autoscalingPolicies.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11283,8 +21652,7 @@ func (c *ProjectsRegionsClustersCreateCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -11301,6 +21669,7 @@ func (c *ProjectsRegionsClustersCreateCall) doRequest(alt string) (*http.Respons
 		"projectId": c.projectId,
 		"region":    c.region,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11335,9 +21704,11 @@ func (c *ProjectsRegionsClustersCreateCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11427,12 +21798,11 @@ func (c *ProjectsRegionsClustersDeleteCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/regions/{region}/clusters/{clusterName}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11442,6 +21812,7 @@ func (c *ProjectsRegionsClustersDeleteCall) doRequest(alt string) (*http.Respons
 		"region":      c.region,
 		"clusterName": c.clusterName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11476,9 +21847,11 @@ func (c *ProjectsRegionsClustersDeleteCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11538,8 +21911,7 @@ func (c *ProjectsRegionsClustersDiagnoseCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersDiagnoseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.diagnoseclusterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.diagnoseclusterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11557,6 +21929,7 @@ func (c *ProjectsRegionsClustersDiagnoseCall) doRequest(alt string) (*http.Respo
 		"region":      c.region,
 		"clusterName": c.clusterName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.diagnose", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11591,9 +21964,11 @@ func (c *ProjectsRegionsClustersDiagnoseCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.diagnose", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11658,12 +22033,11 @@ func (c *ProjectsRegionsClustersGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/regions/{region}/clusters/{clusterName}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11673,6 +22047,7 @@ func (c *ProjectsRegionsClustersGetCall) doRequest(alt string) (*http.Response, 
 		"region":      c.region,
 		"clusterName": c.clusterName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11707,9 +22082,11 @@ func (c *ProjectsRegionsClustersGetCall) Do(opts ...googleapi.CallOption) (*Clus
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11760,8 +22137,7 @@ func (c *ProjectsRegionsClustersGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11777,6 +22153,7 @@ func (c *ProjectsRegionsClustersGetIamPolicyCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11811,9 +22188,11 @@ func (c *ProjectsRegionsClustersGetIamPolicyCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11870,8 +22249,7 @@ func (c *ProjectsRegionsClustersInjectCredentialsCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersInjectCredentialsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.injectcredentialsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.injectcredentialsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11889,6 +22267,7 @@ func (c *ProjectsRegionsClustersInjectCredentialsCall) doRequest(alt string) (*h
 		"region":  c.region,
 		"cluster": c.cluster,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.injectCredentials", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11923,9 +22302,11 @@ func (c *ProjectsRegionsClustersInjectCredentialsCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.injectCredentials", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12018,12 +22399,11 @@ func (c *ProjectsRegionsClustersListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/regions/{region}/clusters")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12032,6 +22412,7 @@ func (c *ProjectsRegionsClustersListCall) doRequest(alt string) (*http.Response,
 		"projectId": c.projectId,
 		"region":    c.region,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12067,9 +22448,11 @@ func (c *ProjectsRegionsClustersListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12196,8 +22579,7 @@ func (c *ProjectsRegionsClustersPatchCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -12215,6 +22597,7 @@ func (c *ProjectsRegionsClustersPatchCall) doRequest(alt string) (*http.Response
 		"region":      c.region,
 		"clusterName": c.clusterName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12249,9 +22632,11 @@ func (c *ProjectsRegionsClustersPatchCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12306,8 +22691,7 @@ func (c *ProjectsRegionsClustersRepairCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersRepairCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.repairclusterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.repairclusterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12325,6 +22709,7 @@ func (c *ProjectsRegionsClustersRepairCall) doRequest(alt string) (*http.Respons
 		"region":      c.region,
 		"clusterName": c.clusterName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.repair", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12359,9 +22744,11 @@ func (c *ProjectsRegionsClustersRepairCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.repair", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12413,8 +22800,7 @@ func (c *ProjectsRegionsClustersSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12430,6 +22816,7 @@ func (c *ProjectsRegionsClustersSetIamPolicyCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12464,9 +22851,11 @@ func (c *ProjectsRegionsClustersSetIamPolicyCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12521,8 +22910,7 @@ func (c *ProjectsRegionsClustersStartCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersStartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.startclusterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.startclusterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12540,6 +22928,7 @@ func (c *ProjectsRegionsClustersStartCall) doRequest(alt string) (*http.Response
 		"region":      c.region,
 		"clusterName": c.clusterName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.start", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12574,9 +22963,11 @@ func (c *ProjectsRegionsClustersStartCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.start", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12631,8 +23022,7 @@ func (c *ProjectsRegionsClustersStopCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersStopCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.stopclusterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.stopclusterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12650,6 +23040,7 @@ func (c *ProjectsRegionsClustersStopCall) doRequest(alt string) (*http.Response,
 		"region":      c.region,
 		"clusterName": c.clusterName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.stop", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12684,9 +23075,11 @@ func (c *ProjectsRegionsClustersStopCall) Do(opts ...googleapi.CallOption) (*Ope
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.stop", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12741,8 +23134,7 @@ func (c *ProjectsRegionsClustersTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -12758,6 +23150,7 @@ func (c *ProjectsRegionsClustersTestIamPermissionsCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12793,9 +23186,11 @@ func (c *ProjectsRegionsClustersTestIamPermissionsCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12876,8 +23271,7 @@ func (c *ProjectsRegionsClustersNodeGroupsCreateCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersNodeGroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.nodegroup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.nodegroup)
 	if err != nil {
 		return nil, err
 	}
@@ -12893,6 +23287,7 @@ func (c *ProjectsRegionsClustersNodeGroupsCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.nodeGroups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12927,9 +23322,11 @@ func (c *ProjectsRegionsClustersNodeGroupsCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.nodeGroups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12989,12 +23386,11 @@ func (c *ProjectsRegionsClustersNodeGroupsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13002,6 +23398,7 @@ func (c *ProjectsRegionsClustersNodeGroupsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.nodeGroups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13036,9 +23433,11 @@ func (c *ProjectsRegionsClustersNodeGroupsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.nodeGroups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13088,8 +23487,7 @@ func (c *ProjectsRegionsClustersNodeGroupsRepairCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersNodeGroupsRepairCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.repairnodegrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.repairnodegrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13105,6 +23503,7 @@ func (c *ProjectsRegionsClustersNodeGroupsRepairCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.nodeGroups.repair", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13139,9 +23538,11 @@ func (c *ProjectsRegionsClustersNodeGroupsRepairCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.nodeGroups.repair", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13193,8 +23594,7 @@ func (c *ProjectsRegionsClustersNodeGroupsResizeCall) Header() http.Header {
 
 func (c *ProjectsRegionsClustersNodeGroupsResizeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resizenodegrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resizenodegrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13210,6 +23610,7 @@ func (c *ProjectsRegionsClustersNodeGroupsResizeCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.nodeGroups.resize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13244,9 +23645,11 @@ func (c *ProjectsRegionsClustersNodeGroupsResizeCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.clusters.nodeGroups.resize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13305,8 +23708,7 @@ func (c *ProjectsRegionsJobsCancelCall) Header() http.Header {
 
 func (c *ProjectsRegionsJobsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceljobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceljobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13324,6 +23726,7 @@ func (c *ProjectsRegionsJobsCancelCall) doRequest(alt string) (*http.Response, e
 		"region":    c.region,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13358,9 +23761,11 @@ func (c *ProjectsRegionsJobsCancelCall) Do(opts ...googleapi.CallOption) (*Job, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13414,12 +23819,11 @@ func (c *ProjectsRegionsJobsDeleteCall) Header() http.Header {
 
 func (c *ProjectsRegionsJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/regions/{region}/jobs/{jobId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13429,6 +23833,7 @@ func (c *ProjectsRegionsJobsDeleteCall) doRequest(alt string) (*http.Response, e
 		"region":    c.region,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13463,9 +23868,11 @@ func (c *ProjectsRegionsJobsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13530,12 +23937,11 @@ func (c *ProjectsRegionsJobsGetCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/regions/{region}/jobs/{jobId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13545,6 +23951,7 @@ func (c *ProjectsRegionsJobsGetCall) doRequest(alt string) (*http.Response, erro
 		"region":    c.region,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13579,9 +23986,11 @@ func (c *ProjectsRegionsJobsGetCall) Do(opts ...googleapi.CallOption) (*Job, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13632,8 +24041,7 @@ func (c *ProjectsRegionsJobsGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsRegionsJobsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13649,6 +24057,7 @@ func (c *ProjectsRegionsJobsGetIamPolicyCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13683,9 +24092,11 @@ func (c *ProjectsRegionsJobsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13799,12 +24210,11 @@ func (c *ProjectsRegionsJobsListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{projectId}/regions/{region}/jobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13813,6 +24223,7 @@ func (c *ProjectsRegionsJobsListCall) doRequest(alt string) (*http.Response, err
 		"projectId": c.projectId,
 		"region":    c.region,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13848,9 +24259,11 @@ func (c *ProjectsRegionsJobsListCall) Do(opts ...googleapi.CallOption) (*ListJob
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13936,8 +24349,7 @@ func (c *ProjectsRegionsJobsPatchCall) Header() http.Header {
 
 func (c *ProjectsRegionsJobsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.job)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.job)
 	if err != nil {
 		return nil, err
 	}
@@ -13955,6 +24367,7 @@ func (c *ProjectsRegionsJobsPatchCall) doRequest(alt string) (*http.Response, er
 		"region":    c.region,
 		"jobId":     c.jobId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13989,9 +24402,11 @@ func (c *ProjectsRegionsJobsPatchCall) Do(opts ...googleapi.CallOption) (*Job, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14043,8 +24458,7 @@ func (c *ProjectsRegionsJobsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsRegionsJobsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14060,6 +24474,7 @@ func (c *ProjectsRegionsJobsSetIamPolicyCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14094,9 +24509,11 @@ func (c *ProjectsRegionsJobsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14148,8 +24565,7 @@ func (c *ProjectsRegionsJobsSubmitCall) Header() http.Header {
 
 func (c *ProjectsRegionsJobsSubmitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.submitjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.submitjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14166,6 +24582,7 @@ func (c *ProjectsRegionsJobsSubmitCall) doRequest(alt string) (*http.Response, e
 		"projectId": c.projectId,
 		"region":    c.region,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.submit", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14200,9 +24617,11 @@ func (c *ProjectsRegionsJobsSubmitCall) Do(opts ...googleapi.CallOption) (*Job, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.submit", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14254,8 +24673,7 @@ func (c *ProjectsRegionsJobsSubmitAsOperationCall) Header() http.Header {
 
 func (c *ProjectsRegionsJobsSubmitAsOperationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.submitjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.submitjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14272,6 +24690,7 @@ func (c *ProjectsRegionsJobsSubmitAsOperationCall) doRequest(alt string) (*http.
 		"projectId": c.projectId,
 		"region":    c.region,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.submitAsOperation", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14306,9 +24725,11 @@ func (c *ProjectsRegionsJobsSubmitAsOperationCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.submitAsOperation", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14363,8 +24784,7 @@ func (c *ProjectsRegionsJobsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsRegionsJobsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14380,6 +24800,7 @@ func (c *ProjectsRegionsJobsTestIamPermissionsCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14415,9 +24836,11 @@ func (c *ProjectsRegionsJobsTestIamPermissionsCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.jobs.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14471,12 +24894,11 @@ func (c *ProjectsRegionsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsRegionsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14484,6 +24906,7 @@ func (c *ProjectsRegionsOperationsCancelCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14518,9 +24941,11 @@ func (c *ProjectsRegionsOperationsCancelCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14569,12 +24994,11 @@ func (c *ProjectsRegionsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsRegionsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14582,6 +25006,7 @@ func (c *ProjectsRegionsOperationsDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14616,9 +25041,11 @@ func (c *ProjectsRegionsOperationsDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14678,12 +25105,11 @@ func (c *ProjectsRegionsOperationsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14691,6 +25117,7 @@ func (c *ProjectsRegionsOperationsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14725,9 +25152,11 @@ func (c *ProjectsRegionsOperationsGetCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14778,8 +25207,7 @@ func (c *ProjectsRegionsOperationsGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsRegionsOperationsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14795,6 +25223,7 @@ func (c *ProjectsRegionsOperationsGetIamPolicyCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14829,9 +25258,11 @@ func (c *ProjectsRegionsOperationsGetIamPolicyCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14910,12 +25341,11 @@ func (c *ProjectsRegionsOperationsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14923,6 +25353,7 @@ func (c *ProjectsRegionsOperationsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14958,9 +25389,11 @@ func (c *ProjectsRegionsOperationsListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15033,8 +25466,7 @@ func (c *ProjectsRegionsOperationsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsRegionsOperationsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15050,6 +25482,7 @@ func (c *ProjectsRegionsOperationsSetIamPolicyCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15084,9 +25517,11 @@ func (c *ProjectsRegionsOperationsSetIamPolicyCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15141,8 +25576,7 @@ func (c *ProjectsRegionsOperationsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsRegionsOperationsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15158,6 +25592,7 @@ func (c *ProjectsRegionsOperationsTestIamPermissionsCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15193,9 +25628,11 @@ func (c *ProjectsRegionsOperationsTestIamPermissionsCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.operations.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15249,8 +25686,7 @@ func (c *ProjectsRegionsWorkflowTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsRegionsWorkflowTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -15266,6 +25702,7 @@ func (c *ProjectsRegionsWorkflowTemplatesCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15301,9 +25738,11 @@ func (c *ProjectsRegionsWorkflowTemplatesCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15365,12 +25804,11 @@ func (c *ProjectsRegionsWorkflowTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsRegionsWorkflowTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15378,6 +25816,7 @@ func (c *ProjectsRegionsWorkflowTemplatesDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15412,9 +25851,11 @@ func (c *ProjectsRegionsWorkflowTemplatesDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15488,12 +25929,11 @@ func (c *ProjectsRegionsWorkflowTemplatesGetCall) doRequest(alt string) (*http.R
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15501,6 +25941,7 @@ func (c *ProjectsRegionsWorkflowTemplatesGetCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15536,9 +25977,11 @@ func (c *ProjectsRegionsWorkflowTemplatesGetCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15589,8 +26032,7 @@ func (c *ProjectsRegionsWorkflowTemplatesGetIamPolicyCall) Header() http.Header 
 
 func (c *ProjectsRegionsWorkflowTemplatesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15606,6 +26048,7 @@ func (c *ProjectsRegionsWorkflowTemplatesGetIamPolicyCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15640,9 +26083,11 @@ func (c *ProjectsRegionsWorkflowTemplatesGetIamPolicyCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15706,8 +26151,7 @@ func (c *ProjectsRegionsWorkflowTemplatesInstantiateCall) Header() http.Header {
 
 func (c *ProjectsRegionsWorkflowTemplatesInstantiateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instantiateworkflowtemplaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.instantiateworkflowtemplaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15723,6 +26167,7 @@ func (c *ProjectsRegionsWorkflowTemplatesInstantiateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.instantiate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15757,9 +26202,11 @@ func (c *ProjectsRegionsWorkflowTemplatesInstantiateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.instantiate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15837,8 +26284,7 @@ func (c *ProjectsRegionsWorkflowTemplatesInstantiateInlineCall) Header() http.He
 
 func (c *ProjectsRegionsWorkflowTemplatesInstantiateInlineCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -15854,6 +26300,7 @@ func (c *ProjectsRegionsWorkflowTemplatesInstantiateInlineCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.instantiateInline", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15888,9 +26335,11 @@ func (c *ProjectsRegionsWorkflowTemplatesInstantiateInlineCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.instantiateInline", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15968,12 +26417,11 @@ func (c *ProjectsRegionsWorkflowTemplatesListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/workflowTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15981,6 +26429,7 @@ func (c *ProjectsRegionsWorkflowTemplatesListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16016,9 +26465,11 @@ func (c *ProjectsRegionsWorkflowTemplatesListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16091,8 +26542,7 @@ func (c *ProjectsRegionsWorkflowTemplatesSetIamPolicyCall) Header() http.Header 
 
 func (c *ProjectsRegionsWorkflowTemplatesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16108,6 +26558,7 @@ func (c *ProjectsRegionsWorkflowTemplatesSetIamPolicyCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16142,9 +26593,11 @@ func (c *ProjectsRegionsWorkflowTemplatesSetIamPolicyCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16199,8 +26652,7 @@ func (c *ProjectsRegionsWorkflowTemplatesTestIamPermissionsCall) Header() http.H
 
 func (c *ProjectsRegionsWorkflowTemplatesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16216,6 +26668,7 @@ func (c *ProjectsRegionsWorkflowTemplatesTestIamPermissionsCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16251,9 +26704,11 @@ func (c *ProjectsRegionsWorkflowTemplatesTestIamPermissionsCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16309,8 +26764,7 @@ func (c *ProjectsRegionsWorkflowTemplatesUpdateCall) Header() http.Header {
 
 func (c *ProjectsRegionsWorkflowTemplatesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.workflowtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.workflowtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -16326,6 +26780,7 @@ func (c *ProjectsRegionsWorkflowTemplatesUpdateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16361,8 +26816,10 @@ func (c *ProjectsRegionsWorkflowTemplatesUpdateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataproc.projects.regions.workflowTemplates.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

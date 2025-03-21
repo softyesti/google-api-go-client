@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "analyticsdata:v1beta"
 const apiName = "analyticsdata"
@@ -123,7 +126,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Properties = NewPropertiesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -142,13 +146,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Properties = NewPropertiesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -208,9 +211,9 @@ type ActiveMetricRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActiveMetricRestriction) MarshalJSON() ([]byte, error) {
+func (s ActiveMetricRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod ActiveMetricRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AudienceExport: An audience export is a list of users in an audience at the
@@ -278,9 +281,9 @@ type AudienceExport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AudienceExport) MarshalJSON() ([]byte, error) {
+func (s AudienceExport) MarshalJSON() ([]byte, error) {
 	type NoMethod AudienceExport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *AudienceExport) UnmarshalJSON(data []byte) error {
@@ -320,9 +323,9 @@ type BatchRunPivotReportsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchRunPivotReportsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchRunPivotReportsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchRunPivotReportsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchRunPivotReportsResponse: The batch response containing multiple pivot
@@ -351,9 +354,9 @@ type BatchRunPivotReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchRunPivotReportsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchRunPivotReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchRunPivotReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchRunReportsRequest: The batch request containing multiple report
@@ -375,9 +378,9 @@ type BatchRunReportsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchRunReportsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchRunReportsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchRunReportsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchRunReportsResponse: The batch response containing multiple reports.
@@ -404,9 +407,9 @@ type BatchRunReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchRunReportsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchRunReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchRunReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BetweenFilter: To express that the result needs to be between two numbers
@@ -429,9 +432,9 @@ type BetweenFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BetweenFilter) MarshalJSON() ([]byte, error) {
+func (s BetweenFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod BetweenFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CaseExpression: Used to convert a dimension value to a single case.
@@ -452,9 +455,9 @@ type CaseExpression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CaseExpression) MarshalJSON() ([]byte, error) {
+func (s CaseExpression) MarshalJSON() ([]byte, error) {
 	type NoMethod CaseExpression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckCompatibilityRequest: The request for compatibility information for a
@@ -498,9 +501,9 @@ type CheckCompatibilityRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckCompatibilityRequest) MarshalJSON() ([]byte, error) {
+func (s CheckCompatibilityRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckCompatibilityRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckCompatibilityResponse: The compatibility response with the
@@ -526,9 +529,9 @@ type CheckCompatibilityResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckCompatibilityResponse) MarshalJSON() ([]byte, error) {
+func (s CheckCompatibilityResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckCompatibilityResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Cohort: Defines a cohort selection criteria. A cohort is a group of users
@@ -571,9 +574,9 @@ type Cohort struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Cohort) MarshalJSON() ([]byte, error) {
+func (s Cohort) MarshalJSON() ([]byte, error) {
 	type NoMethod Cohort
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CohortReportSettings: Optional settings of a cohort report.
@@ -594,9 +597,9 @@ type CohortReportSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CohortReportSettings) MarshalJSON() ([]byte, error) {
+func (s CohortReportSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod CohortReportSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CohortSpec: The specification of cohorts for a cohort report. Cohort reports
@@ -635,9 +638,9 @@ type CohortSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CohortSpec) MarshalJSON() ([]byte, error) {
+func (s CohortSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod CohortSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CohortsRange: Configures the extended reporting date range for a cohort
@@ -690,9 +693,9 @@ type CohortsRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CohortsRange) MarshalJSON() ([]byte, error) {
+func (s CohortsRange) MarshalJSON() ([]byte, error) {
 	type NoMethod CohortsRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Comparison: Defines an individual comparison. Most requests will include
@@ -720,9 +723,9 @@ type Comparison struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Comparison) MarshalJSON() ([]byte, error) {
+func (s Comparison) MarshalJSON() ([]byte, error) {
 	type NoMethod Comparison
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComparisonMetadata: The metadata for a single comparison.
@@ -747,9 +750,9 @@ type ComparisonMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComparisonMetadata) MarshalJSON() ([]byte, error) {
+func (s ComparisonMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ComparisonMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConcatenateExpression: Used to combine dimension values to a single
@@ -778,9 +781,9 @@ type ConcatenateExpression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConcatenateExpression) MarshalJSON() ([]byte, error) {
+func (s ConcatenateExpression) MarshalJSON() ([]byte, error) {
 	type NoMethod ConcatenateExpression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DateRange: A contiguous set of days: `startDate`, `startDate + 1`, ...,
@@ -814,9 +817,9 @@ type DateRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DateRange) MarshalJSON() ([]byte, error) {
+func (s DateRange) MarshalJSON() ([]byte, error) {
 	type NoMethod DateRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Dimension: Dimensions are attributes of your data. For example, the
@@ -857,9 +860,9 @@ type Dimension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Dimension) MarshalJSON() ([]byte, error) {
+func (s Dimension) MarshalJSON() ([]byte, error) {
 	type NoMethod Dimension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DimensionCompatibility: The compatibility for a single dimension.
@@ -891,9 +894,9 @@ type DimensionCompatibility struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DimensionCompatibility) MarshalJSON() ([]byte, error) {
+func (s DimensionCompatibility) MarshalJSON() ([]byte, error) {
 	type NoMethod DimensionCompatibility
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DimensionExpression: Used to express a dimension which is the result of a
@@ -920,9 +923,9 @@ type DimensionExpression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DimensionExpression) MarshalJSON() ([]byte, error) {
+func (s DimensionExpression) MarshalJSON() ([]byte, error) {
 	type NoMethod DimensionExpression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DimensionHeader: Describes a dimension column in the report. Dimensions
@@ -946,9 +949,9 @@ type DimensionHeader struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DimensionHeader) MarshalJSON() ([]byte, error) {
+func (s DimensionHeader) MarshalJSON() ([]byte, error) {
 	type NoMethod DimensionHeader
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DimensionMetadata: Explains a dimension.
@@ -988,9 +991,9 @@ type DimensionMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DimensionMetadata) MarshalJSON() ([]byte, error) {
+func (s DimensionMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod DimensionMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DimensionOrderBy: Sorts by dimension values.
@@ -1023,9 +1026,9 @@ type DimensionOrderBy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DimensionOrderBy) MarshalJSON() ([]byte, error) {
+func (s DimensionOrderBy) MarshalJSON() ([]byte, error) {
 	type NoMethod DimensionOrderBy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DimensionValue: The value of a dimension.
@@ -1045,15 +1048,21 @@ type DimensionValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DimensionValue) MarshalJSON() ([]byte, error) {
+func (s DimensionValue) MarshalJSON() ([]byte, error) {
 	type NoMethod DimensionValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// EmptyFilter: Filter for empty values.
+type EmptyFilter struct {
 }
 
 // Filter: An expression to filter dimension or metric values.
 type Filter struct {
 	// BetweenFilter: A filter for two values.
 	BetweenFilter *BetweenFilter `json:"betweenFilter,omitempty"`
+	// EmptyFilter: A filter for empty values such as "(not set)" and "" values.
+	EmptyFilter *EmptyFilter `json:"emptyFilter,omitempty"`
 	// FieldName: The dimension name or metric name. In most methods, dimensions &
 	// metrics can be used for the first time in this field. However in a
 	// RunPivotReportRequest, this field must be additionally specified by name in
@@ -1078,9 +1087,9 @@ type Filter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Filter) MarshalJSON() ([]byte, error) {
+func (s Filter) MarshalJSON() ([]byte, error) {
 	type NoMethod Filter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterExpression: To express dimension or metric filters. The fields in the
@@ -1108,9 +1117,9 @@ type FilterExpression struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterExpression) MarshalJSON() ([]byte, error) {
+func (s FilterExpression) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterExpression
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FilterExpressionList: A list of filter expressions.
@@ -1130,9 +1139,9 @@ type FilterExpressionList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterExpressionList) MarshalJSON() ([]byte, error) {
+func (s FilterExpressionList) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterExpressionList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InListFilter: The result needs to be in a list of string values.
@@ -1154,9 +1163,9 @@ type InListFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InListFilter) MarshalJSON() ([]byte, error) {
+func (s InListFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod InListFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAudienceExportsResponse: A list of all audience exports for a property.
@@ -1182,9 +1191,9 @@ type ListAudienceExportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAudienceExportsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAudienceExportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAudienceExportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Metadata: The dimensions, metrics and comparisons currently accepted in
@@ -1214,9 +1223,9 @@ type Metadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Metadata) MarshalJSON() ([]byte, error) {
+func (s Metadata) MarshalJSON() ([]byte, error) {
 	type NoMethod Metadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Metric: The quantitative measurements of a report. For example, the metric
@@ -1259,9 +1268,9 @@ type Metric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Metric) MarshalJSON() ([]byte, error) {
+func (s Metric) MarshalJSON() ([]byte, error) {
 	type NoMethod Metric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricCompatibility: The compatibility for a single metric.
@@ -1293,9 +1302,9 @@ type MetricCompatibility struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricCompatibility) MarshalJSON() ([]byte, error) {
+func (s MetricCompatibility) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricCompatibility
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricHeader: Describes a metric column in the report. Visible metrics
@@ -1338,9 +1347,9 @@ type MetricHeader struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricHeader) MarshalJSON() ([]byte, error) {
+func (s MetricHeader) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricHeader
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricMetadata: Explains a metric.
@@ -1414,9 +1423,9 @@ type MetricMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricMetadata) MarshalJSON() ([]byte, error) {
+func (s MetricMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricOrderBy: Sorts by metric values.
@@ -1436,9 +1445,9 @@ type MetricOrderBy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricOrderBy) MarshalJSON() ([]byte, error) {
+func (s MetricOrderBy) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricOrderBy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricValue: The value of a metric.
@@ -1458,9 +1467,9 @@ type MetricValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricValue) MarshalJSON() ([]byte, error) {
+func (s MetricValue) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MinuteRange: A contiguous set of minutes: `startMinutesAgo`,
@@ -1502,9 +1511,9 @@ type MinuteRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MinuteRange) MarshalJSON() ([]byte, error) {
+func (s MinuteRange) MarshalJSON() ([]byte, error) {
 	type NoMethod MinuteRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NumericFilter: Filters for numeric or date values.
@@ -1534,9 +1543,9 @@ type NumericFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NumericFilter) MarshalJSON() ([]byte, error) {
+func (s NumericFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod NumericFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NumericValue: To represent a number.
@@ -1558,9 +1567,9 @@ type NumericValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NumericValue) MarshalJSON() ([]byte, error) {
+func (s NumericValue) MarshalJSON() ([]byte, error) {
 	type NoMethod NumericValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *NumericValue) UnmarshalJSON(data []byte) error {
@@ -1619,9 +1628,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OrderBy: Order bys define how rows will be sorted in the response. For
@@ -1649,9 +1658,9 @@ type OrderBy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OrderBy) MarshalJSON() ([]byte, error) {
+func (s OrderBy) MarshalJSON() ([]byte, error) {
 	type NoMethod OrderBy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Pivot: Describes the visible dimension columns and rows in the report
@@ -1700,9 +1709,9 @@ type Pivot struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Pivot) MarshalJSON() ([]byte, error) {
+func (s Pivot) MarshalJSON() ([]byte, error) {
 	type NoMethod Pivot
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PivotDimensionHeader: Summarizes dimension values from a row for this pivot.
@@ -1722,9 +1731,9 @@ type PivotDimensionHeader struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PivotDimensionHeader) MarshalJSON() ([]byte, error) {
+func (s PivotDimensionHeader) MarshalJSON() ([]byte, error) {
 	type NoMethod PivotDimensionHeader
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PivotHeader: Dimensions' values in a single pivot.
@@ -1749,9 +1758,9 @@ type PivotHeader struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PivotHeader) MarshalJSON() ([]byte, error) {
+func (s PivotHeader) MarshalJSON() ([]byte, error) {
 	type NoMethod PivotHeader
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PivotOrderBy: Sorts by a pivot column group.
@@ -1777,9 +1786,9 @@ type PivotOrderBy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PivotOrderBy) MarshalJSON() ([]byte, error) {
+func (s PivotOrderBy) MarshalJSON() ([]byte, error) {
 	type NoMethod PivotOrderBy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PivotSelection: A pair of dimension names and values. Rows with this
@@ -1812,9 +1821,9 @@ type PivotSelection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PivotSelection) MarshalJSON() ([]byte, error) {
+func (s PivotSelection) MarshalJSON() ([]byte, error) {
 	type NoMethod PivotSelection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PropertyQuota: Current state of all quotas for this Analytics Property. If
@@ -1863,9 +1872,9 @@ type PropertyQuota struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PropertyQuota) MarshalJSON() ([]byte, error) {
+func (s PropertyQuota) MarshalJSON() ([]byte, error) {
 	type NoMethod PropertyQuota
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryAudienceExportRequest: A request to list users in an audience export.
@@ -1899,9 +1908,9 @@ type QueryAudienceExportRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryAudienceExportRequest) MarshalJSON() ([]byte, error) {
+func (s QueryAudienceExportRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryAudienceExportRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryAudienceExportResponse: A list of users in an audience export.
@@ -1938,9 +1947,9 @@ type QueryAudienceExportResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryAudienceExportResponse) MarshalJSON() ([]byte, error) {
+func (s QueryAudienceExportResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryAudienceExportResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QuotaStatus: Current state for a particular quota group.
@@ -1962,9 +1971,9 @@ type QuotaStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QuotaStatus) MarshalJSON() ([]byte, error) {
+func (s QuotaStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod QuotaStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResponseMetaData: Response's metadata carrying additional information about
@@ -2031,9 +2040,9 @@ type ResponseMetaData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResponseMetaData) MarshalJSON() ([]byte, error) {
+func (s ResponseMetaData) MarshalJSON() ([]byte, error) {
 	type NoMethod ResponseMetaData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Row: Report data for each row. For example if RunReportRequest contains:
@@ -2061,9 +2070,9 @@ type Row struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Row) MarshalJSON() ([]byte, error) {
+func (s Row) MarshalJSON() ([]byte, error) {
 	type NoMethod Row
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunPivotReportRequest: The request to generate a pivot report.
@@ -2095,7 +2104,7 @@ type RunPivotReportRequest struct {
 	// KeepEmptyRows: If false or unspecified, each row with all metrics equal to 0
 	// will not be returned. If true, these rows will be returned if they are not
 	// separately removed by a filter. Regardless of this `keep_empty_rows`
-	// setting, only data recorded by the Google Analytics (GA4) property can be
+	// setting, only data recorded by the Google Analytics property can be
 	// displayed in a report. For example if a property never logs a `purchase`
 	// event, then a query for the `eventName` dimension and `eventCount` metric
 	// will not have a row eventName: "purchase" and eventCount: 0.
@@ -2113,15 +2122,15 @@ type RunPivotReportRequest struct {
 	// subset of dimension names defined in Dimensions. No two pivots can share a
 	// dimension. A dimension is only visible if it appears in a pivot.
 	Pivots []*Pivot `json:"pivots,omitempty"`
-	// Property: A Google Analytics GA4 property identifier whose events are
-	// tracked. Specified in the URL path and not the body. To learn more, see
-	// where to find your Property ID
+	// Property: A Google Analytics property identifier whose events are tracked.
+	// Specified in the URL path and not the body. To learn more, see where to find
+	// your Property ID
 	// (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 	// Within a batch request, this property should either be unspecified or
 	// consistent with the batch-level property. Example: properties/1234
 	Property string `json:"property,omitempty"`
 	// ReturnPropertyQuota: Toggles whether to return the current state of this
-	// Analytics Property's quota. Quota is returned in PropertyQuota
+	// Google Analytics property's quota. Quota is returned in PropertyQuota
 	// (#PropertyQuota).
 	ReturnPropertyQuota bool `json:"returnPropertyQuota,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CohortSpec") to
@@ -2137,9 +2146,9 @@ type RunPivotReportRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunPivotReportRequest) MarshalJSON() ([]byte, error) {
+func (s RunPivotReportRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunPivotReportRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunPivotReportResponse: The response pivot report table corresponding to a
@@ -2173,7 +2182,8 @@ type RunPivotReportResponse struct {
 	// "dimensionValues": [{ "value": "session_start" }] }, { "dimensionValues": [{
 	// "value": "scroll" }] }] }]
 	PivotHeaders []*PivotHeader `json:"pivotHeaders,omitempty"`
-	// PropertyQuota: This Analytics Property's quota state including this request.
+	// PropertyQuota: This Google Analytics property's quota state including this
+	// request.
 	PropertyQuota *PropertyQuota `json:"propertyQuota,omitempty"`
 	// Rows: Rows of dimension value combinations and metric values in the report.
 	Rows []*Row `json:"rows,omitempty"`
@@ -2193,9 +2203,9 @@ type RunPivotReportResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunPivotReportResponse) MarshalJSON() ([]byte, error) {
+func (s RunPivotReportResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunPivotReportResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunRealtimeReportRequest: The request to generate a realtime report.
@@ -2239,8 +2249,8 @@ type RunRealtimeReportRequest struct {
 	// OrderBys: Specifies how rows are ordered in the response.
 	OrderBys []*OrderBy `json:"orderBys,omitempty"`
 	// ReturnPropertyQuota: Toggles whether to return the current state of this
-	// Analytics Property's Realtime quota. Quota is returned in PropertyQuota
-	// (#PropertyQuota).
+	// Google Analytics property's Realtime quota. Quota is returned in
+	// PropertyQuota (#PropertyQuota).
 	ReturnPropertyQuota bool `json:"returnPropertyQuota,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DimensionFilter") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2255,9 +2265,9 @@ type RunRealtimeReportRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunRealtimeReportRequest) MarshalJSON() ([]byte, error) {
+func (s RunRealtimeReportRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunRealtimeReportRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunRealtimeReportResponse: The response realtime report table corresponding
@@ -2278,8 +2288,8 @@ type RunRealtimeReportResponse struct {
 	MetricHeaders []*MetricHeader `json:"metricHeaders,omitempty"`
 	// Minimums: If requested, the minimum values of metrics.
 	Minimums []*Row `json:"minimums,omitempty"`
-	// PropertyQuota: This Analytics Property's Realtime quota state including this
-	// request.
+	// PropertyQuota: This Google Analytics property's Realtime quota state
+	// including this request.
 	PropertyQuota *PropertyQuota `json:"propertyQuota,omitempty"`
 	// RowCount: The total number of rows in the query result. `rowCount` is
 	// independent of the number of rows returned in the response and the `limit`
@@ -2307,9 +2317,9 @@ type RunRealtimeReportResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunRealtimeReportResponse) MarshalJSON() ([]byte, error) {
+func (s RunRealtimeReportResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunRealtimeReportResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunReportRequest: The request to generate a report.
@@ -2341,7 +2351,7 @@ type RunReportRequest struct {
 	// KeepEmptyRows: If false or unspecified, each row with all metrics equal to 0
 	// will not be returned. If true, these rows will be returned if they are not
 	// separately removed by a filter. Regardless of this `keep_empty_rows`
-	// setting, only data recorded by the Google Analytics (GA4) property can be
+	// setting, only data recorded by the Google Analytics property can be
 	// displayed in a report. For example if a property never logs a `purchase`
 	// event, then a query for the `eventName` dimension and `eventCount` metric
 	// will not have a row eventName: "purchase" and eventCount: 0.
@@ -2358,7 +2368,8 @@ type RunReportRequest struct {
 	Limit int64 `json:"limit,omitempty,string"`
 	// MetricAggregations: Aggregation of metrics. Aggregated metric values will be
 	// shown in rows where the dimension_values are set to
-	// "RESERVED_(MetricAggregation)".
+	// "RESERVED_(MetricAggregation)". Aggregates including both comparisons and
+	// multiple date ranges will be aggregated based on the date ranges.
 	//
 	// Possible values:
 	//   "METRIC_AGGREGATION_UNSPECIFIED" - Unspecified operator.
@@ -2381,17 +2392,19 @@ type RunReportRequest struct {
 	// pagination parameter, see Pagination
 	// (https://developers.google.com/analytics/devguides/reporting/data/v1/basics#pagination).
 	Offset int64 `json:"offset,omitempty,string"`
-	// OrderBys: Specifies how rows are ordered in the response.
+	// OrderBys: Specifies how rows are ordered in the response. Requests including
+	// both comparisons and multiple date ranges will have order bys applied on the
+	// comparisons.
 	OrderBys []*OrderBy `json:"orderBys,omitempty"`
-	// Property: A Google Analytics GA4 property identifier whose events are
-	// tracked. Specified in the URL path and not the body. To learn more, see
-	// where to find your Property ID
+	// Property: A Google Analytics property identifier whose events are tracked.
+	// Specified in the URL path and not the body. To learn more, see where to find
+	// your Property ID
 	// (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 	// Within a batch request, this property should either be unspecified or
 	// consistent with the batch-level property. Example: properties/1234
 	Property string `json:"property,omitempty"`
 	// ReturnPropertyQuota: Toggles whether to return the current state of this
-	// Analytics Property's quota. Quota is returned in PropertyQuota
+	// Google Analytics property's quota. Quota is returned in PropertyQuota
 	// (#PropertyQuota).
 	ReturnPropertyQuota bool `json:"returnPropertyQuota,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CohortSpec") to
@@ -2407,9 +2420,9 @@ type RunReportRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunReportRequest) MarshalJSON() ([]byte, error) {
+func (s RunReportRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunReportRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunReportResponse: The response report table corresponding to a request.
@@ -2431,7 +2444,8 @@ type RunReportResponse struct {
 	MetricHeaders []*MetricHeader `json:"metricHeaders,omitempty"`
 	// Minimums: If requested, the minimum values of metrics.
 	Minimums []*Row `json:"minimums,omitempty"`
-	// PropertyQuota: This Analytics Property's quota state including this request.
+	// PropertyQuota: This Google Analytics property's quota state including this
+	// request.
 	PropertyQuota *PropertyQuota `json:"propertyQuota,omitempty"`
 	// RowCount: The total number of rows in the query result. `rowCount` is
 	// independent of the number of rows returned in the response, the `limit`
@@ -2461,9 +2475,9 @@ type RunReportResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunReportResponse) MarshalJSON() ([]byte, error) {
+func (s RunReportResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunReportResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SamplingMetadata: If this report results is sampled
@@ -2496,9 +2510,9 @@ type SamplingMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SamplingMetadata) MarshalJSON() ([]byte, error) {
+func (s SamplingMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod SamplingMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchemaRestrictionResponse: The schema restrictions actively enforced in
@@ -2523,9 +2537,9 @@ type SchemaRestrictionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchemaRestrictionResponse) MarshalJSON() ([]byte, error) {
+func (s SchemaRestrictionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SchemaRestrictionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2557,9 +2571,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StringFilter: The filter for string
@@ -2594,9 +2608,9 @@ type StringFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StringFilter) MarshalJSON() ([]byte, error) {
+func (s StringFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod StringFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V1betaAudienceDimension: An audience dimension is a user attribute. Specific
@@ -2621,9 +2635,9 @@ type V1betaAudienceDimension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V1betaAudienceDimension) MarshalJSON() ([]byte, error) {
+func (s V1betaAudienceDimension) MarshalJSON() ([]byte, error) {
 	type NoMethod V1betaAudienceDimension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V1betaAudienceDimensionValue: The value of a dimension.
@@ -2643,9 +2657,9 @@ type V1betaAudienceDimensionValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V1betaAudienceDimensionValue) MarshalJSON() ([]byte, error) {
+func (s V1betaAudienceDimensionValue) MarshalJSON() ([]byte, error) {
 	type NoMethod V1betaAudienceDimensionValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // V1betaAudienceRow: Dimension value attributes for the audience user row.
@@ -2666,9 +2680,9 @@ type V1betaAudienceRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *V1betaAudienceRow) MarshalJSON() ([]byte, error) {
+func (s V1betaAudienceRow) MarshalJSON() ([]byte, error) {
 	type NoMethod V1betaAudienceRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type PropertiesBatchRunPivotReportsCall struct {
@@ -2681,11 +2695,11 @@ type PropertiesBatchRunPivotReportsCall struct {
 }
 
 // BatchRunPivotReports: Returns multiple pivot reports in a batch. All reports
-// must be for the same GA4 Property.
+// must be for the same Google Analytics property.
 //
-//   - property: A Google Analytics GA4 property identifier whose events are
-//     tracked. Specified in the URL path and not the body. To learn more, see
-//     where to find your Property ID
+//   - property: A Google Analytics property identifier whose events are tracked.
+//     Specified in the URL path and not the body. To learn more, see where to
+//     find your Property ID
 //     (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 //     This property must be specified for the batch. The property within
 //     RunPivotReportRequest may either be unspecified or consistent with this
@@ -2722,8 +2736,7 @@ func (c *PropertiesBatchRunPivotReportsCall) Header() http.Header {
 
 func (c *PropertiesBatchRunPivotReportsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchrunpivotreportsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchrunpivotreportsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2739,6 +2752,7 @@ func (c *PropertiesBatchRunPivotReportsCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"property": c.propertyid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.batchRunPivotReports", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2774,9 +2788,11 @@ func (c *PropertiesBatchRunPivotReportsCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.batchRunPivotReports", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2790,11 +2806,11 @@ type PropertiesBatchRunReportsCall struct {
 }
 
 // BatchRunReports: Returns multiple reports in a batch. All reports must be
-// for the same GA4 Property.
+// for the same Google Analytics property.
 //
-//   - property: A Google Analytics GA4 property identifier whose events are
-//     tracked. Specified in the URL path and not the body. To learn more, see
-//     where to find your Property ID
+//   - property: A Google Analytics property identifier whose events are tracked.
+//     Specified in the URL path and not the body. To learn more, see where to
+//     find your Property ID
 //     (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 //     This property must be specified for the batch. The property within
 //     RunReportRequest may either be unspecified or consistent with this
@@ -2831,8 +2847,7 @@ func (c *PropertiesBatchRunReportsCall) Header() http.Header {
 
 func (c *PropertiesBatchRunReportsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchrunreportsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchrunreportsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2848,6 +2863,7 @@ func (c *PropertiesBatchRunReportsCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"property": c.propertyid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.batchRunReports", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2883,9 +2899,11 @@ func (c *PropertiesBatchRunReportsCall) Do(opts ...googleapi.CallOption) (*Batch
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.batchRunReports", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2907,8 +2925,8 @@ type PropertiesCheckCompatibilityCall struct {
 // Realtime and Core reports have different compatibility rules. This method
 // checks compatibility for Core reports.
 //
-//   - property: A Google Analytics GA4 property identifier whose events are
-//     tracked. To learn more, see where to find your Property ID
+//   - property: A Google Analytics property identifier whose events are tracked.
+//     To learn more, see where to find your Property ID
 //     (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 //     `property` should be the same value as in your `runReport` request.
 //     Example: properties/1234.
@@ -2944,8 +2962,7 @@ func (c *PropertiesCheckCompatibilityCall) Header() http.Header {
 
 func (c *PropertiesCheckCompatibilityCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.checkcompatibilityrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.checkcompatibilityrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2961,6 +2978,7 @@ func (c *PropertiesCheckCompatibilityCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"property": c.propertyid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.checkCompatibility", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2996,9 +3014,11 @@ func (c *PropertiesCheckCompatibilityCall) Do(opts ...googleapi.CallOption) (*Ch
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.checkCompatibility", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3013,17 +3033,16 @@ type PropertiesGetMetadataCall struct {
 
 // GetMetadata: Returns metadata for dimensions and metrics available in
 // reporting methods. Used to explore the dimensions and metrics. In this
-// method, a Google Analytics GA4 Property Identifier is specified in the
-// request, and the metadata response includes Custom dimensions and metrics as
-// well as Universal metadata. For example if a custom metric with parameter
-// name `levels_unlocked` is registered to a property, the Metadata response
-// will contain `customEvent:levels_unlocked`. Universal metadata are
-// dimensions and metrics applicable to any property such as `country` and
-// `totalUsers`.
+// method, a Google Analytics property identifier is specified in the request,
+// and the metadata response includes Custom dimensions and metrics as well as
+// Universal metadata. For example if a custom metric with parameter name
+// `levels_unlocked` is registered to a property, the Metadata response will
+// contain `customEvent:levels_unlocked`. Universal metadata are dimensions and
+// metrics applicable to any property such as `country` and `totalUsers`.
 //
 //   - name: The resource name of the metadata to retrieve. This name field is
 //     specified in the URL path and not URL parameters. Property is a numeric
-//     Google Analytics GA4 Property identifier. To learn more, see where to find
+//     Google Analytics property identifier. To learn more, see where to find
 //     your Property ID
 //     (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 //     Example: properties/1234/metadata Set the Property ID to 0 for dimensions
@@ -3071,12 +3090,11 @@ func (c *PropertiesGetMetadataCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3084,6 +3102,7 @@ func (c *PropertiesGetMetadataCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.getMetadata", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3118,9 +3137,11 @@ func (c *PropertiesGetMetadataCall) Do(opts ...googleapi.CallOption) (*Metadata,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.getMetadata", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3139,9 +3160,9 @@ type PropertiesRunPivotReportCall struct {
 // included in a pivot. Multiple pivots can be specified to further dissect
 // your data.
 //
-//   - property: A Google Analytics GA4 property identifier whose events are
-//     tracked. Specified in the URL path and not the body. To learn more, see
-//     where to find your Property ID
+//   - property: A Google Analytics property identifier whose events are tracked.
+//     Specified in the URL path and not the body. To learn more, see where to
+//     find your Property ID
 //     (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 //     Within a batch request, this property should either be unspecified or
 //     consistent with the batch-level property. Example: properties/1234.
@@ -3177,8 +3198,7 @@ func (c *PropertiesRunPivotReportCall) Header() http.Header {
 
 func (c *PropertiesRunPivotReportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runpivotreportrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runpivotreportrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3194,6 +3214,7 @@ func (c *PropertiesRunPivotReportCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"property": c.propertyid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.runPivotReport", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3229,9 +3250,11 @@ func (c *PropertiesRunPivotReportCall) Do(opts ...googleapi.CallOption) (*RunPiv
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.runPivotReport", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3253,9 +3276,9 @@ type PropertiesRunRealtimeReportCall struct {
 // Realtime Report
 // (https://developers.google.com/analytics/devguides/reporting/data/v1/realtime-basics).
 //
-//   - property: A Google Analytics GA4 property identifier whose events are
-//     tracked. Specified in the URL path and not the body. To learn more, see
-//     where to find your Property ID
+//   - property: A Google Analytics property identifier whose events are tracked.
+//     Specified in the URL path and not the body. To learn more, see where to
+//     find your Property ID
 //     (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 //     Example: properties/1234.
 func (r *PropertiesService) RunRealtimeReport(propertyid string, runrealtimereportrequest *RunRealtimeReportRequest) *PropertiesRunRealtimeReportCall {
@@ -3290,8 +3313,7 @@ func (c *PropertiesRunRealtimeReportCall) Header() http.Header {
 
 func (c *PropertiesRunRealtimeReportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runrealtimereportrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runrealtimereportrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3307,6 +3329,7 @@ func (c *PropertiesRunRealtimeReportCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"property": c.propertyid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.runRealtimeReport", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3342,9 +3365,11 @@ func (c *PropertiesRunRealtimeReportCall) Do(opts ...googleapi.CallOption) (*Run
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.runRealtimeReport", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3367,9 +3392,9 @@ type PropertiesRunReportCall struct {
 // understanding responses, see Creating a Report
 // (https://developers.google.com/analytics/devguides/reporting/data/v1/basics).
 //
-//   - property: A Google Analytics GA4 property identifier whose events are
-//     tracked. Specified in the URL path and not the body. To learn more, see
-//     where to find your Property ID
+//   - property: A Google Analytics property identifier whose events are tracked.
+//     Specified in the URL path and not the body. To learn more, see where to
+//     find your Property ID
 //     (https://developers.google.com/analytics/devguides/reporting/data/v1/property-id).
 //     Within a batch request, this property should either be unspecified or
 //     consistent with the batch-level property. Example: properties/1234.
@@ -3405,8 +3430,7 @@ func (c *PropertiesRunReportCall) Header() http.Header {
 
 func (c *PropertiesRunReportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runreportrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runreportrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3422,6 +3446,7 @@ func (c *PropertiesRunReportCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"property": c.propertyid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.runReport", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3457,9 +3482,11 @@ func (c *PropertiesRunReportCall) Do(opts ...googleapi.CallOption) (*RunReportRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.runReport", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3526,8 +3553,7 @@ func (c *PropertiesAudienceExportsCreateCall) Header() http.Header {
 
 func (c *PropertiesAudienceExportsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.audienceexport)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.audienceexport)
 	if err != nil {
 		return nil, err
 	}
@@ -3543,6 +3569,7 @@ func (c *PropertiesAudienceExportsCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.audienceExports.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3577,9 +3604,11 @@ func (c *PropertiesAudienceExportsCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.audienceExports.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3646,12 +3675,11 @@ func (c *PropertiesAudienceExportsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3659,6 +3687,7 @@ func (c *PropertiesAudienceExportsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.audienceExports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3693,9 +3722,11 @@ func (c *PropertiesAudienceExportsGetCall) Do(opts ...googleapi.CallOption) (*Au
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.audienceExports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3782,12 +3813,11 @@ func (c *PropertiesAudienceExportsListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+parent}/audienceExports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3795,6 +3825,7 @@ func (c *PropertiesAudienceExportsListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.audienceExports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3830,9 +3861,11 @@ func (c *PropertiesAudienceExportsListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.audienceExports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3915,8 +3948,7 @@ func (c *PropertiesAudienceExportsQueryCall) Header() http.Header {
 
 func (c *PropertiesAudienceExportsQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.queryaudienceexportrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.queryaudienceexportrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3932,6 +3964,7 @@ func (c *PropertiesAudienceExportsQueryCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "analyticsdata.properties.audienceExports.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3967,8 +4000,10 @@ func (c *PropertiesAudienceExportsQueryCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "analyticsdata.properties.audienceExports.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

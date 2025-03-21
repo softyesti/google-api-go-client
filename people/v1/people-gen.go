@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "people:v1"
 const apiName = "people"
@@ -164,7 +167,10 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.ContactGroups = NewContactGroupsService(s)
+	s.OtherContacts = NewOtherContactsService(s)
+	s.People = NewPeopleService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -183,15 +189,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.ContactGroups = NewContactGroupsService(s)
-	s.OtherContacts = NewOtherContactsService(s)
-	s.People = NewPeopleService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -305,9 +308,9 @@ type Address struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Address) MarshalJSON() ([]byte, error) {
+func (s Address) MarshalJSON() ([]byte, error) {
 	type NoMethod Address
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgeRangeType: A person's age range.
@@ -335,9 +338,9 @@ type AgeRangeType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgeRangeType) MarshalJSON() ([]byte, error) {
+func (s AgeRangeType) MarshalJSON() ([]byte, error) {
 	type NoMethod AgeRangeType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchCreateContactsRequest: A request to create a batch of contacts.
@@ -380,9 +383,9 @@ type BatchCreateContactsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchCreateContactsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchCreateContactsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchCreateContactsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchCreateContactsResponse: If not successful, returns
@@ -408,9 +411,9 @@ type BatchCreateContactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchCreateContactsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchCreateContactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchCreateContactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeleteContactsRequest: A request to delete a batch of existing
@@ -432,9 +435,9 @@ type BatchDeleteContactsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeleteContactsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchDeleteContactsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeleteContactsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetContactGroupsResponse: The response to a batch get contact groups
@@ -458,9 +461,9 @@ type BatchGetContactGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetContactGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchGetContactGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetContactGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateContactsRequest: A request to update a batch of contacts.
@@ -511,9 +514,9 @@ type BatchUpdateContactsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateContactsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateContactsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateContactsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdateContactsResponse: If not successful, returns
@@ -539,9 +542,9 @@ type BatchUpdateContactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdateContactsResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdateContactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdateContactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Biography: A person's short biography.
@@ -570,9 +573,9 @@ type Biography struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Biography) MarshalJSON() ([]byte, error) {
+func (s Biography) MarshalJSON() ([]byte, error) {
 	type NoMethod Biography
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Birthday: A person's birthday. At least one of the `date` and `text` fields
@@ -600,9 +603,9 @@ type Birthday struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Birthday) MarshalJSON() ([]byte, error) {
+func (s Birthday) MarshalJSON() ([]byte, error) {
 	type NoMethod Birthday
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BraggingRights: **DEPRECATED**: No data will be returned A person's bragging
@@ -625,9 +628,9 @@ type BraggingRights struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BraggingRights) MarshalJSON() ([]byte, error) {
+func (s BraggingRights) MarshalJSON() ([]byte, error) {
 	type NoMethod BraggingRights
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CalendarUrl: A person's calendar URL.
@@ -656,9 +659,9 @@ type CalendarUrl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CalendarUrl) MarshalJSON() ([]byte, error) {
+func (s CalendarUrl) MarshalJSON() ([]byte, error) {
 	type NoMethod CalendarUrl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClientData: Arbitrary client data that is populated by clients. Duplicate
@@ -683,9 +686,9 @@ type ClientData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClientData) MarshalJSON() ([]byte, error) {
+func (s ClientData) MarshalJSON() ([]byte, error) {
 	type NoMethod ClientData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContactGroup: A contact group.
@@ -742,9 +745,9 @@ type ContactGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContactGroup) MarshalJSON() ([]byte, error) {
+func (s ContactGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod ContactGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContactGroupMembership: A Google contact group membership.
@@ -773,9 +776,9 @@ type ContactGroupMembership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContactGroupMembership) MarshalJSON() ([]byte, error) {
+func (s ContactGroupMembership) MarshalJSON() ([]byte, error) {
 	type NoMethod ContactGroupMembership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContactGroupMetadata: The metadata about a contact group.
@@ -799,9 +802,9 @@ type ContactGroupMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContactGroupMetadata) MarshalJSON() ([]byte, error) {
+func (s ContactGroupMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ContactGroupMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContactGroupResponse: The response for a specific contact group.
@@ -825,9 +828,9 @@ type ContactGroupResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContactGroupResponse) MarshalJSON() ([]byte, error) {
+func (s ContactGroupResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ContactGroupResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContactToCreate: A wrapper that contains the person data to populate a newly
@@ -848,9 +851,9 @@ type ContactToCreate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContactToCreate) MarshalJSON() ([]byte, error) {
+func (s ContactToCreate) MarshalJSON() ([]byte, error) {
 	type NoMethod ContactToCreate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CopyOtherContactToMyContactsGroupRequest: A request to copy an "Other
@@ -893,9 +896,9 @@ type CopyOtherContactToMyContactsGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CopyOtherContactToMyContactsGroupRequest) MarshalJSON() ([]byte, error) {
+func (s CopyOtherContactToMyContactsGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CopyOtherContactToMyContactsGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CoverPhoto: A person's cover photo. A large image shown on the person's
@@ -921,9 +924,9 @@ type CoverPhoto struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CoverPhoto) MarshalJSON() ([]byte, error) {
+func (s CoverPhoto) MarshalJSON() ([]byte, error) {
 	type NoMethod CoverPhoto
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CreateContactGroupRequest: A request to create a new contact group.
@@ -948,9 +951,9 @@ type CreateContactGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CreateContactGroupRequest) MarshalJSON() ([]byte, error) {
+func (s CreateContactGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateContactGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -986,9 +989,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeleteContactPhotoResponse: The response for deleting a contact's photo.
@@ -1012,9 +1015,9 @@ type DeleteContactPhotoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeleteContactPhotoResponse) MarshalJSON() ([]byte, error) {
+func (s DeleteContactPhotoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DeleteContactPhotoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DomainMembership: A Google Workspace Domain membership.
@@ -1035,9 +1038,9 @@ type DomainMembership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DomainMembership) MarshalJSON() ([]byte, error) {
+func (s DomainMembership) MarshalJSON() ([]byte, error) {
 	type NoMethod DomainMembership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EmailAddress: A person's email address.
@@ -1068,9 +1071,9 @@ type EmailAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EmailAddress) MarshalJSON() ([]byte, error) {
+func (s EmailAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod EmailAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1107,9 +1110,9 @@ type Event struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Event) MarshalJSON() ([]byte, error) {
+func (s Event) MarshalJSON() ([]byte, error) {
 	type NoMethod Event
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExternalId: An identifier from an external entity related to the person.
@@ -1138,9 +1141,9 @@ type ExternalId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExternalId) MarshalJSON() ([]byte, error) {
+func (s ExternalId) MarshalJSON() ([]byte, error) {
 	type NoMethod ExternalId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FieldMetadata: Metadata about a field.
@@ -1171,9 +1174,9 @@ type FieldMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FieldMetadata) MarshalJSON() ([]byte, error) {
+func (s FieldMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod FieldMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FileAs: The name that should be used to sort the person in a list.
@@ -1195,9 +1198,9 @@ type FileAs struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FileAs) MarshalJSON() ([]byte, error) {
+func (s FileAs) MarshalJSON() ([]byte, error) {
 	type NoMethod FileAs
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Gender: A person's gender.
@@ -1228,9 +1231,9 @@ type Gender struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Gender) MarshalJSON() ([]byte, error) {
+func (s Gender) MarshalJSON() ([]byte, error) {
 	type NoMethod Gender
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetPeopleResponse: The response to a get request for a list of people by
@@ -1254,9 +1257,9 @@ type GetPeopleResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetPeopleResponse) MarshalJSON() ([]byte, error) {
+func (s GetPeopleResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GetPeopleResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GroupClientData: Arbitrary client data that is populated by clients.
@@ -1279,9 +1282,9 @@ type GroupClientData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GroupClientData) MarshalJSON() ([]byte, error) {
+func (s GroupClientData) MarshalJSON() ([]byte, error) {
 	type NoMethod GroupClientData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImClient: A person's instant messaging client.
@@ -1317,9 +1320,9 @@ type ImClient struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImClient) MarshalJSON() ([]byte, error) {
+func (s ImClient) MarshalJSON() ([]byte, error) {
 	type NoMethod ImClient
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Interest: One of the person's interests.
@@ -1341,9 +1344,9 @@ type Interest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Interest) MarshalJSON() ([]byte, error) {
+func (s Interest) MarshalJSON() ([]byte, error) {
 	type NoMethod Interest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListConnectionsResponse: The response to a request for the authenticated
@@ -1380,9 +1383,9 @@ type ListConnectionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListConnectionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListConnectionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListConnectionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListContactGroupsResponse: The response to a list contact groups request.
@@ -1414,9 +1417,9 @@ type ListContactGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListContactGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListContactGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListContactGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDirectoryPeopleResponse: The response to a request for the authenticated
@@ -1447,9 +1450,9 @@ type ListDirectoryPeopleResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDirectoryPeopleResponse) MarshalJSON() ([]byte, error) {
+func (s ListDirectoryPeopleResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDirectoryPeopleResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOtherContactsResponse: The response to a request for the authenticated
@@ -1485,9 +1488,9 @@ type ListOtherContactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOtherContactsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOtherContactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOtherContactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Locale: A person's locale preference.
@@ -1510,9 +1513,9 @@ type Locale struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Locale) MarshalJSON() ([]byte, error) {
+func (s Locale) MarshalJSON() ([]byte, error) {
 	type NoMethod Locale
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A person's location.
@@ -1547,9 +1550,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Membership: A person's membership in a group. Only contact group memberships
@@ -1574,9 +1577,9 @@ type Membership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Membership) MarshalJSON() ([]byte, error) {
+func (s Membership) MarshalJSON() ([]byte, error) {
 	type NoMethod Membership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MiscKeyword: A person's miscellaneous keyword.
@@ -1618,9 +1621,9 @@ type MiscKeyword struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MiscKeyword) MarshalJSON() ([]byte, error) {
+func (s MiscKeyword) MarshalJSON() ([]byte, error) {
 	type NoMethod MiscKeyword
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyContactGroupMembersRequest: A request to modify an existing contact
@@ -1650,9 +1653,9 @@ type ModifyContactGroupMembersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyContactGroupMembersRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyContactGroupMembersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyContactGroupMembersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModifyContactGroupMembersResponse: The response to a modify contact group
@@ -1682,9 +1685,9 @@ type ModifyContactGroupMembersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyContactGroupMembersResponse) MarshalJSON() ([]byte, error) {
+func (s ModifyContactGroupMembersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyContactGroupMembersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Name: A person's name. If the name is a mononym, the family name is empty.
@@ -1735,9 +1738,9 @@ type Name struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Name) MarshalJSON() ([]byte, error) {
+func (s Name) MarshalJSON() ([]byte, error) {
 	type NoMethod Name
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Nickname: A person's nickname.
@@ -1772,9 +1775,9 @@ type Nickname struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Nickname) MarshalJSON() ([]byte, error) {
+func (s Nickname) MarshalJSON() ([]byte, error) {
 	type NoMethod Nickname
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Occupation: A person's occupation.
@@ -1796,9 +1799,9 @@ type Occupation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Occupation) MarshalJSON() ([]byte, error) {
+func (s Occupation) MarshalJSON() ([]byte, error) {
 	type NoMethod Occupation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Organization: A person's past or current organization. Overlapping date
@@ -1856,9 +1859,9 @@ type Organization struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Organization) MarshalJSON() ([]byte, error) {
+func (s Organization) MarshalJSON() ([]byte, error) {
 	type NoMethod Organization
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Person: Information about a person merged from various data sources such as
@@ -1982,9 +1985,9 @@ type Person struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Person) MarshalJSON() ([]byte, error) {
+func (s Person) MarshalJSON() ([]byte, error) {
 	type NoMethod Person
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PersonMetadata: The metadata about a person.
@@ -2026,9 +2029,9 @@ type PersonMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PersonMetadata) MarshalJSON() ([]byte, error) {
+func (s PersonMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod PersonMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PersonResponse: The response for a single person
@@ -2058,9 +2061,9 @@ type PersonResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PersonResponse) MarshalJSON() ([]byte, error) {
+func (s PersonResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PersonResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PhoneNumber: A person's phone number.
@@ -2095,9 +2098,9 @@ type PhoneNumber struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PhoneNumber) MarshalJSON() ([]byte, error) {
+func (s PhoneNumber) MarshalJSON() ([]byte, error) {
 	type NoMethod PhoneNumber
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Photo: A person's photo. A picture shown next to the person's name to help
@@ -2126,9 +2129,9 @@ type Photo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Photo) MarshalJSON() ([]byte, error) {
+func (s Photo) MarshalJSON() ([]byte, error) {
 	type NoMethod Photo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProfileMetadata: The metadata about a profile.
@@ -2161,9 +2164,9 @@ type ProfileMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProfileMetadata) MarshalJSON() ([]byte, error) {
+func (s ProfileMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ProfileMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Relation: A person's relation to another person.
@@ -2194,9 +2197,9 @@ type Relation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Relation) MarshalJSON() ([]byte, error) {
+func (s Relation) MarshalJSON() ([]byte, error) {
 	type NoMethod Relation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RelationshipInterest: **DEPRECATED**: No data will be returned A person's
@@ -2225,9 +2228,9 @@ type RelationshipInterest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RelationshipInterest) MarshalJSON() ([]byte, error) {
+func (s RelationshipInterest) MarshalJSON() ([]byte, error) {
 	type NoMethod RelationshipInterest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RelationshipStatus: **DEPRECATED**: No data will be returned A person's
@@ -2257,9 +2260,9 @@ type RelationshipStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RelationshipStatus) MarshalJSON() ([]byte, error) {
+func (s RelationshipStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod RelationshipStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Residence: **DEPRECATED**: Please use `person.locations` instead. A person's
@@ -2285,9 +2288,9 @@ type Residence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Residence) MarshalJSON() ([]byte, error) {
+func (s Residence) MarshalJSON() ([]byte, error) {
 	type NoMethod Residence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchDirectoryPeopleResponse: The response to a request for people in the
@@ -2316,9 +2319,9 @@ type SearchDirectoryPeopleResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchDirectoryPeopleResponse) MarshalJSON() ([]byte, error) {
+func (s SearchDirectoryPeopleResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchDirectoryPeopleResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchResponse: The response to a search request for the authenticated user,
@@ -2342,9 +2345,9 @@ type SearchResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchResponse) MarshalJSON() ([]byte, error) {
+func (s SearchResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchResult: A result of a search query.
@@ -2364,9 +2367,9 @@ type SearchResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchResult) MarshalJSON() ([]byte, error) {
+func (s SearchResult) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SipAddress: A person's SIP address. Session Initial Protocol addresses are
@@ -2397,9 +2400,9 @@ type SipAddress struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SipAddress) MarshalJSON() ([]byte, error) {
+func (s SipAddress) MarshalJSON() ([]byte, error) {
 	type NoMethod SipAddress
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Skill: A skill that the person has.
@@ -2421,9 +2424,9 @@ type Skill struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Skill) MarshalJSON() ([]byte, error) {
+func (s Skill) MarshalJSON() ([]byte, error) {
 	type NoMethod Skill
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Source: The source of a field.
@@ -2473,9 +2476,9 @@ type Source struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Source) MarshalJSON() ([]byte, error) {
+func (s Source) MarshalJSON() ([]byte, error) {
 	type NoMethod Source
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2507,9 +2510,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Tagline: **DEPRECATED**: No data will be returned A brief one-line
@@ -2532,9 +2535,9 @@ type Tagline struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Tagline) MarshalJSON() ([]byte, error) {
+func (s Tagline) MarshalJSON() ([]byte, error) {
 	type NoMethod Tagline
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateContactGroupRequest: A request to update an existing user contact
@@ -2565,9 +2568,9 @@ type UpdateContactGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateContactGroupRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateContactGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateContactGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateContactPhotoRequest: A request to update an existing contact's photo.
@@ -2609,9 +2612,9 @@ type UpdateContactPhotoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateContactPhotoRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateContactPhotoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateContactPhotoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateContactPhotoResponse: The response for updating a contact's photo.
@@ -2635,9 +2638,9 @@ type UpdateContactPhotoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateContactPhotoResponse) MarshalJSON() ([]byte, error) {
+func (s UpdateContactPhotoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateContactPhotoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Url: A person's associated URLs.
@@ -2667,9 +2670,9 @@ type Url struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Url) MarshalJSON() ([]byte, error) {
+func (s Url) MarshalJSON() ([]byte, error) {
 	type NoMethod Url
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserDefined: Arbitrary user data that is populated by the end users.
@@ -2693,9 +2696,9 @@ type UserDefined struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserDefined) MarshalJSON() ([]byte, error) {
+func (s UserDefined) MarshalJSON() ([]byte, error) {
 	type NoMethod UserDefined
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ContactGroupsBatchGetCall struct {
@@ -2774,16 +2777,16 @@ func (c *ContactGroupsBatchGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/contactGroups:batchGet")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.contactGroups.batchGet", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2819,9 +2822,11 @@ func (c *ContactGroupsBatchGetCall) Do(opts ...googleapi.CallOption) (*BatchGetC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.contactGroups.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2869,8 +2874,7 @@ func (c *ContactGroupsCreateCall) Header() http.Header {
 
 func (c *ContactGroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createcontactgrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.createcontactgrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2883,6 +2887,7 @@ func (c *ContactGroupsCreateCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.contactGroups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2917,9 +2922,11 @@ func (c *ContactGroupsCreateCall) Do(opts ...googleapi.CallOption) (*ContactGrou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.contactGroups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2974,12 +2981,11 @@ func (c *ContactGroupsDeleteCall) Header() http.Header {
 
 func (c *ContactGroupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resourceName}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2987,6 +2993,7 @@ func (c *ContactGroupsDeleteCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.contactGroups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3021,9 +3028,11 @@ func (c *ContactGroupsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.contactGroups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3099,12 +3108,11 @@ func (c *ContactGroupsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resourceName}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3112,6 +3120,7 @@ func (c *ContactGroupsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.contactGroups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3146,9 +3155,11 @@ func (c *ContactGroupsGetCall) Do(opts ...googleapi.CallOption) (*ContactGroup, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.contactGroups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3237,16 +3248,16 @@ func (c *ContactGroupsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/contactGroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.contactGroups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3282,9 +3293,11 @@ func (c *ContactGroupsListCall) Do(opts ...googleapi.CallOption) (*ListContactGr
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.contactGroups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3359,8 +3372,7 @@ func (c *ContactGroupsUpdateCall) Header() http.Header {
 
 func (c *ContactGroupsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatecontactgrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatecontactgrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3376,6 +3388,7 @@ func (c *ContactGroupsUpdateCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.contactGroups.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3410,9 +3423,11 @@ func (c *ContactGroupsUpdateCall) Do(opts ...googleapi.CallOption) (*ContactGrou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.contactGroups.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3463,8 +3478,7 @@ func (c *ContactGroupsMembersModifyCall) Header() http.Header {
 
 func (c *ContactGroupsMembersModifyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifycontactgroupmembersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifycontactgroupmembersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3480,6 +3494,7 @@ func (c *ContactGroupsMembersModifyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.contactGroups.members.modify", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3515,9 +3530,11 @@ func (c *ContactGroupsMembersModifyCall) Do(opts ...googleapi.CallOption) (*Modi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.contactGroups.members.modify", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3567,8 +3584,7 @@ func (c *OtherContactsCopyOtherContactToMyContactsGroupCall) Header() http.Heade
 
 func (c *OtherContactsCopyOtherContactToMyContactsGroupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.copyothercontacttomycontactsgrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.copyothercontacttomycontactsgrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3584,6 +3600,7 @@ func (c *OtherContactsCopyOtherContactToMyContactsGroupCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.otherContacts.copyOtherContactToMyContactsGroup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3618,9 +3635,11 @@ func (c *OtherContactsCopyOtherContactToMyContactsGroupCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.otherContacts.copyOtherContactToMyContactsGroup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3765,16 +3784,16 @@ func (c *OtherContactsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/otherContacts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.otherContacts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3810,9 +3829,11 @@ func (c *OtherContactsListCall) Do(opts ...googleapi.CallOption) (*ListOtherCont
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.otherContacts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3918,16 +3939,16 @@ func (c *OtherContactsSearchCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/otherContacts:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.otherContacts.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3962,9 +3983,11 @@ func (c *OtherContactsSearchCall) Do(opts ...googleapi.CallOption) (*SearchRespo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.otherContacts.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4010,8 +4033,7 @@ func (c *PeopleBatchCreateContactsCall) Header() http.Header {
 
 func (c *PeopleBatchCreateContactsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchcreatecontactsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchcreatecontactsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4024,6 +4046,7 @@ func (c *PeopleBatchCreateContactsCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.batchCreateContacts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4059,9 +4082,11 @@ func (c *PeopleBatchCreateContactsCall) Do(opts ...googleapi.CallOption) (*Batch
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.batchCreateContacts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4107,8 +4132,7 @@ func (c *PeopleBatchDeleteContactsCall) Header() http.Header {
 
 func (c *PeopleBatchDeleteContactsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchdeletecontactsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchdeletecontactsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4121,6 +4145,7 @@ func (c *PeopleBatchDeleteContactsCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.batchDeleteContacts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4155,9 +4180,11 @@ func (c *PeopleBatchDeleteContactsCall) Do(opts ...googleapi.CallOption) (*Empty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.batchDeleteContacts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4204,8 +4231,7 @@ func (c *PeopleBatchUpdateContactsCall) Header() http.Header {
 
 func (c *PeopleBatchUpdateContactsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdatecontactsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdatecontactsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4218,6 +4244,7 @@ func (c *PeopleBatchUpdateContactsCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.batchUpdateContacts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4253,9 +4280,11 @@ func (c *PeopleBatchUpdateContactsCall) Do(opts ...googleapi.CallOption) (*Batch
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.batchUpdateContacts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4336,8 +4365,7 @@ func (c *PeopleCreateContactCall) Header() http.Header {
 
 func (c *PeopleCreateContactCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.person)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.person)
 	if err != nil {
 		return nil, err
 	}
@@ -4350,6 +4378,7 @@ func (c *PeopleCreateContactCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.createContact", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4384,9 +4413,11 @@ func (c *PeopleCreateContactCall) Do(opts ...googleapi.CallOption) (*Person, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.createContact", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4434,12 +4465,11 @@ func (c *PeopleDeleteContactCall) Header() http.Header {
 
 func (c *PeopleDeleteContactCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resourceName}:deleteContact")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4447,6 +4477,7 @@ func (c *PeopleDeleteContactCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.deleteContact", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4481,9 +4512,11 @@ func (c *PeopleDeleteContactCall) Do(opts ...googleapi.CallOption) (*Empty, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.deleteContact", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4564,12 +4597,11 @@ func (c *PeopleDeleteContactPhotoCall) Header() http.Header {
 
 func (c *PeopleDeleteContactPhotoCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resourceName}:deleteContactPhoto")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4577,6 +4609,7 @@ func (c *PeopleDeleteContactPhotoCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.deleteContactPhoto", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4612,9 +4645,11 @@ func (c *PeopleDeleteContactPhotoCall) Do(opts ...googleapi.CallOption) (*Delete
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.deleteContactPhoto", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4720,12 +4755,11 @@ func (c *PeopleGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resourceName}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4733,6 +4767,7 @@ func (c *PeopleGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4767,9 +4802,11 @@ func (c *PeopleGetCall) Do(opts ...googleapi.CallOption) (*Person, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4880,16 +4917,16 @@ func (c *PeopleGetBatchGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/people:batchGet")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.getBatchGet", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4925,9 +4962,11 @@ func (c *PeopleGetBatchGetCall) Do(opts ...googleapi.CallOption) (*GetPeopleResp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.getBatchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5069,16 +5108,16 @@ func (c *PeopleListDirectoryPeopleCall) doRequest(alt string) (*http.Response, e
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/people:listDirectoryPeople")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.listDirectoryPeople", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5114,9 +5153,11 @@ func (c *PeopleListDirectoryPeopleCall) Do(opts ...googleapi.CallOption) (*ListD
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.listDirectoryPeople", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5245,16 +5286,16 @@ func (c *PeopleSearchContactsCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/people:searchContacts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.searchContacts", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5289,9 +5330,11 @@ func (c *PeopleSearchContactsCall) Do(opts ...googleapi.CallOption) (*SearchResp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.searchContacts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5415,16 +5458,16 @@ func (c *PeopleSearchDirectoryPeopleCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/people:searchDirectoryPeople")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.searchDirectoryPeople", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5460,9 +5503,11 @@ func (c *PeopleSearchDirectoryPeopleCall) Do(opts ...googleapi.CallOption) (*Sea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.searchDirectoryPeople", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5592,8 +5637,7 @@ func (c *PeopleUpdateContactCall) Header() http.Header {
 
 func (c *PeopleUpdateContactCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.person)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.person)
 	if err != nil {
 		return nil, err
 	}
@@ -5609,6 +5653,7 @@ func (c *PeopleUpdateContactCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.updateContact", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5643,9 +5688,11 @@ func (c *PeopleUpdateContactCall) Do(opts ...googleapi.CallOption) (*Person, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.updateContact", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5694,8 +5741,7 @@ func (c *PeopleUpdateContactPhotoCall) Header() http.Header {
 
 func (c *PeopleUpdateContactPhotoCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatecontactphotorequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatecontactphotorequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5711,6 +5757,7 @@ func (c *PeopleUpdateContactPhotoCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.updateContactPhoto", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5746,9 +5793,11 @@ func (c *PeopleUpdateContactPhotoCall) Do(opts ...googleapi.CallOption) (*Update
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.updateContactPhoto", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5921,12 +5970,11 @@ func (c *PeopleConnectionsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resourceName}/connections")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5934,6 +5982,7 @@ func (c *PeopleConnectionsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceName": c.resourceName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "people.people.connections.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5969,9 +6018,11 @@ func (c *PeopleConnectionsListCall) Do(opts ...googleapi.CallOption) (*ListConne
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "people.people.connections.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

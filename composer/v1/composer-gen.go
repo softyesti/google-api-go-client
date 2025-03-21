@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "composer:v1"
 const apiName = "composer"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -273,9 +276,9 @@ type AirflowMetadataRetentionPolicyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AirflowMetadataRetentionPolicyConfig) MarshalJSON() ([]byte, error) {
+func (s AirflowMetadataRetentionPolicyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AirflowMetadataRetentionPolicyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AllowedIpRange: Allowed IP range with user-provided description.
@@ -303,9 +306,9 @@ type AllowedIpRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllowedIpRange) MarshalJSON() ([]byte, error) {
+func (s AllowedIpRange) MarshalJSON() ([]byte, error) {
 	type NoMethod AllowedIpRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckUpgradeRequest: Request to check whether image upgrade will succeed.
@@ -343,9 +346,9 @@ type CheckUpgradeRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckUpgradeRequest) MarshalJSON() ([]byte, error) {
+func (s CheckUpgradeRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckUpgradeRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckUpgradeResponse: Message containing information about the result of an
@@ -383,9 +386,9 @@ type CheckUpgradeResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckUpgradeResponse) MarshalJSON() ([]byte, error) {
+func (s CheckUpgradeResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckUpgradeResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CidrBlock: CIDR block with an optional name.
@@ -407,9 +410,9 @@ type CidrBlock struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CidrBlock) MarshalJSON() ([]byte, error) {
+func (s CidrBlock) MarshalJSON() ([]byte, error) {
 	type NoMethod CidrBlock
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudDataLineageIntegration: Configuration for Cloud Data Lineage
@@ -430,9 +433,9 @@ type CloudDataLineageIntegration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudDataLineageIntegration) MarshalJSON() ([]byte, error) {
+func (s CloudDataLineageIntegration) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudDataLineageIntegration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComposerWorkload: Information about a single workload.
@@ -468,9 +471,9 @@ type ComposerWorkload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComposerWorkload) MarshalJSON() ([]byte, error) {
+func (s ComposerWorkload) MarshalJSON() ([]byte, error) {
 	type NoMethod ComposerWorkload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComposerWorkloadStatus: Workload status.
@@ -504,14 +507,14 @@ type ComposerWorkloadStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComposerWorkloadStatus) MarshalJSON() ([]byte, error) {
+func (s ComposerWorkloadStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod ComposerWorkloadStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DagProcessorResource: Configuration for resources used by Airflow DAG
 // processors. This field is supported for Cloud Composer environments in
-// versions composer-3.*.*-airflow-*.*.* and newer.
+// versions composer-3-airflow-*.*.*-build.* and newer.
 type DagProcessorResource struct {
 	// Count: Optional. The number of DAG processors. If not provided or set to 0,
 	// a single DAG processor instance will be created.
@@ -538,9 +541,9 @@ type DagProcessorResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DagProcessorResource) MarshalJSON() ([]byte, error) {
+func (s DagProcessorResource) MarshalJSON() ([]byte, error) {
 	type NoMethod DagProcessorResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *DagProcessorResource) UnmarshalJSON(data []byte) error {
@@ -584,9 +587,9 @@ type DataRetentionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataRetentionConfig) MarshalJSON() ([]byte, error) {
+func (s DataRetentionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DataRetentionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseConfig: The configuration of Cloud SQL instance that is used by the
@@ -617,9 +620,9 @@ type DatabaseConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DatabaseConfig) MarshalJSON() ([]byte, error) {
+func (s DatabaseConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DatabaseConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DatabaseFailoverRequest: Request to trigger database failover (only for
@@ -664,9 +667,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -699,14 +702,14 @@ type EncryptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionConfig) MarshalJSON() ([]byte, error) {
+func (s EncryptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Environment: An environment for running orchestration tasks.
 type Environment struct {
-	// Config: Configuration parameters for this environment.
+	// Config: Optional. Configuration parameters for this environment.
 	Config *EnvironmentConfig `json:"config,omitempty"`
 	// CreateTime: Output only. The time at which this environment was created.
 	CreateTime string `json:"createTime,omitempty"`
@@ -717,11 +720,13 @@ type Environment struct {
 	// [\p{Ll}\p{Lo}\p{N}_-]{0,63} * Both keys and values are additionally
 	// constrained to be <= 128 bytes in size.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name: The resource name of the environment, in the form:
+	// Name: Identifier. The resource name of the environment, in the form:
 	// "projects/{projectId}/locations/{locationId}/environments/{environmentId}"
 	// EnvironmentId must start with a lowercase letter followed by up to 63
 	// lowercase letters, numbers, or hyphens, and cannot end with a hyphen.
 	Name string `json:"name,omitempty"`
+	// SatisfiesPzi: Output only. Reserved for future use.
+	SatisfiesPzi bool `json:"satisfiesPzi,omitempty"`
 	// SatisfiesPzs: Output only. Reserved for future use.
 	SatisfiesPzs bool `json:"satisfiesPzs,omitempty"`
 	// State: The current state of the environment.
@@ -760,9 +765,9 @@ type Environment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Environment) MarshalJSON() ([]byte, error) {
+func (s Environment) MarshalJSON() ([]byte, error) {
 	type NoMethod Environment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EnvironmentConfig: Configuration information for an environment.
@@ -823,14 +828,15 @@ type EnvironmentConfig struct {
 	// feature is: - in case of private environment: enabled with no external
 	// networks allowlisted. - in case of public environment: disabled.
 	MasterAuthorizedNetworksConfig *MasterAuthorizedNetworksConfig `json:"masterAuthorizedNetworksConfig,omitempty"`
-	// NodeConfig: The configuration used for the Kubernetes Engine cluster.
+	// NodeConfig: Optional. The configuration used for the Kubernetes Engine
+	// cluster.
 	NodeConfig *NodeConfig `json:"nodeConfig,omitempty"`
 	// NodeCount: The number of nodes in the Kubernetes Engine cluster that will be
 	// used to run this environment. This field is supported for Cloud Composer
 	// environments in versions composer-1.*.*-airflow-*.*.*.
 	NodeCount int64 `json:"nodeCount,omitempty"`
-	// PrivateEnvironmentConfig: The configuration used for the Private IP Cloud
-	// Composer environment.
+	// PrivateEnvironmentConfig: Optional. The configuration used for the Private
+	// IP Cloud Composer environment.
 	PrivateEnvironmentConfig *PrivateEnvironmentConfig `json:"privateEnvironmentConfig,omitempty"`
 	// RecoveryConfig: Optional. The Recovery settings configuration of an
 	// environment. This field is supported for Cloud Composer environments in
@@ -845,7 +851,7 @@ type EnvironmentConfig struct {
 	// parameters.
 	//   "HIGH_RESILIENCE" - Enabled High Resilience mode, including Cloud SQL HA.
 	ResilienceMode string `json:"resilienceMode,omitempty"`
-	// SoftwareConfig: The configuration settings for software inside the
+	// SoftwareConfig: Optional. The configuration settings for software inside the
 	// environment.
 	SoftwareConfig *SoftwareConfig `json:"softwareConfig,omitempty"`
 	// WebServerConfig: Optional. The configuration settings for the Airflow web
@@ -874,9 +880,9 @@ type EnvironmentConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnvironmentConfig) MarshalJSON() ([]byte, error) {
+func (s EnvironmentConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EnvironmentConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecuteAirflowCommandRequest: Execute Airflow Command request.
@@ -903,9 +909,9 @@ type ExecuteAirflowCommandRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecuteAirflowCommandRequest) MarshalJSON() ([]byte, error) {
+func (s ExecuteAirflowCommandRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecuteAirflowCommandRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExecuteAirflowCommandResponse: Response to ExecuteAirflowCommandRequest.
@@ -934,9 +940,9 @@ type ExecuteAirflowCommandResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExecuteAirflowCommandResponse) MarshalJSON() ([]byte, error) {
+func (s ExecuteAirflowCommandResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ExecuteAirflowCommandResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExitInfo: Information about how a command ended.
@@ -958,9 +964,9 @@ type ExitInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExitInfo) MarshalJSON() ([]byte, error) {
+func (s ExitInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ExitInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchDatabasePropertiesResponse: Response for
@@ -993,9 +999,9 @@ type FetchDatabasePropertiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchDatabasePropertiesResponse) MarshalJSON() ([]byte, error) {
+func (s FetchDatabasePropertiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchDatabasePropertiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IPAllocationPolicy: Configuration for controlling how IPs are allocated in
@@ -1050,9 +1056,9 @@ type IPAllocationPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IPAllocationPolicy) MarshalJSON() ([]byte, error) {
+func (s IPAllocationPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod IPAllocationPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageVersion: ImageVersion information
@@ -1086,9 +1092,9 @@ type ImageVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageVersion) MarshalJSON() ([]byte, error) {
+func (s ImageVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Line: Contains information about a single line from logs.
@@ -1110,9 +1116,9 @@ type Line struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Line) MarshalJSON() ([]byte, error) {
+func (s Line) MarshalJSON() ([]byte, error) {
 	type NoMethod Line
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListEnvironmentsResponse: The environments in a project and location.
@@ -1138,9 +1144,9 @@ type ListEnvironmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListEnvironmentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListEnvironmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListEnvironmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListImageVersionsResponse: The ImageVersions in a project and location.
@@ -1165,9 +1171,9 @@ type ListImageVersionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListImageVersionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListImageVersionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListImageVersionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1193,9 +1199,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUserWorkloadsConfigMapsResponse: The user workloads ConfigMaps for a
@@ -1222,9 +1228,9 @@ type ListUserWorkloadsConfigMapsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUserWorkloadsConfigMapsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUserWorkloadsConfigMapsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUserWorkloadsConfigMapsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUserWorkloadsSecretsResponse: The user workloads Secrets for a given
@@ -1251,9 +1257,9 @@ type ListUserWorkloadsSecretsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUserWorkloadsSecretsResponse) MarshalJSON() ([]byte, error) {
+func (s ListUserWorkloadsSecretsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUserWorkloadsSecretsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListWorkloadsResponse: Response to ListWorkloadsRequest.
@@ -1278,9 +1284,9 @@ type ListWorkloadsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListWorkloadsResponse) MarshalJSON() ([]byte, error) {
+func (s ListWorkloadsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListWorkloadsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoadSnapshotRequest: Request to load a snapshot into a Cloud Composer
@@ -1314,9 +1320,9 @@ type LoadSnapshotRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoadSnapshotRequest) MarshalJSON() ([]byte, error) {
+func (s LoadSnapshotRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LoadSnapshotRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoadSnapshotResponse: Response to LoadSnapshotRequest.
@@ -1354,9 +1360,9 @@ type MaintenanceWindow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MaintenanceWindow) MarshalJSON() ([]byte, error) {
+func (s MaintenanceWindow) MarshalJSON() ([]byte, error) {
 	type NoMethod MaintenanceWindow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MasterAuthorizedNetworksConfig: Configuration options for the master
@@ -1368,7 +1374,8 @@ type MasterAuthorizedNetworksConfig struct {
 	// CidrBlocks: Up to 50 external networks that could access Kubernetes master
 	// through HTTPS.
 	CidrBlocks []*CidrBlock `json:"cidrBlocks,omitempty"`
-	// Enabled: Whether or not master authorized networks feature is enabled.
+	// Enabled: Optional. Whether or not master authorized networks feature is
+	// enabled.
 	Enabled bool `json:"enabled,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CidrBlocks") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1383,15 +1390,15 @@ type MasterAuthorizedNetworksConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MasterAuthorizedNetworksConfig) MarshalJSON() ([]byte, error) {
+func (s MasterAuthorizedNetworksConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod MasterAuthorizedNetworksConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkingConfig: Configuration options for networking connections in the
 // Composer 2 environment.
 type NetworkingConfig struct {
-	// ConnectionType: Optional. Indicates the user requested specifc connection
+	// ConnectionType: Optional. Indicates the user requested specific connection
 	// type between Tenant and Customer projects. You cannot set networking
 	// connection type in public IP environment.
 	//
@@ -1417,9 +1424,9 @@ type NetworkingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkingConfig) MarshalJSON() ([]byte, error) {
+func (s NetworkingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NodeConfig: The configuration information for the Kubernetes Engine nodes
@@ -1431,7 +1438,7 @@ type NodeConfig struct {
 	// overlap, IPs from this range will not be accessible in the user's VPC
 	// network. Cannot be updated. If not specified, the default value of
 	// '100.64.128.0/20' is used. This field is supported for Cloud Composer
-	// environments in versions composer-3.*.*-airflow-*.*.* and newer.
+	// environments in versions composer-3-airflow-*.*.*-build.* and newer.
 	ComposerInternalIpv4CidrBlock string `json:"composerInternalIpv4CidrBlock,omitempty"`
 	// ComposerNetworkAttachment: Optional. Network Attachment that Cloud Composer
 	// environment is connected to, which provides connectivity with a user's VPC
@@ -1442,7 +1449,7 @@ type NodeConfig struct {
 	// be provided in format
 	// projects/{project}/regions/{region}/networkAttachments/{networkAttachment}.
 	// This field is supported for Cloud Composer environments in versions
-	// composer-3.*.*-airflow-*.*.* and newer.
+	// composer-3-airflow-*.*.*-build.* and newer.
 	ComposerNetworkAttachment string `json:"composerNetworkAttachment,omitempty"`
 	// DiskSizeGb: Optional. The disk size in GB used for node VMs. Minimum size is
 	// 30GB. If unspecified, defaults to 100GB. Cannot be updated. This field is
@@ -1535,9 +1542,9 @@ type NodeConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NodeConfig) MarshalJSON() ([]byte, error) {
+func (s NodeConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod NodeConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1582,9 +1589,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Metadata describing an operation.
@@ -1635,9 +1642,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PollAirflowCommandRequest: Poll Airflow Command request.
@@ -1663,9 +1670,9 @@ type PollAirflowCommandRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PollAirflowCommandRequest) MarshalJSON() ([]byte, error) {
+func (s PollAirflowCommandRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PollAirflowCommandRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PollAirflowCommandResponse: Response to PollAirflowCommandRequest.
@@ -1694,9 +1701,9 @@ type PollAirflowCommandResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PollAirflowCommandResponse) MarshalJSON() ([]byte, error) {
+func (s PollAirflowCommandResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PollAirflowCommandResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrivateClusterConfig: Configuration options for the private GKE cluster in a
@@ -1728,9 +1735,9 @@ type PrivateClusterConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrivateClusterConfig) MarshalJSON() ([]byte, error) {
+func (s PrivateClusterConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PrivateClusterConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrivateEnvironmentConfig: The configuration information for configuring a
@@ -1762,7 +1769,7 @@ type PrivateEnvironmentConfig struct {
 	// `NodeConfig.network` and `NodeConfig.subnetwork` fields or
 	// `NodeConfig.composer_network_attachment` field are specified). If `false`,
 	// the builds also have access to the internet. This field is supported for
-	// Cloud Composer environments in versions composer-3.*.*-airflow-*.*.* and
+	// Cloud Composer environments in versions composer-3-airflow-*.*.*-build.* and
 	// newer.
 	EnablePrivateBuildsOnly bool `json:"enablePrivateBuildsOnly,omitempty"`
 	// EnablePrivateEnvironment: Optional. If `true`, a Private IP Cloud Composer
@@ -1806,9 +1813,9 @@ type PrivateEnvironmentConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrivateEnvironmentConfig) MarshalJSON() ([]byte, error) {
+func (s PrivateEnvironmentConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PrivateEnvironmentConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RecoveryConfig: The Recovery settings of an environment.
@@ -1829,9 +1836,9 @@ type RecoveryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RecoveryConfig) MarshalJSON() ([]byte, error) {
+func (s RecoveryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RecoveryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SaveSnapshotRequest: Request to create a snapshot of a Cloud Composer
@@ -1853,9 +1860,9 @@ type SaveSnapshotRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SaveSnapshotRequest) MarshalJSON() ([]byte, error) {
+func (s SaveSnapshotRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SaveSnapshotRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SaveSnapshotResponse: Response to SaveSnapshotRequest.
@@ -1877,9 +1884,9 @@ type SaveSnapshotResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SaveSnapshotResponse) MarshalJSON() ([]byte, error) {
+func (s SaveSnapshotResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SaveSnapshotResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ScheduledSnapshotsConfig: The configuration for scheduled snapshot creation
@@ -1910,9 +1917,9 @@ type ScheduledSnapshotsConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ScheduledSnapshotsConfig) MarshalJSON() ([]byte, error) {
+func (s ScheduledSnapshotsConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ScheduledSnapshotsConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SchedulerResource: Configuration for resources used by Airflow schedulers.
@@ -1940,9 +1947,9 @@ type SchedulerResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SchedulerResource) MarshalJSON() ([]byte, error) {
+func (s SchedulerResource) MarshalJSON() ([]byte, error) {
 	type NoMethod SchedulerResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *SchedulerResource) UnmarshalJSON(data []byte) error {
@@ -1991,9 +1998,10 @@ type SoftwareConfig struct {
 	// `GKE_CLUSTER_NAME` * `SQL_DATABASE` * `SQL_INSTANCE` * `SQL_PASSWORD` *
 	// `SQL_PROJECT` * `SQL_REGION` * `SQL_USER`
 	EnvVariables map[string]string `json:"envVariables,omitempty"`
-	// ImageVersion: The version of the software running in the environment. This
-	// encapsulates both the version of Cloud Composer functionality and the
-	// version of Apache Airflow. It must match the regular expression
+	// ImageVersion: Optional. The version of the software running in the
+	// environment. This encapsulates both the version of Cloud Composer
+	// functionality and the version of Apache Airflow. It must match the regular
+	// expression
 	// `composer-([0-9]+(\.[0-9]+\.[0-9]+(-preview\.[0-9]+)?)?|latest)-airflow-([0-9
 	// ]+(\.[0-9]+(\.[0-9]+)?)?)`. When used as input, the server also checks if
 	// the provided version is supported and denies the request for an unsupported
@@ -2031,7 +2039,7 @@ type SoftwareConfig struct {
 	// WebServerPluginsMode: Optional. Whether or not the web server uses custom
 	// plugins. If unspecified, the field defaults to `PLUGINS_ENABLED`. This field
 	// is supported for Cloud Composer environments in versions
-	// composer-3.*.*-airflow-*.*.* and newer.
+	// composer-3-airflow-*.*.*-build.* and newer.
 	//
 	// Possible values:
 	//   "WEB_SERVER_PLUGINS_MODE_UNSPECIFIED" - Default mode.
@@ -2051,9 +2059,9 @@ type SoftwareConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SoftwareConfig) MarshalJSON() ([]byte, error) {
+func (s SoftwareConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SoftwareConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2085,9 +2093,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopAirflowCommandRequest: Stop Airflow Command request.
@@ -2114,9 +2122,9 @@ type StopAirflowCommandRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StopAirflowCommandRequest) MarshalJSON() ([]byte, error) {
+func (s StopAirflowCommandRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod StopAirflowCommandRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StopAirflowCommandResponse: Response to StopAirflowCommandRequest.
@@ -2141,9 +2149,9 @@ type StopAirflowCommandResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StopAirflowCommandResponse) MarshalJSON() ([]byte, error) {
+func (s StopAirflowCommandResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod StopAirflowCommandResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageConfig: The configuration for data storage in the environment.
@@ -2164,9 +2172,9 @@ type StorageConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageConfig) MarshalJSON() ([]byte, error) {
+func (s StorageConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TaskLogsRetentionConfig: The configuration setting for Task Logs.
@@ -2193,9 +2201,9 @@ type TaskLogsRetentionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TaskLogsRetentionConfig) MarshalJSON() ([]byte, error) {
+func (s TaskLogsRetentionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod TaskLogsRetentionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TriggererResource: Configuration for resources used by Airflow triggerers.
@@ -2220,9 +2228,9 @@ type TriggererResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TriggererResource) MarshalJSON() ([]byte, error) {
+func (s TriggererResource) MarshalJSON() ([]byte, error) {
 	type NoMethod TriggererResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *TriggererResource) UnmarshalJSON(data []byte) error {
@@ -2246,7 +2254,8 @@ func (s *TriggererResource) UnmarshalJSON(data []byte) error {
 type UserWorkloadsConfigMap struct {
 	// Data: Optional. The "data" field of Kubernetes ConfigMap, organized in
 	// key-value pairs. For details see:
-	// https://kubernetes.io/docs/concepts/configuration/configmap/
+	// https://kubernetes.io/docs/concepts/configuration/configmap/ Example: {
+	// "example_key": "example_value", "another_key": "another_value" }
 	Data map[string]string `json:"data,omitempty"`
 	// Name: Identifier. The resource name of the ConfigMap, in the form:
 	// "projects/{projectId}/locations/{locationId}/environments/{environmentId}/use
@@ -2268,9 +2277,9 @@ type UserWorkloadsConfigMap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserWorkloadsConfigMap) MarshalJSON() ([]byte, error) {
+func (s UserWorkloadsConfigMap) MarshalJSON() ([]byte, error) {
 	type NoMethod UserWorkloadsConfigMap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserWorkloadsSecret: User workloads Secret used by Airflow tasks that run
@@ -2280,6 +2289,8 @@ type UserWorkloadsSecret struct {
 	// key-value pairs, which can contain sensitive values such as a password, a
 	// token, or a key. The values for all keys have to be base64-encoded strings.
 	// For details see: https://kubernetes.io/docs/concepts/configuration/secret/
+	// Example: { "example": "ZXhhbXBsZV92YWx1ZQ==", "another-example":
+	// "YW5vdGhlcl9leGFtcGxlX3ZhbHVl" }
 	Data map[string]string `json:"data,omitempty"`
 	// Name: Identifier. The resource name of the Secret, in the form:
 	// "projects/{projectId}/locations/{locationId}/environments/{environmentId}/use
@@ -2301,9 +2312,9 @@ type UserWorkloadsSecret struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserWorkloadsSecret) MarshalJSON() ([]byte, error) {
+func (s UserWorkloadsSecret) MarshalJSON() ([]byte, error) {
 	type NoMethod UserWorkloadsSecret
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebServerConfig: The configuration settings for the Airflow web server App
@@ -2329,9 +2340,9 @@ type WebServerConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebServerConfig) MarshalJSON() ([]byte, error) {
+func (s WebServerConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod WebServerConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebServerNetworkAccessControl: Network-level access control policy for the
@@ -2352,9 +2363,9 @@ type WebServerNetworkAccessControl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebServerNetworkAccessControl) MarshalJSON() ([]byte, error) {
+func (s WebServerNetworkAccessControl) MarshalJSON() ([]byte, error) {
 	type NoMethod WebServerNetworkAccessControl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WebServerResource: Configuration for resources used by Airflow web server.
@@ -2378,9 +2389,9 @@ type WebServerResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WebServerResource) MarshalJSON() ([]byte, error) {
+func (s WebServerResource) MarshalJSON() ([]byte, error) {
 	type NoMethod WebServerResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *WebServerResource) UnmarshalJSON(data []byte) error {
@@ -2428,9 +2439,9 @@ type WorkerResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkerResource) MarshalJSON() ([]byte, error) {
+func (s WorkerResource) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkerResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *WorkerResource) UnmarshalJSON(data []byte) error {
@@ -2457,7 +2468,7 @@ func (s *WorkerResource) UnmarshalJSON(data []byte) error {
 type WorkloadsConfig struct {
 	// DagProcessor: Optional. Resources used by Airflow DAG processors. This field
 	// is supported for Cloud Composer environments in versions
-	// composer-3.*.*-airflow-*.*.* and newer.
+	// composer-3-airflow-*.*.*-build.* and newer.
 	DagProcessor *DagProcessorResource `json:"dagProcessor,omitempty"`
 	// Scheduler: Optional. Resources used by Airflow schedulers.
 	Scheduler *SchedulerResource `json:"scheduler,omitempty"`
@@ -2480,9 +2491,9 @@ type WorkloadsConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WorkloadsConfig) MarshalJSON() ([]byte, error) {
+func (s WorkloadsConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod WorkloadsConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsEnvironmentsCheckUpgradeCall struct {
@@ -2532,8 +2543,7 @@ func (c *ProjectsLocationsEnvironmentsCheckUpgradeCall) Header() http.Header {
 
 func (c *ProjectsLocationsEnvironmentsCheckUpgradeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.checkupgraderequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.checkupgraderequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2549,6 +2559,7 @@ func (c *ProjectsLocationsEnvironmentsCheckUpgradeCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"environment": c.environment,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.checkUpgrade", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2583,9 +2594,11 @@ func (c *ProjectsLocationsEnvironmentsCheckUpgradeCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.checkUpgrade", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2634,8 +2647,7 @@ func (c *ProjectsLocationsEnvironmentsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsEnvironmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.environment)
 	if err != nil {
 		return nil, err
 	}
@@ -2651,6 +2663,7 @@ func (c *ProjectsLocationsEnvironmentsCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2685,9 +2698,11 @@ func (c *ProjectsLocationsEnvironmentsCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2737,8 +2752,7 @@ func (c *ProjectsLocationsEnvironmentsDatabaseFailoverCall) Header() http.Header
 
 func (c *ProjectsLocationsEnvironmentsDatabaseFailoverCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.databasefailoverrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.databasefailoverrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2754,6 +2768,7 @@ func (c *ProjectsLocationsEnvironmentsDatabaseFailoverCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"environment": c.environment,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.databaseFailover", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2788,9 +2803,11 @@ func (c *ProjectsLocationsEnvironmentsDatabaseFailoverCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.databaseFailover", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2837,12 +2854,11 @@ func (c *ProjectsLocationsEnvironmentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsEnvironmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2850,6 +2866,7 @@ func (c *ProjectsLocationsEnvironmentsDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2884,9 +2901,11 @@ func (c *ProjectsLocationsEnvironmentsDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2935,8 +2954,7 @@ func (c *ProjectsLocationsEnvironmentsExecuteAirflowCommandCall) Header() http.H
 
 func (c *ProjectsLocationsEnvironmentsExecuteAirflowCommandCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.executeairflowcommandrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.executeairflowcommandrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2952,6 +2970,7 @@ func (c *ProjectsLocationsEnvironmentsExecuteAirflowCommandCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"environment": c.environment,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.executeAirflowCommand", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2987,9 +3006,11 @@ func (c *ProjectsLocationsEnvironmentsExecuteAirflowCommandCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.executeAirflowCommand", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3048,12 +3069,11 @@ func (c *ProjectsLocationsEnvironmentsFetchDatabasePropertiesCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+environment}:fetchDatabaseProperties")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3061,6 +3081,7 @@ func (c *ProjectsLocationsEnvironmentsFetchDatabasePropertiesCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"environment": c.environment,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.fetchDatabaseProperties", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3096,9 +3117,11 @@ func (c *ProjectsLocationsEnvironmentsFetchDatabasePropertiesCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.fetchDatabaseProperties", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3157,12 +3180,11 @@ func (c *ProjectsLocationsEnvironmentsGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3170,6 +3192,7 @@ func (c *ProjectsLocationsEnvironmentsGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3204,9 +3227,11 @@ func (c *ProjectsLocationsEnvironmentsGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3279,12 +3304,11 @@ func (c *ProjectsLocationsEnvironmentsListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/environments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3292,6 +3316,7 @@ func (c *ProjectsLocationsEnvironmentsListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3327,9 +3352,11 @@ func (c *ProjectsLocationsEnvironmentsListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3401,8 +3428,7 @@ func (c *ProjectsLocationsEnvironmentsLoadSnapshotCall) Header() http.Header {
 
 func (c *ProjectsLocationsEnvironmentsLoadSnapshotCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.loadsnapshotrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.loadsnapshotrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3418,6 +3444,7 @@ func (c *ProjectsLocationsEnvironmentsLoadSnapshotCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"environment": c.environment,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.loadSnapshot", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3452,9 +3479,11 @@ func (c *ProjectsLocationsEnvironmentsLoadSnapshotCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.loadSnapshot", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3585,8 +3614,7 @@ func (c *ProjectsLocationsEnvironmentsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsEnvironmentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.environment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.environment)
 	if err != nil {
 		return nil, err
 	}
@@ -3602,6 +3630,7 @@ func (c *ProjectsLocationsEnvironmentsPatchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3636,9 +3665,11 @@ func (c *ProjectsLocationsEnvironmentsPatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3687,8 +3718,7 @@ func (c *ProjectsLocationsEnvironmentsPollAirflowCommandCall) Header() http.Head
 
 func (c *ProjectsLocationsEnvironmentsPollAirflowCommandCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pollairflowcommandrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pollairflowcommandrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3704,6 +3734,7 @@ func (c *ProjectsLocationsEnvironmentsPollAirflowCommandCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"environment": c.environment,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.pollAirflowCommand", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3739,9 +3770,11 @@ func (c *ProjectsLocationsEnvironmentsPollAirflowCommandCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.pollAirflowCommand", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3792,8 +3825,7 @@ func (c *ProjectsLocationsEnvironmentsSaveSnapshotCall) Header() http.Header {
 
 func (c *ProjectsLocationsEnvironmentsSaveSnapshotCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.savesnapshotrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.savesnapshotrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3809,6 +3841,7 @@ func (c *ProjectsLocationsEnvironmentsSaveSnapshotCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"environment": c.environment,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.saveSnapshot", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3843,9 +3876,11 @@ func (c *ProjectsLocationsEnvironmentsSaveSnapshotCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.saveSnapshot", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3894,8 +3929,7 @@ func (c *ProjectsLocationsEnvironmentsStopAirflowCommandCall) Header() http.Head
 
 func (c *ProjectsLocationsEnvironmentsStopAirflowCommandCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.stopairflowcommandrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.stopairflowcommandrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3911,6 +3945,7 @@ func (c *ProjectsLocationsEnvironmentsStopAirflowCommandCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"environment": c.environment,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.stopAirflowCommand", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3946,9 +3981,11 @@ func (c *ProjectsLocationsEnvironmentsStopAirflowCommandCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.stopAirflowCommand", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3962,7 +3999,7 @@ type ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsCreateCall struct {
 }
 
 // Create: Creates a user workloads ConfigMap. This method is supported for
-// Cloud Composer environments in versions composer-3.*.*-airflow-*.*.* and
+// Cloud Composer environments in versions composer-3-airflow-*.*.*-build.* and
 // newer.
 //
 //   - parent: The environment name to create a ConfigMap for, in the form:
@@ -3999,8 +4036,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsCreateCall) Header(
 
 func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userworkloadsconfigmap)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userworkloadsconfigmap)
 	if err != nil {
 		return nil, err
 	}
@@ -4016,6 +4052,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsCreateCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4051,9 +4088,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsCreateCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4066,7 +4105,7 @@ type ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsDeleteCall struct {
 }
 
 // Delete: Deletes a user workloads ConfigMap. This method is supported for
-// Cloud Composer environments in versions composer-3.*.*-airflow-*.*.* and
+// Cloud Composer environments in versions composer-3-airflow-*.*.*-build.* and
 // newer.
 //
 //   - name: The ConfigMap to delete, in the form:
@@ -4103,12 +4142,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsDeleteCall) Header(
 
 func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4116,6 +4154,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsDeleteCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4150,9 +4189,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsDeleteCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4166,7 +4207,7 @@ type ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsGetCall struct {
 }
 
 // Get: Gets an existing user workloads ConfigMap. This method is supported for
-// Cloud Composer environments in versions composer-3.*.*-airflow-*.*.* and
+// Cloud Composer environments in versions composer-3-airflow-*.*.*-build.* and
 // newer.
 //
 //   - name: The resource name of the ConfigMap to get, in the form:
@@ -4214,12 +4255,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsGetCall) doRequest(
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4227,6 +4267,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsGetCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4262,9 +4303,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsGetCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4278,7 +4321,8 @@ type ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsListCall struct {
 }
 
 // List: Lists user workloads ConfigMaps. This method is supported for Cloud
-// Composer environments in versions composer-3.*.*-airflow-*.*.* and newer.
+// Composer environments in versions composer-3-airflow-*.*.*-build.* and
+// newer.
 //
 //   - parent: List ConfigMaps in the given environment, in the form:
 //     "projects/{projectId}/locations/{locationId}/environments/{environmentId}".
@@ -4338,12 +4382,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsListCall) doRequest
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/userWorkloadsConfigMaps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4351,6 +4394,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsListCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4386,9 +4430,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsListCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4423,7 +4469,7 @@ type ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsUpdateCall struct {
 }
 
 // Update: Updates a user workloads ConfigMap. This method is supported for
-// Cloud Composer environments in versions composer-3.*.*-airflow-*.*.* and
+// Cloud Composer environments in versions composer-3-airflow-*.*.*-build.* and
 // newer.
 //
 //   - name: Identifier. The resource name of the ConfigMap, in the form:
@@ -4461,8 +4507,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsUpdateCall) Header(
 
 func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userworkloadsconfigmap)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userworkloadsconfigmap)
 	if err != nil {
 		return nil, err
 	}
@@ -4478,6 +4523,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsUpdateCall) doReque
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4513,9 +4559,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsConfigMapsUpdateCall) Do(opts
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsConfigMaps.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4529,7 +4577,8 @@ type ProjectsLocationsEnvironmentsUserWorkloadsSecretsCreateCall struct {
 }
 
 // Create: Creates a user workloads Secret. This method is supported for Cloud
-// Composer environments in versions composer-3.*.*-airflow-*.*.* and newer.
+// Composer environments in versions composer-3-airflow-*.*.*-build.* and
+// newer.
 //
 //   - parent: The environment name to create a Secret for, in the form:
 //     "projects/{projectId}/locations/{locationId}/environments/{environmentId}".
@@ -4565,8 +4614,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsCreateCall) Header() h
 
 func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userworkloadssecret)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userworkloadssecret)
 	if err != nil {
 		return nil, err
 	}
@@ -4582,6 +4630,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsCreateCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4617,9 +4666,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsCreateCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4632,7 +4683,8 @@ type ProjectsLocationsEnvironmentsUserWorkloadsSecretsDeleteCall struct {
 }
 
 // Delete: Deletes a user workloads Secret. This method is supported for Cloud
-// Composer environments in versions composer-3.*.*-airflow-*.*.* and newer.
+// Composer environments in versions composer-3-airflow-*.*.*-build.* and
+// newer.
 //
 //   - name: The Secret to delete, in the form:
 //     "projects/{projectId}/locations/{locationId}/environments/{environmentId}/u
@@ -4668,12 +4720,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsDeleteCall) Header() h
 
 func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4681,6 +4732,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsDeleteCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4715,9 +4767,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsDeleteCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4732,7 +4786,7 @@ type ProjectsLocationsEnvironmentsUserWorkloadsSecretsGetCall struct {
 
 // Get: Gets an existing user workloads Secret. Values of the "data" field in
 // the response are cleared. This method is supported for Cloud Composer
-// environments in versions composer-3.*.*-airflow-*.*.* and newer.
+// environments in versions composer-3-airflow-*.*.*-build.* and newer.
 //
 //   - name: The resource name of the Secret to get, in the form:
 //     "projects/{projectId}/locations/{locationId}/environments/{environmentId}/u
@@ -4779,12 +4833,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsGetCall) doRequest(alt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4792,6 +4845,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsGetCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4827,9 +4881,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsGetCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4843,7 +4899,8 @@ type ProjectsLocationsEnvironmentsUserWorkloadsSecretsListCall struct {
 }
 
 // List: Lists user workloads Secrets. This method is supported for Cloud
-// Composer environments in versions composer-3.*.*-airflow-*.*.* and newer.
+// Composer environments in versions composer-3-airflow-*.*.*-build.* and
+// newer.
 //
 //   - parent: List Secrets in the given environment, in the form:
 //     "projects/{projectId}/locations/{locationId}/environments/{environmentId}".
@@ -4903,12 +4960,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsListCall) doRequest(al
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/userWorkloadsSecrets")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4916,6 +4972,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsListCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4951,9 +5008,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsListCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4988,7 +5047,8 @@ type ProjectsLocationsEnvironmentsUserWorkloadsSecretsUpdateCall struct {
 }
 
 // Update: Updates a user workloads Secret. This method is supported for Cloud
-// Composer environments in versions composer-3.*.*-airflow-*.*.* and newer.
+// Composer environments in versions composer-3-airflow-*.*.*-build.* and
+// newer.
 //
 //   - name: Identifier. The resource name of the Secret, in the form:
 //     "projects/{projectId}/locations/{locationId}/environments/{environmentId}/u
@@ -5025,8 +5085,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsUpdateCall) Header() h
 
 func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.userworkloadssecret)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.userworkloadssecret)
 	if err != nil {
 		return nil, err
 	}
@@ -5042,6 +5101,7 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsUpdateCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5077,9 +5137,11 @@ func (c *ProjectsLocationsEnvironmentsUserWorkloadsSecretsUpdateCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.userWorkloadsSecrets.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5094,7 +5156,7 @@ type ProjectsLocationsEnvironmentsWorkloadsListCall struct {
 
 // List: Lists workloads in a Cloud Composer environment. Workload is a unit
 // that runs a single Composer component. This method is supported for Cloud
-// Composer environments in versions composer-3.*.*-airflow-*.*.* and newer.
+// Composer environments in versions composer-2.*.*-airflow-*.*.* and newer.
 //
 //   - parent: The environment name to get workloads for, in the form:
 //     "projects/{projectId}/locations/{locationId}/environments/{environmentId}".
@@ -5164,12 +5226,11 @@ func (c *ProjectsLocationsEnvironmentsWorkloadsListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/workloads")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5177,6 +5238,7 @@ func (c *ProjectsLocationsEnvironmentsWorkloadsListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.workloads.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5212,9 +5274,11 @@ func (c *ProjectsLocationsEnvironmentsWorkloadsListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.environments.workloads.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5315,12 +5379,11 @@ func (c *ProjectsLocationsImageVersionsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/imageVersions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5328,6 +5391,7 @@ func (c *ProjectsLocationsImageVersionsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.imageVersions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5363,9 +5427,11 @@ func (c *ProjectsLocationsImageVersionsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.imageVersions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5435,12 +5501,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5448,6 +5513,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5482,9 +5548,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5544,12 +5612,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5557,6 +5624,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5591,9 +5659,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5672,12 +5742,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5685,6 +5754,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "composer.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5720,9 +5790,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "composer.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

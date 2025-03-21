@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "artifactregistry:v1"
 const apiName = "artifactregistry"
@@ -125,7 +128,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,13 +148,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -203,6 +206,7 @@ type ProjectsLocationsOperationsService struct {
 func NewProjectsLocationsRepositoriesService(s *Service) *ProjectsLocationsRepositoriesService {
 	rs := &ProjectsLocationsRepositoriesService{s: s}
 	rs.AptArtifacts = NewProjectsLocationsRepositoriesAptArtifactsService(s)
+	rs.Attachments = NewProjectsLocationsRepositoriesAttachmentsService(s)
 	rs.DockerImages = NewProjectsLocationsRepositoriesDockerImagesService(s)
 	rs.Files = NewProjectsLocationsRepositoriesFilesService(s)
 	rs.GenericArtifacts = NewProjectsLocationsRepositoriesGenericArtifactsService(s)
@@ -213,6 +217,7 @@ func NewProjectsLocationsRepositoriesService(s *Service) *ProjectsLocationsRepos
 	rs.NpmPackages = NewProjectsLocationsRepositoriesNpmPackagesService(s)
 	rs.Packages = NewProjectsLocationsRepositoriesPackagesService(s)
 	rs.PythonPackages = NewProjectsLocationsRepositoriesPythonPackagesService(s)
+	rs.Rules = NewProjectsLocationsRepositoriesRulesService(s)
 	rs.YumArtifacts = NewProjectsLocationsRepositoriesYumArtifactsService(s)
 	return rs
 }
@@ -221,6 +226,8 @@ type ProjectsLocationsRepositoriesService struct {
 	s *Service
 
 	AptArtifacts *ProjectsLocationsRepositoriesAptArtifactsService
+
+	Attachments *ProjectsLocationsRepositoriesAttachmentsService
 
 	DockerImages *ProjectsLocationsRepositoriesDockerImagesService
 
@@ -242,6 +249,8 @@ type ProjectsLocationsRepositoriesService struct {
 
 	PythonPackages *ProjectsLocationsRepositoriesPythonPackagesService
 
+	Rules *ProjectsLocationsRepositoriesRulesService
+
 	YumArtifacts *ProjectsLocationsRepositoriesYumArtifactsService
 }
 
@@ -251,6 +260,15 @@ func NewProjectsLocationsRepositoriesAptArtifactsService(s *Service) *ProjectsLo
 }
 
 type ProjectsLocationsRepositoriesAptArtifactsService struct {
+	s *Service
+}
+
+func NewProjectsLocationsRepositoriesAttachmentsService(s *Service) *ProjectsLocationsRepositoriesAttachmentsService {
+	rs := &ProjectsLocationsRepositoriesAttachmentsService{s: s}
+	return rs
+}
+
+type ProjectsLocationsRepositoriesAttachmentsService struct {
 	s *Service
 }
 
@@ -368,6 +386,15 @@ type ProjectsLocationsRepositoriesPythonPackagesService struct {
 	s *Service
 }
 
+func NewProjectsLocationsRepositoriesRulesService(s *Service) *ProjectsLocationsRepositoriesRulesService {
+	rs := &ProjectsLocationsRepositoriesRulesService{s: s}
+	return rs
+}
+
+type ProjectsLocationsRepositoriesRulesService struct {
+	s *Service
+}
+
 func NewProjectsLocationsRepositoriesYumArtifactsService(s *Service) *ProjectsLocationsRepositoriesYumArtifactsService {
 	rs := &ProjectsLocationsRepositoriesYumArtifactsService{s: s}
 	return rs
@@ -411,9 +438,9 @@ type AptArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AptArtifact) MarshalJSON() ([]byte, error) {
+func (s AptArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod AptArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AptRepository: Configuration for an Apt remote repository.
@@ -436,9 +463,66 @@ type AptRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AptRepository) MarshalJSON() ([]byte, error) {
+func (s AptRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod AptRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Attachment: An Attachment refers to additional metadata that can be attached
+// to artifacts in Artifact Registry. An attachment consists of one or more
+// files.
+type Attachment struct {
+	// Annotations: Optional. User annotations. These attributes can only be set
+	// and used by the user, and not by Artifact Registry. See
+	// https://google.aip.dev/128#annotations for more details such as format and
+	// size limitations.
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// AttachmentNamespace: The namespace this attachment belongs to. E.g. If an
+	// attachment is created by artifact analysis, namespace is set to
+	// `artifactanalysis.googleapis.com`.
+	AttachmentNamespace string `json:"attachmentNamespace,omitempty"`
+	// CreateTime: Output only. The time when the attachment was created.
+	CreateTime string `json:"createTime,omitempty"`
+	// Files: Required. The files that belong to this attachment. If the file ID
+	// part contains slashes, they are escaped. E.g.
+	// `projects/p1/locations/us-central1/repositories/repo1/files/sha:`.
+	Files []string `json:"files,omitempty"`
+	// Name: The name of the attachment. E.g.
+	// `projects/p1/locations/us/repositories/repo/attachments/sbom`.
+	Name string `json:"name,omitempty"`
+	// OciVersionName: Output only. The name of the OCI version that this
+	// attachment created. Only populated for Docker attachments. E.g.
+	// `projects/p1/locations/us-central1/repositories/repo1/packages/p1/versions/v1
+	// `.
+	OciVersionName string `json:"ociVersionName,omitempty"`
+	// Target: Required. The target the attachment is for, can be a Version,
+	// Package or Repository. E.g.
+	// `projects/p1/locations/us-central1/repositories/repo1/packages/p1/versions/v1
+	// `.
+	Target string `json:"target,omitempty"`
+	// Type: Type of attachment. E.g. `application/vnd.spdx+json`
+	Type string `json:"type,omitempty"`
+	// UpdateTime: Output only. The time when the attachment was last updated.
+	UpdateTime string `json:"updateTime,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Annotations") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Annotations") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Attachment) MarshalJSON() ([]byte, error) {
+	type NoMethod Attachment
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeleteVersionsMetadata: The metadata of an LRO from deleting multiple
@@ -459,9 +543,9 @@ type BatchDeleteVersionsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeleteVersionsMetadata) MarshalJSON() ([]byte, error) {
+func (s BatchDeleteVersionsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeleteVersionsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeleteVersionsRequest: The request to delete multiple versions across a
@@ -486,9 +570,9 @@ type BatchDeleteVersionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeleteVersionsRequest) MarshalJSON() ([]byte, error) {
+func (s BatchDeleteVersionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeleteVersionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -585,9 +669,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CleanupPolicy: Artifact policy configuration for repository cleanup
@@ -620,9 +704,9 @@ type CleanupPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CleanupPolicy) MarshalJSON() ([]byte, error) {
+func (s CleanupPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod CleanupPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CleanupPolicyCondition: CleanupPolicyCondition is a set of conditions
@@ -662,9 +746,9 @@ type CleanupPolicyCondition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CleanupPolicyCondition) MarshalJSON() ([]byte, error) {
+func (s CleanupPolicyCondition) MarshalJSON() ([]byte, error) {
 	type NoMethod CleanupPolicyCondition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CleanupPolicyMostRecentVersions: CleanupPolicyMostRecentVersions is an
@@ -689,9 +773,31 @@ type CleanupPolicyMostRecentVersions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CleanupPolicyMostRecentVersions) MarshalJSON() ([]byte, error) {
+func (s CleanupPolicyMostRecentVersions) MarshalJSON() ([]byte, error) {
 	type NoMethod CleanupPolicyMostRecentVersions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CommonRemoteRepository: Common remote repository settings type.
+type CommonRemoteRepository struct {
+	// Uri: Required. A common public repository base for remote repository.
+	Uri string `json:"uri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Uri") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Uri") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CommonRemoteRepository) MarshalJSON() ([]byte, error) {
+	type NoMethod CommonRemoteRepository
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DockerImage: DockerImage represents a docker artifact. The following fields
@@ -748,9 +854,9 @@ type DockerImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DockerImage) MarshalJSON() ([]byte, error) {
+func (s DockerImage) MarshalJSON() ([]byte, error) {
 	type NoMethod DockerImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DockerRepository: Configuration for a Docker remote repository.
@@ -777,9 +883,9 @@ type DockerRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DockerRepository) MarshalJSON() ([]byte, error) {
+func (s DockerRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod DockerRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DockerRepositoryConfig: DockerRepositoryConfig is docker related repository
@@ -803,9 +909,9 @@ type DockerRepositoryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DockerRepositoryConfig) MarshalJSON() ([]byte, error) {
+func (s DockerRepositoryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod DockerRepositoryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DownloadFileResponse: The response to download a file.
@@ -866,9 +972,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericArtifact: GenericArtifact represents a generic artifact
@@ -897,9 +1003,9 @@ type GenericArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericArtifact) MarshalJSON() ([]byte, error) {
+func (s GenericArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoModule: GoModule represents a Go module.
@@ -926,9 +1032,9 @@ type GoModule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoModule) MarshalJSON() ([]byte, error) {
+func (s GoModule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoModule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogetArtifact: A detailed representation of a GooGet artifact.
@@ -952,14 +1058,16 @@ type GoogetArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogetArtifact) MarshalJSON() ([]byte, error) {
+func (s GoogetArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogetArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1File: Files store content that is
 // potentially associated with Packages or Versions.
 type GoogleDevtoolsArtifactregistryV1File struct {
+	// Annotations: Optional. Client specified annotations.
+	Annotations map[string]string `json:"annotations,omitempty"`
 	// CreateTime: Output only. The time when the File was created.
 	CreateTime string `json:"createTime,omitempty"`
 	// FetchTime: Output only. The time when the last attempt to refresh the file's
@@ -980,22 +1088,22 @@ type GoogleDevtoolsArtifactregistryV1File struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "CreateTime") to
+	// ForceSendFields is a list of field names (e.g. "Annotations") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CreateTime") to include in API
+	// NullFields is a list of field names (e.g. "Annotations") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1File) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1File) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1File
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryCustomRepo
@@ -1017,9 +1125,9 @@ type GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryCustomRe
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryCustomRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryPublicRepo
@@ -1050,9 +1158,9 @@ type GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryPublicRe
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryPublicRepository) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryPublicRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryPublicRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigDockerRepositoryCustomR
@@ -1074,9 +1182,9 @@ type GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigDockerRepositoryCusto
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigDockerRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigDockerRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigDockerRepositoryCustomRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigMavenRepositoryCustomRe
@@ -1098,9 +1206,9 @@ type GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigMavenRepositoryCustom
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigMavenRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigMavenRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigMavenRepositoryCustomRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigNpmRepositoryCustomRepo
@@ -1122,9 +1230,9 @@ type GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigNpmRepositoryCustomRe
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigNpmRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigNpmRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigNpmRepositoryCustomRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigPythonRepositoryCustomR
@@ -1146,9 +1254,9 @@ type GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigPythonRepositoryCusto
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigPythonRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigPythonRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigPythonRepositoryCustomRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryCustomRepo
@@ -1170,9 +1278,9 @@ type GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryCustomRe
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryCustomRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryCustomRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryPublicRepo
@@ -1206,9 +1314,55 @@ type GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryPublicRe
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryPublicRepository) MarshalJSON() ([]byte, error) {
+func (s GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryPublicRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryPublicRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleDevtoolsArtifactregistryV1Rule: A rule defines the deny or allow
+// action of the operation it applies to and the conditions required for the
+// rule to apply. You can set one rule for an entire repository and one rule
+// for each package within.
+type GoogleDevtoolsArtifactregistryV1Rule struct {
+	// Action: The action this rule takes.
+	//
+	// Possible values:
+	//   "ACTION_UNSPECIFIED" - Action not specified.
+	//   "ALLOW" - Allow the operation.
+	//   "DENY" - Deny the operation.
+	Action string `json:"action,omitempty"`
+	// Condition: Optional. A CEL expression for conditions that must be met in
+	// order for the rule to apply. If not provided, the rule matches all objects.
+	Condition *Expr `json:"condition,omitempty"`
+	// Name: The name of the rule, for example:
+	// `projects/p1/locations/us-central1/repositories/repo1/rules/rule1`.
+	Name string `json:"name,omitempty"`
+	// Possible values:
+	//   "OPERATION_UNSPECIFIED" - Operation not specified.
+	//   "DOWNLOAD" - Download operation.
+	Operation string `json:"operation,omitempty"`
+	// PackageId: The package ID the rule applies to. If empty, this rule applies
+	// to all packages inside the repository.
+	PackageId string `json:"packageId,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Action") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Action") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleDevtoolsArtifactregistryV1Rule) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleDevtoolsArtifactregistryV1Rule
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Hash: A hash of file content.
@@ -1235,9 +1389,9 @@ type Hash struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Hash) MarshalJSON() ([]byte, error) {
+func (s Hash) MarshalJSON() ([]byte, error) {
 	type NoMethod Hash
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportAptArtifactsErrorInfo: Error information explaining why a package was
@@ -1260,9 +1414,9 @@ type ImportAptArtifactsErrorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportAptArtifactsErrorInfo) MarshalJSON() ([]byte, error) {
+func (s ImportAptArtifactsErrorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportAptArtifactsErrorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportAptArtifactsGcsSource: Google Cloud Storage location where the
@@ -1286,9 +1440,9 @@ type ImportAptArtifactsGcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportAptArtifactsGcsSource) MarshalJSON() ([]byte, error) {
+func (s ImportAptArtifactsGcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportAptArtifactsGcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportAptArtifactsMetadata: The operation metadata for importing artifacts.
@@ -1312,9 +1466,9 @@ type ImportAptArtifactsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportAptArtifactsRequest) MarshalJSON() ([]byte, error) {
+func (s ImportAptArtifactsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportAptArtifactsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportAptArtifactsResponse: The response message from importing APT
@@ -1337,9 +1491,9 @@ type ImportAptArtifactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportAptArtifactsResponse) MarshalJSON() ([]byte, error) {
+func (s ImportAptArtifactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportAptArtifactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportGoogetArtifactsErrorInfo: Error information explaining why a package
@@ -1362,9 +1516,9 @@ type ImportGoogetArtifactsErrorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportGoogetArtifactsErrorInfo) MarshalJSON() ([]byte, error) {
+func (s ImportGoogetArtifactsErrorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportGoogetArtifactsErrorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportGoogetArtifactsGcsSource: Google Cloud Storage location where the
@@ -1388,9 +1542,9 @@ type ImportGoogetArtifactsGcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportGoogetArtifactsGcsSource) MarshalJSON() ([]byte, error) {
+func (s ImportGoogetArtifactsGcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportGoogetArtifactsGcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportGoogetArtifactsMetadata: The operation metadata for importing
@@ -1415,9 +1569,9 @@ type ImportGoogetArtifactsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportGoogetArtifactsRequest) MarshalJSON() ([]byte, error) {
+func (s ImportGoogetArtifactsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportGoogetArtifactsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportGoogetArtifactsResponse: The response message from importing
@@ -1440,9 +1594,9 @@ type ImportGoogetArtifactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportGoogetArtifactsResponse) MarshalJSON() ([]byte, error) {
+func (s ImportGoogetArtifactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportGoogetArtifactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportYumArtifactsErrorInfo: Error information explaining why a package was
@@ -1465,9 +1619,9 @@ type ImportYumArtifactsErrorInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportYumArtifactsErrorInfo) MarshalJSON() ([]byte, error) {
+func (s ImportYumArtifactsErrorInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportYumArtifactsErrorInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportYumArtifactsGcsSource: Google Cloud Storage location where the
@@ -1491,9 +1645,9 @@ type ImportYumArtifactsGcsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportYumArtifactsGcsSource) MarshalJSON() ([]byte, error) {
+func (s ImportYumArtifactsGcsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportYumArtifactsGcsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportYumArtifactsMetadata: The operation metadata for importing artifacts.
@@ -1517,9 +1671,9 @@ type ImportYumArtifactsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportYumArtifactsRequest) MarshalJSON() ([]byte, error) {
+func (s ImportYumArtifactsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportYumArtifactsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImportYumArtifactsResponse: The response message from importing YUM
@@ -1542,9 +1696,9 @@ type ImportYumArtifactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImportYumArtifactsResponse) MarshalJSON() ([]byte, error) {
+func (s ImportYumArtifactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ImportYumArtifactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KfpArtifact: A detailed representation of a KFP artifact.
@@ -1571,9 +1725,37 @@ type KfpArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KfpArtifact) MarshalJSON() ([]byte, error) {
+func (s KfpArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod KfpArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListAttachmentsResponse: The response from listing attachments.
+type ListAttachmentsResponse struct {
+	// Attachments: The attachments returned.
+	Attachments []*Attachment `json:"attachments,omitempty"`
+	// NextPageToken: The token to retrieve the next page of attachments, or empty
+	// if there are no more attachments to return.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Attachments") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Attachments") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListAttachmentsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListAttachmentsResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListDockerImagesResponse: The response from listing docker images.
@@ -1599,9 +1781,9 @@ type ListDockerImagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListDockerImagesResponse) MarshalJSON() ([]byte, error) {
+func (s ListDockerImagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListDockerImagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListFilesResponse: The response from listing files.
@@ -1627,9 +1809,9 @@ type ListFilesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListFilesResponse) MarshalJSON() ([]byte, error) {
+func (s ListFilesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListFilesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -1655,9 +1837,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListMavenArtifactsResponse: The response from listing maven artifacts.
@@ -1683,9 +1865,9 @@ type ListMavenArtifactsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListMavenArtifactsResponse) MarshalJSON() ([]byte, error) {
+func (s ListMavenArtifactsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListMavenArtifactsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListNpmPackagesResponse: The response from listing npm packages.
@@ -1711,9 +1893,9 @@ type ListNpmPackagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListNpmPackagesResponse) MarshalJSON() ([]byte, error) {
+func (s ListNpmPackagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListNpmPackagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPackagesResponse: The response from listing packages.
@@ -1739,9 +1921,9 @@ type ListPackagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPackagesResponse) MarshalJSON() ([]byte, error) {
+func (s ListPackagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPackagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPythonPackagesResponse: The response from listing python packages.
@@ -1767,9 +1949,9 @@ type ListPythonPackagesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPythonPackagesResponse) MarshalJSON() ([]byte, error) {
+func (s ListPythonPackagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPythonPackagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListRepositoriesResponse: The response from listing repositories.
@@ -1795,9 +1977,37 @@ type ListRepositoriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListRepositoriesResponse) MarshalJSON() ([]byte, error) {
+func (s ListRepositoriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListRepositoriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ListRulesResponse: The response from listing rules.
+type ListRulesResponse struct {
+	// NextPageToken: The token to retrieve the next page of rules, or empty if
+	// there are no more rules to return.
+	NextPageToken string `json:"nextPageToken,omitempty"`
+	// Rules: The rules returned.
+	Rules []*GoogleDevtoolsArtifactregistryV1Rule `json:"rules,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NextPageToken") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ListRulesResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListRulesResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTagsResponse: The response from listing tags.
@@ -1823,9 +2033,9 @@ type ListTagsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTagsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTagsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTagsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListVersionsResponse: The response from listing versions.
@@ -1851,9 +2061,9 @@ type ListVersionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListVersionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListVersionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListVersionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -1889,9 +2099,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MavenArtifact: MavenArtifact represents a maven artifact.
@@ -1933,9 +2143,9 @@ type MavenArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MavenArtifact) MarshalJSON() ([]byte, error) {
+func (s MavenArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod MavenArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MavenRepository: Configuration for a Maven remote repository.
@@ -1962,9 +2172,9 @@ type MavenRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MavenRepository) MarshalJSON() ([]byte, error) {
+func (s MavenRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod MavenRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MavenRepositoryConfig: MavenRepositoryConfig is maven related repository
@@ -1997,9 +2207,9 @@ type MavenRepositoryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MavenRepositoryConfig) MarshalJSON() ([]byte, error) {
+func (s MavenRepositoryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod MavenRepositoryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NpmPackage: NpmPackage represents an npm artifact.
@@ -2037,9 +2247,9 @@ type NpmPackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NpmPackage) MarshalJSON() ([]byte, error) {
+func (s NpmPackage) MarshalJSON() ([]byte, error) {
 	type NoMethod NpmPackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NpmRepository: Configuration for a Npm remote repository.
@@ -2066,9 +2276,9 @@ type NpmRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NpmRepository) MarshalJSON() ([]byte, error) {
+func (s NpmRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod NpmRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -2113,9 +2323,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Metadata type for longrunning-operations, currently
@@ -2154,9 +2364,9 @@ type Package struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Package) MarshalJSON() ([]byte, error) {
+func (s Package) MarshalJSON() ([]byte, error) {
 	type NoMethod Package
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -2244,9 +2454,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProjectSettings: The Artifact Registry settings that apply to a Project.
@@ -2269,6 +2479,9 @@ type ProjectSettings struct {
 	// projects/{project-id}/projectSettings In update request: never set In
 	// response: always set
 	Name string `json:"name,omitempty"`
+	// PullPercent: The percentage of pull traffic to redirect from GCR to AR when
+	// using partial redirection.
+	PullPercent int64 `json:"pullPercent,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -2285,9 +2498,9 @@ type ProjectSettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProjectSettings) MarshalJSON() ([]byte, error) {
+func (s ProjectSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod ProjectSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PythonPackage: PythonPackage represents a python artifact.
@@ -2328,9 +2541,9 @@ type PythonPackage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PythonPackage) MarshalJSON() ([]byte, error) {
+func (s PythonPackage) MarshalJSON() ([]byte, error) {
 	type NoMethod PythonPackage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PythonRepository: Configuration for a Python remote repository.
@@ -2357,15 +2570,18 @@ type PythonRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PythonRepository) MarshalJSON() ([]byte, error) {
+func (s PythonRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod PythonRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RemoteRepositoryConfig: Remote repository configuration.
 type RemoteRepositoryConfig struct {
 	// AptRepository: Specific settings for an Apt remote repository.
 	AptRepository *AptRepository `json:"aptRepository,omitempty"`
+	// CommonRepository: Common remote repository settings. Used as the remote
+	// repository upstream URL.
+	CommonRepository *CommonRemoteRepository `json:"commonRepository,omitempty"`
 	// Description: The description of the remote source.
 	Description string `json:"description,omitempty"`
 	// DisableUpstreamValidation: Input only. A create/update remote repo option to
@@ -2398,9 +2614,9 @@ type RemoteRepositoryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RemoteRepositoryConfig) MarshalJSON() ([]byte, error) {
+func (s RemoteRepositoryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod RemoteRepositoryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Repository: A Repository for storing artifacts with a specific format.
@@ -2468,6 +2684,9 @@ type Repository struct {
 	// `projects/p1/locations/us-central1/repositories/repo1`. For each location in
 	// a project, repository names must be unique.
 	Name string `json:"name,omitempty"`
+	// RegistryUri: Output only. The repository endpoint, for example:
+	// `us-docker.pkg.dev/my-proj/my-repo`.
+	RegistryUri string `json:"registryUri,omitempty"`
 	// RemoteRepositoryConfig: Configuration specific for a Remote Repository.
 	RemoteRepositoryConfig *RemoteRepositoryConfig `json:"remoteRepositoryConfig,omitempty"`
 	// SatisfiesPzi: Output only. If set, the repository satisfies physical zone
@@ -2484,6 +2703,9 @@ type Repository struct {
 	UpdateTime string `json:"updateTime,omitempty"`
 	// VirtualRepositoryConfig: Configuration specific for a Virtual Repository.
 	VirtualRepositoryConfig *VirtualRepositoryConfig `json:"virtualRepositoryConfig,omitempty"`
+	// VulnerabilityScanningConfig: Optional. Config and state for vulnerability
+	// scanning of resources within this Repository.
+	VulnerabilityScanningConfig *VulnerabilityScanningConfig `json:"vulnerabilityScanningConfig,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -2500,9 +2722,9 @@ type Repository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Repository) MarshalJSON() ([]byte, error) {
+func (s Repository) MarshalJSON() ([]byte, error) {
 	type NoMethod Repository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -2525,9 +2747,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2559,9 +2781,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Tag: Tags point to a version and represent an alternative name that can be
@@ -2574,8 +2796,8 @@ type Tag struct {
 	// URL encoded.
 	Name string `json:"name,omitempty"`
 	// Version: The name of the version the tag refers to, for example:
-	// "projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/versions/
-	// sha256:5243811" If the package or version ID parts contain slashes, the
+	// `projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/versions/
+	// sha256:5243811` If the package or version ID parts contain slashes, the
 	// slashes are escaped.
 	Version string `json:"version,omitempty"`
 
@@ -2594,9 +2816,9 @@ type Tag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Tag) MarshalJSON() ([]byte, error) {
+func (s Tag) MarshalJSON() ([]byte, error) {
 	type NoMethod Tag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -2619,9 +2841,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -2646,9 +2868,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadAptArtifactMediaResponse: The response to upload an artifact.
@@ -2671,9 +2893,9 @@ type UploadAptArtifactMediaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadAptArtifactMediaResponse) MarshalJSON() ([]byte, error) {
+func (s UploadAptArtifactMediaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadAptArtifactMediaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadAptArtifactMetadata: The operation metadata for uploading artifacts.
@@ -2703,9 +2925,57 @@ type UploadAptArtifactResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadAptArtifactResponse) MarshalJSON() ([]byte, error) {
+func (s UploadAptArtifactResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadAptArtifactResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UploadFileMediaResponse: The response to upload a generic artifact.
+type UploadFileMediaResponse struct {
+	// Operation: Operation that will be returned to the user.
+	Operation *Operation `json:"operation,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Operation") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Operation") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UploadFileMediaResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod UploadFileMediaResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UploadFileRequest: The request to upload a file.
+type UploadFileRequest struct {
+	// FileId: Optional. The ID of the file. If left empty will default to sha256
+	// digest of the content uploaded.
+	FileId string `json:"fileId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "FileId") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "FileId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UploadFileRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UploadFileRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadGenericArtifactMediaResponse: The response to upload a generic
@@ -2729,9 +2999,9 @@ type UploadGenericArtifactMediaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadGenericArtifactMediaResponse) MarshalJSON() ([]byte, error) {
+func (s UploadGenericArtifactMediaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadGenericArtifactMediaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadGenericArtifactMetadata: The operation metadata for uploading generic
@@ -2749,9 +3019,9 @@ type UploadGenericArtifactRequest struct {
 	// characters, i.e. [a-zA-Z0-9-_.~@].
 	Filename string `json:"filename,omitempty"`
 	// PackageId: The ID of the package of the generic artifact. If the package
-	// does not exist, a new package will be created. The `package_id` must start
-	// with a letter, end with a letter or number, only contain letters, numbers,
-	// hyphens and periods i.e. [a-z0-9-.], and cannot exceed 256 characters.
+	// does not exist, a new package will be created. The `package_id` should start
+	// and end with a letter or number, only contain letters, numbers, hyphens,
+	// underscores, and periods, and not exceed 256 characters.
 	PackageId string `json:"packageId,omitempty"`
 	// VersionId: The ID of the version of the generic artifact. If the version
 	// does not exist, a new version will be created. The version_id must start and
@@ -2772,9 +3042,9 @@ type UploadGenericArtifactRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadGenericArtifactRequest) MarshalJSON() ([]byte, error) {
+func (s UploadGenericArtifactRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadGenericArtifactRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadGoModuleMediaResponse: The response to upload a Go module.
@@ -2797,9 +3067,9 @@ type UploadGoModuleMediaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadGoModuleMediaResponse) MarshalJSON() ([]byte, error) {
+func (s UploadGoModuleMediaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadGoModuleMediaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadGoModuleMetadata: The operation metadata for uploading go modules.
@@ -2830,9 +3100,9 @@ type UploadGoogetArtifactMediaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadGoogetArtifactMediaResponse) MarshalJSON() ([]byte, error) {
+func (s UploadGoogetArtifactMediaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadGoogetArtifactMediaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadGoogetArtifactMetadata: The operation metadata for uploading
@@ -2863,9 +3133,9 @@ type UploadGoogetArtifactResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadGoogetArtifactResponse) MarshalJSON() ([]byte, error) {
+func (s UploadGoogetArtifactResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadGoogetArtifactResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadKfpArtifactMediaResponse: The response to upload an artifact.
@@ -2888,9 +3158,9 @@ type UploadKfpArtifactMediaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadKfpArtifactMediaResponse) MarshalJSON() ([]byte, error) {
+func (s UploadKfpArtifactMediaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadKfpArtifactMediaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadKfpArtifactMetadata: The operation metadata for uploading KFP
@@ -2917,9 +3187,9 @@ type UploadKfpArtifactRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadKfpArtifactRequest) MarshalJSON() ([]byte, error) {
+func (s UploadKfpArtifactRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadKfpArtifactRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadYumArtifactMediaResponse: The response to upload an artifact.
@@ -2942,9 +3212,9 @@ type UploadYumArtifactMediaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadYumArtifactMediaResponse) MarshalJSON() ([]byte, error) {
+func (s UploadYumArtifactMediaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadYumArtifactMediaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadYumArtifactMetadata: The operation metadata for uploading artifacts.
@@ -2974,9 +3244,9 @@ type UploadYumArtifactResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadYumArtifactResponse) MarshalJSON() ([]byte, error) {
+func (s UploadYumArtifactResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadYumArtifactResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpstreamCredentials: The credentials to access the remote repository.
@@ -2997,9 +3267,9 @@ type UpstreamCredentials struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpstreamCredentials) MarshalJSON() ([]byte, error) {
+func (s UpstreamCredentials) MarshalJSON() ([]byte, error) {
 	type NoMethod UpstreamCredentials
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpstreamPolicy: Artifact policy configuration for the repository contents.
@@ -3025,9 +3295,9 @@ type UpstreamPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpstreamPolicy) MarshalJSON() ([]byte, error) {
+func (s UpstreamPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod UpstreamPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UsernamePasswordCredentials: Username and password credentials.
@@ -3051,9 +3321,9 @@ type UsernamePasswordCredentials struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsernamePasswordCredentials) MarshalJSON() ([]byte, error) {
+func (s UsernamePasswordCredentials) MarshalJSON() ([]byte, error) {
 	type NoMethod UsernamePasswordCredentials
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VPCSCConfig: The Artifact Registry VPC SC config that apply to a Project.
@@ -3090,15 +3360,17 @@ type VPCSCConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VPCSCConfig) MarshalJSON() ([]byte, error) {
+func (s VPCSCConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod VPCSCConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Version: The body of a version resource. A version resource represents a
 // collection of components, such as files and other data. This may correspond
 // to a version in many package management schemes.
 type Version struct {
+	// Annotations: Optional. Client specified annotations.
+	Annotations map[string]string `json:"annotations,omitempty"`
 	// CreateTime: The time when the version was created.
 	CreateTime string `json:"createTime,omitempty"`
 	// Description: Optional. Description of the version, as specified in its
@@ -3110,8 +3382,8 @@ type Version struct {
 	// MavenArtifact
 	Metadata googleapi.RawMessage `json:"metadata,omitempty"`
 	// Name: The name of the version, for example:
-	// "projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/versions/
-	// art1". If the package or version ID parts contain slashes, the slashes are
+	// `projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/versions/
+	// art1`. If the package or version ID parts contain slashes, the slashes are
 	// escaped.
 	Name string `json:"name,omitempty"`
 	// RelatedTags: Output only. A list of related tags. Will contain up to 100
@@ -3122,22 +3394,22 @@ type Version struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "CreateTime") to
+	// ForceSendFields is a list of field names (e.g. "Annotations") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CreateTime") to include in API
+	// NullFields is a list of field names (e.g. "Annotations") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *Version) MarshalJSON() ([]byte, error) {
+func (s Version) MarshalJSON() ([]byte, error) {
 	type NoMethod Version
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VirtualRepositoryConfig: Virtual repository configuration.
@@ -3159,9 +3431,57 @@ type VirtualRepositoryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VirtualRepositoryConfig) MarshalJSON() ([]byte, error) {
+func (s VirtualRepositoryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod VirtualRepositoryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// VulnerabilityScanningConfig: Config on whether to perform vulnerability
+// scanning for resources in this repository, as well as output fields
+// describing current state.
+type VulnerabilityScanningConfig struct {
+	// EnablementConfig: Optional. Config for whether this repository has
+	// vulnerability scanning disabled.
+	//
+	// Possible values:
+	//   "ENABLEMENT_CONFIG_UNSPECIFIED" - Not set. This will be treated as
+	// INHERITED.
+	//   "INHERITED" - Scanning is Enabled, but dependent on API enablement.
+	//   "DISABLED" - No automatic vulnerability scanning will be performed for
+	// this repository.
+	EnablementConfig string `json:"enablementConfig,omitempty"`
+	// EnablementState: Output only. State of feature enablement, combining
+	// repository enablement config and API enablement state.
+	//
+	// Possible values:
+	//   "ENABLEMENT_STATE_UNSPECIFIED" - Enablement state is unclear.
+	//   "SCANNING_UNSUPPORTED" - Repository does not support vulnerability
+	// scanning.
+	//   "SCANNING_DISABLED" - Vulnerability scanning is disabled for this
+	// repository.
+	//   "SCANNING_ACTIVE" - Vulnerability scanning is active for this repository.
+	EnablementState string `json:"enablementState,omitempty"`
+	// EnablementStateReason: Output only. Reason for the repository state.
+	EnablementStateReason string `json:"enablementStateReason,omitempty"`
+	// LastEnableTime: Output only. The last time this repository config was
+	// enabled.
+	LastEnableTime string `json:"lastEnableTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EnablementConfig") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EnablementConfig") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s VulnerabilityScanningConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod VulnerabilityScanningConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YumArtifact: A detailed representation of a Yum artifact.
@@ -3192,9 +3512,9 @@ type YumArtifact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YumArtifact) MarshalJSON() ([]byte, error) {
+func (s YumArtifact) MarshalJSON() ([]byte, error) {
 	type NoMethod YumArtifact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // YumRepository: Configuration for a Yum remote repository.
@@ -3217,9 +3537,9 @@ type YumRepository struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *YumRepository) MarshalJSON() ([]byte, error) {
+func (s YumRepository) MarshalJSON() ([]byte, error) {
 	type NoMethod YumRepository
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsGetProjectSettingsCall struct {
@@ -3276,12 +3596,11 @@ func (c *ProjectsGetProjectSettingsCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3289,6 +3608,7 @@ func (c *ProjectsGetProjectSettingsCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.getProjectSettings", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3324,9 +3644,11 @@ func (c *ProjectsGetProjectSettingsCall) Do(opts ...googleapi.CallOption) (*Proj
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.getProjectSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3383,8 +3705,7 @@ func (c *ProjectsUpdateProjectSettingsCall) Header() http.Header {
 
 func (c *ProjectsUpdateProjectSettingsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.projectsettings)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.projectsettings)
 	if err != nil {
 		return nil, err
 	}
@@ -3400,6 +3721,7 @@ func (c *ProjectsUpdateProjectSettingsCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.updateProjectSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3435,9 +3757,11 @@ func (c *ProjectsUpdateProjectSettingsCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.updateProjectSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3495,12 +3819,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3508,6 +3831,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3542,9 +3866,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3602,12 +3928,11 @@ func (c *ProjectsLocationsGetVpcscConfigCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3615,6 +3940,7 @@ func (c *ProjectsLocationsGetVpcscConfigCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.getVpcscConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3649,9 +3975,11 @@ func (c *ProjectsLocationsGetVpcscConfigCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.getVpcscConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3733,12 +4061,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3746,6 +4073,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3781,9 +4109,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3861,8 +4191,7 @@ func (c *ProjectsLocationsUpdateVpcscConfigCall) Header() http.Header {
 
 func (c *ProjectsLocationsUpdateVpcscConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.vpcscconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.vpcscconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -3878,6 +4207,7 @@ func (c *ProjectsLocationsUpdateVpcscConfigCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.updateVpcscConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3912,9 +4242,11 @@ func (c *ProjectsLocationsUpdateVpcscConfigCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.updateVpcscConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3974,12 +4306,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3987,6 +4318,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4021,9 +4353,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4080,8 +4414,7 @@ func (c *ProjectsLocationsRepositoriesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.repository)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.repository)
 	if err != nil {
 		return nil, err
 	}
@@ -4097,6 +4430,7 @@ func (c *ProjectsLocationsRepositoriesCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4131,9 +4465,11 @@ func (c *ProjectsLocationsRepositoriesCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4181,12 +4517,11 @@ func (c *ProjectsLocationsRepositoriesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4194,6 +4529,7 @@ func (c *ProjectsLocationsRepositoriesDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4228,9 +4564,11 @@ func (c *ProjectsLocationsRepositoriesDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4288,12 +4626,11 @@ func (c *ProjectsLocationsRepositoriesGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4301,6 +4638,7 @@ func (c *ProjectsLocationsRepositoriesGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4335,9 +4673,11 @@ func (c *ProjectsLocationsRepositoriesGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4414,12 +4754,11 @@ func (c *ProjectsLocationsRepositoriesGetIamPolicyCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4427,6 +4766,7 @@ func (c *ProjectsLocationsRepositoriesGetIamPolicyCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4461,9 +4801,11 @@ func (c *ProjectsLocationsRepositoriesGetIamPolicyCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4482,6 +4824,30 @@ type ProjectsLocationsRepositoriesListCall struct {
 func (r *ProjectsLocationsRepositoriesService) List(parent string) *ProjectsLocationsRepositoriesListCall {
 	c := &ProjectsLocationsRepositoriesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": An expression for filtering the
+// results of the request. Filter rules are case insensitive. The fields
+// eligible for filtering are: * `name` Examples of using a filter: To filter
+// the results of your request to repositories with the name `my-repo` in
+// project `my-project` in the `us-central` region, append the following filter
+// expression to your request: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo" You
+// can also use wildcards to match any number of characters before or after the
+// value: *
+// `name="projects/my-project/locations/us-central1/repositories/my-*" *
+// `name="projects/my-project/locations/us-central1/repositories/*repo" *
+// `name="projects/my-project/locations/us-central1/repositories/*repo*"
+func (c *ProjectsLocationsRepositoriesListCall) Filter(filter string) *ProjectsLocationsRepositoriesListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// OrderBy sets the optional parameter "orderBy": The field to order the
+// results by.
+func (c *ProjectsLocationsRepositoriesListCall) OrderBy(orderBy string) *ProjectsLocationsRepositoriesListCall {
+	c.urlParams_.Set("orderBy", orderBy)
 	return c
 }
 
@@ -4535,12 +4901,11 @@ func (c *ProjectsLocationsRepositoriesListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/repositories")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4548,6 +4913,7 @@ func (c *ProjectsLocationsRepositoriesListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4583,9 +4949,11 @@ func (c *ProjectsLocationsRepositoriesListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4664,8 +5032,7 @@ func (c *ProjectsLocationsRepositoriesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.repository)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.repository)
 	if err != nil {
 		return nil, err
 	}
@@ -4681,6 +5048,7 @@ func (c *ProjectsLocationsRepositoriesPatchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4715,9 +5083,11 @@ func (c *ProjectsLocationsRepositoriesPatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4767,8 +5137,7 @@ func (c *ProjectsLocationsRepositoriesSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4784,6 +5153,7 @@ func (c *ProjectsLocationsRepositoriesSetIamPolicyCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4818,9 +5188,11 @@ func (c *ProjectsLocationsRepositoriesSetIamPolicyCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4872,8 +5244,7 @@ func (c *ProjectsLocationsRepositoriesTestIamPermissionsCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4889,6 +5260,7 @@ func (c *ProjectsLocationsRepositoriesTestIamPermissionsCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4924,9 +5296,11 @@ func (c *ProjectsLocationsRepositoriesTestIamPermissionsCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4978,8 +5352,7 @@ func (c *ProjectsLocationsRepositoriesAptArtifactsImportCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesAptArtifactsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importaptartifactsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importaptartifactsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4995,6 +5368,7 @@ func (c *ProjectsLocationsRepositoriesAptArtifactsImportCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.aptArtifacts.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5029,9 +5403,11 @@ func (c *ProjectsLocationsRepositoriesAptArtifactsImportCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.aptArtifacts.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5122,8 +5498,7 @@ func (c *ProjectsLocationsRepositoriesAptArtifactsUploadCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesAptArtifactsUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.uploadaptartifactrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.uploadaptartifactrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5134,14 +5509,10 @@ func (c *ProjectsLocationsRepositoriesAptArtifactsUploadCall) doRequest(alt stri
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+parent}/aptArtifacts:create")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -5150,6 +5521,7 @@ func (c *ProjectsLocationsRepositoriesAptArtifactsUploadCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.aptArtifacts.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5202,10 +5574,485 @@ func (c *ProjectsLocationsRepositoriesAptArtifactsUploadCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.aptArtifacts.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
+}
+
+type ProjectsLocationsRepositoriesAttachmentsCreateCall struct {
+	s          *Service
+	parent     string
+	attachment *Attachment
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Create: Creates an attachment. The returned Operation will finish once the
+// attachment has been created. Its response will be the created attachment.
+//
+//   - parent: The name of the parent resource where the attachment will be
+//     created.
+func (r *ProjectsLocationsRepositoriesAttachmentsService) Create(parent string, attachment *Attachment) *ProjectsLocationsRepositoriesAttachmentsCreateCall {
+	c := &ProjectsLocationsRepositoriesAttachmentsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.attachment = attachment
+	return c
+}
+
+// AttachmentId sets the optional parameter "attachmentId": Required. The
+// attachment id to use for this attachment.
+func (c *ProjectsLocationsRepositoriesAttachmentsCreateCall) AttachmentId(attachmentId string) *ProjectsLocationsRepositoriesAttachmentsCreateCall {
+	c.urlParams_.Set("attachmentId", attachmentId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesAttachmentsCreateCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesAttachmentsCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesAttachmentsCreateCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesAttachmentsCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesAttachmentsCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesAttachmentsCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.attachment)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/attachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.attachments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.attachments.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesAttachmentsCreateCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.attachments.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRepositoriesAttachmentsDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Deletes an attachment. The returned Operation will finish once the
+// attachments has been deleted. It will not have any Operation metadata and
+// will return a `google.protobuf.Empty` response.
+//
+// - name: The name of the attachment to delete.
+func (r *ProjectsLocationsRepositoriesAttachmentsService) Delete(name string) *ProjectsLocationsRepositoriesAttachmentsDeleteCall {
+	c := &ProjectsLocationsRepositoriesAttachmentsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesAttachmentsDeleteCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesAttachmentsDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesAttachmentsDeleteCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesAttachmentsDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesAttachmentsDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesAttachmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.attachments.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.attachments.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesAttachmentsDeleteCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.attachments.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRepositoriesAttachmentsGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets an attachment.
+//
+// - name: The name of the attachment to retrieve.
+func (r *ProjectsLocationsRepositoriesAttachmentsService) Get(name string) *ProjectsLocationsRepositoriesAttachmentsGetCall {
+	c := &ProjectsLocationsRepositoriesAttachmentsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesAttachmentsGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesAttachmentsGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsRepositoriesAttachmentsGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsRepositoriesAttachmentsGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesAttachmentsGetCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesAttachmentsGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesAttachmentsGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesAttachmentsGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.attachments.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.attachments.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Attachment.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesAttachmentsGetCall) Do(opts ...googleapi.CallOption) (*Attachment, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Attachment{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.attachments.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRepositoriesAttachmentsListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists attachments.
+//
+// - parent: The name of the parent resource whose attachments will be listed.
+func (r *ProjectsLocationsRepositoriesAttachmentsService) List(parent string) *ProjectsLocationsRepositoriesAttachmentsListCall {
+	c := &ProjectsLocationsRepositoriesAttachmentsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": An expression for filtering the
+// results of the request. Filter rules are case insensitive. The fields
+// eligible for filtering are: * `target` * `type` * `attachment_namespace`
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) Filter(filter string) *ProjectsLocationsRepositoriesAttachmentsListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of
+// attachments to return. Maximum page size is 1,000.
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) PageSize(pageSize int64) *ProjectsLocationsRepositoriesAttachmentsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The next_page_token value
+// returned from a previous list request, if any.
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesAttachmentsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesAttachmentsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) IfNoneMatch(entityTag string) *ProjectsLocationsRepositoriesAttachmentsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesAttachmentsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/attachments")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.attachments.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.attachments.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListAttachmentsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) Do(opts ...googleapi.CallOption) (*ListAttachmentsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListAttachmentsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.attachments.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsRepositoriesAttachmentsListCall) Pages(ctx context.Context, f func(*ListAttachmentsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
 }
 
 type ProjectsLocationsRepositoriesDockerImagesGetCall struct {
@@ -5262,12 +6109,11 @@ func (c *ProjectsLocationsRepositoriesDockerImagesGetCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5275,6 +6121,7 @@ func (c *ProjectsLocationsRepositoriesDockerImagesGetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.dockerImages.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5309,9 +6156,11 @@ func (c *ProjectsLocationsRepositoriesDockerImagesGetCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.dockerImages.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5391,12 +6240,11 @@ func (c *ProjectsLocationsRepositoriesDockerImagesListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/dockerImages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5404,6 +6252,7 @@ func (c *ProjectsLocationsRepositoriesDockerImagesListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.dockerImages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5439,9 +6288,11 @@ func (c *ProjectsLocationsRepositoriesDockerImagesListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.dockerImages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5510,12 +6361,11 @@ func (c *ProjectsLocationsRepositoriesFilesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesFilesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5523,6 +6373,7 @@ func (c *ProjectsLocationsRepositoriesFilesDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5557,9 +6408,11 @@ func (c *ProjectsLocationsRepositoriesFilesDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5617,12 +6470,11 @@ func (c *ProjectsLocationsRepositoriesFilesDownloadCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:download")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5630,6 +6482,7 @@ func (c *ProjectsLocationsRepositoriesFilesDownloadCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.download", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5681,9 +6534,11 @@ func (c *ProjectsLocationsRepositoriesFilesDownloadCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.download", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5741,12 +6596,11 @@ func (c *ProjectsLocationsRepositoriesFilesGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5754,6 +6608,7 @@ func (c *ProjectsLocationsRepositoriesFilesGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5789,9 +6644,11 @@ func (c *ProjectsLocationsRepositoriesFilesGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5816,11 +6673,37 @@ func (r *ProjectsLocationsRepositoriesFilesService) List(parent string) *Project
 
 // Filter sets the optional parameter "filter": An expression for filtering the
 // results of the request. Filter rules are case insensitive. The fields
-// eligible for filtering are: * `name` * `owner` An example of using a filter:
-// * `name="projects/p1/locations/us-central1/repositories/repo1/files/a/b/*"
-// --> Files with an ID starting with "a/b/". *
-// `owner="projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/ve
-// rsions/1.0" --> Files owned by the version `1.0` in package `pkg1`.
+// eligible for filtering are: * `name` * `owner` * `annotations` Examples of
+// using a filter: To filter the results of your request to files with the name
+// `my_file.txt` in project `my-project` in the `us-central` region, in
+// repository `my-repo`, append the following filter expression to your
+// request: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/files/m
+// y-file.txt" You can also use wildcards to match any number of characters
+// before or after the value: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/files/m
+// y-*" *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/files/*
+// file.txt" *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/files/*
+// file*" To filter the results of your request to files owned by the version
+// `1.0` in package `pkg1`, append the following filter expression to your
+// request: *
+// `owner="projects/my-project/locations/us-central1/repositories/my-repo/packag
+// es/my-package/versions/1.0" To filter the results of your request to files
+// with the annotation key-value pair [`external_link`: `external_link_value`],
+// append the following filter expression to your request: *
+// "annotations.external_link:external_link_value" To filter just for a
+// specific annotation key `external_link`, append the following filter
+// expression to your request: * "annotations.external_link" If the
+// annotation key or value contains special characters, you can escape them by
+// surrounding the value with backticks. For example, to filter the results of
+// your request to files with the annotation key-value pair
+// [`external.link`:`https://example.com/my-file`], append the following filter
+// expression to your request: * “
+// "annotations.`external.link`:`https://example.com/my-file" “ You can also
+// filter with annotations with a wildcard to match any number of characters
+// before or after the value: * “ "annotations.*_link:`*example.com*" “
 func (c *ProjectsLocationsRepositoriesFilesListCall) Filter(filter string) *ProjectsLocationsRepositoriesFilesListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -5883,12 +6766,11 @@ func (c *ProjectsLocationsRepositoriesFilesListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/files")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5896,6 +6778,7 @@ func (c *ProjectsLocationsRepositoriesFilesListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5931,9 +6814,11 @@ func (c *ProjectsLocationsRepositoriesFilesListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5956,6 +6841,289 @@ func (c *ProjectsLocationsRepositoriesFilesListCall) Pages(ctx context.Context, 
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsLocationsRepositoriesFilesPatchCall struct {
+	s                                    *Service
+	name                                 string
+	googledevtoolsartifactregistryv1file *GoogleDevtoolsArtifactregistryV1File
+	urlParams_                           gensupport.URLParams
+	ctx_                                 context.Context
+	header_                              http.Header
+}
+
+// Patch: Updates a file.
+//
+//   - name: The name of the file, for example:
+//     `projects/p1/locations/us-central1/repositories/repo1/files/a%2Fb%2Fc.txt`.
+//     If the file ID part contains slashes, they are escaped.
+func (r *ProjectsLocationsRepositoriesFilesService) Patch(name string, googledevtoolsartifactregistryv1file *GoogleDevtoolsArtifactregistryV1File) *ProjectsLocationsRepositoriesFilesPatchCall {
+	c := &ProjectsLocationsRepositoriesFilesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googledevtoolsartifactregistryv1file = googledevtoolsartifactregistryv1file
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": Required. The update
+// mask applies to the resource. For the `FieldMask` definition, see
+// https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#fieldmask
+func (c *ProjectsLocationsRepositoriesFilesPatchCall) UpdateMask(updateMask string) *ProjectsLocationsRepositoriesFilesPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesFilesPatchCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesFilesPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesFilesPatchCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesFilesPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesFilesPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesFilesPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googledevtoolsartifactregistryv1file)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.files.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleDevtoolsArtifactregistryV1File.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesFilesPatchCall) Do(opts ...googleapi.CallOption) (*GoogleDevtoolsArtifactregistryV1File, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleDevtoolsArtifactregistryV1File{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRepositoriesFilesUploadCall struct {
+	s                 *Service
+	parent            string
+	uploadfilerequest *UploadFileRequest
+	urlParams_        gensupport.URLParams
+	mediaInfo_        *gensupport.MediaInfo
+	ctx_              context.Context
+	header_           http.Header
+}
+
+// Upload: Directly uploads a file to a repository. The returned Operation will
+// complete once the resources are uploaded.
+//
+//   - parent: The resource name of the repository where the file will be
+//     uploaded.
+func (r *ProjectsLocationsRepositoriesFilesService) Upload(parent string, uploadfilerequest *UploadFileRequest) *ProjectsLocationsRepositoriesFilesUploadCall {
+	c := &ProjectsLocationsRepositoriesFilesUploadCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.uploadfilerequest = uploadfilerequest
+	return c
+}
+
+// Media specifies the media to upload in one or more chunks. The chunk size
+// may be controlled by supplying a MediaOption generated by
+// googleapi.ChunkSize. The chunk size defaults to
+// googleapi.DefaultUploadChunkSize.The Content-Type header used in the upload
+// request will be determined by sniffing the contents of r, unless a
+// MediaOption generated by googleapi.ContentType is supplied.
+// At most one of Media and ResumableMedia may be set.
+func (c *ProjectsLocationsRepositoriesFilesUploadCall) Media(r io.Reader, options ...googleapi.MediaOption) *ProjectsLocationsRepositoriesFilesUploadCall {
+	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	return c
+}
+
+// ResumableMedia specifies the media to upload in chunks and can be canceled
+// with ctx.
+//
+// Deprecated: use Media instead.
+//
+// At most one of Media and ResumableMedia may be set. mediaType identifies the
+// MIME media type of the upload, such as "image/png". If mediaType is "", it
+// will be auto-detected. The provided ctx will supersede any context
+// previously provided to the Context method.
+func (c *ProjectsLocationsRepositoriesFilesUploadCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *ProjectsLocationsRepositoriesFilesUploadCall {
+	c.ctx_ = ctx
+	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	return c
+}
+
+// ProgressUpdater provides a callback function that will be called after every
+// chunk. It should be a low-latency function in order to not slow down the
+// upload operation. This should only be called when using ResumableMedia (as
+// opposed to Media).
+func (c *ProjectsLocationsRepositoriesFilesUploadCall) ProgressUpdater(pu googleapi.ProgressUpdater) *ProjectsLocationsRepositoriesFilesUploadCall {
+	c.mediaInfo_.SetProgressUpdater(pu)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesFilesUploadCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesFilesUploadCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+// This context will supersede any context previously provided to the
+// ResumableMedia method.
+func (c *ProjectsLocationsRepositoriesFilesUploadCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesFilesUploadCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesFilesUploadCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesFilesUploadCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.uploadfilerequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/files:upload")
+	if c.mediaInfo_ != nil {
+		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+parent}/files:upload")
+		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+	}
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	defer cleanup()
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, newBody)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	req.GetBody = getBody
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.files.upload" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *UploadFileMediaResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesFilesUploadCall) Do(opts ...googleapi.CallOption) (*UploadFileMediaResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
+	if rx != nil {
+		rx.Client = c.s.client
+		rx.UserAgent = c.s.userAgent()
+		ctx := c.ctx_
+		if ctx == nil {
+			ctx = context.TODO()
+		}
+		res, err = rx.Upload(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer res.Body.Close()
+		if err := googleapi.CheckResponse(res); err != nil {
+			return nil, gensupport.WrapError(err)
+		}
+	}
+	ret := &UploadFileMediaResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.files.upload", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsLocationsRepositoriesGenericArtifactsUploadCall struct {
@@ -6045,8 +7213,7 @@ func (c *ProjectsLocationsRepositoriesGenericArtifactsUploadCall) Header() http.
 
 func (c *ProjectsLocationsRepositoriesGenericArtifactsUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.uploadgenericartifactrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.uploadgenericartifactrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6057,14 +7224,10 @@ func (c *ProjectsLocationsRepositoriesGenericArtifactsUploadCall) doRequest(alt 
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+parent}/genericArtifacts:create")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -6073,6 +7236,7 @@ func (c *ProjectsLocationsRepositoriesGenericArtifactsUploadCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.genericArtifacts.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6125,9 +7289,11 @@ func (c *ProjectsLocationsRepositoriesGenericArtifactsUploadCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.genericArtifacts.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6217,8 +7383,7 @@ func (c *ProjectsLocationsRepositoriesGoModulesUploadCall) Header() http.Header 
 
 func (c *ProjectsLocationsRepositoriesGoModulesUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.uploadgomodulerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.uploadgomodulerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6229,14 +7394,10 @@ func (c *ProjectsLocationsRepositoriesGoModulesUploadCall) doRequest(alt string)
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+parent}/goModules:create")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -6245,6 +7406,7 @@ func (c *ProjectsLocationsRepositoriesGoModulesUploadCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.goModules.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6297,9 +7459,11 @@ func (c *ProjectsLocationsRepositoriesGoModulesUploadCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.goModules.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6351,8 +7515,7 @@ func (c *ProjectsLocationsRepositoriesGoogetArtifactsImportCall) Header() http.H
 
 func (c *ProjectsLocationsRepositoriesGoogetArtifactsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importgoogetartifactsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importgoogetartifactsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6368,6 +7531,7 @@ func (c *ProjectsLocationsRepositoriesGoogetArtifactsImportCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.googetArtifacts.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6402,9 +7566,11 @@ func (c *ProjectsLocationsRepositoriesGoogetArtifactsImportCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.googetArtifacts.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6495,8 +7661,7 @@ func (c *ProjectsLocationsRepositoriesGoogetArtifactsUploadCall) Header() http.H
 
 func (c *ProjectsLocationsRepositoriesGoogetArtifactsUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.uploadgoogetartifactrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.uploadgoogetartifactrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6507,14 +7672,10 @@ func (c *ProjectsLocationsRepositoriesGoogetArtifactsUploadCall) doRequest(alt s
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+parent}/googetArtifacts:create")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -6523,6 +7684,7 @@ func (c *ProjectsLocationsRepositoriesGoogetArtifactsUploadCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.googetArtifacts.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6575,9 +7737,11 @@ func (c *ProjectsLocationsRepositoriesGoogetArtifactsUploadCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.googetArtifacts.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6668,8 +7832,7 @@ func (c *ProjectsLocationsRepositoriesKfpArtifactsUploadCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesKfpArtifactsUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.uploadkfpartifactrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.uploadkfpartifactrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6680,14 +7843,10 @@ func (c *ProjectsLocationsRepositoriesKfpArtifactsUploadCall) doRequest(alt stri
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+parent}/kfpArtifacts:create")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -6696,6 +7855,7 @@ func (c *ProjectsLocationsRepositoriesKfpArtifactsUploadCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.kfpArtifacts.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6748,9 +7908,11 @@ func (c *ProjectsLocationsRepositoriesKfpArtifactsUploadCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.kfpArtifacts.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6808,12 +7970,11 @@ func (c *ProjectsLocationsRepositoriesMavenArtifactsGetCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6821,6 +7982,7 @@ func (c *ProjectsLocationsRepositoriesMavenArtifactsGetCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.mavenArtifacts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6855,9 +8017,11 @@ func (c *ProjectsLocationsRepositoriesMavenArtifactsGetCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.mavenArtifacts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6930,12 +8094,11 @@ func (c *ProjectsLocationsRepositoriesMavenArtifactsListCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/mavenArtifacts")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6943,6 +8106,7 @@ func (c *ProjectsLocationsRepositoriesMavenArtifactsListCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.mavenArtifacts.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6978,9 +8142,11 @@ func (c *ProjectsLocationsRepositoriesMavenArtifactsListCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.mavenArtifacts.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7059,12 +8225,11 @@ func (c *ProjectsLocationsRepositoriesNpmPackagesGetCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7072,6 +8237,7 @@ func (c *ProjectsLocationsRepositoriesNpmPackagesGetCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.npmPackages.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7106,9 +8272,11 @@ func (c *ProjectsLocationsRepositoriesNpmPackagesGetCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.npmPackages.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7180,12 +8348,11 @@ func (c *ProjectsLocationsRepositoriesNpmPackagesListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/npmPackages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7193,6 +8360,7 @@ func (c *ProjectsLocationsRepositoriesNpmPackagesListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.npmPackages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7228,9 +8396,11 @@ func (c *ProjectsLocationsRepositoriesNpmPackagesListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.npmPackages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7298,12 +8468,11 @@ func (c *ProjectsLocationsRepositoriesPackagesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesPackagesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7311,6 +8480,7 @@ func (c *ProjectsLocationsRepositoriesPackagesDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7345,9 +8515,11 @@ func (c *ProjectsLocationsRepositoriesPackagesDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7405,12 +8577,11 @@ func (c *ProjectsLocationsRepositoriesPackagesGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7418,6 +8589,7 @@ func (c *ProjectsLocationsRepositoriesPackagesGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7452,9 +8624,11 @@ func (c *ProjectsLocationsRepositoriesPackagesGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7473,6 +8647,48 @@ type ProjectsLocationsRepositoriesPackagesListCall struct {
 func (r *ProjectsLocationsRepositoriesPackagesService) List(parent string) *ProjectsLocationsRepositoriesPackagesListCall {
 	c := &ProjectsLocationsRepositoriesPackagesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": An expression for filtering the
+// results of the request. Filter rules are case insensitive. The fields
+// eligible for filtering are: * `name` * `annotations` Examples of using a
+// filter: To filter the results of your request to packages with the name
+// `my-package` in project `my-project` in the `us-central` region, in
+// repository `my-repo`, append the following filter expression to your
+// request: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package" You can also use wildcards to match any number of characters
+// before or after the value: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-*" *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/*package" *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/*pack*" To filter the results of your request to packages with the
+// annotation key-value pair [`external_link`: `external_link_value`], append
+// the following filter expression to your request": *
+// "annotations.external_link:external_link_value" To filter the results just
+// for a specific annotation key `external_link`, append the following filter
+// expression to your request: * "annotations.external_link" If the
+// annotation key or value contains special characters, you can escape them by
+// surrounding the value with backticks. For example, to filter the results of
+// your request to packages with the annotation key-value pair
+// [`external.link`:`https://example.com/my-package`], append the following
+// filter expression to your request: * “
+// "annotations.`external.link`:`https://example.com/my-package" “ You can
+// also filter with annotations with a wildcard to match any number of
+// characters before or after the value: * “
+// "annotations.*_link:`*example.com*" “
+func (c *ProjectsLocationsRepositoriesPackagesListCall) Filter(filter string) *ProjectsLocationsRepositoriesPackagesListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// OrderBy sets the optional parameter "orderBy": The field to order the
+// results by.
+func (c *ProjectsLocationsRepositoriesPackagesListCall) OrderBy(orderBy string) *ProjectsLocationsRepositoriesPackagesListCall {
+	c.urlParams_.Set("orderBy", orderBy)
 	return c
 }
 
@@ -7526,12 +8742,11 @@ func (c *ProjectsLocationsRepositoriesPackagesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/packages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7539,6 +8754,7 @@ func (c *ProjectsLocationsRepositoriesPackagesListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7574,9 +8790,11 @@ func (c *ProjectsLocationsRepositoriesPackagesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7655,8 +8873,7 @@ func (c *ProjectsLocationsRepositoriesPackagesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsRepositoriesPackagesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.package_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.package_)
 	if err != nil {
 		return nil, err
 	}
@@ -7672,6 +8889,7 @@ func (c *ProjectsLocationsRepositoriesPackagesPatchCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7706,9 +8924,11 @@ func (c *ProjectsLocationsRepositoriesPackagesPatchCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7763,8 +8983,7 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsCreateCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesPackagesTagsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.tag)
 	if err != nil {
 		return nil, err
 	}
@@ -7780,6 +8999,7 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsCreateCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7814,9 +9034,11 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsCreateCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7862,12 +9084,11 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsDeleteCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesPackagesTagsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7875,6 +9096,7 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsDeleteCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7909,9 +9131,11 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsDeleteCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7969,12 +9193,11 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsGetCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7982,6 +9205,7 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsGetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8016,9 +9240,11 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsGetCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8044,16 +9270,23 @@ func (r *ProjectsLocationsRepositoriesPackagesTagsService) List(parent string) *
 
 // Filter sets the optional parameter "filter": An expression for filtering the
 // results of the request. Filter rules are case insensitive. The fields
-// eligible for filtering are: * `version` An example of using a filter: *
-// `version="projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/
-// versions/1.0" --> Tags that are applied to the version `1.0` in package
-// `pkg1`. *
-// `name="projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/tag
-// s/a%2Fb%2F*" --> tags with an ID starting with "a/b/". *
-// `name="projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/tag
-// s/*%2Fb%2Fc" --> tags with an ID ending with "/b/c". *
-// `name="projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/tag
-// s/*%2Fb%2F*" --> tags with an ID containing "/b/".
+// eligible for filtering are: * `name` * `version` Examples of using a filter:
+// To filter the results of your request to tags with the name `my-tag` in
+// package `my-package` in repository `my-repo` in project "y-project` in the
+// us-central region, append the following filter expression to your request: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package/tags/my-tag" You can also use wildcards to match any number of
+// characters before or after the value: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package/tags/my*" *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package/tags/*tag" *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package/tags/*tag*" To filter the results of your request to tags
+// applied to the version `1.0` in package `my-package`, append the following
+// filter expression to your request: *
+// `version="projects/my-project/locations/us-central1/repositories/my-repo/pack
+// ages/my-package/versions/1.0"
 func (c *ProjectsLocationsRepositoriesPackagesTagsListCall) Filter(filter string) *ProjectsLocationsRepositoriesPackagesTagsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -8109,12 +9342,11 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/tags")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8122,6 +9354,7 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8157,9 +9390,11 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8240,8 +9475,7 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsPatchCall) Header() http.Heade
 
 func (c *ProjectsLocationsRepositoriesPackagesTagsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.tag)
 	if err != nil {
 		return nil, err
 	}
@@ -8257,6 +9491,7 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsPatchCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8291,9 +9526,11 @@ func (c *ProjectsLocationsRepositoriesPackagesTagsPatchCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.tags.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8342,8 +9579,7 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsBatchDeleteCall) Header() 
 
 func (c *ProjectsLocationsRepositoriesPackagesVersionsBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchdeleteversionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchdeleteversionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8359,6 +9595,7 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsBatchDeleteCall) doRequest
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8393,9 +9630,11 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsBatchDeleteCall) Do(opts .
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8450,12 +9689,11 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsDeleteCall) Header() http.
 
 func (c *ProjectsLocationsRepositoriesPackagesVersionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8463,6 +9701,7 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsDeleteCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8497,9 +9736,11 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsDeleteCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8576,12 +9817,11 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsGetCall) doRequest(alt str
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8589,6 +9829,7 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsGetCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8623,9 +9864,11 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsGetCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8644,6 +9887,41 @@ type ProjectsLocationsRepositoriesPackagesVersionsListCall struct {
 func (r *ProjectsLocationsRepositoriesPackagesVersionsService) List(parent string) *ProjectsLocationsRepositoriesPackagesVersionsListCall {
 	c := &ProjectsLocationsRepositoriesPackagesVersionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
+	return c
+}
+
+// Filter sets the optional parameter "filter": An expression for filtering the
+// results of the request. Filter rules are case insensitive. The fields
+// eligible for filtering are: * `name` * `annotations` Examples of using a
+// filter: To filter the results of your request to versions with the name
+// `my-version` in project `my-project` in the `us-central` region, in
+// repository `my-repo`, append the following filter expression to your
+// request: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package/versions/my-version" You can also use wildcards to match any
+// number of characters before or after the value: *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package/versions/*version" *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package/versions/my*" *
+// `name="projects/my-project/locations/us-central1/repositories/my-repo/package
+// s/my-package/versions/*version*" To filter the results of your request to
+// versions with the annotation key-value pair [`external_link`:
+// `external_link_value`], append the following filter expression to your
+// request: * "annotations.external_link:external_link_value" To filter just
+// for a specific annotation key `external_link`, append the following filter
+// expression to your request: * "annotations.external_link" If the
+// annotation key or value contains special characters, you can escape them by
+// surrounding the value with backticks. For example, to filter the results of
+// your request to versions with the annotation key-value pair
+// [`external.link`:`https://example.com/my-version`], append the following
+// filter expression to your request: * “
+// "annotations.`external.link`:`https://example.com/my-version" “ You can
+// also filter with annotations with a wildcard to match any number of
+// characters before or after the value: * “
+// "annotations.*_link:`*example.com*" “
+func (c *ProjectsLocationsRepositoriesPackagesVersionsListCall) Filter(filter string) *ProjectsLocationsRepositoriesPackagesVersionsListCall {
+	c.urlParams_.Set("filter", filter)
 	return c
 }
 
@@ -8723,12 +10001,11 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsListCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/versions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8736,6 +10013,7 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsListCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8771,9 +10049,11 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsListCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8796,6 +10076,120 @@ func (c *ProjectsLocationsRepositoriesPackagesVersionsListCall) Pages(ctx contex
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsLocationsRepositoriesPackagesVersionsPatchCall struct {
+	s          *Service
+	name       string
+	version    *Version
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Patch: Updates a version.
+//
+//   - name: The name of the version, for example:
+//     `projects/p1/locations/us-central1/repositories/repo1/packages/pkg1/version
+//     s/art1`. If the package or version ID parts contain slashes, the slashes
+//     are escaped.
+func (r *ProjectsLocationsRepositoriesPackagesVersionsService) Patch(name string, version *Version) *ProjectsLocationsRepositoriesPackagesVersionsPatchCall {
+	c := &ProjectsLocationsRepositoriesPackagesVersionsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.version = version
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": The update mask applies
+// to the resource. For the `FieldMask` definition, see
+// https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#fieldmask
+func (c *ProjectsLocationsRepositoriesPackagesVersionsPatchCall) UpdateMask(updateMask string) *ProjectsLocationsRepositoriesPackagesVersionsPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesPackagesVersionsPatchCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesPackagesVersionsPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesPackagesVersionsPatchCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesPackagesVersionsPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesPackagesVersionsPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesPackagesVersionsPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.version)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.packages.versions.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Version.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesPackagesVersionsPatchCall) Do(opts ...googleapi.CallOption) (*Version, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Version{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.packages.versions.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsLocationsRepositoriesPythonPackagesGetCall struct {
@@ -8852,12 +10246,11 @@ func (c *ProjectsLocationsRepositoriesPythonPackagesGetCall) doRequest(alt strin
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8865,6 +10258,7 @@ func (c *ProjectsLocationsRepositoriesPythonPackagesGetCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.pythonPackages.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8899,9 +10293,11 @@ func (c *ProjectsLocationsRepositoriesPythonPackagesGetCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.pythonPackages.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8974,12 +10370,11 @@ func (c *ProjectsLocationsRepositoriesPythonPackagesListCall) doRequest(alt stri
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/pythonPackages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8987,6 +10382,7 @@ func (c *ProjectsLocationsRepositoriesPythonPackagesListCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.pythonPackages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9022,9 +10418,11 @@ func (c *ProjectsLocationsRepositoriesPythonPackagesListCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.pythonPackages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9047,6 +10445,583 @@ func (c *ProjectsLocationsRepositoriesPythonPackagesListCall) Pages(ctx context.
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+type ProjectsLocationsRepositoriesRulesCreateCall struct {
+	s                                    *Service
+	parent                               string
+	googledevtoolsartifactregistryv1rule *GoogleDevtoolsArtifactregistryV1Rule
+	urlParams_                           gensupport.URLParams
+	ctx_                                 context.Context
+	header_                              http.Header
+}
+
+// Create: Creates a rule.
+//
+// - parent: The name of the parent resource where the rule will be created.
+func (r *ProjectsLocationsRepositoriesRulesService) Create(parent string, googledevtoolsartifactregistryv1rule *GoogleDevtoolsArtifactregistryV1Rule) *ProjectsLocationsRepositoriesRulesCreateCall {
+	c := &ProjectsLocationsRepositoriesRulesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.googledevtoolsartifactregistryv1rule = googledevtoolsartifactregistryv1rule
+	return c
+}
+
+// RuleId sets the optional parameter "ruleId": The rule id to use for this
+// repository.
+func (c *ProjectsLocationsRepositoriesRulesCreateCall) RuleId(ruleId string) *ProjectsLocationsRepositoriesRulesCreateCall {
+	c.urlParams_.Set("ruleId", ruleId)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesRulesCreateCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesRulesCreateCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesRulesCreateCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesRulesCreateCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesRulesCreateCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesRulesCreateCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googledevtoolsartifactregistryv1rule)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/rules")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.create", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.rules.create" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleDevtoolsArtifactregistryV1Rule.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesRulesCreateCall) Do(opts ...googleapi.CallOption) (*GoogleDevtoolsArtifactregistryV1Rule, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleDevtoolsArtifactregistryV1Rule{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.create", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRepositoriesRulesDeleteCall struct {
+	s          *Service
+	name       string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// Delete: Deletes a rule.
+//
+// - name: The name of the rule to delete.
+func (r *ProjectsLocationsRepositoriesRulesService) Delete(name string) *ProjectsLocationsRepositoriesRulesDeleteCall {
+	c := &ProjectsLocationsRepositoriesRulesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesRulesDeleteCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesRulesDeleteCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesRulesDeleteCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesRulesDeleteCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesRulesDeleteCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesRulesDeleteCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("DELETE", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.delete", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.rules.delete" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Empty.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesRulesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Empty{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRepositoriesRulesGetCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Get: Gets a rule.
+//
+// - name: The name of the rule to retrieve.
+func (r *ProjectsLocationsRepositoriesRulesService) Get(name string) *ProjectsLocationsRepositoriesRulesGetCall {
+	c := &ProjectsLocationsRepositoriesRulesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesRulesGetCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesRulesGetCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsRepositoriesRulesGetCall) IfNoneMatch(entityTag string) *ProjectsLocationsRepositoriesRulesGetCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesRulesGetCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesRulesGetCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesRulesGetCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesRulesGetCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.get", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.rules.get" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleDevtoolsArtifactregistryV1Rule.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesRulesGetCall) Do(opts ...googleapi.CallOption) (*GoogleDevtoolsArtifactregistryV1Rule, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleDevtoolsArtifactregistryV1Rule{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRepositoriesRulesListCall struct {
+	s            *Service
+	parent       string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists rules.
+//
+//   - parent: The name of the parent repository whose rules will be listed. For
+//     example: `projects/p1/locations/us-central1/repositories/repo1`.
+func (r *ProjectsLocationsRepositoriesRulesService) List(parent string) *ProjectsLocationsRepositoriesRulesListCall {
+	c := &ProjectsLocationsRepositoriesRulesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": The maximum number of rules
+// to return. Maximum page size is 1,000.
+func (c *ProjectsLocationsRepositoriesRulesListCall) PageSize(pageSize int64) *ProjectsLocationsRepositoriesRulesListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": The next_page_token value
+// returned from a previous list request, if any.
+func (c *ProjectsLocationsRepositoriesRulesListCall) PageToken(pageToken string) *ProjectsLocationsRepositoriesRulesListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesRulesListCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesRulesListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsRepositoriesRulesListCall) IfNoneMatch(entityTag string) *ProjectsLocationsRepositoriesRulesListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesRulesListCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesRulesListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesRulesListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesRulesListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/rules")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.list", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.rules.list" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ListRulesResponse.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ProjectsLocationsRepositoriesRulesListCall) Do(opts ...googleapi.CallOption) (*ListRulesResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ListRulesResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.list", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsLocationsRepositoriesRulesListCall) Pages(ctx context.Context, f func(*ListRulesResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken"))
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
+}
+
+type ProjectsLocationsRepositoriesRulesPatchCall struct {
+	s                                    *Service
+	name                                 string
+	googledevtoolsartifactregistryv1rule *GoogleDevtoolsArtifactregistryV1Rule
+	urlParams_                           gensupport.URLParams
+	ctx_                                 context.Context
+	header_                              http.Header
+}
+
+// Patch: Updates a rule.
+//
+//   - name: The name of the rule, for example:
+//     `projects/p1/locations/us-central1/repositories/repo1/rules/rule1`.
+func (r *ProjectsLocationsRepositoriesRulesService) Patch(name string, googledevtoolsartifactregistryv1rule *GoogleDevtoolsArtifactregistryV1Rule) *ProjectsLocationsRepositoriesRulesPatchCall {
+	c := &ProjectsLocationsRepositoriesRulesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googledevtoolsartifactregistryv1rule = googledevtoolsartifactregistryv1rule
+	return c
+}
+
+// UpdateMask sets the optional parameter "updateMask": The update mask applies
+// to the resource. For the `FieldMask` definition, see
+// https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#fieldmask
+func (c *ProjectsLocationsRepositoriesRulesPatchCall) UpdateMask(updateMask string) *ProjectsLocationsRepositoriesRulesPatchCall {
+	c.urlParams_.Set("updateMask", updateMask)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRepositoriesRulesPatchCall) Fields(s ...googleapi.Field) *ProjectsLocationsRepositoriesRulesPatchCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRepositoriesRulesPatchCall) Context(ctx context.Context) *ProjectsLocationsRepositoriesRulesPatchCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRepositoriesRulesPatchCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRepositoriesRulesPatchCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googledevtoolsartifactregistryv1rule)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "artifactregistry.projects.locations.repositories.rules.patch" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleDevtoolsArtifactregistryV1Rule.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRepositoriesRulesPatchCall) Do(opts ...googleapi.CallOption) (*GoogleDevtoolsArtifactregistryV1Rule, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleDevtoolsArtifactregistryV1Rule{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.rules.patch", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ProjectsLocationsRepositoriesYumArtifactsImportCall struct {
@@ -9097,8 +11072,7 @@ func (c *ProjectsLocationsRepositoriesYumArtifactsImportCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesYumArtifactsImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.importyumartifactsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importyumartifactsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9114,6 +11088,7 @@ func (c *ProjectsLocationsRepositoriesYumArtifactsImportCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.yumArtifacts.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9148,9 +11123,11 @@ func (c *ProjectsLocationsRepositoriesYumArtifactsImportCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.yumArtifacts.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9241,8 +11218,7 @@ func (c *ProjectsLocationsRepositoriesYumArtifactsUploadCall) Header() http.Head
 
 func (c *ProjectsLocationsRepositoriesYumArtifactsUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.uploadyumartifactrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.uploadyumartifactrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9253,14 +11229,10 @@ func (c *ProjectsLocationsRepositoriesYumArtifactsUploadCall) doRequest(alt stri
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+parent}/yumArtifacts:create")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -9269,6 +11241,7 @@ func (c *ProjectsLocationsRepositoriesYumArtifactsUploadCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.yumArtifacts.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9321,8 +11294,10 @@ func (c *ProjectsLocationsRepositoriesYumArtifactsUploadCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "artifactregistry.projects.locations.repositories.yumArtifacts.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

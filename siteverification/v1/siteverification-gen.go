@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "siteVerification:v1"
 const apiName = "siteVerification"
@@ -121,7 +124,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.WebResource = NewWebResourceService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -140,13 +144,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.WebResource = NewWebResourceService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -189,9 +192,9 @@ type SiteVerificationWebResourceGettokenRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SiteVerificationWebResourceGettokenRequest) MarshalJSON() ([]byte, error) {
+func (s SiteVerificationWebResourceGettokenRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SiteVerificationWebResourceGettokenRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SiteVerificationWebResourceGettokenRequestSite: The site for which a
@@ -217,9 +220,9 @@ type SiteVerificationWebResourceGettokenRequestSite struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SiteVerificationWebResourceGettokenRequestSite) MarshalJSON() ([]byte, error) {
+func (s SiteVerificationWebResourceGettokenRequestSite) MarshalJSON() ([]byte, error) {
 	type NoMethod SiteVerificationWebResourceGettokenRequestSite
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SiteVerificationWebResourceGettokenResponse struct {
@@ -248,9 +251,9 @@ type SiteVerificationWebResourceGettokenResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SiteVerificationWebResourceGettokenResponse) MarshalJSON() ([]byte, error) {
+func (s SiteVerificationWebResourceGettokenResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SiteVerificationWebResourceGettokenResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SiteVerificationWebResourceListResponse struct {
@@ -272,9 +275,9 @@ type SiteVerificationWebResourceListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SiteVerificationWebResourceListResponse) MarshalJSON() ([]byte, error) {
+func (s SiteVerificationWebResourceListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SiteVerificationWebResourceListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SiteVerificationWebResourceResource struct {
@@ -301,9 +304,9 @@ type SiteVerificationWebResourceResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SiteVerificationWebResourceResource) MarshalJSON() ([]byte, error) {
+func (s SiteVerificationWebResourceResource) MarshalJSON() ([]byte, error) {
 	type NoMethod SiteVerificationWebResourceResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SiteVerificationWebResourceResourceSite: The address and type of a site that
@@ -328,9 +331,9 @@ type SiteVerificationWebResourceResourceSite struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SiteVerificationWebResourceResourceSite) MarshalJSON() ([]byte, error) {
+func (s SiteVerificationWebResourceResourceSite) MarshalJSON() ([]byte, error) {
 	type NoMethod SiteVerificationWebResourceResourceSite
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type WebResourceDeleteCall struct {
@@ -375,12 +378,11 @@ func (c *WebResourceDeleteCall) Header() http.Header {
 
 func (c *WebResourceDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -388,6 +390,7 @@ func (c *WebResourceDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "siteVerification.webResource.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -402,6 +405,7 @@ func (c *WebResourceDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "siteVerification.webResource.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -459,12 +463,11 @@ func (c *WebResourceGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource/{id}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -472,6 +475,7 @@ func (c *WebResourceGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "siteVerification.webResource.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -507,9 +511,11 @@ func (c *WebResourceGetCall) Do(opts ...googleapi.CallOption) (*SiteVerification
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "siteVerification.webResource.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -553,8 +559,7 @@ func (c *WebResourceGetTokenCall) Header() http.Header {
 
 func (c *WebResourceGetTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.siteverificationwebresourcegettokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.siteverificationwebresourcegettokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -567,6 +572,7 @@ func (c *WebResourceGetTokenCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "siteVerification.webResource.getToken", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -602,9 +608,11 @@ func (c *WebResourceGetTokenCall) Do(opts ...googleapi.CallOption) (*SiteVerific
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "siteVerification.webResource.getToken", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -651,8 +659,7 @@ func (c *WebResourceInsertCall) Header() http.Header {
 
 func (c *WebResourceInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.siteverificationwebresourceresource)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.siteverificationwebresourceresource)
 	if err != nil {
 		return nil, err
 	}
@@ -665,6 +672,7 @@ func (c *WebResourceInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "siteVerification.webResource.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -700,9 +708,11 @@ func (c *WebResourceInsertCall) Do(opts ...googleapi.CallOption) (*SiteVerificat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "siteVerification.webResource.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -756,16 +766,16 @@ func (c *WebResourceListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webResource")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "siteVerification.webResource.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -801,9 +811,11 @@ func (c *WebResourceListCall) Do(opts ...googleapi.CallOption) (*SiteVerificatio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "siteVerification.webResource.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -852,8 +864,7 @@ func (c *WebResourcePatchCall) Header() http.Header {
 
 func (c *WebResourcePatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.siteverificationwebresourceresource)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.siteverificationwebresourceresource)
 	if err != nil {
 		return nil, err
 	}
@@ -869,6 +880,7 @@ func (c *WebResourcePatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "siteVerification.webResource.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -904,9 +916,11 @@ func (c *WebResourcePatchCall) Do(opts ...googleapi.CallOption) (*SiteVerificati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "siteVerification.webResource.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -954,8 +968,7 @@ func (c *WebResourceUpdateCall) Header() http.Header {
 
 func (c *WebResourceUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.siteverificationwebresourceresource)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.siteverificationwebresourceresource)
 	if err != nil {
 		return nil, err
 	}
@@ -971,6 +984,7 @@ func (c *WebResourceUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "siteVerification.webResource.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1006,8 +1020,10 @@ func (c *WebResourceUpdateCall) Do(opts ...googleapi.CallOption) (*SiteVerificat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "siteVerification.webResource.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

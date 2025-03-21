@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "dataportability:v1beta"
 const apiName = "dataportability"
@@ -100,210 +103,219 @@ const mtlsBasePath = "https://dataportability.mtls.googleapis.com/"
 
 // OAuth2 scopes used by this API.
 const (
+	// Move a copy of the Google Alerts subscriptions you created
+	DataportabilityAlertsSubscriptionsScope = "https://www.googleapis.com/auth/dataportability.alerts.subscriptions"
+
 	// Move a copy of messages between you and the businesses you have
-	// conversations with across Google services.
+	// conversations with across Google services
 	DataportabilityBusinessmessagingConversationsScope = "https://www.googleapis.com/auth/dataportability.businessmessaging.conversations"
 
-	// Move a copy of the information you entered into online forms in Chrome.
+	// Move a copy of the information you entered into online forms in Chrome
 	DataportabilityChromeAutofillScope = "https://www.googleapis.com/auth/dataportability.chrome.autofill"
 
-	// Move a copy of pages you bookmarked in Chrome.
+	// Move a copy of pages you bookmarked in Chrome
 	DataportabilityChromeBookmarksScope = "https://www.googleapis.com/auth/dataportability.chrome.bookmarks"
 
-	// Move a copy of words you added to Chrome's dictionary.
+	// Move a copy of words you added to Chrome's dictionary
 	DataportabilityChromeDictionaryScope = "https://www.googleapis.com/auth/dataportability.chrome.dictionary"
 
-	// Move a copy of extensions you installed from the Chrome Web Store.
+	// Move a copy of extensions you installed from the Chrome Web Store
 	DataportabilityChromeExtensionsScope = "https://www.googleapis.com/auth/dataportability.chrome.extensions"
 
-	// Move a copy of sites you visited in Chrome.
+	// Move a copy of sites you visited in Chrome
 	DataportabilityChromeHistoryScope = "https://www.googleapis.com/auth/dataportability.chrome.history"
 
-	// Move a copy of pages you added to your reading list in Chrome.
+	// Move a copy of pages you added to your reading list in Chrome
 	DataportabilityChromeReadingListScope = "https://www.googleapis.com/auth/dataportability.chrome.reading_list"
 
-	// Move a copy of your settings in Chrome.
+	// Move a copy of your settings in Chrome
 	DataportabilityChromeSettingsScope = "https://www.googleapis.com/auth/dataportability.chrome.settings"
 
-	// Move a copy of searches and sites you follow, saved by Discover.
+	// Move a copy of searches and sites you follow, saved by Discover
 	DataportabilityDiscoverFollowsScope = "https://www.googleapis.com/auth/dataportability.discover.follows"
 
-	// Move a copy of links to your liked documents, saved by Discover.
+	// Move a copy of links to your liked documents, saved by Discover
 	DataportabilityDiscoverLikesScope = "https://www.googleapis.com/auth/dataportability.discover.likes"
 
-	// Move a copy of content you marked as not interested, saved by Discover.
+	// Move a copy of content you marked as not interested, saved by Discover
 	DataportabilityDiscoverNotInterestedScope = "https://www.googleapis.com/auth/dataportability.discover.not_interested"
 
-	// Move a copy of the places you labeled on Maps.
+	// Move a copy of the places you labeled on Maps
 	DataportabilityMapsAliasedPlacesScope = "https://www.googleapis.com/auth/dataportability.maps.aliased_places"
 
-	// Move a copy of your pinned trips on Maps.
+	// Move a copy of your pinned trips on Maps
 	DataportabilityMapsCommuteRoutesScope = "https://www.googleapis.com/auth/dataportability.maps.commute_routes"
 
-	// Move a copy of your commute settings on Maps.
+	// Move a copy of your commute settings on Maps
 	DataportabilityMapsCommuteSettingsScope = "https://www.googleapis.com/auth/dataportability.maps.commute_settings"
 
-	// Move a copy of your electric vehicle profile on Maps.
+	// Move a copy of your electric vehicle profile on Maps
 	DataportabilityMapsEvProfileScope = "https://www.googleapis.com/auth/dataportability.maps.ev_profile"
 
-	// Move a copy of the corrections you made to places or map information on
-	// Maps.
+	// Move a copy of the corrections you made to places or map information on Maps
 	DataportabilityMapsFactualContributionsScope = "https://www.googleapis.com/auth/dataportability.maps.factual_contributions"
 
-	// Move a copy of your updates to places on Maps.
+	// Move a copy of your updates to places on Maps
 	DataportabilityMapsOfferingContributionsScope = "https://www.googleapis.com/auth/dataportability.maps.offering_contributions"
 
-	// Move a copy of the photos and videos you posted on Maps.
+	// Move a copy of the photos and videos you posted on Maps
 	DataportabilityMapsPhotosVideosScope = "https://www.googleapis.com/auth/dataportability.maps.photos_videos"
 
-	// Move a copy of the questions and answers you posted on Maps.
+	// Move a copy of the questions and answers you posted on Maps
 	DataportabilityMapsQuestionsAnswersScope = "https://www.googleapis.com/auth/dataportability.maps.questions_answers"
 
-	// Move a copy of your reviews and posts on Maps.
+	// Move a copy of your reviews and posts on Maps
 	DataportabilityMapsReviewsScope = "https://www.googleapis.com/auth/dataportability.maps.reviews"
 
-	// Move a copy of your Starred places list on Maps.
+	// Move a copy of your Starred places list on Maps
 	DataportabilityMapsStarredPlacesScope = "https://www.googleapis.com/auth/dataportability.maps.starred_places"
 
-	// Move a copy of your Maps activity.
+	// Move a copy of your Maps activity
 	DataportabilityMyactivityMapsScope = "https://www.googleapis.com/auth/dataportability.myactivity.maps"
 
-	// Move a copy of your My Ad Center activity.
+	// Move a copy of your My Ad Center activity
 	DataportabilityMyactivityMyadcenterScope = "https://www.googleapis.com/auth/dataportability.myactivity.myadcenter"
 
-	// Move a copy of your Google Play activity.
+	// Move a copy of your Google Play activity
 	DataportabilityMyactivityPlayScope = "https://www.googleapis.com/auth/dataportability.myactivity.play"
 
-	// Move a copy of your Google Search activity.
+	// Move a copy of your Google Search activity
 	DataportabilityMyactivitySearchScope = "https://www.googleapis.com/auth/dataportability.myactivity.search"
 
-	// Move a copy of your Shopping activity.
+	// Move a copy of your Shopping activity
 	DataportabilityMyactivityShoppingScope = "https://www.googleapis.com/auth/dataportability.myactivity.shopping"
 
-	// Move a copy of your YouTube activity.
+	// Move a copy of your YouTube activity
 	DataportabilityMyactivityYoutubeScope = "https://www.googleapis.com/auth/dataportability.myactivity.youtube"
 
-	// Move a copy of the maps you created in My Maps.
+	// Move a copy of the maps you created in My Maps
 	DataportabilityMymapsMapsScope = "https://www.googleapis.com/auth/dataportability.mymaps.maps"
 
-	// Move a copy of your food purchase and reservation activity.
+	// Move a copy of your food purchase and reservation activity
 	DataportabilityOrderReservePurchasesReservationsScope = "https://www.googleapis.com/auth/dataportability.order_reserve.purchases_reservations"
 
 	// Move a copy of information about your devices with Google Play Store
-	// installed.
+	// installed
 	DataportabilityPlayDevicesScope = "https://www.googleapis.com/auth/dataportability.play.devices"
 
 	// Move a copy of your Google Play Store Grouping tags created by app
-	// developers.
+	// developers
 	DataportabilityPlayGroupingScope = "https://www.googleapis.com/auth/dataportability.play.grouping"
 
-	// Move a copy of your Google Play Store app installations.
+	// Move a copy of your Google Play Store app installations
 	DataportabilityPlayInstallsScope = "https://www.googleapis.com/auth/dataportability.play.installs"
 
 	// Move a copy of your Google Play Store downloads, including books, games, and
-	// apps.
+	// apps
 	DataportabilityPlayLibraryScope = "https://www.googleapis.com/auth/dataportability.play.library"
 
-	// Move a copy of information about your Google Play Store Points.
+	// Move a copy of information about your Google Play Store Points
 	DataportabilityPlayPlaypointsScope = "https://www.googleapis.com/auth/dataportability.play.playpoints"
 
-	// Move a copy of information about your Google Play Store promotions.
+	// Move a copy of information about your Google Play Store promotions
 	DataportabilityPlayPromotionsScope = "https://www.googleapis.com/auth/dataportability.play.promotions"
 
-	// Move a copy of your Google Play Store purchases.
+	// Move a copy of your Google Play Store purchases
 	DataportabilityPlayPurchasesScope = "https://www.googleapis.com/auth/dataportability.play.purchases"
 
-	// Move a copy of your Google Play Store redemption activities.
+	// Move a copy of your Google Play Store redemption activities
 	DataportabilityPlayRedemptionsScope = "https://www.googleapis.com/auth/dataportability.play.redemptions"
 
-	// Move a copy of your Google Play Store subscriptions.
+	// Move a copy of your Google Play Store subscriptions
 	DataportabilityPlaySubscriptionsScope = "https://www.googleapis.com/auth/dataportability.play.subscriptions"
 
-	// Move a copy of your Google Play Store user settings and preferences.
+	// Move a copy of your Google Play Store user settings and preferences
 	DataportabilityPlayUsersettingsScope = "https://www.googleapis.com/auth/dataportability.play.usersettings"
 
 	// Move a copy of your saved links, images, places, and collections from your
-	// use of Google services.
+	// use of Google services
 	DataportabilitySavedCollectionsScope = "https://www.googleapis.com/auth/dataportability.saved.collections"
 
-	// Move a copy of your media reviews on Google Search.
+	// Move a copy of your comments on Google Search
+	DataportabilitySearchUgcCommentsScope = "https://www.googleapis.com/auth/dataportability.search_ugc.comments"
+
+	// Move a copy of your media reviews on Google Search
 	DataportabilitySearchUgcMediaReviewsAndStarsScope = "https://www.googleapis.com/auth/dataportability.search_ugc.media.reviews_and_stars"
 
 	// Move a copy of your self-reported video streaming provider preferences from
-	// Google Search and Google TV.
+	// Google Search and Google TV
 	DataportabilitySearchUgcMediaStreamingVideoProvidersScope = "https://www.googleapis.com/auth/dataportability.search_ugc.media.streaming_video_providers"
 
 	// Move a copy of your indicated thumbs up and thumbs down on media in Google
-	// Search and Google TV.
+	// Search and Google TV
 	DataportabilitySearchUgcMediaThumbsScope = "https://www.googleapis.com/auth/dataportability.search_ugc.media.thumbs"
 
 	// Move a copy of information about the movies and TV shows you marked as
-	// watched on Google Search and Google TV.
+	// watched on Google Search and Google TV
 	DataportabilitySearchUgcMediaWatchedScope = "https://www.googleapis.com/auth/dataportability.search_ugc.media.watched"
 
-	// Move a copy of your notification settings on the Google Search app.
+	// Move a copy of your notification settings on the Google Search app
 	DataportabilitySearchnotificationsSettingsScope = "https://www.googleapis.com/auth/dataportability.searchnotifications.settings"
 
-	// Move a copy of your notification subscriptions on Google Search app.
+	// Move a copy of your notification subscriptions on Google Search app
 	DataportabilitySearchnotificationsSubscriptionsScope = "https://www.googleapis.com/auth/dataportability.searchnotifications.subscriptions"
 
-	// Move a copy of your shipping information on Shopping.
+	// Move a copy of your shipping information on Shopping
 	DataportabilityShoppingAddressesScope = "https://www.googleapis.com/auth/dataportability.shopping.addresses"
 
 	// Move a copy of reviews you wrote about products or online stores on Google
-	// Search.
+	// Search
 	DataportabilityShoppingReviewsScope = "https://www.googleapis.com/auth/dataportability.shopping.reviews"
 
-	// Move a copy of the images and videos you uploaded to Street View.
+	// Move a copy of the images and videos you uploaded to Street View
 	DataportabilityStreetviewImageryScope = "https://www.googleapis.com/auth/dataportability.streetview.imagery"
 
-	// Move a copy of information about your YouTube channel.
+	// Move a copy of information about your YouTube channel
 	DataportabilityYoutubeChannelScope = "https://www.googleapis.com/auth/dataportability.youtube.channel"
 
-	// Move a copy of your YouTube comments.
+	// Move a copy of your YouTube clips metadata
+	DataportabilityYoutubeClipsScope = "https://www.googleapis.com/auth/dataportability.youtube.clips"
+
+	// Move a copy of your YouTube comments
 	DataportabilityYoutubeCommentsScope = "https://www.googleapis.com/auth/dataportability.youtube.comments"
 
-	// Move a copy of your YouTube messages in live chat.
+	// Move a copy of your YouTube messages in live chat
 	DataportabilityYoutubeLiveChatScope = "https://www.googleapis.com/auth/dataportability.youtube.live_chat"
 
 	// Move a copy of your uploaded YouTube music tracks and your YouTube music
-	// library.
+	// library
 	DataportabilityYoutubeMusicScope = "https://www.googleapis.com/auth/dataportability.youtube.music"
 
-	// Move a copy of your YouTube playables saved game progress files.
+	// Move a copy of your YouTube playables saved game progress files
 	DataportabilityYoutubePlayableScope = "https://www.googleapis.com/auth/dataportability.youtube.playable"
 
-	// Move a copy of your YouTube posts.
+	// Move a copy of your YouTube posts
 	DataportabilityYoutubePostsScope = "https://www.googleapis.com/auth/dataportability.youtube.posts"
 
-	// Move a copy of your YouTube private playlists.
+	// Move a copy of your YouTube private playlists
 	DataportabilityYoutubePrivatePlaylistsScope = "https://www.googleapis.com/auth/dataportability.youtube.private_playlists"
 
-	// Move a copy of your private YouTube videos and information about them.
+	// Move a copy of your private YouTube videos and information about them
 	DataportabilityYoutubePrivateVideosScope = "https://www.googleapis.com/auth/dataportability.youtube.private_videos"
 
-	// Move a copy of your public YouTube playlists.
+	// Move a copy of your public YouTube playlists
 	DataportabilityYoutubePublicPlaylistsScope = "https://www.googleapis.com/auth/dataportability.youtube.public_playlists"
 
-	// Move a copy of your public YouTube videos and information about them.
+	// Move a copy of your public YouTube videos and information about them
 	DataportabilityYoutubePublicVideosScope = "https://www.googleapis.com/auth/dataportability.youtube.public_videos"
 
-	// Move a copy of your YouTube shopping wishlists, and wishlist items.
+	// Move a copy of your YouTube shopping wishlists, and wishlist items
 	DataportabilityYoutubeShoppingScope = "https://www.googleapis.com/auth/dataportability.youtube.shopping"
 
-	// Move a copy of your YouTube channel subscriptions, even if they're private.
+	// Move a copy of your YouTube channel subscriptions, even if they're private
 	DataportabilityYoutubeSubscriptionsScope = "https://www.googleapis.com/auth/dataportability.youtube.subscriptions"
 
-	// Move a copy of your unlisted YouTube playlists.
+	// Move a copy of your unlisted YouTube playlists
 	DataportabilityYoutubeUnlistedPlaylistsScope = "https://www.googleapis.com/auth/dataportability.youtube.unlisted_playlists"
 
-	// Move a copy of your unlisted YouTube videos and information about them.
+	// Move a copy of your unlisted YouTube videos and information about them
 	DataportabilityYoutubeUnlistedVideosScope = "https://www.googleapis.com/auth/dataportability.youtube.unlisted_videos"
 )
 
 // NewService creates a new Service.
 func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
 	scopesOption := internaloption.WithDefaultScopes(
+		"https://www.googleapis.com/auth/dataportability.alerts.subscriptions",
 		"https://www.googleapis.com/auth/dataportability.businessmessaging.conversations",
 		"https://www.googleapis.com/auth/dataportability.chrome.autofill",
 		"https://www.googleapis.com/auth/dataportability.chrome.bookmarks",
@@ -344,6 +356,7 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 		"https://www.googleapis.com/auth/dataportability.play.subscriptions",
 		"https://www.googleapis.com/auth/dataportability.play.usersettings",
 		"https://www.googleapis.com/auth/dataportability.saved.collections",
+		"https://www.googleapis.com/auth/dataportability.search_ugc.comments",
 		"https://www.googleapis.com/auth/dataportability.search_ugc.media.reviews_and_stars",
 		"https://www.googleapis.com/auth/dataportability.search_ugc.media.streaming_video_providers",
 		"https://www.googleapis.com/auth/dataportability.search_ugc.media.thumbs",
@@ -354,6 +367,7 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 		"https://www.googleapis.com/auth/dataportability.shopping.reviews",
 		"https://www.googleapis.com/auth/dataportability.streetview.imagery",
 		"https://www.googleapis.com/auth/dataportability.youtube.channel",
+		"https://www.googleapis.com/auth/dataportability.youtube.clips",
 		"https://www.googleapis.com/auth/dataportability.youtube.comments",
 		"https://www.googleapis.com/auth/dataportability.youtube.live_chat",
 		"https://www.googleapis.com/auth/dataportability.youtube.music",
@@ -378,7 +392,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.AccessType = NewAccessTypeService(s)
+	s.ArchiveJobs = NewArchiveJobsService(s)
+	s.Authorization = NewAuthorizationService(s)
+	s.PortabilityArchive = NewPortabilityArchiveService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -397,17 +415,16 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.ArchiveJobs = NewArchiveJobsService(s)
-	s.Authorization = NewAuthorizationService(s)
-	s.PortabilityArchive = NewPortabilityArchiveService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
+
+	AccessType *AccessTypeService
 
 	ArchiveJobs *ArchiveJobsService
 
@@ -421,6 +438,15 @@ func (s *Service) userAgent() string {
 		return googleapi.UserAgent
 	}
 	return googleapi.UserAgent + " " + s.UserAgent
+}
+
+func NewAccessTypeService(s *Service) *AccessTypeService {
+	rs := &AccessTypeService{s: s}
+	return rs
+}
+
+type AccessTypeService struct {
+	s *Service
 }
 
 func NewArchiveJobsService(s *Service) *ArchiveJobsService {
@@ -450,6 +476,52 @@ type PortabilityArchiveService struct {
 	s *Service
 }
 
+// CancelPortabilityArchiveRequest: Request to cancel a Portability Archive
+// job.
+type CancelPortabilityArchiveRequest struct {
+}
+
+// CancelPortabilityArchiveResponse: Response to canceling a Data Portability
+// Archive job.
+type CancelPortabilityArchiveResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+}
+
+// CheckAccessTypeRequest: Request to check the token's access type. All
+// required information is derived from the attached OAuth token.
+type CheckAccessTypeRequest struct {
+}
+
+// CheckAccessTypeResponse: Response to checking the token's access type.
+type CheckAccessTypeResponse struct {
+	// OneTimeResources: Jobs initiated with this token will be one-time if any
+	// requested resources have one-time access.
+	OneTimeResources []string `json:"oneTimeResources,omitempty"`
+	// TimeBasedResources: Jobs initiated with this token will be time-based if all
+	// requested resources have time-based access.
+	TimeBasedResources []string `json:"timeBasedResources,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "OneTimeResources") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "OneTimeResources") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CheckAccessTypeResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod CheckAccessTypeResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
 // Empty: A generic empty message that you can re-use to avoid defining
 // duplicated empty messages in your APIs. A typical example is to use it as
 // the request or the response type of an API method. For instance: service Foo
@@ -461,59 +533,86 @@ type Empty struct {
 
 // InitiatePortabilityArchiveRequest: Request to kick off an Archive job.
 type InitiatePortabilityArchiveRequest struct {
+	// EndTime: Optional. The timestamp that represents the end point for the data
+	// you are exporting. If the end_time is not specified in the
+	// InitiatePortabilityArchiveRequest, this field is set to the latest available
+	// data.
+	EndTime string `json:"endTime,omitempty"`
 	// Resources: The resources from which you're exporting data. These values have
 	// a 1:1 correspondence with the OAuth scopes.
 	Resources []string `json:"resources,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Resources") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// StartTime: Optional. The timestamp that represents the starting point for
+	// the data you are exporting. If the start_time is not specified in the
+	// InitiatePortabilityArchiveRequest, the field is set to the earliest
+	// available data.
+	StartTime string `json:"startTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndTime") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Resources") to include in API
+	// NullFields is a list of field names (e.g. "EndTime") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *InitiatePortabilityArchiveRequest) MarshalJSON() ([]byte, error) {
+func (s InitiatePortabilityArchiveRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InitiatePortabilityArchiveRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InitiatePortabilityArchiveResponse: Response from initiating an Archive job.
 type InitiatePortabilityArchiveResponse struct {
+	// AccessType: The access type of the Archive job initiated by the API.
+	//
+	// Possible values:
+	//   "ACCESS_TYPE_UNSPECIFIED" - Default value. This value is unused.
+	//   "ACCESS_TYPE_ONE_TIME" - One-time access to the requested scopes.
+	//   "ACCESS_TYPE_TIME_BASED" - Multiple exports allowed over 30 days. Enum
+	// value subject to change before launch.
+	AccessType string `json:"accessType,omitempty"`
 	// ArchiveJobId: The archive job ID that is initiated in the API. This can be
 	// used to get the state of the job.
 	ArchiveJobId string `json:"archiveJobId,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "ArchiveJobId") to
+	// ForceSendFields is a list of field names (e.g. "AccessType") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "ArchiveJobId") to include in API
+	// NullFields is a list of field names (e.g. "AccessType") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *InitiatePortabilityArchiveResponse) MarshalJSON() ([]byte, error) {
+func (s InitiatePortabilityArchiveResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod InitiatePortabilityArchiveResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PortabilityArchiveState: Resource that contains the state of an Archive job.
 type PortabilityArchiveState struct {
+	// ExportTime: The timestamp that represents the end point for the data you are
+	// exporting. If the end_time value is set in the
+	// InitiatePortabilityArchiveRequest, this field is set to that value. If
+	// end_time is not set, this value is set to the time the export was requested.
+	ExportTime string `json:"exportTime,omitempty"`
 	// Name: The resource name of ArchiveJob's PortabilityArchiveState singleton.
 	// The format is: archiveJobs/{archive_job}/portabilityArchiveState.
 	// archive_job is the job ID provided in the request.
 	Name string `json:"name,omitempty"`
+	// StartTime: The timestamp that represents the starting point for the data you
+	// are exporting. This field is set only if the start_time field is specified
+	// in the InitiatePortabilityArchiveRequest.
+	StartTime string `json:"startTime,omitempty"`
 	// State: Resource that represents the state of the Archive job.
 	//
 	// Possible values:
@@ -529,22 +628,22 @@ type PortabilityArchiveState struct {
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
-	// ForceSendFields is a list of field names (e.g. "Name") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g. "ExportTime") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Name") to include in API requests
-	// with the JSON null value. By default, fields with empty values are omitted
-	// from API requests. See
+	// NullFields is a list of field names (e.g. "ExportTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *PortabilityArchiveState) MarshalJSON() ([]byte, error) {
+func (s PortabilityArchiveState) MarshalJSON() ([]byte, error) {
 	type NoMethod PortabilityArchiveState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResetAuthorizationRequest: Request to reset exhausted OAuth scopes.
@@ -578,9 +677,213 @@ type RetryPortabilityArchiveResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RetryPortabilityArchiveResponse) MarshalJSON() ([]byte, error) {
+func (s RetryPortabilityArchiveResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RetryPortabilityArchiveResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type AccessTypeCheckCall struct {
+	s                      *Service
+	checkaccesstyperequest *CheckAccessTypeRequest
+	urlParams_             gensupport.URLParams
+	ctx_                   context.Context
+	header_                http.Header
+}
+
+// Check: Gets the access type of the token.
+func (r *AccessTypeService) Check(checkaccesstyperequest *CheckAccessTypeRequest) *AccessTypeCheckCall {
+	c := &AccessTypeCheckCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.checkaccesstyperequest = checkaccesstyperequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *AccessTypeCheckCall) Fields(s ...googleapi.Field) *AccessTypeCheckCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *AccessTypeCheckCall) Context(ctx context.Context) *AccessTypeCheckCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *AccessTypeCheckCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *AccessTypeCheckCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.checkaccesstyperequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/accessType:check")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataportability.accessType.check", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataportability.accessType.check" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *CheckAccessTypeResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *AccessTypeCheckCall) Do(opts ...googleapi.CallOption) (*CheckAccessTypeResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &CheckAccessTypeResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataportability.accessType.check", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ArchiveJobsCancelCall struct {
+	s                               *Service
+	name                            string
+	cancelportabilityarchiverequest *CancelPortabilityArchiveRequest
+	urlParams_                      gensupport.URLParams
+	ctx_                            context.Context
+	header_                         http.Header
+}
+
+// Cancel: Cancels a Portability Archive job.
+//
+//   - name: The Archive job ID you're canceling. This is returned by the
+//     InitiatePortabilityArchive response. The format is:
+//     archiveJobs/{archive_job}. Canceling is only executed if the job is in
+//     progress.
+func (r *ArchiveJobsService) Cancel(name string, cancelportabilityarchiverequest *CancelPortabilityArchiveRequest) *ArchiveJobsCancelCall {
+	c := &ArchiveJobsCancelCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.cancelportabilityarchiverequest = cancelportabilityarchiverequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ArchiveJobsCancelCall) Fields(s ...googleapi.Field) *ArchiveJobsCancelCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ArchiveJobsCancelCall) Context(ctx context.Context) *ArchiveJobsCancelCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ArchiveJobsCancelCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ArchiveJobsCancelCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cancelportabilityarchiverequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}:cancel")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataportability.archiveJobs.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "dataportability.archiveJobs.cancel" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *CancelPortabilityArchiveResponse.ServerResponse.Header or (if a response
+// was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ArchiveJobsCancelCall) Do(opts ...googleapi.CallOption) (*CancelPortabilityArchiveResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &CancelPortabilityArchiveResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataportability.archiveJobs.cancel", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
 }
 
 type ArchiveJobsGetPortabilityArchiveStateCall struct {
@@ -641,12 +944,11 @@ func (c *ArchiveJobsGetPortabilityArchiveStateCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1beta/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -654,6 +956,7 @@ func (c *ArchiveJobsGetPortabilityArchiveStateCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataportability.archiveJobs.getPortabilityArchiveState", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -689,9 +992,11 @@ func (c *ArchiveJobsGetPortabilityArchiveStateCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataportability.archiveJobs.getPortabilityArchiveState", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -741,8 +1046,7 @@ func (c *ArchiveJobsRetryCall) Header() http.Header {
 
 func (c *ArchiveJobsRetryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.retryportabilityarchiverequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.retryportabilityarchiverequest)
 	if err != nil {
 		return nil, err
 	}
@@ -758,6 +1062,7 @@ func (c *ArchiveJobsRetryCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataportability.archiveJobs.retry", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -793,9 +1098,11 @@ func (c *ArchiveJobsRetryCall) Do(opts ...googleapi.CallOption) (*RetryPortabili
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataportability.archiveJobs.retry", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -843,8 +1150,7 @@ func (c *AuthorizationResetCall) Header() http.Header {
 
 func (c *AuthorizationResetCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resetauthorizationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resetauthorizationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -857,6 +1163,7 @@ func (c *AuthorizationResetCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataportability.authorization.reset", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -891,9 +1198,11 @@ func (c *AuthorizationResetCall) Do(opts ...googleapi.CallOption) (*Empty, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataportability.authorization.reset", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -937,8 +1246,7 @@ func (c *PortabilityArchiveInitiateCall) Header() http.Header {
 
 func (c *PortabilityArchiveInitiateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.initiateportabilityarchiverequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.initiateportabilityarchiverequest)
 	if err != nil {
 		return nil, err
 	}
@@ -951,6 +1259,7 @@ func (c *PortabilityArchiveInitiateCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "dataportability.portabilityArchive.initiate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -986,8 +1295,10 @@ func (c *PortabilityArchiveInitiateCall) Do(opts ...googleapi.CallOption) (*Init
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "dataportability.portabilityArchive.initiate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

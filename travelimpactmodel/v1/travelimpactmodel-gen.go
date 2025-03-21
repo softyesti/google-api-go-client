@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "travelimpactmodel:v1"
 const apiName = "travelimpactmodel"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Flights = NewFlightsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Flights = NewFlightsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -169,9 +172,9 @@ type ComputeFlightEmissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputeFlightEmissionsRequest) MarshalJSON() ([]byte, error) {
+func (s ComputeFlightEmissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputeFlightEmissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ComputeFlightEmissionsResponse: Output definition for the
@@ -198,9 +201,9 @@ type ComputeFlightEmissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ComputeFlightEmissionsResponse) MarshalJSON() ([]byte, error) {
+func (s ComputeFlightEmissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ComputeFlightEmissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -236,9 +239,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EmissionsGramsPerPax: Grouped emissions per seating class results.
@@ -272,9 +275,9 @@ type EmissionsGramsPerPax struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EmissionsGramsPerPax) MarshalJSON() ([]byte, error) {
+func (s EmissionsGramsPerPax) MarshalJSON() ([]byte, error) {
 	type NoMethod EmissionsGramsPerPax
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Flight: All details related to a single request item for a direct flight
@@ -304,9 +307,9 @@ type Flight struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Flight) MarshalJSON() ([]byte, error) {
+func (s Flight) MarshalJSON() ([]byte, error) {
 	type NoMethod Flight
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FlightWithEmissions: Direct flight with emission estimates.
@@ -314,9 +317,8 @@ type FlightWithEmissions struct {
 	// EmissionsGramsPerPax: Optional. Per-passenger emission estimate numbers.
 	// Will not be present if emissions could not be computed. For the list of
 	// reasons why emissions could not be computed, see ComputeFlightEmissions.
-	// Note this field is currently equivalent to ttw_emissions_grams_per_pax until
-	// TIM version 1.X.0 which will update this to be total wtw emissions aka
-	// wtt_emissions_grams_per_pax + ttw_emissions_grams_per_pax.
+	// This field uses wtw emissions aka ttw_emissions_grams_per_pax +
+	// wtt_emissions_grams_per_pax.
 	EmissionsGramsPerPax *EmissionsGramsPerPax `json:"emissionsGramsPerPax,omitempty"`
 	// Flight: Required. Matches the flight identifiers in the request. Note: all
 	// IATA codes are capitalized.
@@ -334,9 +336,9 @@ type FlightWithEmissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightWithEmissions) MarshalJSON() ([]byte, error) {
+func (s FlightWithEmissions) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightWithEmissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModelVersion: Travel Impact Model version. For more information about the
@@ -371,9 +373,9 @@ type ModelVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModelVersion) MarshalJSON() ([]byte, error) {
+func (s ModelVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod ModelVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightsComputeFlightEmissionsCall struct {
@@ -390,10 +392,10 @@ type FlightsComputeFlightEmissionsCall struct {
 // entries that match the input flight legs, in the same order. If there are no
 // estimates available for a certain flight leg, the response will return the
 // flight leg object with empty emission fields. The request will still be
-// considered successful. Reasons for missing emission estimates include: - The
-// flight is unknown to the server. - The input flight leg is missing one or
-// more identifiers. - The flight date is in the past. - The aircraft type is
-// not supported by the model. - Missing seat configuration. The request can
+// considered successful. Reasons for missing emission estimates include: * The
+// flight is unknown to the server. * The input flight leg is missing one or
+// more identifiers. * The flight date is in the past. * The aircraft type is
+// not supported by the model. * Missing seat configuration. The request can
 // contain up to 1000 flight legs. If the request has more than 1000 direct
 // flights, if will fail with an INVALID_ARGUMENT error.
 func (r *FlightsService) ComputeFlightEmissions(computeflightemissionsrequest *ComputeFlightEmissionsRequest) *FlightsComputeFlightEmissionsCall {
@@ -427,8 +429,7 @@ func (c *FlightsComputeFlightEmissionsCall) Header() http.Header {
 
 func (c *FlightsComputeFlightEmissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.computeflightemissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.computeflightemissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -441,6 +442,7 @@ func (c *FlightsComputeFlightEmissionsCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "travelimpactmodel.flights.computeFlightEmissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -476,8 +478,10 @@ func (c *FlightsComputeFlightEmissionsCall) Do(opts ...googleapi.CallOption) (*C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "travelimpactmodel.flights.computeFlightEmissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

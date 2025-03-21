@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "chromeuxreport:v1"
 const apiName = "chromeuxreport"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Records = NewRecordsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Records = NewRecordsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -162,7 +165,7 @@ type RecordsService struct {
 type Bin struct {
 	// Density: The proportion of users that experienced this bin's value for the
 	// given metric.
-	Density float64 `json:"density,omitempty"`
+	Density interface{} `json:"density,omitempty"`
 	// End: End is the end of the data bin. If end is not populated, then the bin
 	// has no end and is valid from start to +inf.
 	End interface{} `json:"end,omitempty"`
@@ -181,23 +184,9 @@ type Bin struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Bin) MarshalJSON() ([]byte, error) {
+func (s Bin) MarshalJSON() ([]byte, error) {
 	type NoMethod Bin
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-func (s *Bin) UnmarshalJSON(data []byte) error {
-	type NoMethod Bin
-	var s1 struct {
-		Density gensupport.JSONFloat64 `json:"density"`
-		*NoMethod
-	}
-	s1.NoMethod = (*NoMethod)(s)
-	if err := json.Unmarshal(data, &s1); err != nil {
-		return err
-	}
-	s.Density = float64(s1.Density)
-	return nil
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CollectionPeriod: The collection period is a date range which includes the
@@ -220,9 +209,9 @@ type CollectionPeriod struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CollectionPeriod) MarshalJSON() ([]byte, error) {
+func (s CollectionPeriod) MarshalJSON() ([]byte, error) {
 	type NoMethod CollectionPeriod
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -258,9 +247,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FractionTimeseries: For enum metrics, provides fraction timeseries which add
@@ -282,9 +271,9 @@ type FractionTimeseries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FractionTimeseries) MarshalJSON() ([]byte, error) {
+func (s FractionTimeseries) MarshalJSON() ([]byte, error) {
 	type NoMethod FractionTimeseries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *FractionTimeseries) UnmarshalJSON(data []byte) error {
@@ -340,9 +329,9 @@ type HistoryKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HistoryKey) MarshalJSON() ([]byte, error) {
+func (s HistoryKey) MarshalJSON() ([]byte, error) {
 	type NoMethod HistoryKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HistoryRecord: HistoryRecord is a timeseries of Chrome UX Report data. It
@@ -376,9 +365,9 @@ type HistoryRecord struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HistoryRecord) MarshalJSON() ([]byte, error) {
+func (s HistoryRecord) MarshalJSON() ([]byte, error) {
 	type NoMethod HistoryRecord
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Key: Key defines all the dimensions that identify this record as unique.
@@ -421,9 +410,9 @@ type Key struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Key) MarshalJSON() ([]byte, error) {
+func (s Key) MarshalJSON() ([]byte, error) {
 	type NoMethod Key
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Metric: A `metric` is a set of user experience data for a single web
@@ -453,9 +442,9 @@ type Metric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Metric) MarshalJSON() ([]byte, error) {
+func (s Metric) MarshalJSON() ([]byte, error) {
 	type NoMethod Metric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetricTimeseries: A `metric timeseries` is a set of user experience data for
@@ -487,9 +476,9 @@ type MetricTimeseries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetricTimeseries) MarshalJSON() ([]byte, error) {
+func (s MetricTimeseries) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricTimeseries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Percentiles: Percentiles contains synthetic values of a metric at a given
@@ -511,9 +500,9 @@ type Percentiles struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Percentiles) MarshalJSON() ([]byte, error) {
+func (s Percentiles) MarshalJSON() ([]byte, error) {
 	type NoMethod Percentiles
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryHistoryRequest: Request payload sent by a physical web client. This
@@ -558,9 +547,9 @@ type QueryHistoryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryHistoryRequest) MarshalJSON() ([]byte, error) {
+func (s QueryHistoryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryHistoryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryHistoryResponse: Response payload sent back to a physical web client.
@@ -590,9 +579,9 @@ type QueryHistoryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryHistoryResponse) MarshalJSON() ([]byte, error) {
+func (s QueryHistoryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryHistoryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryRequest: Request payload sent by a physical web client. This request
@@ -644,9 +633,9 @@ type QueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryRequest) MarshalJSON() ([]byte, error) {
+func (s QueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryResponse: Response payload sent back to a physical web client. This
@@ -676,9 +665,9 @@ type QueryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryResponse) MarshalJSON() ([]byte, error) {
+func (s QueryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Record: Record is a single Chrome UX report data record. It contains use
@@ -709,9 +698,9 @@ type Record struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Record) MarshalJSON() ([]byte, error) {
+func (s Record) MarshalJSON() ([]byte, error) {
 	type NoMethod Record
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeseriesBin: A bin is a discrete portion of data spanning from start to
@@ -748,9 +737,9 @@ type TimeseriesBin struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeseriesBin) MarshalJSON() ([]byte, error) {
+func (s TimeseriesBin) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeseriesBin
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *TimeseriesBin) UnmarshalJSON(data []byte) error {
@@ -793,9 +782,9 @@ type TimeseriesPercentiles struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeseriesPercentiles) MarshalJSON() ([]byte, error) {
+func (s TimeseriesPercentiles) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeseriesPercentiles
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UrlNormalization: Object representing the normalization actions taken to
@@ -822,9 +811,9 @@ type UrlNormalization struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UrlNormalization) MarshalJSON() ([]byte, error) {
+func (s UrlNormalization) MarshalJSON() ([]byte, error) {
 	type NoMethod UrlNormalization
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RecordsQueryHistoryRecordCall struct {
@@ -870,8 +859,7 @@ func (c *RecordsQueryHistoryRecordCall) Header() http.Header {
 
 func (c *RecordsQueryHistoryRecordCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.queryhistoryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.queryhistoryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -884,6 +872,7 @@ func (c *RecordsQueryHistoryRecordCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromeuxreport.records.queryHistoryRecord", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -919,9 +908,11 @@ func (c *RecordsQueryHistoryRecordCall) Do(opts ...googleapi.CallOption) (*Query
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromeuxreport.records.queryHistoryRecord", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -967,8 +958,7 @@ func (c *RecordsQueryRecordCall) Header() http.Header {
 
 func (c *RecordsQueryRecordCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.queryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.queryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -981,6 +971,7 @@ func (c *RecordsQueryRecordCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "chromeuxreport.records.queryRecord", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1015,8 +1006,10 @@ func (c *RecordsQueryRecordCall) Do(opts ...googleapi.CallOption) (*QueryRespons
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "chromeuxreport.records.queryRecord", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

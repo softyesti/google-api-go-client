@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "customsearch:v1"
 const apiName = "customsearch"
@@ -103,7 +106,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Cse = NewCseService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +126,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Cse = NewCseService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -191,9 +194,9 @@ type Promotion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Promotion) MarshalJSON() ([]byte, error) {
+func (s Promotion) MarshalJSON() ([]byte, error) {
 	type NoMethod Promotion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PromotionBodyLines: Block object belonging to a promotion.
@@ -219,9 +222,9 @@ type PromotionBodyLines struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PromotionBodyLines) MarshalJSON() ([]byte, error) {
+func (s PromotionBodyLines) MarshalJSON() ([]byte, error) {
 	type NoMethod PromotionBodyLines
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PromotionImage: Image belonging to a promotion.
@@ -245,9 +248,9 @@ type PromotionImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PromotionImage) MarshalJSON() ([]byte, error) {
+func (s PromotionImage) MarshalJSON() ([]byte, error) {
 	type NoMethod PromotionImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Result: A custom search result.
@@ -301,9 +304,9 @@ type Result struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Result) MarshalJSON() ([]byte, error) {
+func (s Result) MarshalJSON() ([]byte, error) {
 	type NoMethod Result
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResultImage: Image belonging to a custom search result.
@@ -335,9 +338,9 @@ type ResultImage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResultImage) MarshalJSON() ([]byte, error) {
+func (s ResultImage) MarshalJSON() ([]byte, error) {
 	type NoMethod ResultImage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResultLabels: Refinement label associated with a custom search result.
@@ -363,9 +366,9 @@ type ResultLabels struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResultLabels) MarshalJSON() ([]byte, error) {
+func (s ResultLabels) MarshalJSON() ([]byte, error) {
 	type NoMethod ResultLabels
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Search: Response to a custom search request.
@@ -411,9 +414,9 @@ type Search struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Search) MarshalJSON() ([]byte, error) {
+func (s Search) MarshalJSON() ([]byte, error) {
 	type NoMethod Search
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchQueries: Query metadata for the previous, current, and next pages of
@@ -439,9 +442,9 @@ type SearchQueries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchQueries) MarshalJSON() ([]byte, error) {
+func (s SearchQueries) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchQueries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchQueriesNextPage: Custom search request metadata.
@@ -613,9 +616,9 @@ type SearchQueriesNextPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchQueriesNextPage) MarshalJSON() ([]byte, error) {
+func (s SearchQueriesNextPage) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchQueriesNextPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchQueriesPreviousPage: Custom search request metadata.
@@ -787,9 +790,9 @@ type SearchQueriesPreviousPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchQueriesPreviousPage) MarshalJSON() ([]byte, error) {
+func (s SearchQueriesPreviousPage) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchQueriesPreviousPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchQueriesRequest: Custom search request metadata.
@@ -961,9 +964,9 @@ type SearchQueriesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchQueriesRequest) MarshalJSON() ([]byte, error) {
+func (s SearchQueriesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchQueriesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchSearchInformation: Metadata about a search operation.
@@ -991,9 +994,9 @@ type SearchSearchInformation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchSearchInformation) MarshalJSON() ([]byte, error) {
+func (s SearchSearchInformation) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchSearchInformation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *SearchSearchInformation) UnmarshalJSON(data []byte) error {
@@ -1029,9 +1032,9 @@ type SearchSpelling struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchSpelling) MarshalJSON() ([]byte, error) {
+func (s SearchSpelling) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchSpelling
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchUrl: OpenSearch template and URL.
@@ -1056,9 +1059,9 @@ type SearchUrl struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchUrl) MarshalJSON() ([]byte, error) {
+func (s SearchUrl) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchUrl
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CseListCall struct {
@@ -1115,6 +1118,14 @@ func (c *CseListCall) Cx(cx string) *CseListCall {
 // results from the specified number of past years.
 func (c *CseListCall) DateRestrict(dateRestrict string) *CseListCall {
 	c.urlParams_.Set("dateRestrict", dateRestrict)
+	return c
+}
+
+// EnableAlternateSearchHandler sets the optional parameter
+// "enableAlternateSearchHandler": Enables routing of Programmable Search
+// Engine requests to an alternate search handler.
+func (c *CseListCall) EnableAlternateSearchHandler(enableAlternateSearchHandler bool) *CseListCall {
+	c.urlParams_.Set("enableAlternateSearchHandler", fmt.Sprint(enableAlternateSearchHandler))
 	return c
 }
 
@@ -1475,16 +1486,16 @@ func (c *CseListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "customsearch/v1")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "search.cse.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1519,9 +1530,11 @@ func (c *CseListCall) Do(opts ...googleapi.CallOption) (*Search, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "search.cse.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1580,6 +1593,14 @@ func (c *CseSiterestrictListCall) Cx(cx string) *CseSiterestrictListCall {
 // results from the specified number of past years.
 func (c *CseSiterestrictListCall) DateRestrict(dateRestrict string) *CseSiterestrictListCall {
 	c.urlParams_.Set("dateRestrict", dateRestrict)
+	return c
+}
+
+// EnableAlternateSearchHandler sets the optional parameter
+// "enableAlternateSearchHandler": Enables routing of Programmable Search
+// Engine requests to an alternate search handler.
+func (c *CseSiterestrictListCall) EnableAlternateSearchHandler(enableAlternateSearchHandler bool) *CseSiterestrictListCall {
+	c.urlParams_.Set("enableAlternateSearchHandler", fmt.Sprint(enableAlternateSearchHandler))
 	return c
 }
 
@@ -1940,16 +1961,16 @@ func (c *CseSiterestrictListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "customsearch/v1/siterestrict")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "search.cse.siterestrict.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1984,8 +2005,10 @@ func (c *CseSiterestrictListCall) Do(opts ...googleapi.CallOption) (*Search, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "search.cse.siterestrict.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

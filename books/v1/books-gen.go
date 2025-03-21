@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "books:v1"
 const apiName = "books"
@@ -114,7 +117,20 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Bookshelves = NewBookshelvesService(s)
+	s.Cloudloading = NewCloudloadingService(s)
+	s.Dictionary = NewDictionaryService(s)
+	s.Familysharing = NewFamilysharingService(s)
+	s.Layers = NewLayersService(s)
+	s.Myconfig = NewMyconfigService(s)
+	s.Mylibrary = NewMylibraryService(s)
+	s.Notification = NewNotificationService(s)
+	s.Onboarding = NewOnboardingService(s)
+	s.Personalizedstream = NewPersonalizedstreamService(s)
+	s.Promooffer = NewPromoofferService(s)
+	s.Series = NewSeriesService(s)
+	s.Volumes = NewVolumesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,25 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Bookshelves = NewBookshelvesService(s)
-	s.Cloudloading = NewCloudloadingService(s)
-	s.Dictionary = NewDictionaryService(s)
-	s.Familysharing = NewFamilysharingService(s)
-	s.Layers = NewLayersService(s)
-	s.Myconfig = NewMyconfigService(s)
-	s.Mylibrary = NewMylibraryService(s)
-	s.Notification = NewNotificationService(s)
-	s.Onboarding = NewOnboardingService(s)
-	s.Personalizedstream = NewPersonalizedstreamService(s)
-	s.Promooffer = NewPromoofferService(s)
-	s.Series = NewSeriesService(s)
-	s.Volumes = NewVolumesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -504,9 +507,9 @@ type Annotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Annotation) MarshalJSON() ([]byte, error) {
+func (s Annotation) MarshalJSON() ([]byte, error) {
 	type NoMethod Annotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnnotationClientVersionRanges: Selection ranges sent from the client.
@@ -534,9 +537,9 @@ type AnnotationClientVersionRanges struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotationClientVersionRanges) MarshalJSON() ([]byte, error) {
+func (s AnnotationClientVersionRanges) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotationClientVersionRanges
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnnotationCurrentVersionRanges: Selection ranges for the most recent content
@@ -567,9 +570,9 @@ type AnnotationCurrentVersionRanges struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotationCurrentVersionRanges) MarshalJSON() ([]byte, error) {
+func (s AnnotationCurrentVersionRanges) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotationCurrentVersionRanges
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AnnotationLayerSummary struct {
@@ -595,9 +598,9 @@ type AnnotationLayerSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotationLayerSummary) MarshalJSON() ([]byte, error) {
+func (s AnnotationLayerSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotationLayerSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Annotations struct {
@@ -627,9 +630,9 @@ type Annotations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Annotations) MarshalJSON() ([]byte, error) {
+func (s Annotations) MarshalJSON() ([]byte, error) {
 	type NoMethod Annotations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AnnotationsSummary struct {
@@ -651,9 +654,9 @@ type AnnotationsSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotationsSummary) MarshalJSON() ([]byte, error) {
+func (s AnnotationsSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotationsSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AnnotationsSummaryLayers struct {
@@ -675,9 +678,9 @@ type AnnotationsSummaryLayers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotationsSummaryLayers) MarshalJSON() ([]byte, error) {
+func (s AnnotationsSummaryLayers) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotationsSummaryLayers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Annotationsdata struct {
@@ -706,9 +709,9 @@ type Annotationsdata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Annotationsdata) MarshalJSON() ([]byte, error) {
+func (s Annotationsdata) MarshalJSON() ([]byte, error) {
 	type NoMethod Annotationsdata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BooksAnnotationsRange struct {
@@ -733,9 +736,9 @@ type BooksAnnotationsRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BooksAnnotationsRange) MarshalJSON() ([]byte, error) {
+func (s BooksAnnotationsRange) MarshalJSON() ([]byte, error) {
 	type NoMethod BooksAnnotationsRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BooksCloudloadingResource struct {
@@ -759,9 +762,9 @@ type BooksCloudloadingResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BooksCloudloadingResource) MarshalJSON() ([]byte, error) {
+func (s BooksCloudloadingResource) MarshalJSON() ([]byte, error) {
 	type NoMethod BooksCloudloadingResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BooksVolumesRecommendedRateResponse struct {
@@ -782,9 +785,9 @@ type BooksVolumesRecommendedRateResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BooksVolumesRecommendedRateResponse) MarshalJSON() ([]byte, error) {
+func (s BooksVolumesRecommendedRateResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BooksVolumesRecommendedRateResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Bookshelf struct {
@@ -827,9 +830,9 @@ type Bookshelf struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Bookshelf) MarshalJSON() ([]byte, error) {
+func (s Bookshelf) MarshalJSON() ([]byte, error) {
 	type NoMethod Bookshelf
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Bookshelves struct {
@@ -853,9 +856,9 @@ type Bookshelves struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Bookshelves) MarshalJSON() ([]byte, error) {
+func (s Bookshelves) MarshalJSON() ([]byte, error) {
 	type NoMethod Bookshelves
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Category struct {
@@ -879,9 +882,9 @@ type Category struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Category) MarshalJSON() ([]byte, error) {
+func (s Category) MarshalJSON() ([]byte, error) {
 	type NoMethod Category
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CategoryItems struct {
@@ -901,9 +904,9 @@ type CategoryItems struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CategoryItems) MarshalJSON() ([]byte, error) {
+func (s CategoryItems) MarshalJSON() ([]byte, error) {
 	type NoMethod CategoryItems
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ConcurrentAccessRestriction struct {
@@ -945,9 +948,9 @@ type ConcurrentAccessRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConcurrentAccessRestriction) MarshalJSON() ([]byte, error) {
+func (s ConcurrentAccessRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod ConcurrentAccessRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictionaryAnnotationdata struct {
@@ -987,9 +990,9 @@ type DictionaryAnnotationdata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictionaryAnnotationdata) MarshalJSON() ([]byte, error) {
+func (s DictionaryAnnotationdata) MarshalJSON() ([]byte, error) {
 	type NoMethod DictionaryAnnotationdata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Dictlayerdata struct {
@@ -1009,9 +1012,9 @@ type Dictlayerdata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Dictlayerdata) MarshalJSON() ([]byte, error) {
+func (s Dictlayerdata) MarshalJSON() ([]byte, error) {
 	type NoMethod Dictlayerdata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataCommon struct {
@@ -1031,9 +1034,9 @@ type DictlayerdataCommon struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataCommon) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataCommon) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataCommon
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDict struct {
@@ -1053,9 +1056,9 @@ type DictlayerdataDict struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDict) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDict) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDict
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DictlayerdataDictSource: The source, url and attribution for this dictionary
@@ -1076,9 +1079,9 @@ type DictlayerdataDictSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictSource) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWords struct {
@@ -1101,9 +1104,9 @@ type DictlayerdataDictWords struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWords) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWords) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWords
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsDerivatives struct {
@@ -1122,9 +1125,9 @@ type DictlayerdataDictWordsDerivatives struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsDerivatives) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsDerivatives) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsDerivatives
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsDerivativesSource struct {
@@ -1143,9 +1146,9 @@ type DictlayerdataDictWordsDerivativesSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsDerivativesSource) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsDerivativesSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsDerivativesSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsExamples struct {
@@ -1164,9 +1167,9 @@ type DictlayerdataDictWordsExamples struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsExamples) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsExamples) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsExamples
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsExamplesSource struct {
@@ -1185,9 +1188,9 @@ type DictlayerdataDictWordsExamplesSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsExamplesSource) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsExamplesSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsExamplesSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsSenses struct {
@@ -1212,9 +1215,9 @@ type DictlayerdataDictWordsSenses struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSenses) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSenses) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSenses
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsSensesConjugations struct {
@@ -1233,9 +1236,9 @@ type DictlayerdataDictWordsSensesConjugations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSensesConjugations) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSensesConjugations) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSensesConjugations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsSensesDefinitions struct {
@@ -1254,9 +1257,9 @@ type DictlayerdataDictWordsSensesDefinitions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSensesDefinitions) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSensesDefinitions) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSensesDefinitions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsSensesDefinitionsExamples struct {
@@ -1275,9 +1278,9 @@ type DictlayerdataDictWordsSensesDefinitionsExamples struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSensesDefinitionsExamples) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSensesDefinitionsExamples) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSensesDefinitionsExamples
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsSensesDefinitionsExamplesSource struct {
@@ -1296,9 +1299,9 @@ type DictlayerdataDictWordsSensesDefinitionsExamplesSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSensesDefinitionsExamplesSource) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSensesDefinitionsExamplesSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSensesDefinitionsExamplesSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsSensesSource struct {
@@ -1317,9 +1320,9 @@ type DictlayerdataDictWordsSensesSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSensesSource) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSensesSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSensesSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsSensesSynonyms struct {
@@ -1338,9 +1341,9 @@ type DictlayerdataDictWordsSensesSynonyms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSensesSynonyms) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSensesSynonyms) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSensesSynonyms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DictlayerdataDictWordsSensesSynonymsSource struct {
@@ -1359,9 +1362,9 @@ type DictlayerdataDictWordsSensesSynonymsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSensesSynonymsSource) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSensesSynonymsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSensesSynonymsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DictlayerdataDictWordsSource: The words with different meanings but not
@@ -1382,9 +1385,9 @@ type DictlayerdataDictWordsSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DictlayerdataDictWordsSource) MarshalJSON() ([]byte, error) {
+func (s DictlayerdataDictWordsSource) MarshalJSON() ([]byte, error) {
 	type NoMethod DictlayerdataDictWordsSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Discoveryclusters struct {
@@ -1408,9 +1411,9 @@ type Discoveryclusters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Discoveryclusters) MarshalJSON() ([]byte, error) {
+func (s Discoveryclusters) MarshalJSON() ([]byte, error) {
 	type NoMethod Discoveryclusters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DiscoveryclustersClusters struct {
@@ -1433,9 +1436,9 @@ type DiscoveryclustersClusters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiscoveryclustersClusters) MarshalJSON() ([]byte, error) {
+func (s DiscoveryclustersClusters) MarshalJSON() ([]byte, error) {
 	type NoMethod DiscoveryclustersClusters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DiscoveryclustersClustersBannerWithContentContainer struct {
@@ -1458,9 +1461,9 @@ type DiscoveryclustersClustersBannerWithContentContainer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiscoveryclustersClustersBannerWithContentContainer) MarshalJSON() ([]byte, error) {
+func (s DiscoveryclustersClustersBannerWithContentContainer) MarshalJSON() ([]byte, error) {
 	type NoMethod DiscoveryclustersClustersBannerWithContentContainer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DownloadAccessRestriction struct {
@@ -1509,9 +1512,9 @@ type DownloadAccessRestriction struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DownloadAccessRestriction) MarshalJSON() ([]byte, error) {
+func (s DownloadAccessRestriction) MarshalJSON() ([]byte, error) {
 	type NoMethod DownloadAccessRestriction
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DownloadAccesses struct {
@@ -1535,9 +1538,9 @@ type DownloadAccesses struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DownloadAccesses) MarshalJSON() ([]byte, error) {
+func (s DownloadAccesses) MarshalJSON() ([]byte, error) {
 	type NoMethod DownloadAccesses
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1570,9 +1573,9 @@ type FamilyInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FamilyInfo) MarshalJSON() ([]byte, error) {
+func (s FamilyInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod FamilyInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FamilyInfoMembership: Family membership info of the user that made the
@@ -1600,9 +1603,9 @@ type FamilyInfoMembership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FamilyInfoMembership) MarshalJSON() ([]byte, error) {
+func (s FamilyInfoMembership) MarshalJSON() ([]byte, error) {
 	type NoMethod FamilyInfoMembership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GeoAnnotationdata struct {
@@ -1639,9 +1642,9 @@ type GeoAnnotationdata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeoAnnotationdata) MarshalJSON() ([]byte, error) {
+func (s GeoAnnotationdata) MarshalJSON() ([]byte, error) {
 	type NoMethod GeoAnnotationdata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Geolayerdata struct {
@@ -1661,9 +1664,9 @@ type Geolayerdata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Geolayerdata) MarshalJSON() ([]byte, error) {
+func (s Geolayerdata) MarshalJSON() ([]byte, error) {
 	type NoMethod Geolayerdata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GeolayerdataCommon struct {
@@ -1691,9 +1694,9 @@ type GeolayerdataCommon struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeolayerdataCommon) MarshalJSON() ([]byte, error) {
+func (s GeolayerdataCommon) MarshalJSON() ([]byte, error) {
 	type NoMethod GeolayerdataCommon
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GeolayerdataGeo struct {
@@ -1733,9 +1736,9 @@ type GeolayerdataGeo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeolayerdataGeo) MarshalJSON() ([]byte, error) {
+func (s GeolayerdataGeo) MarshalJSON() ([]byte, error) {
 	type NoMethod GeolayerdataGeo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GeolayerdataGeo) UnmarshalJSON(data []byte) error {
@@ -1772,9 +1775,9 @@ type GeolayerdataGeoViewport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeolayerdataGeoViewport) MarshalJSON() ([]byte, error) {
+func (s GeolayerdataGeoViewport) MarshalJSON() ([]byte, error) {
 	type NoMethod GeolayerdataGeoViewport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GeolayerdataGeoViewportHi struct {
@@ -1793,9 +1796,9 @@ type GeolayerdataGeoViewportHi struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeolayerdataGeoViewportHi) MarshalJSON() ([]byte, error) {
+func (s GeolayerdataGeoViewportHi) MarshalJSON() ([]byte, error) {
 	type NoMethod GeolayerdataGeoViewportHi
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GeolayerdataGeoViewportHi) UnmarshalJSON(data []byte) error {
@@ -1830,9 +1833,9 @@ type GeolayerdataGeoViewportLo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GeolayerdataGeoViewportLo) MarshalJSON() ([]byte, error) {
+func (s GeolayerdataGeoViewportLo) MarshalJSON() ([]byte, error) {
 	type NoMethod GeolayerdataGeoViewportLo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GeolayerdataGeoViewportLo) UnmarshalJSON(data []byte) error {
@@ -1874,9 +1877,9 @@ type Layersummaries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Layersummaries) MarshalJSON() ([]byte, error) {
+func (s Layersummaries) MarshalJSON() ([]byte, error) {
 	type NoMethod Layersummaries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Layersummary struct {
@@ -1926,9 +1929,9 @@ type Layersummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Layersummary) MarshalJSON() ([]byte, error) {
+func (s Layersummary) MarshalJSON() ([]byte, error) {
 	type NoMethod Layersummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Metadata struct {
@@ -1952,9 +1955,9 @@ type Metadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Metadata) MarshalJSON() ([]byte, error) {
+func (s Metadata) MarshalJSON() ([]byte, error) {
 	type NoMethod Metadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type MetadataItems struct {
@@ -1976,9 +1979,9 @@ type MetadataItems struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetadataItems) MarshalJSON() ([]byte, error) {
+func (s MetadataItems) MarshalJSON() ([]byte, error) {
 	type NoMethod MetadataItems
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Notification struct {
@@ -2016,9 +2019,9 @@ type Notification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Notification) MarshalJSON() ([]byte, error) {
+func (s Notification) MarshalJSON() ([]byte, error) {
 	type NoMethod Notification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Offers struct {
@@ -2042,9 +2045,9 @@ type Offers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Offers) MarshalJSON() ([]byte, error) {
+func (s Offers) MarshalJSON() ([]byte, error) {
 	type NoMethod Offers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OffersItems struct {
@@ -2065,9 +2068,9 @@ type OffersItems struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OffersItems) MarshalJSON() ([]byte, error) {
+func (s OffersItems) MarshalJSON() ([]byte, error) {
 	type NoMethod OffersItems
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OffersItemsItems struct {
@@ -2090,9 +2093,9 @@ type OffersItemsItems struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OffersItemsItems) MarshalJSON() ([]byte, error) {
+func (s OffersItemsItems) MarshalJSON() ([]byte, error) {
 	type NoMethod OffersItemsItems
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ReadingPosition struct {
@@ -2127,9 +2130,9 @@ type ReadingPosition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadingPosition) MarshalJSON() ([]byte, error) {
+func (s ReadingPosition) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadingPosition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RequestAccessData struct {
@@ -2155,9 +2158,9 @@ type RequestAccessData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RequestAccessData) MarshalJSON() ([]byte, error) {
+func (s RequestAccessData) MarshalJSON() ([]byte, error) {
 	type NoMethod RequestAccessData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Review struct {
@@ -2198,9 +2201,9 @@ type Review struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Review) MarshalJSON() ([]byte, error) {
+func (s Review) MarshalJSON() ([]byte, error) {
 	type NoMethod Review
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReviewAuthor: Author of this review.
@@ -2220,9 +2223,9 @@ type ReviewAuthor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReviewAuthor) MarshalJSON() ([]byte, error) {
+func (s ReviewAuthor) MarshalJSON() ([]byte, error) {
 	type NoMethod ReviewAuthor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReviewSource: Information regarding the source of this review, when the
@@ -2247,9 +2250,9 @@ type ReviewSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReviewSource) MarshalJSON() ([]byte, error) {
+func (s ReviewSource) MarshalJSON() ([]byte, error) {
 	type NoMethod ReviewSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Series struct {
@@ -2272,9 +2275,9 @@ type Series struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Series) MarshalJSON() ([]byte, error) {
+func (s Series) MarshalJSON() ([]byte, error) {
 	type NoMethod Series
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SeriesSeries struct {
@@ -2301,9 +2304,9 @@ type SeriesSeries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeriesSeries) MarshalJSON() ([]byte, error) {
+func (s SeriesSeries) MarshalJSON() ([]byte, error) {
 	type NoMethod SeriesSeries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SeriesSeriesSeriesSubscriptionReleaseInfo struct {
@@ -2324,9 +2327,9 @@ type SeriesSeriesSeriesSubscriptionReleaseInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeriesSeriesSeriesSubscriptionReleaseInfo) MarshalJSON() ([]byte, error) {
+func (s SeriesSeriesSeriesSubscriptionReleaseInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SeriesSeriesSeriesSubscriptionReleaseInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SeriesSeriesSeriesSubscriptionReleaseInfoCurrentReleaseInfo struct {
@@ -2347,9 +2350,9 @@ type SeriesSeriesSeriesSubscriptionReleaseInfoCurrentReleaseInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeriesSeriesSeriesSubscriptionReleaseInfoCurrentReleaseInfo) MarshalJSON() ([]byte, error) {
+func (s SeriesSeriesSeriesSubscriptionReleaseInfoCurrentReleaseInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SeriesSeriesSeriesSubscriptionReleaseInfoCurrentReleaseInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *SeriesSeriesSeriesSubscriptionReleaseInfoCurrentReleaseInfo) UnmarshalJSON(data []byte) error {
@@ -2384,9 +2387,9 @@ type SeriesSeriesSeriesSubscriptionReleaseInfoNextReleaseInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SeriesSeriesSeriesSubscriptionReleaseInfoNextReleaseInfo) MarshalJSON() ([]byte, error) {
+func (s SeriesSeriesSeriesSubscriptionReleaseInfoNextReleaseInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SeriesSeriesSeriesSubscriptionReleaseInfoNextReleaseInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *SeriesSeriesSeriesSubscriptionReleaseInfoNextReleaseInfo) UnmarshalJSON(data []byte) error {
@@ -2424,9 +2427,9 @@ type Seriesmembership struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Seriesmembership) MarshalJSON() ([]byte, error) {
+func (s Seriesmembership) MarshalJSON() ([]byte, error) {
 	type NoMethod Seriesmembership
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Usersettings struct {
@@ -2451,9 +2454,9 @@ type Usersettings struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Usersettings) MarshalJSON() ([]byte, error) {
+func (s Usersettings) MarshalJSON() ([]byte, error) {
 	type NoMethod Usersettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UsersettingsNotesExport: User settings in sub-objects, each for different
@@ -2474,9 +2477,9 @@ type UsersettingsNotesExport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsersettingsNotesExport) MarshalJSON() ([]byte, error) {
+func (s UsersettingsNotesExport) MarshalJSON() ([]byte, error) {
 	type NoMethod UsersettingsNotesExport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UsersettingsNotification struct {
@@ -2498,9 +2501,9 @@ type UsersettingsNotification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsersettingsNotification) MarshalJSON() ([]byte, error) {
+func (s UsersettingsNotification) MarshalJSON() ([]byte, error) {
 	type NoMethod UsersettingsNotification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UsersettingsNotificationMatchMyInterests struct {
@@ -2518,9 +2521,9 @@ type UsersettingsNotificationMatchMyInterests struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsersettingsNotificationMatchMyInterests) MarshalJSON() ([]byte, error) {
+func (s UsersettingsNotificationMatchMyInterests) MarshalJSON() ([]byte, error) {
 	type NoMethod UsersettingsNotificationMatchMyInterests
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UsersettingsNotificationMoreFromAuthors struct {
@@ -2538,9 +2541,9 @@ type UsersettingsNotificationMoreFromAuthors struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsersettingsNotificationMoreFromAuthors) MarshalJSON() ([]byte, error) {
+func (s UsersettingsNotificationMoreFromAuthors) MarshalJSON() ([]byte, error) {
 	type NoMethod UsersettingsNotificationMoreFromAuthors
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UsersettingsNotificationMoreFromSeries struct {
@@ -2558,9 +2561,9 @@ type UsersettingsNotificationMoreFromSeries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsersettingsNotificationMoreFromSeries) MarshalJSON() ([]byte, error) {
+func (s UsersettingsNotificationMoreFromSeries) MarshalJSON() ([]byte, error) {
 	type NoMethod UsersettingsNotificationMoreFromSeries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UsersettingsNotificationPriceDrop struct {
@@ -2578,9 +2581,9 @@ type UsersettingsNotificationPriceDrop struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsersettingsNotificationPriceDrop) MarshalJSON() ([]byte, error) {
+func (s UsersettingsNotificationPriceDrop) MarshalJSON() ([]byte, error) {
 	type NoMethod UsersettingsNotificationPriceDrop
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type UsersettingsNotificationRewardExpirations struct {
@@ -2598,9 +2601,9 @@ type UsersettingsNotificationRewardExpirations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UsersettingsNotificationRewardExpirations) MarshalJSON() ([]byte, error) {
+func (s UsersettingsNotificationRewardExpirations) MarshalJSON() ([]byte, error) {
 	type NoMethod UsersettingsNotificationRewardExpirations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Volume struct {
@@ -2650,9 +2653,9 @@ type Volume struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Volume) MarshalJSON() ([]byte, error) {
+func (s Volume) MarshalJSON() ([]byte, error) {
 	type NoMethod Volume
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeAccessInfo: Any information about a volume related to reading or
@@ -2717,9 +2720,9 @@ type VolumeAccessInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeAccessInfo) MarshalJSON() ([]byte, error) {
+func (s VolumeAccessInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeAccessInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeAccessInfoEpub: Information about epub content. (In LITE projection.)
@@ -2745,9 +2748,9 @@ type VolumeAccessInfoEpub struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeAccessInfoEpub) MarshalJSON() ([]byte, error) {
+func (s VolumeAccessInfoEpub) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeAccessInfoEpub
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeAccessInfoPdf: Information about pdf content. (In LITE projection.)
@@ -2773,9 +2776,9 @@ type VolumeAccessInfoPdf struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeAccessInfoPdf) MarshalJSON() ([]byte, error) {
+func (s VolumeAccessInfoPdf) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeAccessInfoPdf
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeLayerInfo: What layers exist in this volume and high level information
@@ -2797,9 +2800,9 @@ type VolumeLayerInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeLayerInfo) MarshalJSON() ([]byte, error) {
+func (s VolumeLayerInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeLayerInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type VolumeLayerInfoLayers struct {
@@ -2823,9 +2826,9 @@ type VolumeLayerInfoLayers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeLayerInfoLayers) MarshalJSON() ([]byte, error) {
+func (s VolumeLayerInfoLayers) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeLayerInfoLayers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeRecommendedInfo: Recommendation related information for this volume.
@@ -2845,9 +2848,9 @@ type VolumeRecommendedInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeRecommendedInfo) MarshalJSON() ([]byte, error) {
+func (s VolumeRecommendedInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeRecommendedInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeSaleInfo: Any information about a volume related to the eBookstore
@@ -2892,9 +2895,9 @@ type VolumeSaleInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSaleInfo) MarshalJSON() ([]byte, error) {
+func (s VolumeSaleInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSaleInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeSaleInfoListPrice: Suggested retail price. (In LITE projection.)
@@ -2916,9 +2919,9 @@ type VolumeSaleInfoListPrice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSaleInfoListPrice) MarshalJSON() ([]byte, error) {
+func (s VolumeSaleInfoListPrice) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSaleInfoListPrice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VolumeSaleInfoListPrice) UnmarshalJSON(data []byte) error {
@@ -2959,9 +2962,9 @@ type VolumeSaleInfoOffers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSaleInfoOffers) MarshalJSON() ([]byte, error) {
+func (s VolumeSaleInfoOffers) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSaleInfoOffers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeSaleInfoOffersListPrice: Offer list (=undiscounted) price in Micros.
@@ -2981,9 +2984,9 @@ type VolumeSaleInfoOffersListPrice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSaleInfoOffersListPrice) MarshalJSON() ([]byte, error) {
+func (s VolumeSaleInfoOffersListPrice) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSaleInfoOffersListPrice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VolumeSaleInfoOffersListPrice) UnmarshalJSON(data []byte) error {
@@ -3018,9 +3021,9 @@ type VolumeSaleInfoOffersRentalDuration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSaleInfoOffersRentalDuration) MarshalJSON() ([]byte, error) {
+func (s VolumeSaleInfoOffersRentalDuration) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSaleInfoOffersRentalDuration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VolumeSaleInfoOffersRentalDuration) UnmarshalJSON(data []byte) error {
@@ -3054,9 +3057,9 @@ type VolumeSaleInfoOffersRetailPrice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSaleInfoOffersRetailPrice) MarshalJSON() ([]byte, error) {
+func (s VolumeSaleInfoOffersRetailPrice) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSaleInfoOffersRetailPrice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VolumeSaleInfoOffersRetailPrice) UnmarshalJSON(data []byte) error {
@@ -3094,9 +3097,9 @@ type VolumeSaleInfoRetailPrice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSaleInfoRetailPrice) MarshalJSON() ([]byte, error) {
+func (s VolumeSaleInfoRetailPrice) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSaleInfoRetailPrice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VolumeSaleInfoRetailPrice) UnmarshalJSON(data []byte) error {
@@ -3130,9 +3133,9 @@ type VolumeSearchInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeSearchInfo) MarshalJSON() ([]byte, error) {
+func (s VolumeSearchInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeSearchInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeUserInfo: User specific information related to this volume. (e.g. page
@@ -3197,9 +3200,9 @@ type VolumeUserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeUserInfo) MarshalJSON() ([]byte, error) {
+func (s VolumeUserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeUserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeUserInfoCopy: Copy/Paste accounting information.
@@ -3221,9 +3224,9 @@ type VolumeUserInfoCopy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeUserInfoCopy) MarshalJSON() ([]byte, error) {
+func (s VolumeUserInfoCopy) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeUserInfoCopy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeUserInfoFamilySharing: Information on the ability to share with the
@@ -3251,9 +3254,9 @@ type VolumeUserInfoFamilySharing struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeUserInfoFamilySharing) MarshalJSON() ([]byte, error) {
+func (s VolumeUserInfoFamilySharing) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeUserInfoFamilySharing
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeUserInfoRentalPeriod: Period during this book is/was a valid rental.
@@ -3273,9 +3276,9 @@ type VolumeUserInfoRentalPeriod struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeUserInfoRentalPeriod) MarshalJSON() ([]byte, error) {
+func (s VolumeUserInfoRentalPeriod) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeUserInfoRentalPeriod
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type VolumeUserInfoUserUploadedVolumeInfo struct {
@@ -3293,9 +3296,9 @@ type VolumeUserInfoUserUploadedVolumeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeUserInfoUserUploadedVolumeInfo) MarshalJSON() ([]byte, error) {
+func (s VolumeUserInfoUserUploadedVolumeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeUserInfoUserUploadedVolumeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeVolumeInfo: General volume information.
@@ -3381,9 +3384,9 @@ type VolumeVolumeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeVolumeInfo) MarshalJSON() ([]byte, error) {
+func (s VolumeVolumeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeVolumeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VolumeVolumeInfo) UnmarshalJSON(data []byte) error {
@@ -3421,9 +3424,9 @@ type VolumeVolumeInfoDimensions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeVolumeInfoDimensions) MarshalJSON() ([]byte, error) {
+func (s VolumeVolumeInfoDimensions) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeVolumeInfoDimensions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeVolumeInfoImageLinks: A list of image links for all the sizes that are
@@ -3460,9 +3463,9 @@ type VolumeVolumeInfoImageLinks struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeVolumeInfoImageLinks) MarshalJSON() ([]byte, error) {
+func (s VolumeVolumeInfoImageLinks) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeVolumeInfoImageLinks
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type VolumeVolumeInfoIndustryIdentifiers struct {
@@ -3483,9 +3486,9 @@ type VolumeVolumeInfoIndustryIdentifiers struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeVolumeInfoIndustryIdentifiers) MarshalJSON() ([]byte, error) {
+func (s VolumeVolumeInfoIndustryIdentifiers) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeVolumeInfoIndustryIdentifiers
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeVolumeInfoPanelizationSummary: A top-level summary of the panelization
@@ -3508,9 +3511,9 @@ type VolumeVolumeInfoPanelizationSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeVolumeInfoPanelizationSummary) MarshalJSON() ([]byte, error) {
+func (s VolumeVolumeInfoPanelizationSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeVolumeInfoPanelizationSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeVolumeInfoReadingModes: The reading modes available for this volume.
@@ -3530,9 +3533,9 @@ type VolumeVolumeInfoReadingModes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeVolumeInfoReadingModes) MarshalJSON() ([]byte, error) {
+func (s VolumeVolumeInfoReadingModes) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeVolumeInfoReadingModes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Volume2 struct {
@@ -3557,9 +3560,9 @@ type Volume2 struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Volume2) MarshalJSON() ([]byte, error) {
+func (s Volume2) MarshalJSON() ([]byte, error) {
 	type NoMethod Volume2
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Volumeannotation struct {
@@ -3608,9 +3611,9 @@ type Volumeannotation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Volumeannotation) MarshalJSON() ([]byte, error) {
+func (s Volumeannotation) MarshalJSON() ([]byte, error) {
 	type NoMethod Volumeannotation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VolumeannotationContentRanges: The content ranges to identify the selected
@@ -3638,9 +3641,9 @@ type VolumeannotationContentRanges struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeannotationContentRanges) MarshalJSON() ([]byte, error) {
+func (s VolumeannotationContentRanges) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeannotationContentRanges
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Volumeannotations struct {
@@ -3674,9 +3677,9 @@ type Volumeannotations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Volumeannotations) MarshalJSON() ([]byte, error) {
+func (s Volumeannotations) MarshalJSON() ([]byte, error) {
 	type NoMethod Volumeannotations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Volumes struct {
@@ -3703,9 +3706,9 @@ type Volumes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Volumes) MarshalJSON() ([]byte, error) {
+func (s Volumes) MarshalJSON() ([]byte, error) {
 	type NoMethod Volumes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Volumeseriesinfo struct {
@@ -3731,9 +3734,9 @@ type Volumeseriesinfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Volumeseriesinfo) MarshalJSON() ([]byte, error) {
+func (s Volumeseriesinfo) MarshalJSON() ([]byte, error) {
 	type NoMethod Volumeseriesinfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type VolumeseriesinfoVolumeSeries struct {
@@ -3759,9 +3762,9 @@ type VolumeseriesinfoVolumeSeries struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeseriesinfoVolumeSeries) MarshalJSON() ([]byte, error) {
+func (s VolumeseriesinfoVolumeSeries) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeseriesinfoVolumeSeries
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type VolumeseriesinfoVolumeSeriesIssue struct {
@@ -3780,9 +3783,9 @@ type VolumeseriesinfoVolumeSeriesIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VolumeseriesinfoVolumeSeriesIssue) MarshalJSON() ([]byte, error) {
+func (s VolumeseriesinfoVolumeSeriesIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod VolumeseriesinfoVolumeSeriesIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BookshelvesGetCall struct {
@@ -3849,12 +3852,11 @@ func (c *BookshelvesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/users/{userId}/bookshelves/{shelf}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3863,6 +3865,7 @@ func (c *BookshelvesGetCall) doRequest(alt string) (*http.Response, error) {
 		"userId": c.userId,
 		"shelf":  c.shelf,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.bookshelves.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3897,9 +3900,11 @@ func (c *BookshelvesGetCall) Do(opts ...googleapi.CallOption) (*Bookshelf, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.bookshelves.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3964,12 +3969,11 @@ func (c *BookshelvesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/users/{userId}/bookshelves")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3977,6 +3981,7 @@ func (c *BookshelvesListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"userId": c.userId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.bookshelves.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4011,9 +4016,11 @@ func (c *BookshelvesListCall) Do(opts ...googleapi.CallOption) (*Bookshelves, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.bookshelves.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4102,12 +4109,11 @@ func (c *BookshelvesVolumesListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/users/{userId}/bookshelves/{shelf}/volumes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4116,6 +4122,7 @@ func (c *BookshelvesVolumesListCall) doRequest(alt string) (*http.Response, erro
 		"userId": c.userId,
 		"shelf":  c.shelf,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.bookshelves.volumes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4150,9 +4157,11 @@ func (c *BookshelvesVolumesListCall) Do(opts ...googleapi.CallOption) (*Volumes,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.bookshelves.volumes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4222,16 +4231,16 @@ func (c *CloudloadingAddBookCall) Header() http.Header {
 
 func (c *CloudloadingAddBookCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/cloudloading/addBook")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.cloudloading.addBook", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4267,9 +4276,11 @@ func (c *CloudloadingAddBookCall) Do(opts ...googleapi.CallOption) (*BooksCloudl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.cloudloading.addBook", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4314,16 +4325,16 @@ func (c *CloudloadingDeleteBookCall) Header() http.Header {
 
 func (c *CloudloadingDeleteBookCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/cloudloading/deleteBook")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.cloudloading.deleteBook", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4358,9 +4369,11 @@ func (c *CloudloadingDeleteBookCall) Do(opts ...googleapi.CallOption) (*Empty, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.cloudloading.deleteBook", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4404,8 +4417,7 @@ func (c *CloudloadingUpdateBookCall) Header() http.Header {
 
 func (c *CloudloadingUpdateBookCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bookscloudloadingresource)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bookscloudloadingresource)
 	if err != nil {
 		return nil, err
 	}
@@ -4418,6 +4430,7 @@ func (c *CloudloadingUpdateBookCall) doRequest(alt string) (*http.Response, erro
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.cloudloading.updateBook", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4453,9 +4466,11 @@ func (c *CloudloadingUpdateBookCall) Do(opts ...googleapi.CallOption) (*BooksClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.cloudloading.updateBook", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4512,16 +4527,16 @@ func (c *DictionaryListOfflineMetadataCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/dictionary/listOfflineMetadata")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.dictionary.listOfflineMetadata", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4556,9 +4571,11 @@ func (c *DictionaryListOfflineMetadataCall) Do(opts ...googleapi.CallOption) (*M
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.dictionary.listOfflineMetadata", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4620,16 +4637,16 @@ func (c *FamilysharingGetFamilyInfoCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/familysharing/getFamilyInfo")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.familysharing.getFamilyInfo", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4664,9 +4681,11 @@ func (c *FamilysharingGetFamilyInfoCall) Do(opts ...googleapi.CallOption) (*Fami
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.familysharing.getFamilyInfo", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4728,16 +4747,16 @@ func (c *FamilysharingShareCall) Header() http.Header {
 
 func (c *FamilysharingShareCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/familysharing/share")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.familysharing.share", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4772,9 +4791,11 @@ func (c *FamilysharingShareCall) Do(opts ...googleapi.CallOption) (*Empty, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.familysharing.share", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4836,16 +4857,16 @@ func (c *FamilysharingUnshareCall) Header() http.Header {
 
 func (c *FamilysharingUnshareCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/familysharing/unshare")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.familysharing.unshare", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4880,9 +4901,11 @@ func (c *FamilysharingUnshareCall) Do(opts ...googleapi.CallOption) (*Empty, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.familysharing.unshare", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4957,12 +4980,11 @@ func (c *LayersGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/{volumeId}/layersummary/{summaryId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4971,6 +4993,7 @@ func (c *LayersGetCall) doRequest(alt string) (*http.Response, error) {
 		"volumeId":  c.volumeId,
 		"summaryId": c.summaryId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.layers.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5005,9 +5028,11 @@ func (c *LayersGetCall) Do(opts ...googleapi.CallOption) (*Layersummary, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.layers.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5093,12 +5118,11 @@ func (c *LayersListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/{volumeId}/layersummary")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5106,6 +5130,7 @@ func (c *LayersListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"volumeId": c.volumeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.layers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5140,9 +5165,11 @@ func (c *LayersListCall) Do(opts ...googleapi.CallOption) (*Layersummaries, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.layers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5251,12 +5278,11 @@ func (c *LayersAnnotationDataGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/{volumeId}/layers/{layerId}/data/{annotationDataId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5266,6 +5292,7 @@ func (c *LayersAnnotationDataGetCall) doRequest(alt string) (*http.Response, err
 		"layerId":          c.layerId,
 		"annotationDataId": c.annotationDataId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.layers.annotationData.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5301,9 +5328,11 @@ func (c *LayersAnnotationDataGetCall) Do(opts ...googleapi.CallOption) (*Diction
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.layers.annotationData.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5436,12 +5465,11 @@ func (c *LayersAnnotationDataListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/{volumeId}/layers/{layerId}/data")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5450,6 +5478,7 @@ func (c *LayersAnnotationDataListCall) doRequest(alt string) (*http.Response, er
 		"volumeId": c.volumeId,
 		"layerId":  c.layerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.layers.annotationData.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5485,9 +5514,11 @@ func (c *LayersAnnotationDataListCall) Do(opts ...googleapi.CallOption) (*Annota
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.layers.annotationData.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5586,12 +5617,11 @@ func (c *LayersVolumeAnnotationsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/{volumeId}/layers/{layerId}/annotations/{annotationId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5601,6 +5631,7 @@ func (c *LayersVolumeAnnotationsGetCall) doRequest(alt string) (*http.Response, 
 		"layerId":      c.layerId,
 		"annotationId": c.annotationId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.layers.volumeAnnotations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5636,9 +5667,11 @@ func (c *LayersVolumeAnnotationsGetCall) Do(opts ...googleapi.CallOption) (*Volu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.layers.volumeAnnotations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5787,12 +5820,11 @@ func (c *LayersVolumeAnnotationsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/{volumeId}/layers/{layerId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5801,6 +5833,7 @@ func (c *LayersVolumeAnnotationsListCall) doRequest(alt string) (*http.Response,
 		"volumeId": c.volumeId,
 		"layerId":  c.layerId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.layers.volumeAnnotations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5836,9 +5869,11 @@ func (c *LayersVolumeAnnotationsListCall) Do(opts ...googleapi.CallOption) (*Vol
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.layers.volumeAnnotations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5920,16 +5955,16 @@ func (c *MyconfigGetUserSettingsCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/myconfig/getUserSettings")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.myconfig.getUserSettings", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5964,9 +5999,11 @@ func (c *MyconfigGetUserSettingsCall) Do(opts ...googleapi.CallOption) (*Userset
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.myconfig.getUserSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6027,16 +6064,16 @@ func (c *MyconfigReleaseDownloadAccessCall) Header() http.Header {
 
 func (c *MyconfigReleaseDownloadAccessCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/myconfig/releaseDownloadAccess")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.myconfig.releaseDownloadAccess", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6072,9 +6109,11 @@ func (c *MyconfigReleaseDownloadAccessCall) Do(opts ...googleapi.CallOption) (*D
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.myconfig.releaseDownloadAccess", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6146,16 +6185,16 @@ func (c *MyconfigRequestAccessCall) Header() http.Header {
 
 func (c *MyconfigRequestAccessCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/myconfig/requestAccess")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.myconfig.requestAccess", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6191,9 +6230,11 @@ func (c *MyconfigRequestAccessCall) Do(opts ...googleapi.CallOption) (*RequestAc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.myconfig.requestAccess", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6283,16 +6324,16 @@ func (c *MyconfigSyncVolumeLicensesCall) Header() http.Header {
 
 func (c *MyconfigSyncVolumeLicensesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/myconfig/syncVolumeLicenses")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.myconfig.syncVolumeLicenses", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6327,9 +6368,11 @@ func (c *MyconfigSyncVolumeLicensesCall) Do(opts ...googleapi.CallOption) (*Volu
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.myconfig.syncVolumeLicenses", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6375,8 +6418,7 @@ func (c *MyconfigUpdateUserSettingsCall) Header() http.Header {
 
 func (c *MyconfigUpdateUserSettingsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.usersettings)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.usersettings)
 	if err != nil {
 		return nil, err
 	}
@@ -6389,6 +6431,7 @@ func (c *MyconfigUpdateUserSettingsCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.myconfig.updateUserSettings", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6423,9 +6466,11 @@ func (c *MyconfigUpdateUserSettingsCall) Do(opts ...googleapi.CallOption) (*User
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.myconfig.updateUserSettings", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6478,12 +6523,11 @@ func (c *MylibraryAnnotationsDeleteCall) Header() http.Header {
 
 func (c *MylibraryAnnotationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/annotations/{annotationId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6491,6 +6535,7 @@ func (c *MylibraryAnnotationsDeleteCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"annotationId": c.annotationId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6525,9 +6570,11 @@ func (c *MylibraryAnnotationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6600,8 +6647,7 @@ func (c *MylibraryAnnotationsInsertCall) Header() http.Header {
 
 func (c *MylibraryAnnotationsInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.annotation)
 	if err != nil {
 		return nil, err
 	}
@@ -6614,6 +6660,7 @@ func (c *MylibraryAnnotationsInsertCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6648,9 +6695,11 @@ func (c *MylibraryAnnotationsInsertCall) Do(opts ...googleapi.CallOption) (*Anno
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6775,16 +6824,16 @@ func (c *MylibraryAnnotationsListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/annotations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6819,9 +6868,11 @@ func (c *MylibraryAnnotationsListCall) Do(opts ...googleapi.CallOption) (*Annota
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6896,16 +6947,16 @@ func (c *MylibraryAnnotationsSummaryCall) Header() http.Header {
 
 func (c *MylibraryAnnotationsSummaryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/annotations/summary")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.summary", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6941,9 +6992,11 @@ func (c *MylibraryAnnotationsSummaryCall) Do(opts ...googleapi.CallOption) (*Ann
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.summary", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6998,8 +7051,7 @@ func (c *MylibraryAnnotationsUpdateCall) Header() http.Header {
 
 func (c *MylibraryAnnotationsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.annotation)
 	if err != nil {
 		return nil, err
 	}
@@ -7015,6 +7067,7 @@ func (c *MylibraryAnnotationsUpdateCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"annotationId": c.annotationId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7049,9 +7102,11 @@ func (c *MylibraryAnnotationsUpdateCall) Do(opts ...googleapi.CallOption) (*Anno
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.annotations.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7120,12 +7175,11 @@ func (c *MylibraryBookshelvesAddVolumeCall) Header() http.Header {
 
 func (c *MylibraryBookshelvesAddVolumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/bookshelves/{shelf}/addVolume")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7133,6 +7187,7 @@ func (c *MylibraryBookshelvesAddVolumeCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"shelf": c.shelf,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.addVolume", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7167,9 +7222,11 @@ func (c *MylibraryBookshelvesAddVolumeCall) Do(opts ...googleapi.CallOption) (*E
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.addVolume", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7222,12 +7279,11 @@ func (c *MylibraryBookshelvesClearVolumesCall) Header() http.Header {
 
 func (c *MylibraryBookshelvesClearVolumesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/bookshelves/{shelf}/clearVolumes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7235,6 +7291,7 @@ func (c *MylibraryBookshelvesClearVolumesCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"shelf": c.shelf,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.clearVolumes", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7269,9 +7326,11 @@ func (c *MylibraryBookshelvesClearVolumesCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.clearVolumes", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7337,12 +7396,11 @@ func (c *MylibraryBookshelvesGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/bookshelves/{shelf}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7350,6 +7408,7 @@ func (c *MylibraryBookshelvesGetCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"shelf": c.shelf,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7384,9 +7443,11 @@ func (c *MylibraryBookshelvesGetCall) Do(opts ...googleapi.CallOption) (*Bookshe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7447,16 +7508,16 @@ func (c *MylibraryBookshelvesListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/bookshelves")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7491,9 +7552,11 @@ func (c *MylibraryBookshelvesListCall) Do(opts ...googleapi.CallOption) (*Booksh
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7552,12 +7615,11 @@ func (c *MylibraryBookshelvesMoveVolumeCall) Header() http.Header {
 
 func (c *MylibraryBookshelvesMoveVolumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/bookshelves/{shelf}/moveVolume")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7565,6 +7627,7 @@ func (c *MylibraryBookshelvesMoveVolumeCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"shelf": c.shelf,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.moveVolume", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7599,9 +7662,11 @@ func (c *MylibraryBookshelvesMoveVolumeCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.moveVolume", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7668,12 +7733,11 @@ func (c *MylibraryBookshelvesRemoveVolumeCall) Header() http.Header {
 
 func (c *MylibraryBookshelvesRemoveVolumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/bookshelves/{shelf}/removeVolume")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7681,6 +7745,7 @@ func (c *MylibraryBookshelvesRemoveVolumeCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"shelf": c.shelf,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.removeVolume", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7715,9 +7780,11 @@ func (c *MylibraryBookshelvesRemoveVolumeCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.removeVolume", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7830,12 +7897,11 @@ func (c *MylibraryBookshelvesVolumesListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/bookshelves/{shelf}/volumes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7843,6 +7909,7 @@ func (c *MylibraryBookshelvesVolumesListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"shelf": c.shelf,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.volumes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7877,9 +7944,11 @@ func (c *MylibraryBookshelvesVolumesListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.bookshelves.volumes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7951,12 +8020,11 @@ func (c *MylibraryReadingpositionsGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/readingpositions/{volumeId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7964,6 +8032,7 @@ func (c *MylibraryReadingpositionsGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"volumeId": c.volumeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.readingpositions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7999,9 +8068,11 @@ func (c *MylibraryReadingpositionsGetCall) Do(opts ...googleapi.CallOption) (*Re
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.readingpositions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8090,12 +8161,11 @@ func (c *MylibraryReadingpositionsSetPositionCall) Header() http.Header {
 
 func (c *MylibraryReadingpositionsSetPositionCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/mylibrary/readingpositions/{volumeId}/setPosition")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8103,6 +8173,7 @@ func (c *MylibraryReadingpositionsSetPositionCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"volumeId": c.volumeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.mylibrary.readingpositions.setPosition", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8137,9 +8208,11 @@ func (c *MylibraryReadingpositionsSetPositionCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.mylibrary.readingpositions.setPosition", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8211,16 +8284,16 @@ func (c *NotificationGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/notification/get")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.notification.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8255,9 +8328,11 @@ func (c *NotificationGetCall) Do(opts ...googleapi.CallOption) (*Notification, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.notification.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8318,16 +8393,16 @@ func (c *OnboardingListCategoriesCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/onboarding/listCategories")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.onboarding.listCategories", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8362,9 +8437,11 @@ func (c *OnboardingListCategoriesCall) Do(opts ...googleapi.CallOption) (*Catego
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.onboarding.listCategories", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8461,16 +8538,16 @@ func (c *OnboardingListCategoryVolumesCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/onboarding/listCategoryVolumes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.onboarding.listCategoryVolumes", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8505,9 +8582,11 @@ func (c *OnboardingListCategoryVolumesCall) Do(opts ...googleapi.CallOption) (*V
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.onboarding.listCategoryVolumes", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8610,16 +8689,16 @@ func (c *PersonalizedstreamGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/personalizedstream/get")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.personalizedstream.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8655,9 +8734,11 @@ func (c *PersonalizedstreamGetCall) Do(opts ...googleapi.CallOption) (*Discovery
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.personalizedstream.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8748,16 +8829,16 @@ func (c *PromoofferAcceptCall) Header() http.Header {
 
 func (c *PromoofferAcceptCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/promooffer/accept")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.promooffer.accept", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8792,9 +8873,11 @@ func (c *PromoofferAcceptCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.promooffer.accept", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8878,16 +8961,16 @@ func (c *PromoofferDismissCall) Header() http.Header {
 
 func (c *PromoofferDismissCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/promooffer/dismiss")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.promooffer.dismiss", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8922,9 +9005,11 @@ func (c *PromoofferDismissCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.promooffer.dismiss", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9014,16 +9099,16 @@ func (c *PromoofferGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/promooffer/get")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.promooffer.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9058,9 +9143,11 @@ func (c *PromoofferGetCall) Do(opts ...googleapi.CallOption) (*Offers, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.promooffer.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9117,16 +9204,16 @@ func (c *SeriesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/series/get")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.series.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9161,9 +9248,11 @@ func (c *SeriesGetCall) Do(opts ...googleapi.CallOption) (*Series, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.series.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9234,16 +9323,16 @@ func (c *SeriesMembershipGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/series/membership/get")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.series.membership.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9279,9 +9368,11 @@ func (c *SeriesMembershipGetCall) Do(opts ...googleapi.CallOption) (*Seriesmembe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.series.membership.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9386,12 +9477,11 @@ func (c *VolumesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/{volumeId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9399,6 +9489,7 @@ func (c *VolumesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"volumeId": c.volumeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.volumes.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9433,9 +9524,11 @@ func (c *VolumesGetCall) Do(opts ...googleapi.CallOption) (*Volume, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.volumes.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9627,16 +9720,16 @@ func (c *VolumesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.volumes.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9671,9 +9764,11 @@ func (c *VolumesListCall) Do(opts ...googleapi.CallOption) (*Volumes, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.volumes.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9772,12 +9867,11 @@ func (c *VolumesAssociatedListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/{volumeId}/associated")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9785,6 +9879,7 @@ func (c *VolumesAssociatedListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"volumeId": c.volumeId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.volumes.associated.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9819,9 +9914,11 @@ func (c *VolumesAssociatedListCall) Do(opts ...googleapi.CallOption) (*Volumes, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.volumes.associated.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9944,16 +10041,16 @@ func (c *VolumesMybooksListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/mybooks")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.volumes.mybooks.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9988,9 +10085,11 @@ func (c *VolumesMybooksListCall) Do(opts ...googleapi.CallOption) (*Volumes, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.volumes.mybooks.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10072,16 +10171,16 @@ func (c *VolumesRecommendedListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/recommended")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.volumes.recommended.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10116,9 +10215,11 @@ func (c *VolumesRecommendedListCall) Do(opts ...googleapi.CallOption) (*Volumes,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.volumes.recommended.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10179,16 +10280,16 @@ func (c *VolumesRecommendedRateCall) Header() http.Header {
 
 func (c *VolumesRecommendedRateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/recommended/rate")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.volumes.recommended.rate", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10224,9 +10325,11 @@ func (c *VolumesRecommendedRateCall) Do(opts ...googleapi.CallOption) (*BooksVol
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.volumes.recommended.rate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10330,16 +10433,16 @@ func (c *VolumesUseruploadedListCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "books/v1/volumes/useruploaded")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "books.volumes.useruploaded.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10374,8 +10477,10 @@ func (c *VolumesUseruploadedListCall) Do(opts ...googleapi.CallOption) (*Volumes
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "books.volumes.useruploaded.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

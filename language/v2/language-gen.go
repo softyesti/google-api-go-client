@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -64,11 +64,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -92,6 +94,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "language:v2"
 const apiName = "language"
@@ -126,7 +129,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Documents = NewDocumentsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +149,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Documents = NewDocumentsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -206,9 +209,9 @@ type AnalyzeEntitiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyzeEntitiesRequest) MarshalJSON() ([]byte, error) {
+func (s AnalyzeEntitiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyzeEntitiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyzeEntitiesResponse: The entity analysis response message.
@@ -217,7 +220,7 @@ type AnalyzeEntitiesResponse struct {
 	Entities []*Entity `json:"entities,omitempty"`
 	// LanguageCode: The language of the text, which will be the same as the
 	// language specified in the request or, if not specified, the
-	// automatically-detected language. See Document.language field for more
+	// automatically-detected language. See Document.language_code field for more
 	// details.
 	LanguageCode string `json:"languageCode,omitempty"`
 	// LanguageSupported: Whether the language is officially supported. The API may
@@ -240,9 +243,9 @@ type AnalyzeEntitiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyzeEntitiesResponse) MarshalJSON() ([]byte, error) {
+func (s AnalyzeEntitiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyzeEntitiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyzeSentimentRequest: The sentiment analysis request message.
@@ -278,9 +281,9 @@ type AnalyzeSentimentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyzeSentimentRequest) MarshalJSON() ([]byte, error) {
+func (s AnalyzeSentimentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyzeSentimentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnalyzeSentimentResponse: The sentiment analysis response message.
@@ -289,7 +292,7 @@ type AnalyzeSentimentResponse struct {
 	DocumentSentiment *Sentiment `json:"documentSentiment,omitempty"`
 	// LanguageCode: The language of the text, which will be the same as the
 	// language specified in the request or, if not specified, the
-	// automatically-detected language. See Document.language field for more
+	// automatically-detected language. See Document.language_code field for more
 	// details.
 	LanguageCode string `json:"languageCode,omitempty"`
 	// LanguageSupported: Whether the language is officially supported. The API may
@@ -314,9 +317,9 @@ type AnalyzeSentimentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnalyzeSentimentResponse) MarshalJSON() ([]byte, error) {
+func (s AnalyzeSentimentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AnalyzeSentimentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnnotateTextRequest: The request message for the text annotation API, which
@@ -354,9 +357,9 @@ type AnnotateTextRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotateTextRequest) MarshalJSON() ([]byte, error) {
+func (s AnnotateTextRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotateTextRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnnotateTextRequestFeatures: All available features. Setting each one to
@@ -384,9 +387,9 @@ type AnnotateTextRequestFeatures struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotateTextRequestFeatures) MarshalJSON() ([]byte, error) {
+func (s AnnotateTextRequestFeatures) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotateTextRequestFeatures
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AnnotateTextResponse: The text annotations response message.
@@ -398,12 +401,11 @@ type AnnotateTextResponse struct {
 	DocumentSentiment *Sentiment `json:"documentSentiment,omitempty"`
 	// Entities: Entities, along with their semantic information, in the input
 	// document. Populated if the user enables
-	// AnnotateTextRequest.Features.extract_entities or
-	// AnnotateTextRequest.Features.extract_entity_sentiment.
+	// AnnotateTextRequest.Features.extract_entities .
 	Entities []*Entity `json:"entities,omitempty"`
 	// LanguageCode: The language of the text, which will be the same as the
 	// language specified in the request or, if not specified, the
-	// automatically-detected language. See Document.language field for more
+	// automatically-detected language. See Document.language_code field for more
 	// details.
 	LanguageCode string `json:"languageCode,omitempty"`
 	// LanguageSupported: Whether the language is officially supported by all
@@ -432,9 +434,9 @@ type AnnotateTextResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AnnotateTextResponse) MarshalJSON() ([]byte, error) {
+func (s AnnotateTextResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod AnnotateTextResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClassificationCategory: Represents a category returned from the text
@@ -445,6 +447,10 @@ type ClassificationCategory struct {
 	Confidence float64 `json:"confidence,omitempty"`
 	// Name: The name of the category representing the document.
 	Name string `json:"name,omitempty"`
+	// Severity: Optional. The classifier's severity of the category. This is only
+	// present when the ModerateTextRequest.ModelVersion is set to MODEL_VERSION_2,
+	// and the corresponding category has a severity score.
+	Severity float64 `json:"severity,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Confidence") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -458,15 +464,16 @@ type ClassificationCategory struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClassificationCategory) MarshalJSON() ([]byte, error) {
+func (s ClassificationCategory) MarshalJSON() ([]byte, error) {
 	type NoMethod ClassificationCategory
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ClassificationCategory) UnmarshalJSON(data []byte) error {
 	type NoMethod ClassificationCategory
 	var s1 struct {
 		Confidence gensupport.JSONFloat64 `json:"confidence"`
+		Severity   gensupport.JSONFloat64 `json:"severity"`
 		*NoMethod
 	}
 	s1.NoMethod = (*NoMethod)(s)
@@ -474,6 +481,7 @@ func (s *ClassificationCategory) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	s.Confidence = float64(s1.Confidence)
+	s.Severity = float64(s1.Severity)
 	return nil
 }
 
@@ -494,9 +502,9 @@ type ClassifyTextRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClassifyTextRequest) MarshalJSON() ([]byte, error) {
+func (s ClassifyTextRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ClassifyTextRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ClassifyTextResponse: The document classification response message.
@@ -505,7 +513,7 @@ type ClassifyTextResponse struct {
 	Categories []*ClassificationCategory `json:"categories,omitempty"`
 	// LanguageCode: The language of the text, which will be the same as the
 	// language specified in the request or, if not specified, the
-	// automatically-detected language. See Document.language field for more
+	// automatically-detected language. See Document.language_code field for more
 	// details.
 	LanguageCode string `json:"languageCode,omitempty"`
 	// LanguageSupported: Whether the language is officially supported. The API may
@@ -528,9 +536,9 @@ type ClassifyTextResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClassifyTextResponse) MarshalJSON() ([]byte, error) {
+func (s ClassifyTextResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ClassifyTextResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Color: Represents a color in the RGBA color space. This representation is
@@ -611,9 +619,9 @@ type Color struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Color) MarshalJSON() ([]byte, error) {
+func (s Color) MarshalJSON() ([]byte, error) {
 	type NoMethod Color
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Color) UnmarshalJSON(data []byte) error {
@@ -695,7 +703,13 @@ type CpuMetric struct {
 	//   "A2_ULTRAGPU_2G"
 	//   "A2_ULTRAGPU_4G"
 	//   "A2_ULTRAGPU_8G"
+	//   "A3_HIGHGPU_1G"
+	//   "A3_HIGHGPU_2G"
+	//   "A3_HIGHGPU_4G"
 	//   "A3_HIGHGPU_8G"
+	//   "A3_MEGAGPU_8G"
+	//   "A3_ULTRAGPU_8G"
+	//   "A3_EDGEGPU_8G"
 	//   "E2_STANDARD_2"
 	//   "E2_STANDARD_4"
 	//   "E2_STANDARD_8"
@@ -841,9 +855,9 @@ type CpuMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CpuMetric) MarshalJSON() ([]byte, error) {
+func (s CpuMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod CpuMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DiskMetric struct {
@@ -872,9 +886,9 @@ type DiskMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiskMetric) MarshalJSON() ([]byte, error) {
+func (s DiskMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod DiskMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Document: Represents the input to API methods.
@@ -916,9 +930,9 @@ type Document struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Document) MarshalJSON() ([]byte, error) {
+func (s Document) MarshalJSON() ([]byte, error) {
 	type NoMethod Document
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Entity: Represents a phrase in the text that is a known entity, such as a
@@ -933,10 +947,8 @@ type Entity struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// Name: The representative name for the entity.
 	Name string `json:"name,omitempty"`
-	// Sentiment: For calls to AnalyzeEntitySentiment or if
-	// AnnotateTextRequest.Features.extract_entity_sentiment is set to true, this
-	// field will contain the aggregate sentiment expressed for this entity in the
-	// provided document.
+	// Sentiment: For calls to AnalyzeEntitySentiment this field will contain the
+	// aggregate sentiment expressed for this entity in the provided document.
 	Sentiment *Sentiment `json:"sentiment,omitempty"`
 	// Type: The entity type.
 	//
@@ -982,9 +994,9 @@ type Entity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Entity) MarshalJSON() ([]byte, error) {
+func (s Entity) MarshalJSON() ([]byte, error) {
 	type NoMethod Entity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EntityMention: Represents a mention for an entity in the text. Currently,
@@ -994,10 +1006,8 @@ type EntityMention struct {
 	// the probability of the entity mention being the entity type. The score is in
 	// (0, 1] range.
 	Probability float64 `json:"probability,omitempty"`
-	// Sentiment: For calls to AnalyzeEntitySentiment or if
-	// AnnotateTextRequest.Features.extract_entity_sentiment is set to true, this
-	// field will contain the sentiment expressed for this mention of the entity in
-	// the provided document.
+	// Sentiment: For calls to AnalyzeEntitySentiment this field will contain the
+	// sentiment expressed for this mention of the entity in the provided document.
 	Sentiment *Sentiment `json:"sentiment,omitempty"`
 	// Text: The mention text.
 	Text *TextSpan `json:"text,omitempty"`
@@ -1021,9 +1031,9 @@ type EntityMention struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EntityMention) MarshalJSON() ([]byte, error) {
+func (s EntityMention) MarshalJSON() ([]byte, error) {
 	type NoMethod EntityMention
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *EntityMention) UnmarshalJSON(data []byte) error {
@@ -1056,6 +1066,7 @@ type GpuMetric struct {
 	//   "NVIDIA_TESLA_T4"
 	//   "NVIDIA_TESLA_V100"
 	//   "NVIDIA_H100_80GB"
+	//   "NVIDIA_H200_141GB"
 	GpuType string `json:"gpuType,omitempty"`
 	// MachineSpec: Required. Machine spec, e.g. N1_STANDARD_4.
 	//
@@ -1091,7 +1102,13 @@ type GpuMetric struct {
 	//   "A2_ULTRAGPU_2G"
 	//   "A2_ULTRAGPU_4G"
 	//   "A2_ULTRAGPU_8G"
+	//   "A3_HIGHGPU_1G"
+	//   "A3_HIGHGPU_2G"
+	//   "A3_HIGHGPU_4G"
 	//   "A3_HIGHGPU_8G"
+	//   "A3_MEGAGPU_8G"
+	//   "A3_ULTRAGPU_8G"
+	//   "A3_EDGEGPU_8G"
 	//   "E2_STANDARD_2"
 	//   "E2_STANDARD_4"
 	//   "E2_STANDARD_8"
@@ -1237,12 +1254,12 @@ type GpuMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GpuMetric) MarshalJSON() ([]byte, error) {
+func (s GpuMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod GpuMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// InfraUsage: Infra Usage of billing metrics. Next ID: 6
+// InfraUsage: LINT: LEGACY_NAMES Infra Usage of billing metrics.
 type InfraUsage struct {
 	// CpuMetrics: Aggregated core metrics since requested start_time.
 	CpuMetrics []*CpuMetric `json:"cpuMetrics,omitempty"`
@@ -1267,15 +1284,26 @@ type InfraUsage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InfraUsage) MarshalJSON() ([]byte, error) {
+func (s InfraUsage) MarshalJSON() ([]byte, error) {
 	type NoMethod InfraUsage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModerateTextRequest: The document moderation request message.
 type ModerateTextRequest struct {
 	// Document: Required. Input document.
 	Document *Document `json:"document,omitempty"`
+	// ModelVersion: Optional. The model version to use for ModerateText.
+	//
+	// Possible values:
+	//   "MODEL_VERSION_UNSPECIFIED" - The default model version.
+	//   "MODEL_VERSION_1" - Use the v1 model, this model is used by default when
+	// not provided. The v1 model only returns probability (confidence) score for
+	// each category.
+	//   "MODEL_VERSION_2" - Use the v2 model. The v2 model only returns
+	// probability (confidence) score for each category, and returns severity score
+	// for a subset of the categories.
+	ModelVersion string `json:"modelVersion,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Document") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1289,16 +1317,16 @@ type ModerateTextRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModerateTextRequest) MarshalJSON() ([]byte, error) {
+func (s ModerateTextRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModerateTextRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ModerateTextResponse: The document moderation response message.
 type ModerateTextResponse struct {
 	// LanguageCode: The language of the text, which will be the same as the
 	// language specified in the request or, if not specified, the
-	// automatically-detected language. See Document.language field for more
+	// automatically-detected language. See Document.language_code field for more
 	// details.
 	LanguageCode string `json:"languageCode,omitempty"`
 	// LanguageSupported: Whether the language is officially supported. The API may
@@ -1324,9 +1352,9 @@ type ModerateTextResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModerateTextResponse) MarshalJSON() ([]byte, error) {
+func (s ModerateTextResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ModerateTextResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RamMetric struct {
@@ -1367,7 +1395,13 @@ type RamMetric struct {
 	//   "A2_ULTRAGPU_2G"
 	//   "A2_ULTRAGPU_4G"
 	//   "A2_ULTRAGPU_8G"
+	//   "A3_HIGHGPU_1G"
+	//   "A3_HIGHGPU_2G"
+	//   "A3_HIGHGPU_4G"
 	//   "A3_HIGHGPU_8G"
+	//   "A3_MEGAGPU_8G"
+	//   "A3_ULTRAGPU_8G"
+	//   "A3_EDGEGPU_8G"
 	//   "E2_STANDARD_2"
 	//   "E2_STANDARD_4"
 	//   "E2_STANDARD_8"
@@ -1534,9 +1568,9 @@ type RamMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RamMetric) MarshalJSON() ([]byte, error) {
+func (s RamMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod RamMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *RamMetric) UnmarshalJSON(data []byte) error {
@@ -1574,15 +1608,15 @@ type Sentence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Sentence) MarshalJSON() ([]byte, error) {
+func (s Sentence) MarshalJSON() ([]byte, error) {
 	type NoMethod Sentence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Sentiment: Represents the feeling associated with the entire text or
 // entities in the text.
 type Sentiment struct {
-	// Magnitude: A non-negative number in the [0, +inf) range, which represents
+	// Magnitude: A non-negative number in the [0, +inf] range, which represents
 	// the absolute magnitude of sentiment regardless of score (positive or
 	// negative).
 	Magnitude float64 `json:"magnitude,omitempty"`
@@ -1602,9 +1636,9 @@ type Sentiment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Sentiment) MarshalJSON() ([]byte, error) {
+func (s Sentiment) MarshalJSON() ([]byte, error) {
 	type NoMethod Sentiment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Sentiment) UnmarshalJSON(data []byte) error {
@@ -1652,9 +1686,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextSpan: Represents a text span in the input document.
@@ -1678,9 +1712,9 @@ type TextSpan struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextSpan) MarshalJSON() ([]byte, error) {
+func (s TextSpan) MarshalJSON() ([]byte, error) {
 	type NoMethod TextSpan
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TpuMetric struct {
@@ -1709,9 +1743,9 @@ type TpuMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TpuMetric) MarshalJSON() ([]byte, error) {
+func (s TpuMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod TpuMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSArrayStats: The data statistics of a series of ARRAY values.
@@ -1733,9 +1767,9 @@ type XPSArrayStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSArrayStats) MarshalJSON() ([]byte, error) {
+func (s XPSArrayStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSArrayStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSBatchPredictResponse struct {
@@ -1756,9 +1790,9 @@ type XPSBatchPredictResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSBatchPredictResponse) MarshalJSON() ([]byte, error) {
+func (s XPSBatchPredictResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSBatchPredictResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSBoundingBoxMetricsEntry: Bounding box matching model metrics for a single
@@ -1786,9 +1820,9 @@ type XPSBoundingBoxMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSBoundingBoxMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSBoundingBoxMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSBoundingBoxMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSBoundingBoxMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -1832,9 +1866,9 @@ type XPSBoundingBoxMetricsEntryConfidenceMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSBoundingBoxMetricsEntryConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSBoundingBoxMetricsEntryConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSBoundingBoxMetricsEntryConfidenceMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSBoundingBoxMetricsEntryConfidenceMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -1876,9 +1910,9 @@ type XPSCategoryStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSCategoryStats) MarshalJSON() ([]byte, error) {
+func (s XPSCategoryStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSCategoryStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSCategoryStatsSingleCategoryStats: The statistics of a single CATEGORY
@@ -1901,9 +1935,9 @@ type XPSCategoryStatsSingleCategoryStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSCategoryStatsSingleCategoryStats) MarshalJSON() ([]byte, error) {
+func (s XPSCategoryStatsSingleCategoryStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSCategoryStatsSingleCategoryStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSClassificationEvaluationMetrics: Model evaluation metrics for
@@ -1941,9 +1975,9 @@ type XPSClassificationEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSClassificationEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSClassificationEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSClassificationEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSClassificationEvaluationMetrics) UnmarshalJSON(data []byte) error {
@@ -1994,9 +2028,9 @@ type XPSColorMap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSColorMap) MarshalJSON() ([]byte, error) {
+func (s XPSColorMap) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSColorMap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSColorMapIntColor: RGB color and each channel is represented by an
@@ -2021,9 +2055,9 @@ type XPSColorMapIntColor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSColorMapIntColor) MarshalJSON() ([]byte, error) {
+func (s XPSColorMapIntColor) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSColorMapIntColor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSColumnSpec struct {
@@ -2060,9 +2094,9 @@ type XPSColumnSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSColumnSpec) MarshalJSON() ([]byte, error) {
+func (s XPSColumnSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSColumnSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSColumnSpecCorrelatedColumn: Identifies a table's column, and its
@@ -2083,14 +2117,11 @@ type XPSColumnSpecCorrelatedColumn struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSColumnSpecCorrelatedColumn) MarshalJSON() ([]byte, error) {
+func (s XPSColumnSpecCorrelatedColumn) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSColumnSpecCorrelatedColumn
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// XPSColumnSpecForecastingMetadata:
-// ===========================================================================
-// # The fields below are used exclusively for Forecasting.
 type XPSColumnSpecForecastingMetadata struct {
 	// ColumnType: The type of the column for FORECASTING model training purposes.
 	//
@@ -2120,9 +2151,9 @@ type XPSColumnSpecForecastingMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSColumnSpecForecastingMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSColumnSpecForecastingMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSColumnSpecForecastingMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSCommonStats: Common statistics for a column with a specified data type.
@@ -2143,9 +2174,9 @@ type XPSCommonStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSCommonStats) MarshalJSON() ([]byte, error) {
+func (s XPSCommonStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSCommonStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSConfidenceMetricsEntry: ConfidenceMetricsEntry includes generic
@@ -2205,9 +2236,9 @@ type XPSConfidenceMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSConfidenceMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSConfidenceMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -2273,9 +2304,9 @@ type XPSConfusionMatrix struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSConfusionMatrix) MarshalJSON() ([]byte, error) {
+func (s XPSConfusionMatrix) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSConfusionMatrix
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSConfusionMatrixRow: A row in the confusion matrix.
@@ -2302,9 +2333,9 @@ type XPSConfusionMatrixRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSConfusionMatrixRow) MarshalJSON() ([]byte, error) {
+func (s XPSConfusionMatrixRow) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSConfusionMatrixRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSCoreMlFormat: A model format used for iOS mobile devices.
@@ -2330,9 +2361,9 @@ type XPSCorrelationStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSCorrelationStats) MarshalJSON() ([]byte, error) {
+func (s XPSCorrelationStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSCorrelationStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSCorrelationStats) UnmarshalJSON(data []byte) error {
@@ -2378,9 +2409,9 @@ type XPSDataErrors struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSDataErrors) MarshalJSON() ([]byte, error) {
+func (s XPSDataErrors) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSDataErrors
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSDataStats: The data statistics of a series of values that share the same
@@ -2417,9 +2448,9 @@ type XPSDataStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSDataStats) MarshalJSON() ([]byte, error) {
+func (s XPSDataStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSDataStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSDataType: Indicated the type of data that can be stored in a structured
@@ -2474,9 +2505,9 @@ type XPSDataType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSDataType) MarshalJSON() ([]byte, error) {
+func (s XPSDataType) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSDataType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSDockerFormat: A model format used for Docker containers. Use the params
@@ -2510,9 +2541,9 @@ type XPSDockerFormat struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSDockerFormat) MarshalJSON() ([]byte, error) {
+func (s XPSDockerFormat) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSDockerFormat
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSEdgeTpuTfLiteFormat: A model format used for Edge TPU
@@ -2573,9 +2604,9 @@ type XPSEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSEvaluationMetricsSet: Specifies location of model evaluation metrics.
@@ -2603,9 +2634,9 @@ type XPSEvaluationMetricsSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSEvaluationMetricsSet) MarshalJSON() ([]byte, error) {
+func (s XPSEvaluationMetricsSet) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSEvaluationMetricsSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSExampleSet: Set of examples or input sources.
@@ -2631,9 +2662,9 @@ type XPSExampleSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSExampleSet) MarshalJSON() ([]byte, error) {
+func (s XPSExampleSet) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSExampleSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSExportModelOutputConfig struct {
@@ -2643,11 +2674,11 @@ type XPSExportModelOutputConfig struct {
 	// ExportFirebaseAuxiliaryInfo: For any model and format: If true, will
 	// additionally export FirebaseExportedModelInfo in a firebase.txt file.
 	ExportFirebaseAuxiliaryInfo bool `json:"exportFirebaseAuxiliaryInfo,omitempty"`
-	// OutputGcrUri: The Google Contained Registry (GCR) path the exported files to
-	// be pushed to. This location is set if the exported format is DOCKDER.
+	// OutputGcrUri: The Google Contained Registry path the exported files to be
+	// pushed to. This location is set if the exported format is DOCKDER.
 	OutputGcrUri string `json:"outputGcrUri,omitempty"`
-	// OutputGcsUri: The Google Cloud Storage (GCS) directory where XPS will output
-	// the exported models and related files. Format: gs://bucket/directory
+	// OutputGcsUri: The Google Cloud Storage directory where XPS will output the
+	// exported models and related files. Format: gs://bucket/directory
 	OutputGcsUri       string                 `json:"outputGcsUri,omitempty"`
 	TfJsFormat         *XPSTfJsFormat         `json:"tfJsFormat,omitempty"`
 	TfLiteFormat       *XPSTfLiteFormat       `json:"tfLiteFormat,omitempty"`
@@ -2665,13 +2696,13 @@ type XPSExportModelOutputConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSExportModelOutputConfig) MarshalJSON() ([]byte, error) {
+func (s XPSExportModelOutputConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSExportModelOutputConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// XPSFileSpec: Spec of input and output files, on external file systems (CNS,
-// GCS, etc).
+// XPSFileSpec: Spec of input and output files, on external file systems (for
+// example, Colossus Namespace System or Google Cloud Storage).
 type XPSFileSpec struct {
 	// DirectoryPath: Deprecated. Use file_spec.
 	DirectoryPath string `json:"directoryPath,omitempty"`
@@ -2679,7 +2710,7 @@ type XPSFileSpec struct {
 	//   "FILE_FORMAT_UNKNOWN"
 	//   "FILE_FORMAT_SSTABLE"
 	//   "FILE_FORMAT_TRANSLATION_RKV" - Internal format for parallel text data
-	// used by Google Translate. go/rkvtools
+	// used by Google Translate.
 	//   "FILE_FORMAT_RECORDIO"
 	//   "FILE_FORMAT_RAW_CSV" - Only the lexicographically first file described by
 	// the file_spec contains the header line.
@@ -2705,9 +2736,9 @@ type XPSFileSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSFileSpec) MarshalJSON() ([]byte, error) {
+func (s XPSFileSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSFileSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSFloat64Stats: The data statistics of a series of FLOAT64 values.
@@ -2741,9 +2772,9 @@ type XPSFloat64Stats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSFloat64Stats) MarshalJSON() ([]byte, error) {
+func (s XPSFloat64Stats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSFloat64Stats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSFloat64Stats) UnmarshalJSON(data []byte) error {
@@ -2790,9 +2821,9 @@ type XPSFloat64StatsHistogramBucket struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSFloat64StatsHistogramBucket) MarshalJSON() ([]byte, error) {
+func (s XPSFloat64StatsHistogramBucket) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSFloat64StatsHistogramBucket
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSFloat64StatsHistogramBucket) UnmarshalJSON(data []byte) error {
@@ -2854,9 +2885,9 @@ type XPSImageClassificationTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageClassificationTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSImageClassificationTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageClassificationTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSImageExportModelSpec: Information of downloadable models that are
@@ -2868,8 +2899,9 @@ func (s *XPSImageClassificationTrainResponse) MarshalJSON() ([]byte, error) {
 // requesting format.
 type XPSImageExportModelSpec struct {
 	// ExportModelOutputConfig: Contains the model format and internal location of
-	// the model files to be exported/downloaded. Use the GCS bucket name which is
-	// provided via TrainRequest.gcs_bucket_name to store the model files.
+	// the model files to be exported/downloaded. Use the Google Cloud Storage
+	// bucket name which is provided via TrainRequest.gcs_bucket_name to store the
+	// model files.
 	ExportModelOutputConfig []*XPSExportModelOutputConfig `json:"exportModelOutputConfig,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExportModelOutputConfig") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2884,9 +2916,9 @@ type XPSImageExportModelSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageExportModelSpec) MarshalJSON() ([]byte, error) {
+func (s XPSImageExportModelSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageExportModelSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSImageModelArtifactSpec: Stores the locations and related metadata of the
@@ -2898,15 +2930,16 @@ type XPSImageModelArtifactSpec struct {
 	// ExportArtifact: The model binary files in different formats for model
 	// export.
 	ExportArtifact []*XPSModelArtifactItem `json:"exportArtifact,omitempty"`
-	// LabelGcsUri: GCS uri of decoded labels file for model export 'dict.txt'.
+	// LabelGcsUri: Google Cloud Storage URI of decoded labels file for model
+	// export 'dict.txt'.
 	LabelGcsUri string `json:"labelGcsUri,omitempty"`
 	// ServingArtifact: The default model binary file used for serving (e.g. online
 	// predict, batch predict) via public Cloud AI Platform API.
 	ServingArtifact *XPSModelArtifactItem `json:"servingArtifact,omitempty"`
-	// TfJsBinaryGcsPrefix: GCS uri prefix of Tensorflow JavaScript binary files
-	// 'groupX-shardXofX.bin' Deprecated.
+	// TfJsBinaryGcsPrefix: Google Cloud Storage URI prefix of Tensorflow
+	// JavaScript binary files 'groupX-shardXofX.bin'. Deprecated.
 	TfJsBinaryGcsPrefix string `json:"tfJsBinaryGcsPrefix,omitempty"`
-	// TfLiteMetadataGcsUri: GCS uri of Tensorflow Lite metadata
+	// TfLiteMetadataGcsUri: Google Cloud Storage URI of Tensorflow Lite metadata
 	// 'tflite_metadata.json'.
 	TfLiteMetadataGcsUri string `json:"tfLiteMetadataGcsUri,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CheckpointArtifact") to
@@ -2922,9 +2955,9 @@ type XPSImageModelArtifactSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageModelArtifactSpec) MarshalJSON() ([]byte, error) {
+func (s XPSImageModelArtifactSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageModelArtifactSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSImageModelServingSpec: Serving specification for image models.
@@ -2950,9 +2983,9 @@ type XPSImageModelServingSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageModelServingSpec) MarshalJSON() ([]byte, error) {
+func (s XPSImageModelServingSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageModelServingSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSImageModelServingSpec) UnmarshalJSON(data []byte) error {
@@ -2981,6 +3014,8 @@ type XPSImageModelServingSpecModelThroughputEstimation struct {
 	//   "NVIDIA_A100_80GB" - Nvidia A100 80GB GPU.
 	//   "NVIDIA_L4" - Nvidia L4 GPU.
 	//   "NVIDIA_H100_80GB" - Nvidia H100 80Gb GPU.
+	//   "NVIDIA_H100_MEGA_80GB" - Nvidia H100 80Gb GPU.
+	//   "NVIDIA_H200_141GB" - Nvidia H200 141Gb GPU.
 	//   "TPU_V2" - TPU v2 (JellyFish).
 	//   "TPU_V3" - TPU v3 (DragonFish).
 	//   "TPU_V4_POD" - TPU_v4 (PufferFish).
@@ -2999,7 +3034,7 @@ type XPSImageModelServingSpecModelThroughputEstimation struct {
 	// traffic, US-based traffic, or very large models should use this partition.
 	// Capacity in this partition is significantly cheaper than partition-0.
 	//   "PARTITION_JELLYFISH" - To be used by customers with Jellyfish-accelerated
-	// ops. See go/servomatic-jellyfish for details.
+	// ops.
 	//   "PARTITION_CPU" - The partition used by regionalized servomatic cloud
 	// regions.
 	//   "PARTITION_CUSTOM_STORAGE_CPU" - The partition used for loading models
@@ -3018,9 +3053,9 @@ type XPSImageModelServingSpecModelThroughputEstimation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageModelServingSpecModelThroughputEstimation) MarshalJSON() ([]byte, error) {
+func (s XPSImageModelServingSpecModelThroughputEstimation) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageModelServingSpecModelThroughputEstimation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSImageModelServingSpecModelThroughputEstimation) UnmarshalJSON(data []byte) error {
@@ -3068,9 +3103,9 @@ type XPSImageObjectDetectionEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageObjectDetectionEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSImageObjectDetectionEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageObjectDetectionEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSImageObjectDetectionEvaluationMetrics) UnmarshalJSON(data []byte) error {
@@ -3124,9 +3159,9 @@ type XPSImageObjectDetectionModelSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageObjectDetectionModelSpec) MarshalJSON() ([]byte, error) {
+func (s XPSImageObjectDetectionModelSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageObjectDetectionModelSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSImageSegmentationEvaluationMetrics: Model evaluation metrics for image
@@ -3148,9 +3183,9 @@ type XPSImageSegmentationEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageSegmentationEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSImageSegmentationEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageSegmentationEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSImageSegmentationEvaluationMetricsConfidenceMetricsEntry: Metrics for a
@@ -3185,9 +3220,9 @@ type XPSImageSegmentationEvaluationMetricsConfidenceMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageSegmentationEvaluationMetricsConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSImageSegmentationEvaluationMetricsConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageSegmentationEvaluationMetricsConfidenceMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSImageSegmentationEvaluationMetricsConfidenceMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -3250,9 +3285,9 @@ type XPSImageSegmentationTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSImageSegmentationTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSImageSegmentationTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSImageSegmentationTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSIntegratedGradientsAttribution: An attribution method that computes the
@@ -3278,9 +3313,9 @@ type XPSIntegratedGradientsAttribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSIntegratedGradientsAttribution) MarshalJSON() ([]byte, error) {
+func (s XPSIntegratedGradientsAttribution) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSIntegratedGradientsAttribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSMetricEntry struct {
@@ -3310,9 +3345,9 @@ type XPSMetricEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSMetricEntry) MarshalJSON() ([]byte, error) {
+func (s XPSMetricEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSMetricEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSMetricEntry) UnmarshalJSON(data []byte) error {
@@ -3347,9 +3382,9 @@ type XPSMetricEntryLabel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSMetricEntryLabel) MarshalJSON() ([]byte, error) {
+func (s XPSMetricEntryLabel) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSMetricEntryLabel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSModelArtifactItem: A single model artifact item.
@@ -3370,8 +3405,7 @@ type XPSModelArtifactItem struct {
 	//   "CORE_ML" - Used for iOS mobile devices in (.mlmodel) format. See
 	// https://developer.apple.com/documentation/coreml
 	ArtifactFormat string `json:"artifactFormat,omitempty"`
-	// GcsUri: The Google Cloud Storage (GCS) uri that stores the model binary
-	// files.
+	// GcsUri: The Google Cloud Storage URI that stores the model binary files.
 	GcsUri string `json:"gcsUri,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ArtifactFormat") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -3386,12 +3420,11 @@ type XPSModelArtifactItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSModelArtifactItem) MarshalJSON() ([]byte, error) {
+func (s XPSModelArtifactItem) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSModelArtifactItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// XPSPreprocessResponse: Next ID: 8
 type XPSPreprocessResponse struct {
 	// OutputExampleSet: Preprocessed examples, that are to be imported into AutoML
 	// storage. This should point to RecordIO file(s) of PreprocessedExample
@@ -3414,9 +3447,9 @@ type XPSPreprocessResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSPreprocessResponse) MarshalJSON() ([]byte, error) {
+func (s XPSPreprocessResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSPreprocessResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSRegressionEvaluationMetrics: Model evaluation metrics for regression
@@ -3449,9 +3482,9 @@ type XPSRegressionEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSRegressionEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSRegressionEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSRegressionEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSRegressionEvaluationMetrics) UnmarshalJSON(data []byte) error {
@@ -3496,9 +3529,9 @@ type XPSRegressionMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSRegressionMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSRegressionMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSRegressionMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSRegressionMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -3538,9 +3571,9 @@ type XPSReportingMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSReportingMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSReportingMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSReportingMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSResponseExplanationMetadata struct {
@@ -3561,9 +3594,9 @@ type XPSResponseExplanationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSResponseExplanationMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSResponseExplanationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSResponseExplanationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSResponseExplanationMetadataInputMetadata: Metadata of the input of a
@@ -3596,9 +3629,9 @@ type XPSResponseExplanationMetadataInputMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSResponseExplanationMetadataInputMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSResponseExplanationMetadataInputMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSResponseExplanationMetadataInputMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSResponseExplanationMetadataOutputMetadata: Metadata of the prediction
@@ -3619,9 +3652,9 @@ type XPSResponseExplanationMetadataOutputMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSResponseExplanationMetadataOutputMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSResponseExplanationMetadataOutputMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSResponseExplanationMetadataOutputMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSResponseExplanationParameters struct {
@@ -3653,14 +3686,13 @@ type XPSResponseExplanationParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSResponseExplanationParameters) MarshalJSON() ([]byte, error) {
+func (s XPSResponseExplanationParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSResponseExplanationParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSResponseExplanationSpec: Specification of Model explanation.
-// Feature-based XAI in AutoML Vision ICN is deprecated, see b/288407203 for
-// context.
+// Feature-based XAI in AutoML Vision ICN is deprecated.
 type XPSResponseExplanationSpec struct {
 	// ExplanationType: Explanation type. For AutoML Image Classification models,
 	// possible values are: * `image-integrated-gradients` * `image-xrai`
@@ -3682,9 +3714,9 @@ type XPSResponseExplanationSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSResponseExplanationSpec) MarshalJSON() ([]byte, error) {
+func (s XPSResponseExplanationSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSResponseExplanationSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSRow struct {
@@ -3708,9 +3740,9 @@ type XPSRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSRow) MarshalJSON() ([]byte, error) {
+func (s XPSRow) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSSpeechEvaluationMetrics struct {
@@ -3730,9 +3762,9 @@ type XPSSpeechEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSSpeechEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSSpeechEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSSpeechEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSSpeechEvaluationMetricsSubModelEvaluationMetric struct {
@@ -3773,9 +3805,9 @@ type XPSSpeechEvaluationMetricsSubModelEvaluationMetric struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSSpeechEvaluationMetricsSubModelEvaluationMetric) MarshalJSON() ([]byte, error) {
+func (s XPSSpeechEvaluationMetricsSubModelEvaluationMetric) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSSpeechEvaluationMetricsSubModelEvaluationMetric
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSSpeechEvaluationMetricsSubModelEvaluationMetric) UnmarshalJSON(data []byte) error {
@@ -3815,9 +3847,9 @@ type XPSSpeechModelSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSSpeechModelSpec) MarshalJSON() ([]byte, error) {
+func (s XPSSpeechModelSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSSpeechModelSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSSpeechModelSpecSubModelSpec struct {
@@ -3851,9 +3883,9 @@ type XPSSpeechModelSpecSubModelSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSSpeechModelSpecSubModelSpec) MarshalJSON() ([]byte, error) {
+func (s XPSSpeechModelSpecSubModelSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSSpeechModelSpecSubModelSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSSpeechPreprocessResponse struct {
@@ -3882,9 +3914,9 @@ type XPSSpeechPreprocessResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSSpeechPreprocessResponse) MarshalJSON() ([]byte, error) {
+func (s XPSSpeechPreprocessResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSSpeechPreprocessResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSSpeechPreprocessStats struct {
@@ -3926,9 +3958,9 @@ type XPSSpeechPreprocessStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSSpeechPreprocessStats) MarshalJSON() ([]byte, error) {
+func (s XPSSpeechPreprocessStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSSpeechPreprocessStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSStringStats: The data statistics of a series of STRING values.
@@ -3950,9 +3982,9 @@ type XPSStringStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSStringStats) MarshalJSON() ([]byte, error) {
+func (s XPSStringStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSStringStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSStringStatsUnigramStats: The statistics of a unigram.
@@ -3974,9 +4006,9 @@ type XPSStringStatsUnigramStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSStringStatsUnigramStats) MarshalJSON() ([]byte, error) {
+func (s XPSStringStatsUnigramStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSStringStatsUnigramStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSStructStats: The data statistics of a series of STRUCT values.
@@ -3998,9 +4030,9 @@ type XPSStructStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSStructStats) MarshalJSON() ([]byte, error) {
+func (s XPSStructStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSStructStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSStructType: `StructType` defines the DataType-s of a STRUCT type.
@@ -4020,9 +4052,9 @@ type XPSStructType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSStructType) MarshalJSON() ([]byte, error) {
+func (s XPSStructType) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSStructType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSTableSpec struct {
@@ -4049,9 +4081,9 @@ type XPSTableSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTableSpec) MarshalJSON() ([]byte, error) {
+func (s XPSTableSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTableSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTablesClassificationMetrics: Metrics for Tables classification problems.
@@ -4071,9 +4103,9 @@ type XPSTablesClassificationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesClassificationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSTablesClassificationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesClassificationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTablesClassificationMetricsCurveMetrics: Metrics curve data point for a
@@ -4106,9 +4138,9 @@ type XPSTablesClassificationMetricsCurveMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesClassificationMetricsCurveMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSTablesClassificationMetricsCurveMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesClassificationMetricsCurveMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTablesClassificationMetricsCurveMetrics) UnmarshalJSON(data []byte) error {
@@ -4169,9 +4201,9 @@ type XPSTablesConfidenceMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSTablesConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesConfidenceMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTablesConfidenceMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -4199,7 +4231,6 @@ func (s *XPSTablesConfidenceMetricsEntry) UnmarshalJSON(data []byte) error {
 }
 
 // XPSTablesDatasetMetadata: Metadata for a dataset used for AutoML Tables.
-// Next ID: 6
 type XPSTablesDatasetMetadata struct {
 	// MlUseColumnId: Id the column to split the table.
 	MlUseColumnId int64 `json:"mlUseColumnId,omitempty"`
@@ -4227,9 +4258,9 @@ type XPSTablesDatasetMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesDatasetMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSTablesDatasetMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesDatasetMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSTablesEvaluationMetrics struct {
@@ -4250,9 +4281,9 @@ type XPSTablesEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSTablesEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTablesModelColumnInfo: An information specific to given column and Tables
@@ -4283,9 +4314,9 @@ type XPSTablesModelColumnInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesModelColumnInfo) MarshalJSON() ([]byte, error) {
+func (s XPSTablesModelColumnInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesModelColumnInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTablesModelColumnInfo) UnmarshalJSON(data []byte) error {
@@ -4319,9 +4350,9 @@ type XPSTablesModelStructure struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesModelStructure) MarshalJSON() ([]byte, error) {
+func (s XPSTablesModelStructure) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesModelStructure
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTablesModelStructureModelParameters: Model hyper-parameters for a model.
@@ -4340,9 +4371,9 @@ type XPSTablesModelStructureModelParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesModelStructureModelParameters) MarshalJSON() ([]byte, error) {
+func (s XPSTablesModelStructureModelParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesModelStructureModelParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSTablesModelStructureModelParametersParameter struct {
@@ -4367,9 +4398,9 @@ type XPSTablesModelStructureModelParametersParameter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesModelStructureModelParametersParameter) MarshalJSON() ([]byte, error) {
+func (s XPSTablesModelStructureModelParametersParameter) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesModelStructureModelParametersParameter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTablesModelStructureModelParametersParameter) UnmarshalJSON(data []byte) error {
@@ -4403,9 +4434,9 @@ type XPSTablesPreprocessResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesPreprocessResponse) MarshalJSON() ([]byte, error) {
+func (s XPSTablesPreprocessResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesPreprocessResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTablesRegressionMetrics: Metrics for Tables regression problems.
@@ -4437,9 +4468,9 @@ type XPSTablesRegressionMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesRegressionMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSTablesRegressionMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesRegressionMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTablesRegressionMetrics) UnmarshalJSON(data []byte) error {
@@ -4488,9 +4519,9 @@ type XPSTablesTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSTablesTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSTablesTrainingOperationMetadata struct {
@@ -4532,12 +4563,12 @@ type XPSTablesTrainingOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTablesTrainingOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSTablesTrainingOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTablesTrainingOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// XPSTextComponentModel: Component model. Next ID: 10
+// XPSTextComponentModel: Component model.
 type XPSTextComponentModel struct {
 	// BatchPredictionModelGcsUri: The Cloud Storage resource path to hold batch
 	// prediction model.
@@ -4557,7 +4588,7 @@ type XPSTextComponentModel struct {
 	// traffic, US-based traffic, or very large models should use this partition.
 	// Capacity in this partition is significantly cheaper than partition-0.
 	//   "PARTITION_JELLYFISH" - To be used by customers with Jellyfish-accelerated
-	// ops. See go/servomatic-jellyfish for details.
+	// ops.
 	//   "PARTITION_CPU" - The partition used by regionalized servomatic cloud
 	// regions.
 	//   "PARTITION_CUSTOM_STORAGE_CPU" - The partition used for loading models
@@ -4587,8 +4618,7 @@ type XPSTextComponentModel struct {
 	//   "TEXT_MODEL_TYPE_COMPOSITE" - A composite model represents a set of
 	// component models that have to be used together for prediction. A composite
 	// model appears to be a single model to the model user. It may contain only
-	// one component model. Please refer to go/cnl-composite-models for more
-	// information.
+	// one component model.
 	//   "TEXT_MODEL_TYPE_ALL_MODELS" - Model type used to train default, MA, and
 	// ATC models in a single batch worker pipeline.
 	//   "TEXT_MODEL_TYPE_BERT" - BERT pipeline needs a specific model type, since
@@ -4615,9 +4645,9 @@ type XPSTextComponentModel struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTextComponentModel) MarshalJSON() ([]byte, error) {
+func (s XPSTextComponentModel) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTextComponentModel
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSTextExtractionEvaluationMetrics struct {
@@ -4649,9 +4679,9 @@ type XPSTextExtractionEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTextExtractionEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSTextExtractionEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTextExtractionEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTextSentimentEvaluationMetrics: Model evaluation metrics for text
@@ -4692,9 +4722,9 @@ type XPSTextSentimentEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTextSentimentEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSTextSentimentEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTextSentimentEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTextSentimentEvaluationMetrics) UnmarshalJSON(data []byte) error {
@@ -4743,9 +4773,9 @@ type XPSTextTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTextTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSTextTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTextTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTfJsFormat: A TensorFlow.js (https://www.tensorflow.org/js) model that
@@ -4784,9 +4814,9 @@ type XPSTimestampStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTimestampStats) MarshalJSON() ([]byte, error) {
+func (s XPSTimestampStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTimestampStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTimestampStatsGranularStats: Stats split by a defined in context
@@ -4808,9 +4838,9 @@ type XPSTimestampStatsGranularStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTimestampStatsGranularStats) MarshalJSON() ([]byte, error) {
+func (s XPSTimestampStatsGranularStats) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTimestampStatsGranularStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTrackMetricsEntry: Track matching model metrics for a single track match
@@ -4845,9 +4875,9 @@ type XPSTrackMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTrackMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSTrackMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTrackMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTrackMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -4900,9 +4930,9 @@ type XPSTrackMetricsEntryConfidenceMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTrackMetricsEntryConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSTrackMetricsEntryConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTrackMetricsEntryConfidenceMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTrackMetricsEntryConfidenceMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -4927,7 +4957,6 @@ func (s *XPSTrackMetricsEntryConfidenceMetricsEntry) UnmarshalJSON(data []byte) 
 	return nil
 }
 
-// XPSTrainResponse: Next ID: 18
 type XPSTrainResponse struct {
 	// DeployedModelSizeBytes: Estimated model size in bytes once deployed.
 	DeployedModelSizeBytes int64 `json:"deployedModelSizeBytes,omitempty,string"`
@@ -4978,9 +5007,9 @@ type XPSTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSTrainingObjectivePoint struct {
@@ -5001,9 +5030,9 @@ type XPSTrainingObjectivePoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTrainingObjectivePoint) MarshalJSON() ([]byte, error) {
+func (s XPSTrainingObjectivePoint) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTrainingObjectivePoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTrainingObjectivePoint) UnmarshalJSON(data []byte) error {
@@ -5039,9 +5068,9 @@ type XPSTranslationEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTranslationEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSTranslationEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTranslationEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSTranslationEvaluationMetrics) UnmarshalJSON(data []byte) error {
@@ -5079,9 +5108,9 @@ type XPSTranslationPreprocessResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTranslationPreprocessResponse) MarshalJSON() ([]byte, error) {
+func (s XPSTranslationPreprocessResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTranslationPreprocessResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTranslationTrainResponse: Train response for translation.
@@ -5106,9 +5135,9 @@ type XPSTranslationTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTranslationTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSTranslationTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTranslationTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSTuningTrial: Metrics for a tuning job generated, will get forwarded to
@@ -5134,9 +5163,9 @@ type XPSTuningTrial struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSTuningTrial) MarshalJSON() ([]byte, error) {
+func (s XPSTuningTrial) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSTuningTrial
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSVideoActionMetricsEntry: The Evaluation metrics entry given a specific
@@ -5165,9 +5194,9 @@ type XPSVideoActionMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoActionMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSVideoActionMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoActionMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSVideoActionMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -5209,9 +5238,9 @@ type XPSVideoActionMetricsEntryConfidenceMetricsEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoActionMetricsEntryConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
+func (s XPSVideoActionMetricsEntryConfidenceMetricsEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoActionMetricsEntryConfidenceMetricsEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSVideoActionMetricsEntryConfidenceMetricsEntry) UnmarshalJSON(data []byte) error {
@@ -5256,9 +5285,9 @@ type XPSVideoActionRecognitionEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoActionRecognitionEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSVideoActionRecognitionEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoActionRecognitionEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSVideoActionRecognitionTrainResponse struct {
@@ -5281,9 +5310,9 @@ type XPSVideoActionRecognitionTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoActionRecognitionTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSVideoActionRecognitionTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoActionRecognitionTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSVideoBatchPredictOperationMetadata struct {
@@ -5305,9 +5334,9 @@ type XPSVideoBatchPredictOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoBatchPredictOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSVideoBatchPredictOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoBatchPredictOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSVideoClassificationTrainResponse struct {
@@ -5330,9 +5359,9 @@ type XPSVideoClassificationTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoClassificationTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSVideoClassificationTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoClassificationTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSVideoExportModelSpec: Information of downloadable models that are
@@ -5344,8 +5373,9 @@ func (s *XPSVideoClassificationTrainResponse) MarshalJSON() ([]byte, error) {
 // requesting format.
 type XPSVideoExportModelSpec struct {
 	// ExportModelOutputConfig: Contains the model format and internal location of
-	// the model files to be exported/downloaded. Use the GCS bucket name which is
-	// provided via TrainRequest.gcs_bucket_name to store the model files.
+	// the model files to be exported/downloaded. Use the Google Cloud Storage
+	// bucket name which is provided via TrainRequest.gcs_bucket_name to store the
+	// model files.
 	ExportModelOutputConfig []*XPSExportModelOutputConfig `json:"exportModelOutputConfig,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ExportModelOutputConfig") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -5360,9 +5390,9 @@ type XPSVideoExportModelSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoExportModelSpec) MarshalJSON() ([]byte, error) {
+func (s XPSVideoExportModelSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoExportModelSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSVideoModelArtifactSpec struct {
@@ -5385,9 +5415,9 @@ type XPSVideoModelArtifactSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoModelArtifactSpec) MarshalJSON() ([]byte, error) {
+func (s XPSVideoModelArtifactSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoModelArtifactSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSVideoObjectTrackingEvaluationMetrics: Model evaluation metrics for
@@ -5437,9 +5467,9 @@ type XPSVideoObjectTrackingEvaluationMetrics struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoObjectTrackingEvaluationMetrics) MarshalJSON() ([]byte, error) {
+func (s XPSVideoObjectTrackingEvaluationMetrics) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoObjectTrackingEvaluationMetrics
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSVideoObjectTrackingEvaluationMetrics) UnmarshalJSON(data []byte) error {
@@ -5484,9 +5514,9 @@ type XPSVideoObjectTrackingTrainResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoObjectTrackingTrainResponse) MarshalJSON() ([]byte, error) {
+func (s XPSVideoObjectTrackingTrainResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoObjectTrackingTrainResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSVideoTrainingOperationMetadata struct {
@@ -5509,9 +5539,9 @@ type XPSVideoTrainingOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVideoTrainingOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSVideoTrainingOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVideoTrainingOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSVisionErrorAnalysisConfig: The vision model error analysis configuration.
@@ -5545,9 +5575,9 @@ type XPSVisionErrorAnalysisConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVisionErrorAnalysisConfig) MarshalJSON() ([]byte, error) {
+func (s XPSVisionErrorAnalysisConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVisionErrorAnalysisConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type XPSVisionTrainingOperationMetadata struct {
@@ -5567,9 +5597,9 @@ type XPSVisionTrainingOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVisionTrainingOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSVisionTrainingOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVisionTrainingOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSVisualization: Visualization configurations for image explanation.
@@ -5646,9 +5676,9 @@ type XPSVisualization struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSVisualization) MarshalJSON() ([]byte, error) {
+func (s XPSVisualization) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSVisualization
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *XPSVisualization) UnmarshalJSON(data []byte) error {
@@ -5696,9 +5726,9 @@ type XPSXpsOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSXpsOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s XPSXpsOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSXpsOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // XPSXraiAttribution: An explanation method that redistributes Integrated
@@ -5725,9 +5755,9 @@ type XPSXraiAttribution struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *XPSXraiAttribution) MarshalJSON() ([]byte, error) {
+func (s XPSXraiAttribution) MarshalJSON() ([]byte, error) {
 	type NoMethod XPSXraiAttribution
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DocumentsAnalyzeEntitiesCall struct {
@@ -5772,8 +5802,7 @@ func (c *DocumentsAnalyzeEntitiesCall) Header() http.Header {
 
 func (c *DocumentsAnalyzeEntitiesCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.analyzeentitiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.analyzeentitiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5786,6 +5815,7 @@ func (c *DocumentsAnalyzeEntitiesCall) doRequest(alt string) (*http.Response, er
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.documents.analyzeEntities", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5821,9 +5851,11 @@ func (c *DocumentsAnalyzeEntitiesCall) Do(opts ...googleapi.CallOption) (*Analyz
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.documents.analyzeEntities", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5867,8 +5899,7 @@ func (c *DocumentsAnalyzeSentimentCall) Header() http.Header {
 
 func (c *DocumentsAnalyzeSentimentCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.analyzesentimentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.analyzesentimentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5881,6 +5912,7 @@ func (c *DocumentsAnalyzeSentimentCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.documents.analyzeSentiment", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5916,9 +5948,11 @@ func (c *DocumentsAnalyzeSentimentCall) Do(opts ...googleapi.CallOption) (*Analy
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.documents.analyzeSentiment", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5962,8 +5996,7 @@ func (c *DocumentsAnnotateTextCall) Header() http.Header {
 
 func (c *DocumentsAnnotateTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.annotatetextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.annotatetextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5976,6 +6009,7 @@ func (c *DocumentsAnnotateTextCall) doRequest(alt string) (*http.Response, error
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.documents.annotateText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6011,9 +6045,11 @@ func (c *DocumentsAnnotateTextCall) Do(opts ...googleapi.CallOption) (*AnnotateT
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.documents.annotateText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6057,8 +6093,7 @@ func (c *DocumentsClassifyTextCall) Header() http.Header {
 
 func (c *DocumentsClassifyTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.classifytextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.classifytextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6071,6 +6106,7 @@ func (c *DocumentsClassifyTextCall) doRequest(alt string) (*http.Response, error
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.documents.classifyText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6106,9 +6142,11 @@ func (c *DocumentsClassifyTextCall) Do(opts ...googleapi.CallOption) (*ClassifyT
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.documents.classifyText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6152,8 +6190,7 @@ func (c *DocumentsModerateTextCall) Header() http.Header {
 
 func (c *DocumentsModerateTextCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.moderatetextrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.moderatetextrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6166,6 +6203,7 @@ func (c *DocumentsModerateTextCall) doRequest(alt string) (*http.Response, error
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "language.documents.moderateText", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6201,8 +6239,10 @@ func (c *DocumentsModerateTextCall) Do(opts ...googleapi.CallOption) (*ModerateT
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "language.documents.moderateText", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

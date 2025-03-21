@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "privateca:v1"
 const apiName = "privateca"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -269,9 +272,9 @@ type AccessUrls struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AccessUrls) MarshalJSON() ([]byte, error) {
+func (s AccessUrls) MarshalJSON() ([]byte, error) {
 	type NoMethod AccessUrls
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ActivateCertificateAuthorityRequest: Request message for
@@ -308,9 +311,9 @@ type ActivateCertificateAuthorityRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActivateCertificateAuthorityRequest) MarshalJSON() ([]byte, error) {
+func (s ActivateCertificateAuthorityRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ActivateCertificateAuthorityRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AllowedKeyType: Describes a "type" of key that may be used in a Certificate
@@ -335,9 +338,9 @@ type AllowedKeyType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllowedKeyType) MarshalJSON() ([]byte, error) {
+func (s AllowedKeyType) MarshalJSON() ([]byte, error) {
 	type NoMethod AllowedKeyType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditConfig: Specifies the audit configuration for a service. The
@@ -376,9 +379,9 @@ type AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
+func (s AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AuditLogConfig: Provides the configuration for logging a type of
@@ -411,9 +414,9 @@ type AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -510,9 +513,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CaOptions: Describes the X.509 basic constraints extension, per RFC 5280
@@ -541,9 +544,9 @@ type CaOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CaOptions) MarshalJSON() ([]byte, error) {
+func (s CaOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod CaOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CaPool: A CaPool represents a group of CertificateAuthorities that form a
@@ -556,7 +559,7 @@ type CaPool struct {
 	IssuancePolicy *IssuancePolicy `json:"issuancePolicy,omitempty"`
 	// Labels: Optional. Labels with user-defined metadata.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name: Output only. The resource name for this CaPool in the format
+	// Name: Identifier. The resource name for this CaPool in the format
 	// `projects/*/locations/*/caPools/*`.
 	Name string `json:"name,omitempty"`
 	// PublishingOptions: Optional. The PublishingOptions to follow when issuing
@@ -585,9 +588,9 @@ type CaPool struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CaPool) MarshalJSON() ([]byte, error) {
+func (s CaPool) MarshalJSON() ([]byte, error) {
 	type NoMethod CaPool
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -611,9 +614,9 @@ type CertChain struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertChain) MarshalJSON() ([]byte, error) {
+func (s CertChain) MarshalJSON() ([]byte, error) {
 	type NoMethod CertChain
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Certificate: A Certificate corresponds to a signed X.509 certificate issued
@@ -645,7 +648,7 @@ type Certificate struct {
 	// certificate. Note that the lifetime may be truncated if it would extend past
 	// the life of any certificate authority in the issuing chain.
 	Lifetime string `json:"lifetime,omitempty"`
-	// Name: Output only. The resource name for this Certificate in the format
+	// Name: Identifier. The resource name for this Certificate in the format
 	// `projects/*/locations/*/caPools/*/certificates/*`.
 	Name string `json:"name,omitempty"`
 	// PemCertificate: Output only. The pem-encoded, signed X.509 certificate.
@@ -694,9 +697,9 @@ type Certificate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Certificate) MarshalJSON() ([]byte, error) {
+func (s Certificate) MarshalJSON() ([]byte, error) {
 	type NoMethod Certificate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateAuthority: A CertificateAuthority represents an individual
@@ -740,7 +743,7 @@ type CertificateAuthority struct {
 	// Used to create the "not_before_time" and "not_after_time" fields inside an
 	// X.509 certificate.
 	Lifetime string `json:"lifetime,omitempty"`
-	// Name: Output only. The resource name for this CertificateAuthority in the
+	// Name: Identifier. The resource name for this CertificateAuthority in the
 	// format `projects/*/locations/*/caPools/*/certificateAuthorities/*`.
 	Name string `json:"name,omitempty"`
 	// PemCaCertificates: Output only. This CertificateAuthority's certificate
@@ -799,6 +802,10 @@ type CertificateAuthority struct {
 	// UpdateTime: Output only. The time at which this CertificateAuthority was
 	// last updated.
 	UpdateTime string `json:"updateTime,omitempty"`
+	// UserDefinedAccessUrls: Optional. User-defined URLs for CA certificate and
+	// CRLs. The service does not publish content to these URLs. It is up to the
+	// user to mirror content to these URLs.
+	UserDefinedAccessUrls *UserDefinedAccessUrls `json:"userDefinedAccessUrls,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -815,9 +822,9 @@ type CertificateAuthority struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateAuthority) MarshalJSON() ([]byte, error) {
+func (s CertificateAuthority) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateAuthority
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateConfig: A CertificateConfig describes an X.509 certificate or CSR
@@ -851,9 +858,9 @@ type CertificateConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateConfig) MarshalJSON() ([]byte, error) {
+func (s CertificateConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateConfigKeyId: A KeyId identifies a specific public key, usually by
@@ -875,9 +882,9 @@ type CertificateConfigKeyId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateConfigKeyId) MarshalJSON() ([]byte, error) {
+func (s CertificateConfigKeyId) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateConfigKeyId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateDescription: A CertificateDescription describes an X.509
@@ -906,6 +913,11 @@ type CertificateDescription struct {
 	// particular public key, per
 	// https://tools.ietf.org/html/rfc5280#section-4.2.1.2.
 	SubjectKeyId *KeyId `json:"subjectKeyId,omitempty"`
+	// TbsCertificateDigest: The hash of the pre-signed certificate, which will be
+	// signed by the CA. Corresponds to the TBS Certificate in
+	// https://tools.ietf.org/html/rfc5280#section-4.1.2. The field will always be
+	// populated.
+	TbsCertificateDigest string `json:"tbsCertificateDigest,omitempty"`
 	// X509Description: Describes some of the technical X.509 fields in a
 	// certificate.
 	X509Description *X509Parameters `json:"x509Description,omitempty"`
@@ -922,9 +934,9 @@ type CertificateDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateDescription) MarshalJSON() ([]byte, error) {
+func (s CertificateDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateExtensionConstraints: Describes a set of X.509 extensions that
@@ -976,9 +988,9 @@ type CertificateExtensionConstraints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateExtensionConstraints) MarshalJSON() ([]byte, error) {
+func (s CertificateExtensionConstraints) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateExtensionConstraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateFingerprint: A group of fingerprints for the x509 certificate.
@@ -999,9 +1011,9 @@ type CertificateFingerprint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateFingerprint) MarshalJSON() ([]byte, error) {
+func (s CertificateFingerprint) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateFingerprint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateIdentityConstraints: Describes constraints on a Certificate's
@@ -1035,9 +1047,9 @@ type CertificateIdentityConstraints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateIdentityConstraints) MarshalJSON() ([]byte, error) {
+func (s CertificateIdentityConstraints) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateIdentityConstraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateRevocationList: A CertificateRevocationList corresponds to a
@@ -1051,7 +1063,7 @@ type CertificateRevocationList struct {
 	CreateTime string `json:"createTime,omitempty"`
 	// Labels: Optional. Labels with user-defined metadata.
 	Labels map[string]string `json:"labels,omitempty"`
-	// Name: Output only. The resource name for this CertificateRevocationList in
+	// Name: Identifier. The resource name for this CertificateRevocationList in
 	// the format `projects/*/locations/*/caPools/*certificateAuthorities/*/
 	// certificateRevocationLists/*`.
 	Name string `json:"name,omitempty"`
@@ -1093,9 +1105,9 @@ type CertificateRevocationList struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateRevocationList) MarshalJSON() ([]byte, error) {
+func (s CertificateRevocationList) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateRevocationList
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CertificateTemplate: A CertificateTemplate refers to a managed template for
@@ -1121,7 +1133,7 @@ type CertificateTemplate struct {
 	// maximum_lifetime, the effective lifetime will be explicitly truncated to
 	// match it.
 	MaximumLifetime string `json:"maximumLifetime,omitempty"`
-	// Name: Output only. The resource name for this CertificateTemplate in the
+	// Name: Identifier. The resource name for this CertificateTemplate in the
 	// format `projects/*/locations/*/certificateTemplates/*`.
 	Name string `json:"name,omitempty"`
 	// PassthroughExtensions: Optional. Describes the set of X.509 extensions that
@@ -1160,9 +1172,9 @@ type CertificateTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CertificateTemplate) MarshalJSON() ([]byte, error) {
+func (s CertificateTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod CertificateTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DisableCertificateAuthorityRequest: Request message for
@@ -1198,9 +1210,9 @@ type DisableCertificateAuthorityRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DisableCertificateAuthorityRequest) MarshalJSON() ([]byte, error) {
+func (s DisableCertificateAuthorityRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DisableCertificateAuthorityRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EcKeyType: Describes an Elliptic Curve key that may be used in a Certificate
@@ -1232,9 +1244,9 @@ type EcKeyType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EcKeyType) MarshalJSON() ([]byte, error) {
+func (s EcKeyType) MarshalJSON() ([]byte, error) {
 	type NoMethod EcKeyType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -1274,9 +1286,9 @@ type EnableCertificateAuthorityRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EnableCertificateAuthorityRequest) MarshalJSON() ([]byte, error) {
+func (s EnableCertificateAuthorityRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EnableCertificateAuthorityRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -1322,9 +1334,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExtendedKeyUsageOptions: KeyUsage.ExtendedKeyUsageOptions has fields that
@@ -1362,9 +1374,9 @@ type ExtendedKeyUsageOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExtendedKeyUsageOptions) MarshalJSON() ([]byte, error) {
+func (s ExtendedKeyUsageOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ExtendedKeyUsageOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchCaCertsRequest: Request message for
@@ -1395,9 +1407,9 @@ type FetchCaCertsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchCaCertsRequest) MarshalJSON() ([]byte, error) {
+func (s FetchCaCertsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchCaCertsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchCaCertsResponse: Response message for
@@ -1422,9 +1434,9 @@ type FetchCaCertsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchCaCertsResponse) MarshalJSON() ([]byte, error) {
+func (s FetchCaCertsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchCaCertsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FetchCertificateAuthorityCsrResponse: Response message for
@@ -1449,9 +1461,9 @@ type FetchCertificateAuthorityCsrResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FetchCertificateAuthorityCsrResponse) MarshalJSON() ([]byte, error) {
+func (s FetchCertificateAuthorityCsrResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FetchCertificateAuthorityCsrResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IssuanceModes: IssuanceModes specifies the allowed ways in which
@@ -1476,9 +1488,9 @@ type IssuanceModes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IssuanceModes) MarshalJSON() ([]byte, error) {
+func (s IssuanceModes) MarshalJSON() ([]byte, error) {
 	type NoMethod IssuanceModes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IssuancePolicy: Defines controls over all certificate issuance within a
@@ -1491,6 +1503,14 @@ type IssuancePolicy struct {
 	// certificate request's public key must match one of the key types listed
 	// here. Otherwise, any key may be used.
 	AllowedKeyTypes []*AllowedKeyType `json:"allowedKeyTypes,omitempty"`
+	// BackdateDuration: Optional. The duration to backdate all certificates issued
+	// from this CaPool. If not set, the certificates will be issued with a
+	// not_before_time of the issuance time (i.e. the current time). If set, the
+	// certificates will be issued with a not_before_time of the issuance time
+	// minus the backdate_duration. The not_after_time will be adjusted to preserve
+	// the requested lifetime. The backdate_duration must be less than or equal to
+	// 48 hours.
+	BackdateDuration string `json:"backdateDuration,omitempty"`
 	// BaselineValues: Optional. A set of X.509 values that will be applied to all
 	// certificates issued through this CaPool. If a certificate request includes
 	// conflicting values for the same properties, they will be overwritten by the
@@ -1530,9 +1550,9 @@ type IssuancePolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IssuancePolicy) MarshalJSON() ([]byte, error) {
+func (s IssuancePolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod IssuancePolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyId: A KeyId identifies a specific public key, usually by hashing the
@@ -1554,9 +1574,9 @@ type KeyId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyId) MarshalJSON() ([]byte, error) {
+func (s KeyId) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyUsage: A KeyUsage describes key usage values that may appear in an X.509
@@ -1582,9 +1602,9 @@ type KeyUsage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyUsage) MarshalJSON() ([]byte, error) {
+func (s KeyUsage) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyUsage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyUsageOptions: KeyUsage.KeyUsageOptions corresponds to the key usage
@@ -1622,9 +1642,9 @@ type KeyUsageOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyUsageOptions) MarshalJSON() ([]byte, error) {
+func (s KeyUsageOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyUsageOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // KeyVersionSpec: A Cloud KMS key configuration that a CertificateAuthority
@@ -1669,9 +1689,9 @@ type KeyVersionSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *KeyVersionSpec) MarshalJSON() ([]byte, error) {
+func (s KeyVersionSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod KeyVersionSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCaPoolsResponse: Response message for
@@ -1680,8 +1700,8 @@ type ListCaPoolsResponse struct {
 	// CaPools: The list of CaPools.
 	CaPools []*CaPool `json:"caPools,omitempty"`
 	// NextPageToken: A token to retrieve next page of results. Pass this value in
-	// ListCertificateAuthoritiesRequest.next_page_token to retrieve the next page
-	// of results.
+	// ListCertificateAuthoritiesRequest.page_token to retrieve the next page of
+	// results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 	// Unreachable: A list of locations (e.g. "us-west1") that could not be
 	// reached.
@@ -1702,9 +1722,9 @@ type ListCaPoolsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCaPoolsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCaPoolsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCaPoolsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCertificateAuthoritiesResponse: Response message for
@@ -1713,8 +1733,8 @@ type ListCertificateAuthoritiesResponse struct {
 	// CertificateAuthorities: The list of CertificateAuthorities.
 	CertificateAuthorities []*CertificateAuthority `json:"certificateAuthorities,omitempty"`
 	// NextPageToken: A token to retrieve next page of results. Pass this value in
-	// ListCertificateAuthoritiesRequest.next_page_token to retrieve the next page
-	// of results.
+	// ListCertificateAuthoritiesRequest.page_token to retrieve the next page of
+	// results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 	// Unreachable: A list of locations (e.g. "us-west1") that could not be
 	// reached.
@@ -1735,9 +1755,9 @@ type ListCertificateAuthoritiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCertificateAuthoritiesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCertificateAuthoritiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCertificateAuthoritiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCertificateRevocationListsResponse: Response message for
@@ -1746,8 +1766,8 @@ type ListCertificateRevocationListsResponse struct {
 	// CertificateRevocationLists: The list of CertificateRevocationLists.
 	CertificateRevocationLists []*CertificateRevocationList `json:"certificateRevocationLists,omitempty"`
 	// NextPageToken: A token to retrieve next page of results. Pass this value in
-	// ListCertificateRevocationListsRequest.next_page_token to retrieve the next
-	// page of results.
+	// ListCertificateRevocationListsRequest.page_token to retrieve the next page
+	// of results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 	// Unreachable: A list of locations (e.g. "us-west1") that could not be
 	// reached.
@@ -1768,9 +1788,9 @@ type ListCertificateRevocationListsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCertificateRevocationListsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCertificateRevocationListsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCertificateRevocationListsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCertificateTemplatesResponse: Response message for
@@ -1779,7 +1799,7 @@ type ListCertificateTemplatesResponse struct {
 	// CertificateTemplates: The list of CertificateTemplates.
 	CertificateTemplates []*CertificateTemplate `json:"certificateTemplates,omitempty"`
 	// NextPageToken: A token to retrieve next page of results. Pass this value in
-	// ListCertificateTemplatesRequest.next_page_token to retrieve the next page of
+	// ListCertificateTemplatesRequest.page_token to retrieve the next page of
 	// results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 	// Unreachable: A list of locations (e.g. "us-west1") that could not be
@@ -1801,9 +1821,9 @@ type ListCertificateTemplatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCertificateTemplatesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCertificateTemplatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCertificateTemplatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCertificatesResponse: Response message for
@@ -1812,8 +1832,7 @@ type ListCertificatesResponse struct {
 	// Certificates: The list of Certificates.
 	Certificates []*Certificate `json:"certificates,omitempty"`
 	// NextPageToken: A token to retrieve next page of results. Pass this value in
-	// ListCertificatesRequest.next_page_token to retrieve the next page of
-	// results.
+	// ListCertificatesRequest.page_token to retrieve the next page of results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 	// Unreachable: A list of locations (e.g. "us-west1") that could not be
 	// reached.
@@ -1834,9 +1853,9 @@ type ListCertificatesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCertificatesResponse) MarshalJSON() ([]byte, error) {
+func (s ListCertificatesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCertificatesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListLocationsResponse: The response message for Locations.ListLocations.
@@ -1862,9 +1881,9 @@ type ListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1890,9 +1909,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Location: A resource that represents a Google Cloud location.
@@ -1928,9 +1947,9 @@ type Location struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Location) MarshalJSON() ([]byte, error) {
+func (s Location) MarshalJSON() ([]byte, error) {
 	type NoMethod Location
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NameConstraints: Describes the X.509 name constraints extension, per
@@ -1989,9 +2008,9 @@ type NameConstraints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NameConstraints) MarshalJSON() ([]byte, error) {
+func (s NameConstraints) MarshalJSON() ([]byte, error) {
 	type NoMethod NameConstraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectId: An ObjectId specifies an object identifier (OID). These provide
@@ -2013,9 +2032,9 @@ type ObjectId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectId) MarshalJSON() ([]byte, error) {
+func (s ObjectId) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -2060,9 +2079,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of the long-running operation.
@@ -2075,8 +2094,8 @@ type OperationMetadata struct {
 	EndTime string `json:"endTime,omitempty"`
 	// RequestedCancellation: Output only. Identifies whether the user has
 	// requested cancellation of the operation. Operations that have successfully
-	// been cancelled have Operation.error value with a google.rpc.Status.code of
-	// 1, corresponding to `Code.CANCELLED`.
+	// been cancelled have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
 	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
 	// StatusMessage: Output only. Human-readable status of the operation, if any.
 	StatusMessage string `json:"statusMessage,omitempty"`
@@ -2098,9 +2117,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -2190,9 +2209,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PublicKey: A PublicKey describes a public key.
@@ -2230,9 +2249,9 @@ type PublicKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublicKey) MarshalJSON() ([]byte, error) {
+func (s PublicKey) MarshalJSON() ([]byte, error) {
 	type NoMethod PublicKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PublishingOptions: Options relating to the publication of each
@@ -2278,9 +2297,9 @@ type PublishingOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PublishingOptions) MarshalJSON() ([]byte, error) {
+func (s PublishingOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod PublishingOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReconciliationOperationMetadata: Operation metadata returned by the CLH
@@ -2313,9 +2332,9 @@ type ReconciliationOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReconciliationOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s ReconciliationOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ReconciliationOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevocationDetails: Describes fields that are relavent to the revocation of a
@@ -2357,9 +2376,9 @@ type RevocationDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevocationDetails) MarshalJSON() ([]byte, error) {
+func (s RevocationDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod RevocationDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevokeCertificateRequest: Request message for
@@ -2411,9 +2430,9 @@ type RevokeCertificateRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevokeCertificateRequest) MarshalJSON() ([]byte, error) {
+func (s RevokeCertificateRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RevokeCertificateRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RevokedCertificate: Describes a revoked Certificate.
@@ -2457,9 +2476,9 @@ type RevokedCertificate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RevokedCertificate) MarshalJSON() ([]byte, error) {
+func (s RevokedCertificate) MarshalJSON() ([]byte, error) {
 	type NoMethod RevokedCertificate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RsaKeyType: Describes an RSA key that may be used in a Certificate issued
@@ -2486,9 +2505,9 @@ type RsaKeyType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RsaKeyType) MarshalJSON() ([]byte, error) {
+func (s RsaKeyType) MarshalJSON() ([]byte, error) {
 	type NoMethod RsaKeyType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -2515,9 +2534,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2549,9 +2568,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Subject: Subject describes parts of a distinguished name that, in turn,
@@ -2586,9 +2605,9 @@ type Subject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Subject) MarshalJSON() ([]byte, error) {
+func (s Subject) MarshalJSON() ([]byte, error) {
 	type NoMethod Subject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubjectAltNames: SubjectAltNames corresponds to a more modern way of listing
@@ -2620,9 +2639,9 @@ type SubjectAltNames struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubjectAltNames) MarshalJSON() ([]byte, error) {
+func (s SubjectAltNames) MarshalJSON() ([]byte, error) {
 	type NoMethod SubjectAltNames
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubjectConfig: These values are used to create the distinguished name and
@@ -2646,9 +2665,9 @@ type SubjectConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubjectConfig) MarshalJSON() ([]byte, error) {
+func (s SubjectConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SubjectConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubjectDescription: These values describe fields in an issued X.509
@@ -2684,9 +2703,9 @@ type SubjectDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubjectDescription) MarshalJSON() ([]byte, error) {
+func (s SubjectDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod SubjectDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubordinateConfig: Describes a subordinate CA's issuers. This is either a
@@ -2714,9 +2733,9 @@ type SubordinateConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubordinateConfig) MarshalJSON() ([]byte, error) {
+func (s SubordinateConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SubordinateConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SubordinateConfigChain: This message describes a subordinate CA's issuer
@@ -2738,9 +2757,9 @@ type SubordinateConfigChain struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SubordinateConfigChain) MarshalJSON() ([]byte, error) {
+func (s SubordinateConfigChain) MarshalJSON() ([]byte, error) {
 	type NoMethod SubordinateConfigChain
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -2763,9 +2782,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -2790,9 +2809,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UndeleteCertificateAuthorityRequest: Request message for
@@ -2823,9 +2842,40 @@ type UndeleteCertificateAuthorityRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UndeleteCertificateAuthorityRequest) MarshalJSON() ([]byte, error) {
+func (s UndeleteCertificateAuthorityRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UndeleteCertificateAuthorityRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UserDefinedAccessUrls: User-defined URLs for accessing content published by
+// this CertificateAuthority.
+type UserDefinedAccessUrls struct {
+	// AiaIssuingCertificateUrls: Optional. A list of URLs where the issuer CA
+	// certificate may be downloaded, which appears in the "Authority Information
+	// Access" extension in the certificate. If specified, the default Cloud
+	// Storage URLs will be omitted.
+	AiaIssuingCertificateUrls []string `json:"aiaIssuingCertificateUrls,omitempty"`
+	// CrlAccessUrls: Optional. A list of URLs where to obtain CRL information,
+	// i.e. the DistributionPoint.fullName described by
+	// https://tools.ietf.org/html/rfc5280#section-4.2.1.13. If specified, the
+	// default Cloud Storage URLs will be omitted.
+	CrlAccessUrls []string `json:"crlAccessUrls,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "AiaIssuingCertificateUrls")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "AiaIssuingCertificateUrls") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UserDefinedAccessUrls) MarshalJSON() ([]byte, error) {
+	type NoMethod UserDefinedAccessUrls
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // X509Extension: An X509Extension specifies an X.509 extension, which may be
@@ -2852,9 +2902,9 @@ type X509Extension struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *X509Extension) MarshalJSON() ([]byte, error) {
+func (s X509Extension) MarshalJSON() ([]byte, error) {
 	type NoMethod X509Extension
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // X509Parameters: An X509Parameters is used to describe certain fields of an
@@ -2892,9 +2942,9 @@ type X509Parameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *X509Parameters) MarshalJSON() ([]byte, error) {
+func (s X509Parameters) MarshalJSON() ([]byte, error) {
 	type NoMethod X509Parameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -2951,12 +3001,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2964,6 +3013,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2998,9 +3048,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*Location, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3082,12 +3134,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3095,6 +3146,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3130,9 +3182,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*ListLocat
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3225,8 +3279,7 @@ func (c *ProjectsLocationsCaPoolsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.capool)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.capool)
 	if err != nil {
 		return nil, err
 	}
@@ -3242,6 +3295,7 @@ func (c *ProjectsLocationsCaPoolsCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3276,9 +3330,11 @@ func (c *ProjectsLocationsCaPoolsCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3351,12 +3407,11 @@ func (c *ProjectsLocationsCaPoolsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3364,6 +3419,7 @@ func (c *ProjectsLocationsCaPoolsDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3398,9 +3454,11 @@ func (c *ProjectsLocationsCaPoolsDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3451,8 +3509,7 @@ func (c *ProjectsLocationsCaPoolsFetchCaCertsCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsFetchCaCertsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.fetchcacertsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.fetchcacertsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3468,6 +3525,7 @@ func (c *ProjectsLocationsCaPoolsFetchCaCertsCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"caPool": c.caPool,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.fetchCaCerts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3503,9 +3561,11 @@ func (c *ProjectsLocationsCaPoolsFetchCaCertsCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.fetchCaCerts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3563,12 +3623,11 @@ func (c *ProjectsLocationsCaPoolsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3576,6 +3635,7 @@ func (c *ProjectsLocationsCaPoolsGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3610,9 +3670,11 @@ func (c *ProjectsLocationsCaPoolsGetCall) Do(opts ...googleapi.CallOption) (*CaP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3690,12 +3752,11 @@ func (c *ProjectsLocationsCaPoolsGetIamPolicyCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3703,6 +3764,7 @@ func (c *ProjectsLocationsCaPoolsGetIamPolicyCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3737,9 +3799,11 @@ func (c *ProjectsLocationsCaPoolsGetIamPolicyCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3829,12 +3893,11 @@ func (c *ProjectsLocationsCaPoolsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/caPools")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3842,6 +3905,7 @@ func (c *ProjectsLocationsCaPoolsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3877,9 +3941,11 @@ func (c *ProjectsLocationsCaPoolsListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3915,7 +3981,7 @@ type ProjectsLocationsCaPoolsPatchCall struct {
 
 // Patch: Update a CaPool.
 //
-//   - name: Output only. The resource name for this CaPool in the format
+//   - name: Identifier. The resource name for this CaPool in the format
 //     `projects/*/locations/*/caPools/*`.
 func (r *ProjectsLocationsCaPoolsService) Patch(name string, capool *CaPool) *ProjectsLocationsCaPoolsPatchCall {
 	c := &ProjectsLocationsCaPoolsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -3972,8 +4038,7 @@ func (c *ProjectsLocationsCaPoolsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.capool)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.capool)
 	if err != nil {
 		return nil, err
 	}
@@ -3989,6 +4054,7 @@ func (c *ProjectsLocationsCaPoolsPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4023,9 +4089,11 @@ func (c *ProjectsLocationsCaPoolsPatchCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4077,8 +4145,7 @@ func (c *ProjectsLocationsCaPoolsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4094,6 +4161,7 @@ func (c *ProjectsLocationsCaPoolsSetIamPolicyCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4128,9 +4196,11 @@ func (c *ProjectsLocationsCaPoolsSetIamPolicyCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4185,8 +4255,7 @@ func (c *ProjectsLocationsCaPoolsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4202,6 +4271,7 @@ func (c *ProjectsLocationsCaPoolsTestIamPermissionsCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4237,9 +4307,11 @@ func (c *ProjectsLocationsCaPoolsTestIamPermissionsCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4292,8 +4364,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesActivateCall) Header() ht
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesActivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.activatecertificateauthorityrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.activatecertificateauthorityrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4309,6 +4380,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesActivateCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.activate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4343,9 +4415,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesActivateCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.activate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4418,8 +4492,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCreateCall) Header() http
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.certificateauthority)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.certificateauthority)
 	if err != nil {
 		return nil, err
 	}
@@ -4435,6 +4508,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCreateCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4469,9 +4543,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCreateCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4562,12 +4638,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesDeleteCall) Header() http
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4575,6 +4650,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesDeleteCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4609,9 +4685,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesDeleteCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4660,8 +4738,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesDisableCall) Header() htt
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesDisableCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.disablecertificateauthorityrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.disablecertificateauthorityrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4677,6 +4754,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesDisableCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.disable", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4711,9 +4789,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesDisableCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.disable", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4762,8 +4842,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesEnableCall) Header() http
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesEnableCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.enablecertificateauthorityrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.enablecertificateauthorityrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4779,6 +4858,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesEnableCall) doRequest(alt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.enable", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4813,9 +4893,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesEnableCall) Do(opts ...go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.enable", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4878,12 +4960,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesFetchCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:fetch")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4891,6 +4972,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesFetchCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.fetch", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4926,9 +5008,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesFetchCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.fetch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4986,12 +5070,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesGetCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4999,6 +5082,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesGetCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5034,9 +5118,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesGetCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5126,12 +5212,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesListCall) doRequest(alt s
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/certificateAuthorities")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5139,6 +5224,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesListCall) doRequest(alt s
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5174,9 +5260,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesListCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5212,7 +5300,7 @@ type ProjectsLocationsCaPoolsCertificateAuthoritiesPatchCall struct {
 
 // Patch: Update a CertificateAuthority.
 //
-//   - name: Output only. The resource name for this CertificateAuthority in the
+//   - name: Identifier. The resource name for this CertificateAuthority in the
 //     format `projects/*/locations/*/caPools/*/certificateAuthorities/*`.
 func (r *ProjectsLocationsCaPoolsCertificateAuthoritiesService) Patch(name string, certificateauthority *CertificateAuthority) *ProjectsLocationsCaPoolsCertificateAuthoritiesPatchCall {
 	c := &ProjectsLocationsCaPoolsCertificateAuthoritiesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -5269,8 +5357,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesPatchCall) Header() http.
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.certificateauthority)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.certificateauthority)
 	if err != nil {
 		return nil, err
 	}
@@ -5286,6 +5373,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesPatchCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5320,9 +5408,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesPatchCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5371,8 +5461,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesUndeleteCall) Header() ht
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesUndeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.undeletecertificateauthorityrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.undeletecertificateauthorityrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5388,6 +5477,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesUndeleteCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.undelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5422,9 +5512,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesUndeleteCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.undelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5482,12 +5574,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5495,6 +5586,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5530,9 +5622,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5610,12 +5704,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5623,6 +5716,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5657,9 +5751,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5750,12 +5846,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/certificateRevocationLists")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5763,6 +5858,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5798,9 +5894,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5836,7 +5934,7 @@ type ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationListsPat
 
 // Patch: Update a CertificateRevocationList.
 //
-//   - name: Output only. The resource name for this CertificateRevocationList in
+//   - name: Identifier. The resource name for this CertificateRevocationList in
 //     the format `projects/*/locations/*/caPools/*certificateAuthorities/*/
 //     certificateRevocationLists/*`.
 func (r *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationListsService) Patch(name string, certificaterevocationlist *CertificateRevocationList) *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationListsPatchCall {
@@ -5894,8 +5992,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationListsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.certificaterevocationlist)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.certificaterevocationlist)
 	if err != nil {
 		return nil, err
 	}
@@ -5911,6 +6008,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5945,9 +6043,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5999,8 +6099,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationListsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6016,6 +6115,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6050,9 +6150,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6107,8 +6209,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 
 func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationListsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6124,6 +6225,7 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6159,9 +6261,11 @@ func (c *ProjectsLocationsCaPoolsCertificateAuthoritiesCertificateRevocationList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificateAuthorities.certificateRevocationLists.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6189,7 +6293,7 @@ func (r *ProjectsLocationsCaPoolsCertificatesService) Create(parent string, cert
 // CertificateId sets the optional parameter "certificateId": It must be unique
 // within a location and match the regular expression `[a-zA-Z0-9_-]{1,63}`.
 // This field is required when using a CertificateAuthority in the Enterprise
-// CertificateAuthority.Tier, but is optional and its value is ignored
+// CertificateAuthority.tier, but is optional and its value is ignored
 // otherwise.
 func (c *ProjectsLocationsCaPoolsCertificatesCreateCall) CertificateId(certificateId string) *ProjectsLocationsCaPoolsCertificatesCreateCall {
 	c.urlParams_.Set("certificateId", certificateId)
@@ -6262,8 +6366,7 @@ func (c *ProjectsLocationsCaPoolsCertificatesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsCertificatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.certificate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.certificate)
 	if err != nil {
 		return nil, err
 	}
@@ -6279,6 +6382,7 @@ func (c *ProjectsLocationsCaPoolsCertificatesCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6313,9 +6417,11 @@ func (c *ProjectsLocationsCaPoolsCertificatesCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6373,12 +6479,11 @@ func (c *ProjectsLocationsCaPoolsCertificatesGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6386,6 +6491,7 @@ func (c *ProjectsLocationsCaPoolsCertificatesGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6420,9 +6526,11 @@ func (c *ProjectsLocationsCaPoolsCertificatesGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6516,12 +6624,11 @@ func (c *ProjectsLocationsCaPoolsCertificatesListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/certificates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6529,6 +6636,7 @@ func (c *ProjectsLocationsCaPoolsCertificatesListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6564,9 +6672,11 @@ func (c *ProjectsLocationsCaPoolsCertificatesListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6603,7 +6713,7 @@ type ProjectsLocationsCaPoolsCertificatesPatchCall struct {
 // Patch: Update a Certificate. Currently, the only field you can update is the
 // labels field.
 //
-//   - name: Output only. The resource name for this Certificate in the format
+//   - name: Identifier. The resource name for this Certificate in the format
 //     `projects/*/locations/*/caPools/*/certificates/*`.
 func (r *ProjectsLocationsCaPoolsCertificatesService) Patch(name string, certificate *Certificate) *ProjectsLocationsCaPoolsCertificatesPatchCall {
 	c := &ProjectsLocationsCaPoolsCertificatesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -6660,8 +6770,7 @@ func (c *ProjectsLocationsCaPoolsCertificatesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsCertificatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.certificate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.certificate)
 	if err != nil {
 		return nil, err
 	}
@@ -6677,6 +6786,7 @@ func (c *ProjectsLocationsCaPoolsCertificatesPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6711,9 +6821,11 @@ func (c *ProjectsLocationsCaPoolsCertificatesPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6762,8 +6874,7 @@ func (c *ProjectsLocationsCaPoolsCertificatesRevokeCall) Header() http.Header {
 
 func (c *ProjectsLocationsCaPoolsCertificatesRevokeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.revokecertificaterequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.revokecertificaterequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6779,6 +6890,7 @@ func (c *ProjectsLocationsCaPoolsCertificatesRevokeCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.revoke", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6813,9 +6925,11 @@ func (c *ProjectsLocationsCaPoolsCertificatesRevokeCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.caPools.certificates.revoke", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6888,8 +7002,7 @@ func (c *ProjectsLocationsCertificateTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsCertificateTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.certificatetemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.certificatetemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -6905,6 +7018,7 @@ func (c *ProjectsLocationsCertificateTemplatesCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6939,9 +7053,11 @@ func (c *ProjectsLocationsCertificateTemplatesCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7004,12 +7120,11 @@ func (c *ProjectsLocationsCertificateTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsCertificateTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7017,6 +7132,7 @@ func (c *ProjectsLocationsCertificateTemplatesDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7051,9 +7167,11 @@ func (c *ProjectsLocationsCertificateTemplatesDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7111,12 +7229,11 @@ func (c *ProjectsLocationsCertificateTemplatesGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7124,6 +7241,7 @@ func (c *ProjectsLocationsCertificateTemplatesGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7159,9 +7277,11 @@ func (c *ProjectsLocationsCertificateTemplatesGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7239,12 +7359,11 @@ func (c *ProjectsLocationsCertificateTemplatesGetIamPolicyCall) doRequest(alt st
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7252,6 +7371,7 @@ func (c *ProjectsLocationsCertificateTemplatesGetIamPolicyCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7286,9 +7406,11 @@ func (c *ProjectsLocationsCertificateTemplatesGetIamPolicyCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7378,12 +7500,11 @@ func (c *ProjectsLocationsCertificateTemplatesListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/certificateTemplates")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7391,6 +7512,7 @@ func (c *ProjectsLocationsCertificateTemplatesListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7426,9 +7548,11 @@ func (c *ProjectsLocationsCertificateTemplatesListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7464,7 +7588,7 @@ type ProjectsLocationsCertificateTemplatesPatchCall struct {
 
 // Patch: Update a CertificateTemplate.
 //
-//   - name: Output only. The resource name for this CertificateTemplate in the
+//   - name: Identifier. The resource name for this CertificateTemplate in the
 //     format `projects/*/locations/*/certificateTemplates/*`.
 func (r *ProjectsLocationsCertificateTemplatesService) Patch(name string, certificatetemplate *CertificateTemplate) *ProjectsLocationsCertificateTemplatesPatchCall {
 	c := &ProjectsLocationsCertificateTemplatesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -7521,8 +7645,7 @@ func (c *ProjectsLocationsCertificateTemplatesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsCertificateTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.certificatetemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.certificatetemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -7538,6 +7661,7 @@ func (c *ProjectsLocationsCertificateTemplatesPatchCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7572,9 +7696,11 @@ func (c *ProjectsLocationsCertificateTemplatesPatchCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7626,8 +7752,7 @@ func (c *ProjectsLocationsCertificateTemplatesSetIamPolicyCall) Header() http.He
 
 func (c *ProjectsLocationsCertificateTemplatesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7643,6 +7768,7 @@ func (c *ProjectsLocationsCertificateTemplatesSetIamPolicyCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7677,9 +7803,11 @@ func (c *ProjectsLocationsCertificateTemplatesSetIamPolicyCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7734,8 +7862,7 @@ func (c *ProjectsLocationsCertificateTemplatesTestIamPermissionsCall) Header() h
 
 func (c *ProjectsLocationsCertificateTemplatesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7751,6 +7878,7 @@ func (c *ProjectsLocationsCertificateTemplatesTestIamPermissionsCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7786,9 +7914,11 @@ func (c *ProjectsLocationsCertificateTemplatesTestIamPermissionsCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.certificateTemplates.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7808,7 +7938,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -7844,8 +7974,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7861,6 +7990,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7895,9 +8025,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7946,12 +8078,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7959,6 +8090,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7993,9 +8125,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8055,12 +8189,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8068,6 +8201,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8102,9 +8236,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8183,12 +8319,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8196,6 +8331,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "privateca.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8231,9 +8367,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "privateca.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

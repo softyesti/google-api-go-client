@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "streetviewpublish:v1"
 const apiName = "streetviewpublish"
@@ -114,7 +117,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Photo = NewPhotoService(s)
+	s.PhotoSequence = NewPhotoSequenceService(s)
+	s.PhotoSequences = NewPhotoSequencesService(s)
+	s.Photos = NewPhotosService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,16 +140,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Photo = NewPhotoService(s)
-	s.PhotoSequence = NewPhotoSequenceService(s)
-	s.PhotoSequences = NewPhotoSequencesService(s)
-	s.Photos = NewPhotosService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -216,9 +219,9 @@ type BatchDeletePhotosRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeletePhotosRequest) MarshalJSON() ([]byte, error) {
+func (s BatchDeletePhotosRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeletePhotosRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchDeletePhotosResponse: Response to batch delete of one or more Photos.
@@ -242,9 +245,9 @@ type BatchDeletePhotosResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchDeletePhotosResponse) MarshalJSON() ([]byte, error) {
+func (s BatchDeletePhotosResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchDeletePhotosResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchGetPhotosResponse: Response to batch get of Photos.
@@ -268,9 +271,9 @@ type BatchGetPhotosResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchGetPhotosResponse) MarshalJSON() ([]byte, error) {
+func (s BatchGetPhotosResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchGetPhotosResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdatePhotosRequest: Request to update the metadata of photos. Updating
@@ -291,9 +294,9 @@ type BatchUpdatePhotosRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdatePhotosRequest) MarshalJSON() ([]byte, error) {
+func (s BatchUpdatePhotosRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdatePhotosRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BatchUpdatePhotosResponse: Response to batch update of metadata of one or
@@ -318,9 +321,9 @@ type BatchUpdatePhotosResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BatchUpdatePhotosResponse) MarshalJSON() ([]byte, error) {
+func (s BatchUpdatePhotosResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod BatchUpdatePhotosResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Connection: A connection is the link from a source photo to a destination
@@ -342,9 +345,9 @@ type Connection struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Connection) MarshalJSON() ([]byte, error) {
+func (s Connection) MarshalJSON() ([]byte, error) {
 	type NoMethod Connection
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -378,9 +381,9 @@ type GpsDataGapFailureDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GpsDataGapFailureDetails) MarshalJSON() ([]byte, error) {
+func (s GpsDataGapFailureDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GpsDataGapFailureDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Imu: IMU data from the device sensors.
@@ -407,9 +410,9 @@ type Imu struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Imu) MarshalJSON() ([]byte, error) {
+func (s Imu) MarshalJSON() ([]byte, error) {
 	type NoMethod Imu
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImuDataGapFailureDetails: Details related to
@@ -434,9 +437,9 @@ type ImuDataGapFailureDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImuDataGapFailureDetails) MarshalJSON() ([]byte, error) {
+func (s ImuDataGapFailureDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ImuDataGapFailureDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InsufficientGpsFailureDetails: Details related to
@@ -457,9 +460,9 @@ type InsufficientGpsFailureDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InsufficientGpsFailureDetails) MarshalJSON() ([]byte, error) {
+func (s InsufficientGpsFailureDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod InsufficientGpsFailureDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LatLng: An object that represents a latitude/longitude pair. This is
@@ -485,9 +488,9 @@ type LatLng struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatLng) MarshalJSON() ([]byte, error) {
+func (s LatLng) MarshalJSON() ([]byte, error) {
 	type NoMethod LatLng
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LatLng) UnmarshalJSON(data []byte) error {
@@ -525,9 +528,9 @@ type LatLngBounds struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatLngBounds) MarshalJSON() ([]byte, error) {
+func (s LatLngBounds) MarshalJSON() ([]byte, error) {
 	type NoMethod LatLngBounds
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Level: Level information containing level number and its corresponding name.
@@ -553,9 +556,9 @@ type Level struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Level) MarshalJSON() ([]byte, error) {
+func (s Level) MarshalJSON() ([]byte, error) {
 	type NoMethod Level
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Level) UnmarshalJSON(data []byte) error {
@@ -602,9 +605,9 @@ type ListPhotoSequencesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPhotoSequencesResponse) MarshalJSON() ([]byte, error) {
+func (s ListPhotoSequencesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPhotoSequencesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPhotosResponse: Response to list all photos that belong to a user.
@@ -631,9 +634,9 @@ type ListPhotosResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPhotosResponse) MarshalJSON() ([]byte, error) {
+func (s ListPhotosResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPhotosResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Measurement3d: A Generic 3d measurement sample.
@@ -659,9 +662,9 @@ type Measurement3d struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Measurement3d) MarshalJSON() ([]byte, error) {
+func (s Measurement3d) MarshalJSON() ([]byte, error) {
 	type NoMethod Measurement3d
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Measurement3d) UnmarshalJSON(data []byte) error {
@@ -706,9 +709,9 @@ type NoOverlapGpsFailureDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NoOverlapGpsFailureDetails) MarshalJSON() ([]byte, error) {
+func (s NoOverlapGpsFailureDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod NoOverlapGpsFailureDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NotOutdoorsFailureDetails: Details related to
@@ -731,9 +734,9 @@ type NotOutdoorsFailureDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NotOutdoorsFailureDetails) MarshalJSON() ([]byte, error) {
+func (s NotOutdoorsFailureDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod NotOutdoorsFailureDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -778,9 +781,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Photo: Photo is used to store 360 photos along with photo metadata.
@@ -856,9 +859,9 @@ type Photo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Photo) MarshalJSON() ([]byte, error) {
+func (s Photo) MarshalJSON() ([]byte, error) {
 	type NoMethod Photo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PhotoId: Identifier for a Photo.
@@ -878,9 +881,9 @@ type PhotoId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PhotoId) MarshalJSON() ([]byte, error) {
+func (s PhotoId) MarshalJSON() ([]byte, error) {
 	type NoMethod PhotoId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PhotoResponse: Response payload for a single Photo in batch operations
@@ -904,9 +907,9 @@ type PhotoResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PhotoResponse) MarshalJSON() ([]byte, error) {
+func (s PhotoResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod PhotoResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PhotoSequence: A sequence of 360 photos along with metadata.
@@ -1031,9 +1034,9 @@ type PhotoSequence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PhotoSequence) MarshalJSON() ([]byte, error) {
+func (s PhotoSequence) MarshalJSON() ([]byte, error) {
 	type NoMethod PhotoSequence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *PhotoSequence) UnmarshalJSON(data []byte) error {
@@ -1074,9 +1077,9 @@ type Place struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Place) MarshalJSON() ([]byte, error) {
+func (s Place) MarshalJSON() ([]byte, error) {
 	type NoMethod Place
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Pose: Raw pose measurement for an entity.
@@ -1128,9 +1131,9 @@ type Pose struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Pose) MarshalJSON() ([]byte, error) {
+func (s Pose) MarshalJSON() ([]byte, error) {
 	type NoMethod Pose
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Pose) UnmarshalJSON(data []byte) error {
@@ -1183,9 +1186,9 @@ type ProcessingFailureDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProcessingFailureDetails) MarshalJSON() ([]byte, error) {
+func (s ProcessingFailureDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod ProcessingFailureDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -1217,9 +1220,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdatePhotoRequest: Request to update the metadata of a Photo. Updating the
@@ -1251,9 +1254,9 @@ type UpdatePhotoRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdatePhotoRequest) MarshalJSON() ([]byte, error) {
+func (s UpdatePhotoRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdatePhotoRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UploadRef: Upload reference for media files.
@@ -1279,9 +1282,9 @@ type UploadRef struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UploadRef) MarshalJSON() ([]byte, error) {
+func (s UploadRef) MarshalJSON() ([]byte, error) {
 	type NoMethod UploadRef
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type PhotoCreateCall struct {
@@ -1335,8 +1338,7 @@ func (c *PhotoCreateCall) Header() http.Header {
 
 func (c *PhotoCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.photo)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.photo)
 	if err != nil {
 		return nil, err
 	}
@@ -1349,6 +1351,7 @@ func (c *PhotoCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photo.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1383,9 +1386,11 @@ func (c *PhotoCreateCall) Do(opts ...googleapi.CallOption) (*Photo, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photo.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1434,12 +1439,11 @@ func (c *PhotoDeleteCall) Header() http.Header {
 
 func (c *PhotoDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/photo/{photoId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1447,6 +1451,7 @@ func (c *PhotoDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"photoId": c.photoId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photo.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1481,9 +1486,11 @@ func (c *PhotoDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photo.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1572,12 +1579,11 @@ func (c *PhotoGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/photo/{photoId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1585,6 +1591,7 @@ func (c *PhotoGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"photoId": c.photoId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photo.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1619,9 +1626,11 @@ func (c *PhotoGetCall) Do(opts ...googleapi.CallOption) (*Photo, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photo.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1675,8 +1684,7 @@ func (c *PhotoStartUploadCall) Header() http.Header {
 
 func (c *PhotoStartUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.empty)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.empty)
 	if err != nil {
 		return nil, err
 	}
@@ -1689,6 +1697,7 @@ func (c *PhotoStartUploadCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photo.startUpload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1723,9 +1732,11 @@ func (c *PhotoStartUploadCall) Do(opts ...googleapi.CallOption) (*UploadRef, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photo.startUpload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1797,8 +1808,7 @@ func (c *PhotoUpdateCall) Header() http.Header {
 
 func (c *PhotoUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.photo)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.photo)
 	if err != nil {
 		return nil, err
 	}
@@ -1814,6 +1824,7 @@ func (c *PhotoUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"id": c.id,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photo.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1848,9 +1859,11 @@ func (c *PhotoUpdateCall) Do(opts ...googleapi.CallOption) (*Photo, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photo.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1917,8 +1930,7 @@ func (c *PhotoSequenceCreateCall) Header() http.Header {
 
 func (c *PhotoSequenceCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.photosequence)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.photosequence)
 	if err != nil {
 		return nil, err
 	}
@@ -1931,6 +1943,7 @@ func (c *PhotoSequenceCreateCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequence.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1965,9 +1978,11 @@ func (c *PhotoSequenceCreateCall) Do(opts ...googleapi.CallOption) (*Operation, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequence.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2018,12 +2033,11 @@ func (c *PhotoSequenceDeleteCall) Header() http.Header {
 
 func (c *PhotoSequenceDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/photoSequence/{sequenceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2031,6 +2045,7 @@ func (c *PhotoSequenceDeleteCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"sequenceId": c.sequenceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequence.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2065,9 +2080,11 @@ func (c *PhotoSequenceDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequence.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2160,12 +2177,11 @@ func (c *PhotoSequenceGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/photoSequence/{sequenceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2173,6 +2189,7 @@ func (c *PhotoSequenceGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"sequenceId": c.sequenceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequence.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2207,9 +2224,11 @@ func (c *PhotoSequenceGetCall) Do(opts ...googleapi.CallOption) (*Operation, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequence.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2256,8 +2275,7 @@ func (c *PhotoSequenceStartUploadCall) Header() http.Header {
 
 func (c *PhotoSequenceStartUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.empty)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.empty)
 	if err != nil {
 		return nil, err
 	}
@@ -2270,6 +2288,7 @@ func (c *PhotoSequenceStartUploadCall) doRequest(alt string) (*http.Response, er
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequence.startUpload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2304,9 +2323,11 @@ func (c *PhotoSequenceStartUploadCall) Do(opts ...googleapi.CallOption) (*Upload
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequence.startUpload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2392,16 +2413,16 @@ func (c *PhotoSequencesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/photoSequences")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequences.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2437,9 +2458,11 @@ func (c *PhotoSequencesListCall) Do(opts ...googleapi.CallOption) (*ListPhotoSeq
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photoSequences.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2509,8 +2532,7 @@ func (c *PhotosBatchDeleteCall) Header() http.Header {
 
 func (c *PhotosBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchdeletephotosrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchdeletephotosrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2523,6 +2545,7 @@ func (c *PhotosBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photos.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2558,9 +2581,11 @@ func (c *PhotosBatchDeleteCall) Do(opts ...googleapi.CallOption) (*BatchDeletePh
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photos.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2654,16 +2679,16 @@ func (c *PhotosBatchGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/photos:batchGet")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photos.batchGet", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2699,9 +2724,11 @@ func (c *PhotosBatchGetCall) Do(opts ...googleapi.CallOption) (*BatchGetPhotosRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photos.batchGet", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2756,8 +2783,7 @@ func (c *PhotosBatchUpdateCall) Header() http.Header {
 
 func (c *PhotosBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.batchupdatephotosrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.batchupdatephotosrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2770,6 +2796,7 @@ func (c *PhotosBatchUpdateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photos.batchUpdate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2805,9 +2832,11 @@ func (c *PhotosBatchUpdateCall) Do(opts ...googleapi.CallOption) (*BatchUpdatePh
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photos.batchUpdate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2915,16 +2944,16 @@ func (c *PhotosListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/photos")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "streetviewpublish.photos.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2960,9 +2989,11 @@ func (c *PhotosListCall) Do(opts ...googleapi.CallOption) (*ListPhotosResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "streetviewpublish.photos.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

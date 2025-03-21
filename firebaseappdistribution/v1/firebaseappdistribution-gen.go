@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "firebaseappdistribution:v1"
 const apiName = "firebaseappdistribution"
@@ -115,7 +118,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Media = NewMediaService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Media = NewMediaService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -279,9 +282,9 @@ type GdataBlobstore2Info struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataBlobstore2Info) MarshalJSON() ([]byte, error) {
+func (s GdataBlobstore2Info) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataBlobstore2Info
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataCompositeMedia: A sequence of media data references representing
@@ -342,9 +345,9 @@ type GdataCompositeMedia struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataCompositeMedia) MarshalJSON() ([]byte, error) {
+func (s GdataCompositeMedia) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataCompositeMedia
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataContentTypeInfo: Detailed Content-Type information from Scotty. The
@@ -381,9 +384,9 @@ type GdataContentTypeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataContentTypeInfo) MarshalJSON() ([]byte, error) {
+func (s GdataContentTypeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataContentTypeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataDiffChecksumsResponse: Backend response for a Diff get checksums
@@ -420,9 +423,9 @@ type GdataDiffChecksumsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataDiffChecksumsResponse) MarshalJSON() ([]byte, error) {
+func (s GdataDiffChecksumsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataDiffChecksumsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataDiffDownloadResponse: Backend response for a Diff download response.
@@ -444,9 +447,9 @@ type GdataDiffDownloadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataDiffDownloadResponse) MarshalJSON() ([]byte, error) {
+func (s GdataDiffDownloadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataDiffDownloadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataDiffUploadRequest: A Diff upload request. For details on the Scotty
@@ -478,9 +481,9 @@ type GdataDiffUploadRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataDiffUploadRequest) MarshalJSON() ([]byte, error) {
+func (s GdataDiffUploadRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataDiffUploadRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataDiffUploadResponse: Backend response for a Diff upload request. For
@@ -507,9 +510,9 @@ type GdataDiffUploadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataDiffUploadResponse) MarshalJSON() ([]byte, error) {
+func (s GdataDiffUploadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataDiffUploadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataDiffVersionResponse: Backend response for a Diff get version response.
@@ -533,9 +536,9 @@ type GdataDiffVersionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataDiffVersionResponse) MarshalJSON() ([]byte, error) {
+func (s GdataDiffVersionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataDiffVersionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataDownloadParameters: Parameters specific to media downloads.
@@ -561,9 +564,9 @@ type GdataDownloadParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataDownloadParameters) MarshalJSON() ([]byte, error) {
+func (s GdataDownloadParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataDownloadParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataMedia: A reference to data stored on the filesystem, on GFS or in
@@ -704,9 +707,9 @@ type GdataMedia struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataMedia) MarshalJSON() ([]byte, error) {
+func (s GdataMedia) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataMedia
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GdataObjectId: This is a copy of the tech.blob.ObjectId proto, which could
@@ -735,9 +738,9 @@ type GdataObjectId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GdataObjectId) MarshalJSON() ([]byte, error) {
+func (s GdataObjectId) MarshalJSON() ([]byte, error) {
 	type NoMethod GdataObjectId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1AabInfo: Android App Bundle (AAB) information for a
@@ -779,9 +782,9 @@ type GoogleFirebaseAppdistroV1AabInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1AabInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1AabInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1AabInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1BatchAddTestersRequest: The Request message for
@@ -803,9 +806,9 @@ type GoogleFirebaseAppdistroV1BatchAddTestersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1BatchAddTestersRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1BatchAddTestersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1BatchAddTestersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1BatchAddTestersResponse: The Response message for
@@ -829,9 +832,9 @@ type GoogleFirebaseAppdistroV1BatchAddTestersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1BatchAddTestersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1BatchAddTestersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1BatchAddTestersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1BatchDeleteReleasesRequest: The request message for
@@ -854,9 +857,9 @@ type GoogleFirebaseAppdistroV1BatchDeleteReleasesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1BatchDeleteReleasesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1BatchDeleteReleasesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1BatchDeleteReleasesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1BatchJoinGroupRequest: The request message for
@@ -881,9 +884,9 @@ type GoogleFirebaseAppdistroV1BatchJoinGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1BatchJoinGroupRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1BatchJoinGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1BatchJoinGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1BatchLeaveGroupRequest: Request message for
@@ -906,9 +909,9 @@ type GoogleFirebaseAppdistroV1BatchLeaveGroupRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1BatchLeaveGroupRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1BatchLeaveGroupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1BatchLeaveGroupRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1BatchRemoveTestersRequest: The request message for
@@ -930,9 +933,9 @@ type GoogleFirebaseAppdistroV1BatchRemoveTestersRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1BatchRemoveTestersRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1BatchRemoveTestersRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1BatchRemoveTestersRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1BatchRemoveTestersResponse: The response message
@@ -956,9 +959,9 @@ type GoogleFirebaseAppdistroV1BatchRemoveTestersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1BatchRemoveTestersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1BatchRemoveTestersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1BatchRemoveTestersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1DistributeReleaseRequest: The request message for
@@ -985,9 +988,9 @@ type GoogleFirebaseAppdistroV1DistributeReleaseRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1DistributeReleaseRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1DistributeReleaseRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1DistributeReleaseRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1DistributeReleaseResponse: The response message for
@@ -1033,9 +1036,9 @@ type GoogleFirebaseAppdistroV1FeedbackReport struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1FeedbackReport) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1FeedbackReport) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1FeedbackReport
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1Group: A group which can contain testers. A group
@@ -1070,9 +1073,9 @@ type GoogleFirebaseAppdistroV1Group struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1Group) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1Group) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1Group
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1ListFeedbackReportsResponse: The response message
@@ -1100,9 +1103,9 @@ type GoogleFirebaseAppdistroV1ListFeedbackReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1ListFeedbackReportsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1ListFeedbackReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1ListFeedbackReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1ListGroupsResponse: The response message for
@@ -1130,9 +1133,9 @@ type GoogleFirebaseAppdistroV1ListGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1ListGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1ListGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1ListGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1ListReleasesResponse: The response message for
@@ -1160,9 +1163,9 @@ type GoogleFirebaseAppdistroV1ListReleasesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1ListReleasesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1ListReleasesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1ListReleasesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1ListTestersResponse: The response message for
@@ -1190,9 +1193,9 @@ type GoogleFirebaseAppdistroV1ListTestersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1ListTestersResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1ListTestersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1ListTestersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1Release: A release of a Firebase app.
@@ -1238,9 +1241,9 @@ type GoogleFirebaseAppdistroV1Release struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1Release) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1Release) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1Release
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1ReleaseNotes: Notes that belong to a release.
@@ -1260,9 +1263,9 @@ type GoogleFirebaseAppdistroV1ReleaseNotes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1ReleaseNotes) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1ReleaseNotes) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1ReleaseNotes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1TestCertificate: App bundle test certificate
@@ -1289,9 +1292,9 @@ type GoogleFirebaseAppdistroV1TestCertificate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1TestCertificate) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1TestCertificate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1TestCertificate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1Tester: A person that can be invited to test apps
@@ -1326,9 +1329,9 @@ type GoogleFirebaseAppdistroV1Tester struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1Tester) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1Tester) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1Tester
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1UploadReleaseMetadata: Operation metadata for
@@ -1354,9 +1357,9 @@ type GoogleFirebaseAppdistroV1UploadReleaseRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1UploadReleaseRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1UploadReleaseRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1UploadReleaseRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFirebaseAppdistroV1UploadReleaseResponse: Response message for
@@ -1386,9 +1389,9 @@ type GoogleFirebaseAppdistroV1UploadReleaseResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFirebaseAppdistroV1UploadReleaseResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFirebaseAppdistroV1UploadReleaseResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFirebaseAppdistroV1UploadReleaseResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningCancelOperationRequest: The request message for
@@ -1420,9 +1423,9 @@ type GoogleLongrunningListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningOperation: This resource represents a long-running
@@ -1467,9 +1470,9 @@ type GoogleLongrunningOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleLongrunningWaitOperationRequest: The request message for
@@ -1492,9 +1495,9 @@ type GoogleLongrunningWaitOperationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleLongrunningWaitOperationRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleLongrunningWaitOperationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleLongrunningWaitOperationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -1536,9 +1539,9 @@ type GoogleRpcStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleRpcStatus) MarshalJSON() ([]byte, error) {
+func (s GoogleRpcStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleRpcStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type MediaUploadCall struct {
@@ -1627,8 +1630,7 @@ func (c *MediaUploadCall) Header() http.Header {
 
 func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1uploadreleaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1uploadreleaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1639,14 +1641,10 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/v1/{+app}/releases:upload")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -1655,6 +1653,7 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"app": c.app,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.media.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1707,9 +1706,11 @@ func (c *MediaUploadCall) Do(opts ...googleapi.CallOption) (*GoogleLongrunningOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.media.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1768,12 +1769,11 @@ func (c *ProjectsAppsGetAabInfoCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1781,6 +1781,7 @@ func (c *ProjectsAppsGetAabInfoCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.getAabInfo", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1816,9 +1817,11 @@ func (c *ProjectsAppsGetAabInfoCall) Do(opts ...googleapi.CallOption) (*GoogleFi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.getAabInfo", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1868,8 +1871,7 @@ func (c *ProjectsAppsReleasesBatchDeleteCall) Header() http.Header {
 
 func (c *ProjectsAppsReleasesBatchDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1batchdeletereleasesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1batchdeletereleasesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1885,6 +1887,7 @@ func (c *ProjectsAppsReleasesBatchDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.batchDelete", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1920,9 +1923,11 @@ func (c *ProjectsAppsReleasesBatchDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.batchDelete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1975,8 +1980,7 @@ func (c *ProjectsAppsReleasesDistributeCall) Header() http.Header {
 
 func (c *ProjectsAppsReleasesDistributeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1distributereleaserequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1distributereleaserequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1992,6 +1996,7 @@ func (c *ProjectsAppsReleasesDistributeCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.distribute", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2027,9 +2032,11 @@ func (c *ProjectsAppsReleasesDistributeCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.distribute", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2088,12 +2095,11 @@ func (c *ProjectsAppsReleasesGetCall) doRequest(alt string) (*http.Response, err
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2101,6 +2107,7 @@ func (c *ProjectsAppsReleasesGetCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2136,9 +2143,11 @@ func (c *ProjectsAppsReleasesGetCall) Do(opts ...googleapi.CallOption) (*GoogleF
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2238,12 +2247,11 @@ func (c *ProjectsAppsReleasesListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/releases")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2251,6 +2259,7 @@ func (c *ProjectsAppsReleasesListCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2286,9 +2295,11 @@ func (c *ProjectsAppsReleasesListCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2365,8 +2376,7 @@ func (c *ProjectsAppsReleasesPatchCall) Header() http.Header {
 
 func (c *ProjectsAppsReleasesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1release)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1release)
 	if err != nil {
 		return nil, err
 	}
@@ -2382,6 +2392,7 @@ func (c *ProjectsAppsReleasesPatchCall) doRequest(alt string) (*http.Response, e
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2417,9 +2428,11 @@ func (c *ProjectsAppsReleasesPatchCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2467,12 +2480,11 @@ func (c *ProjectsAppsReleasesFeedbackReportsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAppsReleasesFeedbackReportsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2480,6 +2492,7 @@ func (c *ProjectsAppsReleasesFeedbackReportsDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.feedbackReports.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2515,9 +2528,11 @@ func (c *ProjectsAppsReleasesFeedbackReportsDeleteCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.feedbackReports.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2577,12 +2592,11 @@ func (c *ProjectsAppsReleasesFeedbackReportsGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2590,6 +2604,7 @@ func (c *ProjectsAppsReleasesFeedbackReportsGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.feedbackReports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2625,9 +2640,11 @@ func (c *ProjectsAppsReleasesFeedbackReportsGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.feedbackReports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2706,12 +2723,11 @@ func (c *ProjectsAppsReleasesFeedbackReportsListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/feedbackReports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2719,6 +2735,7 @@ func (c *ProjectsAppsReleasesFeedbackReportsListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.feedbackReports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2754,9 +2771,11 @@ func (c *ProjectsAppsReleasesFeedbackReportsListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.feedbackReports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2797,7 +2816,7 @@ type ProjectsAppsReleasesOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -2833,8 +2852,7 @@ func (c *ProjectsAppsReleasesOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsAppsReleasesOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlelongrunningcanceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlelongrunningcanceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2850,6 +2868,7 @@ func (c *ProjectsAppsReleasesOperationsCancelCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2885,9 +2904,11 @@ func (c *ProjectsAppsReleasesOperationsCancelCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2936,12 +2957,11 @@ func (c *ProjectsAppsReleasesOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAppsReleasesOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2949,6 +2969,7 @@ func (c *ProjectsAppsReleasesOperationsDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2984,9 +3005,11 @@ func (c *ProjectsAppsReleasesOperationsDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3046,12 +3069,11 @@ func (c *ProjectsAppsReleasesOperationsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3059,6 +3081,7 @@ func (c *ProjectsAppsReleasesOperationsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3094,9 +3117,11 @@ func (c *ProjectsAppsReleasesOperationsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3175,12 +3200,11 @@ func (c *ProjectsAppsReleasesOperationsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3188,6 +3212,7 @@ func (c *ProjectsAppsReleasesOperationsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3223,9 +3248,11 @@ func (c *ProjectsAppsReleasesOperationsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3302,8 +3329,7 @@ func (c *ProjectsAppsReleasesOperationsWaitCall) Header() http.Header {
 
 func (c *ProjectsAppsReleasesOperationsWaitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlelongrunningwaitoperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlelongrunningwaitoperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3319,6 +3345,7 @@ func (c *ProjectsAppsReleasesOperationsWaitCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.wait", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3354,9 +3381,11 @@ func (c *ProjectsAppsReleasesOperationsWaitCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.apps.releases.operations.wait", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3406,8 +3435,7 @@ func (c *ProjectsGroupsBatchJoinCall) Header() http.Header {
 
 func (c *ProjectsGroupsBatchJoinCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1batchjoingrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1batchjoingrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3423,6 +3451,7 @@ func (c *ProjectsGroupsBatchJoinCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"group": c.group,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.batchJoin", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3458,9 +3487,11 @@ func (c *ProjectsGroupsBatchJoinCall) Do(opts ...googleapi.CallOption) (*GoogleP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.batchJoin", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3510,8 +3541,7 @@ func (c *ProjectsGroupsBatchLeaveCall) Header() http.Header {
 
 func (c *ProjectsGroupsBatchLeaveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1batchleavegrouprequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1batchleavegrouprequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3527,6 +3557,7 @@ func (c *ProjectsGroupsBatchLeaveCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"group": c.group,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.batchLeave", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3562,9 +3593,11 @@ func (c *ProjectsGroupsBatchLeaveCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.batchLeave", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3624,8 +3657,7 @@ func (c *ProjectsGroupsCreateCall) Header() http.Header {
 
 func (c *ProjectsGroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1group)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1group)
 	if err != nil {
 		return nil, err
 	}
@@ -3641,6 +3673,7 @@ func (c *ProjectsGroupsCreateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3676,9 +3709,11 @@ func (c *ProjectsGroupsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleFire
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3725,12 +3760,11 @@ func (c *ProjectsGroupsDeleteCall) Header() http.Header {
 
 func (c *ProjectsGroupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3738,6 +3772,7 @@ func (c *ProjectsGroupsDeleteCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3773,9 +3808,11 @@ func (c *ProjectsGroupsDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3834,12 +3871,11 @@ func (c *ProjectsGroupsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3847,6 +3883,7 @@ func (c *ProjectsGroupsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3882,9 +3919,11 @@ func (c *ProjectsGroupsGetCall) Do(opts ...googleapi.CallOption) (*GoogleFirebas
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3961,12 +4000,11 @@ func (c *ProjectsGroupsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/groups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3974,6 +4012,7 @@ func (c *ProjectsGroupsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4009,9 +4048,11 @@ func (c *ProjectsGroupsListCall) Do(opts ...googleapi.CallOption) (*GoogleFireba
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4088,8 +4129,7 @@ func (c *ProjectsGroupsPatchCall) Header() http.Header {
 
 func (c *ProjectsGroupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1group)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1group)
 	if err != nil {
 		return nil, err
 	}
@@ -4105,6 +4145,7 @@ func (c *ProjectsGroupsPatchCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4140,9 +4181,11 @@ func (c *ProjectsGroupsPatchCall) Do(opts ...googleapi.CallOption) (*GoogleFireb
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.groups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4194,8 +4237,7 @@ func (c *ProjectsTestersBatchAddCall) Header() http.Header {
 
 func (c *ProjectsTestersBatchAddCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1batchaddtestersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1batchaddtestersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4211,6 +4253,7 @@ func (c *ProjectsTestersBatchAddCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"project": c.project,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.testers.batchAdd", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4246,9 +4289,11 @@ func (c *ProjectsTestersBatchAddCall) Do(opts ...googleapi.CallOption) (*GoogleF
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.testers.batchAdd", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4298,8 +4343,7 @@ func (c *ProjectsTestersBatchRemoveCall) Header() http.Header {
 
 func (c *ProjectsTestersBatchRemoveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1batchremovetestersrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1batchremovetestersrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4315,6 +4359,7 @@ func (c *ProjectsTestersBatchRemoveCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"project": c.project,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.testers.batchRemove", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4350,9 +4395,11 @@ func (c *ProjectsTestersBatchRemoveCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.testers.batchRemove", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4440,12 +4487,11 @@ func (c *ProjectsTestersListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/testers")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4453,6 +4499,7 @@ func (c *ProjectsTestersListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.testers.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4488,9 +4535,11 @@ func (c *ProjectsTestersListCall) Do(opts ...googleapi.CallOption) (*GoogleFireb
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.testers.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4568,8 +4617,7 @@ func (c *ProjectsTestersPatchCall) Header() http.Header {
 
 func (c *ProjectsTestersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefirebaseappdistrov1tester)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefirebaseappdistrov1tester)
 	if err != nil {
 		return nil, err
 	}
@@ -4585,6 +4633,7 @@ func (c *ProjectsTestersPatchCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.testers.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4620,8 +4669,10 @@ func (c *ProjectsTestersPatchCall) Do(opts ...googleapi.CallOption) (*GoogleFire
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "firebaseappdistribution.projects.testers.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "factchecktools:v1alpha1"
 const apiName = "factchecktools"
@@ -95,14 +98,14 @@ const mtlsBasePath = "https://factchecktools.mtls.googleapis.com/"
 
 // OAuth2 scopes used by this API.
 const (
-	// See your primary Google Account email address
-	UserinfoEmailScope = "https://www.googleapis.com/auth/userinfo.email"
+	// Read, create, update, and delete your ClaimReview data.
+	FactchecktoolsScope = "https://www.googleapis.com/auth/factchecktools"
 )
 
 // NewService creates a new Service.
 func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, error) {
 	scopesOption := internaloption.WithDefaultScopes(
-		"https://www.googleapis.com/auth/userinfo.email",
+		"https://www.googleapis.com/auth/factchecktools",
 	)
 	// NOTE: prepend, so we don't override user-specified scopes.
 	opts = append([]option.ClientOption{scopesOption}, opts...)
@@ -114,7 +117,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Claims = NewClaimsService(s)
+	s.Pages = NewPagesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Claims = NewClaimsService(s)
-	s.Pages = NewPagesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -199,9 +202,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1Claim struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1Claim) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1Claim) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1Claim
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1ClaimAuthor: Information about the
@@ -229,9 +232,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1ClaimAuthor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1ClaimAuthor) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1ClaimAuthor) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1ClaimAuthor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1ClaimRating: Information about the
@@ -267,9 +270,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1ClaimRating struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1ClaimRating) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1ClaimRating) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1ClaimRating
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1ClaimReview: Information about a
@@ -301,9 +304,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1ClaimReview struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1ClaimReview) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1ClaimReview) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1ClaimReview
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewAuthor: Information about
@@ -327,9 +330,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewAuthor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewAuthor) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewAuthor) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewAuthor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkup: Fields for an
@@ -375,9 +378,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkup) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkupPage: Holds one or
@@ -422,9 +425,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkupPage struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkupPage) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkupPage) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1ClaimReviewMarkupPage
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponse:
@@ -452,9 +455,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponse
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponseRe
@@ -475,9 +478,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponse
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponseResult) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponseResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimImageSearchResponseResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimSearchResponse:
@@ -505,9 +508,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimSearchResponse stru
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimSearchResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimSearchResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1FactCheckedClaimSearchResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1ListClaimReviewMarkupPagesResponse:
@@ -535,9 +538,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1ListClaimReviewMarkupPagesResponse 
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1ListClaimReviewMarkupPagesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1ListClaimReviewMarkupPagesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1ListClaimReviewMarkupPagesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleFactcheckingFactchecktoolsV1alpha1Publisher: Information about the
@@ -562,9 +565,9 @@ type GoogleFactcheckingFactchecktoolsV1alpha1Publisher struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleFactcheckingFactchecktoolsV1alpha1Publisher) MarshalJSON() ([]byte, error) {
+func (s GoogleFactcheckingFactchecktoolsV1alpha1Publisher) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleFactcheckingFactchecktoolsV1alpha1Publisher
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -673,16 +676,16 @@ func (c *ClaimsImageSearchCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/claims:imageSearch")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "factchecktools.claims.imageSearch", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -718,9 +721,11 @@ func (c *ClaimsImageSearchCall) Do(opts ...googleapi.CallOption) (*GoogleFactche
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "factchecktools.claims.imageSearch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -852,16 +857,16 @@ func (c *ClaimsSearchCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/claims:search")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "factchecktools.claims.search", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -897,9 +902,11 @@ func (c *ClaimsSearchCall) Do(opts ...googleapi.CallOption) (*GoogleFactchecking
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "factchecktools.claims.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -964,8 +971,7 @@ func (c *PagesCreateCall) Header() http.Header {
 
 func (c *PagesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefactcheckingfactchecktoolsv1alpha1claimreviewmarkuppage)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefactcheckingfactchecktoolsv1alpha1claimreviewmarkuppage)
 	if err != nil {
 		return nil, err
 	}
@@ -978,6 +984,7 @@ func (c *PagesCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "factchecktools.pages.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1013,9 +1020,11 @@ func (c *PagesCreateCall) Do(opts ...googleapi.CallOption) (*GoogleFactcheckingF
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "factchecktools.pages.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1062,12 +1071,11 @@ func (c *PagesDeleteCall) Header() http.Header {
 
 func (c *PagesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1075,6 +1083,7 @@ func (c *PagesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "factchecktools.pages.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1110,9 +1119,11 @@ func (c *PagesDeleteCall) Do(opts ...googleapi.CallOption) (*GoogleProtobufEmpty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "factchecktools.pages.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1170,12 +1181,11 @@ func (c *PagesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1183,6 +1193,7 @@ func (c *PagesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "factchecktools.pages.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1218,9 +1229,11 @@ func (c *PagesGetCall) Do(opts ...googleapi.CallOption) (*GoogleFactcheckingFact
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "factchecktools.pages.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1319,16 +1332,16 @@ func (c *PagesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1alpha1/pages")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "factchecktools.pages.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1364,9 +1377,11 @@ func (c *PagesListCall) Do(opts ...googleapi.CallOption) (*GoogleFactcheckingFac
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "factchecktools.pages.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1440,8 +1455,7 @@ func (c *PagesUpdateCall) Header() http.Header {
 
 func (c *PagesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlefactcheckingfactchecktoolsv1alpha1claimreviewmarkuppage)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlefactcheckingfactchecktoolsv1alpha1claimreviewmarkuppage)
 	if err != nil {
 		return nil, err
 	}
@@ -1457,6 +1471,7 @@ func (c *PagesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "factchecktools.pages.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1492,8 +1507,10 @@ func (c *PagesUpdateCall) Do(opts ...googleapi.CallOption) (*GoogleFactcheckingF
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "factchecktools.pages.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

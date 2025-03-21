@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "walletobjects:v1"
 const apiName = "walletobjects"
@@ -114,26 +117,7 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
-	if err != nil {
-		return nil, err
-	}
-	if endpoint != "" {
-		s.BasePath = endpoint
-	}
-	return s, nil
-}
-
-// New creates a new Service. It uses the provided http.Client for requests.
-//
-// Deprecated: please use NewService instead.
-// To provide a custom HTTP client, use option.WithHTTPClient.
-// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
-func New(client *http.Client) (*Service, error) {
-	if client == nil {
-		return nil, errors.New("client is nil")
-	}
-	s := &Service{client: client, BasePath: basePath}
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
 	s.Eventticketclass = NewEventticketclassService(s)
 	s.Eventticketobject = NewEventticketobjectService(s)
 	s.Flightclass = NewFlightclassService(s)
@@ -153,11 +137,31 @@ func New(client *http.Client) (*Service, error) {
 	s.Smarttap = NewSmarttapService(s)
 	s.Transitclass = NewTransitclassService(s)
 	s.Transitobject = NewTransitobjectService(s)
+	s.Walletobjects = NewWalletobjectsService(s)
+	if err != nil {
+		return nil, err
+	}
+	if endpoint != "" {
+		s.BasePath = endpoint
+	}
 	return s, nil
+}
+
+// New creates a new Service. It uses the provided http.Client for requests.
+//
+// Deprecated: please use NewService instead.
+// To provide a custom HTTP client, use option.WithHTTPClient.
+// If you are using google.golang.org/api/googleapis/transport.APIKey, use option.WithAPIKey with NewService instead.
+func New(client *http.Client) (*Service, error) {
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -198,6 +202,8 @@ type Service struct {
 	Transitclass *TransitclassService
 
 	Transitobject *TransitobjectService
+
+	Walletobjects *WalletobjectsService
 }
 
 func (s *Service) userAgent() string {
@@ -378,6 +384,39 @@ type TransitobjectService struct {
 	s *Service
 }
 
+func NewWalletobjectsService(s *Service) *WalletobjectsService {
+	rs := &WalletobjectsService{s: s}
+	rs.V1 = NewWalletobjectsV1Service(s)
+	return rs
+}
+
+type WalletobjectsService struct {
+	s *Service
+
+	V1 *WalletobjectsV1Service
+}
+
+func NewWalletobjectsV1Service(s *Service) *WalletobjectsV1Service {
+	rs := &WalletobjectsV1Service{s: s}
+	rs.PrivateContent = NewWalletobjectsV1PrivateContentService(s)
+	return rs
+}
+
+type WalletobjectsV1Service struct {
+	s *Service
+
+	PrivateContent *WalletobjectsV1PrivateContentService
+}
+
+func NewWalletobjectsV1PrivateContentService(s *Service) *WalletobjectsV1PrivateContentService {
+	rs := &WalletobjectsV1PrivateContentService{s: s}
+	return rs
+}
+
+type WalletobjectsV1PrivateContentService struct {
+	s *Service
+}
+
 // ActivationOptions: ActivationOptions for the class
 type ActivationOptions struct {
 	// ActivationUrl: HTTPS URL that supports REST semantics. Would be used for
@@ -402,9 +441,9 @@ type ActivationOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActivationOptions) MarshalJSON() ([]byte, error) {
+func (s ActivationOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod ActivationOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ActivationStatus: The activation status of the object. This field includes
@@ -430,9 +469,9 @@ type ActivationStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ActivationStatus) MarshalJSON() ([]byte, error) {
+func (s ActivationStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod ActivationStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AddMessageRequest: Resource used when the AddMessage endpoints are called.
@@ -451,9 +490,9 @@ type AddMessageRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AddMessageRequest) MarshalJSON() ([]byte, error) {
+func (s AddMessageRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod AddMessageRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AirportInfo struct {
@@ -489,14 +528,17 @@ type AirportInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AirportInfo) MarshalJSON() ([]byte, error) {
+func (s AirportInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AirportInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AppLinkData struct {
 	// AndroidAppLinkInfo: Optional information about the partner app link.
 	AndroidAppLinkInfo *AppLinkDataAppLinkInfo `json:"androidAppLinkInfo,omitempty"`
+	// DisplayText: Optional display text for the app link button. Character limit
+	// is 30.
+	DisplayText *LocalizedString `json:"displayText,omitempty"`
 	// IosAppLinkInfo: Deprecated. Links to open iOS apps are not supported.
 	IosAppLinkInfo *AppLinkDataAppLinkInfo `json:"iosAppLinkInfo,omitempty"`
 	// WebAppLinkInfo: Optional information about the partner web link.
@@ -514,9 +556,9 @@ type AppLinkData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppLinkData) MarshalJSON() ([]byte, error) {
+func (s AppLinkData) MarshalJSON() ([]byte, error) {
 	type NoMethod AppLinkData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AppLinkDataAppLinkInfo struct {
@@ -542,9 +584,9 @@ type AppLinkDataAppLinkInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppLinkDataAppLinkInfo) MarshalJSON() ([]byte, error) {
+func (s AppLinkDataAppLinkInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AppLinkDataAppLinkInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AppLinkDataAppLinkInfoAppTarget struct {
@@ -567,9 +609,9 @@ type AppLinkDataAppLinkInfoAppTarget struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AppLinkDataAppLinkInfoAppTarget) MarshalJSON() ([]byte, error) {
+func (s AppLinkDataAppLinkInfoAppTarget) MarshalJSON() ([]byte, error) {
 	type NoMethod AppLinkDataAppLinkInfoAppTarget
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AuthenticationKey struct {
@@ -592,9 +634,9 @@ type AuthenticationKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuthenticationKey) MarshalJSON() ([]byte, error) {
+func (s AuthenticationKey) MarshalJSON() ([]byte, error) {
 	type NoMethod AuthenticationKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Barcode struct {
@@ -680,9 +722,9 @@ type Barcode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Barcode) MarshalJSON() ([]byte, error) {
+func (s Barcode) MarshalJSON() ([]byte, error) {
 	type NoMethod Barcode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BarcodeSectionDetail struct {
@@ -702,9 +744,9 @@ type BarcodeSectionDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BarcodeSectionDetail) MarshalJSON() ([]byte, error) {
+func (s BarcodeSectionDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod BarcodeSectionDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Blobstore2Info: Information to read/write to blobstore2.
@@ -739,9 +781,9 @@ type Blobstore2Info struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Blobstore2Info) MarshalJSON() ([]byte, error) {
+func (s Blobstore2Info) MarshalJSON() ([]byte, error) {
 	type NoMethod Blobstore2Info
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BoardingAndSeatingInfo struct {
@@ -797,9 +839,9 @@ type BoardingAndSeatingInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BoardingAndSeatingInfo) MarshalJSON() ([]byte, error) {
+func (s BoardingAndSeatingInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod BoardingAndSeatingInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type BoardingAndSeatingPolicy struct {
@@ -847,9 +889,9 @@ type BoardingAndSeatingPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BoardingAndSeatingPolicy) MarshalJSON() ([]byte, error) {
+func (s BoardingAndSeatingPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod BoardingAndSeatingPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CallbackOptions struct {
@@ -874,9 +916,9 @@ type CallbackOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CallbackOptions) MarshalJSON() ([]byte, error) {
+func (s CallbackOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod CallbackOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CardBarcodeSectionDetails struct {
@@ -903,9 +945,9 @@ type CardBarcodeSectionDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CardBarcodeSectionDetails) MarshalJSON() ([]byte, error) {
+func (s CardBarcodeSectionDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod CardBarcodeSectionDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CardRowOneItem struct {
@@ -925,9 +967,9 @@ type CardRowOneItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CardRowOneItem) MarshalJSON() ([]byte, error) {
+func (s CardRowOneItem) MarshalJSON() ([]byte, error) {
 	type NoMethod CardRowOneItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CardRowTemplateInfo struct {
@@ -953,9 +995,9 @@ type CardRowTemplateInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CardRowTemplateInfo) MarshalJSON() ([]byte, error) {
+func (s CardRowTemplateInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod CardRowTemplateInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CardRowThreeItems struct {
@@ -981,9 +1023,9 @@ type CardRowThreeItems struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CardRowThreeItems) MarshalJSON() ([]byte, error) {
+func (s CardRowThreeItems) MarshalJSON() ([]byte, error) {
 	type NoMethod CardRowThreeItems
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CardRowTwoItems struct {
@@ -1006,9 +1048,9 @@ type CardRowTwoItems struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CardRowTwoItems) MarshalJSON() ([]byte, error) {
+func (s CardRowTwoItems) MarshalJSON() ([]byte, error) {
 	type NoMethod CardRowTwoItems
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CardTemplateOverride struct {
@@ -1028,9 +1070,9 @@ type CardTemplateOverride struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CardTemplateOverride) MarshalJSON() ([]byte, error) {
+func (s CardTemplateOverride) MarshalJSON() ([]byte, error) {
 	type NoMethod CardTemplateOverride
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ClassTemplateInfo struct {
@@ -1057,9 +1099,9 @@ type ClassTemplateInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClassTemplateInfo) MarshalJSON() ([]byte, error) {
+func (s ClassTemplateInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ClassTemplateInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CompositeMedia: A sequence of media data references representing composite
@@ -1120,9 +1162,9 @@ type CompositeMedia struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CompositeMedia) MarshalJSON() ([]byte, error) {
+func (s CompositeMedia) MarshalJSON() ([]byte, error) {
 	type NoMethod CompositeMedia
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContentTypeInfo: Detailed Content-Type information from Scotty. The
@@ -1159,9 +1201,9 @@ type ContentTypeInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContentTypeInfo) MarshalJSON() ([]byte, error) {
+func (s ContentTypeInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ContentTypeInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DateTime struct {
@@ -1201,9 +1243,9 @@ type DateTime struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DateTime) MarshalJSON() ([]byte, error) {
+func (s DateTime) MarshalJSON() ([]byte, error) {
 	type NoMethod DateTime
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DetailsItemInfo struct {
@@ -1222,9 +1264,9 @@ type DetailsItemInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetailsItemInfo) MarshalJSON() ([]byte, error) {
+func (s DetailsItemInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DetailsItemInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type DetailsTemplateOverride struct {
@@ -1244,9 +1286,9 @@ type DetailsTemplateOverride struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetailsTemplateOverride) MarshalJSON() ([]byte, error) {
+func (s DetailsTemplateOverride) MarshalJSON() ([]byte, error) {
 	type NoMethod DetailsTemplateOverride
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceContext: Device context associated with the object.
@@ -1271,9 +1313,9 @@ type DeviceContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceContext) MarshalJSON() ([]byte, error) {
+func (s DeviceContext) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffChecksumsResponse: Backend response for a Diff get checksums response.
@@ -1310,9 +1352,9 @@ type DiffChecksumsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffChecksumsResponse) MarshalJSON() ([]byte, error) {
+func (s DiffChecksumsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffChecksumsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffDownloadResponse: Backend response for a Diff download response. For
@@ -1333,9 +1375,9 @@ type DiffDownloadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffDownloadResponse) MarshalJSON() ([]byte, error) {
+func (s DiffDownloadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffDownloadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffUploadRequest: A Diff upload request. For details on the Scotty Diff
@@ -1367,9 +1409,9 @@ type DiffUploadRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffUploadRequest) MarshalJSON() ([]byte, error) {
+func (s DiffUploadRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffUploadRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffUploadResponse: Backend response for a Diff upload request. For details
@@ -1396,9 +1438,9 @@ type DiffUploadResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffUploadResponse) MarshalJSON() ([]byte, error) {
+func (s DiffUploadResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffUploadResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiffVersionResponse: Backend response for a Diff get version response. For
@@ -1421,14 +1463,14 @@ type DiffVersionResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiffVersionResponse) MarshalJSON() ([]byte, error) {
+func (s DiffVersionResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod DiffVersionResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiscoverableProgram: Information about how a class may be discovered and
-// instantiated from within the Android Pay app. This is done by searching for
-// a loyalty or gift card program and scanning or manually entering.
+// instantiated from within the Google Wallet app. This is done by searching
+// for a loyalty or gift card program and scanning or manually entering.
 type DiscoverableProgram struct {
 	// MerchantSigninInfo: Information about the ability to signin and add a
 	// valuable for this program through a merchant site. Used when
@@ -1463,9 +1505,9 @@ type DiscoverableProgram struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiscoverableProgram) MarshalJSON() ([]byte, error) {
+func (s DiscoverableProgram) MarshalJSON() ([]byte, error) {
 	type NoMethod DiscoverableProgram
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiscoverableProgramMerchantSigninInfo: Information about the merchant hosted
@@ -1486,9 +1528,9 @@ type DiscoverableProgramMerchantSigninInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiscoverableProgramMerchantSigninInfo) MarshalJSON() ([]byte, error) {
+func (s DiscoverableProgramMerchantSigninInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DiscoverableProgramMerchantSigninInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DiscoverableProgramMerchantSignupInfo: Information about the merchant hosted
@@ -1529,9 +1571,9 @@ type DiscoverableProgramMerchantSignupInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DiscoverableProgramMerchantSignupInfo) MarshalJSON() ([]byte, error) {
+func (s DiscoverableProgramMerchantSignupInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DiscoverableProgramMerchantSignupInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DownloadParameters: Parameters specific to media downloads.
@@ -1557,9 +1599,9 @@ type DownloadParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DownloadParameters) MarshalJSON() ([]byte, error) {
+func (s DownloadParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod DownloadParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventDateTime struct {
@@ -1662,9 +1704,9 @@ type EventDateTime struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventDateTime) MarshalJSON() ([]byte, error) {
+func (s EventDateTime) MarshalJSON() ([]byte, error) {
 	type NoMethod EventDateTime
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventReservationInfo struct {
@@ -1688,9 +1730,9 @@ type EventReservationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventReservationInfo) MarshalJSON() ([]byte, error) {
+func (s EventReservationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod EventReservationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventSeat struct {
@@ -1726,9 +1768,9 @@ type EventSeat struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventSeat) MarshalJSON() ([]byte, error) {
+func (s EventSeat) MarshalJSON() ([]byte, error) {
 	type NoMethod EventSeat
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventTicketClass struct {
@@ -1887,6 +1929,12 @@ type EventTicketClass struct {
 	// Logo: The logo image of the ticket. This image is displayed in the card
 	// detail view of the app.
 	Logo *Image `json:"logo,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// class. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
@@ -1912,6 +1960,19 @@ type EventTicketClass struct {
 	//   "oneUserAllDevices" - Legacy alias for `ONE_USER_ALL_DEVICES`. Deprecated.
 	//   "oneUserOneDevice" - Legacy alias for `ONE_USER_ONE_DEVICE`. Deprecated.
 	MultipleDevicesAndHoldersAllowedStatus string `json:"multipleDevicesAndHoldersAllowedStatus,omitempty"`
+	// NotifyPreference: Whether or not field updates to this class should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If not specified, no notification will be
+	// triggered. This setting is ephemeral and needs to be set with each PATCH or
+	// UPDATE request, otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// RedemptionIssuers: Identifies which redemption issuers can redeem the pass
 	// over Smart Tap. Redemption issuers are identified by their issuer ID.
 	// Redemption issuers must have at least one Smart Tap key configured. The
@@ -1988,6 +2049,10 @@ type EventTicketClass struct {
 	// the class, both will be displayed. The maximum number of these fields
 	// displayed is 10 from the object and 10 from the class.
 	TextModulesData []*TextModuleData `json:"textModulesData,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the class. For a pass only ten will be displayed, prioritizing those from
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Venue: Event venue details.
 	Venue *EventVenue `json:"venue,omitempty"`
 	// Version: Deprecated
@@ -2025,9 +2090,9 @@ type EventTicketClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventTicketClass) MarshalJSON() ([]byte, error) {
+func (s EventTicketClass) MarshalJSON() ([]byte, error) {
 	type NoMethod EventTicketClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventTicketClassAddMessageResponse struct {
@@ -2049,9 +2114,9 @@ type EventTicketClassAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventTicketClassAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s EventTicketClassAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EventTicketClassAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventTicketClassListResponse struct {
@@ -2075,9 +2140,9 @@ type EventTicketClassListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventTicketClassListResponse) MarshalJSON() ([]byte, error) {
+func (s EventTicketClassListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EventTicketClassListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventTicketObject struct {
@@ -2137,6 +2202,19 @@ type EventTicketObject struct {
 	// Kind: Identifies what kind of resource this is. Value: the fixed string
 	// "walletobjects#eventTicketObject".
 	Kind string `json:"kind,omitempty"`
+	// LinkedObjectIds: linked_object_ids are a list of other objects such as event
+	// ticket, loyalty, offer, generic, giftcard, transit and boarding pass that
+	// should be automatically attached to this event ticket object. If a user had
+	// saved this event ticket, then these linked_object_ids would be automatically
+	// pushed to the user's wallet (unless they turned off the setting to receive
+	// such linked passes). Make sure that objects present in linked_object_ids are
+	// already inserted - if not, calls would fail. Once linked, the linked objects
+	// cannot be unlinked. You cannot link objects belonging to another issuer.
+	// There is a limit to the number of objects that can be linked to a single
+	// object. After the limit is reached, new linked objects in the call will be
+	// ignored silently. Object IDs should follow the format issuer ID. identifier
+	// where the former is issued by Google and the latter is chosen by you.
+	LinkedObjectIds []string `json:"linkedObjectIds,omitempty"`
 	// LinkedOfferIds: A list of offer objects linked to this event ticket. The
 	// offer objects must already exist. Offer object IDs should follow the format
 	// issuer ID. identifier where the former is issued by Google and latter is
@@ -2148,10 +2226,30 @@ type EventTicketObject struct {
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// object. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
 	Messages []*Message `json:"messages,omitempty"`
+	// NotifyPreference: Whether or not field updates to this object should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If set to DO_NOT_NOTIFY or
+	// NOTIFICATION_SETTINGS_UNSPECIFIED, no notification will be triggered. This
+	// setting is ephemeral and needs to be set with each PATCH or UPDATE request,
+	// otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// PassConstraints: Pass constraints for the object. Includes limiting NFC and
 	// screenshot behaviors.
 	PassConstraints *PassConstraints `json:"passConstraints,omitempty"`
@@ -2160,6 +2258,12 @@ type EventTicketObject struct {
 	ReservationInfo *EventReservationInfo `json:"reservationInfo,omitempty"`
 	// RotatingBarcode: The rotating barcode type and value.
 	RotatingBarcode *RotatingBarcode `json:"rotatingBarcode,omitempty"`
+	// SaveRestrictions: Restrictions on the object that needs to be verified
+	// before the user tries to save the pass. Note that this restrictions will
+	// only be applied during save time. If the restrictions changed after a user
+	// saves the pass, the new restrictions will not be applied to an already saved
+	// pass.
+	SaveRestrictions *SaveRestrictions `json:"saveRestrictions,omitempty"`
 	// SeatInfo: Seating details for this ticket.
 	SeatInfo *EventSeat `json:"seatInfo,omitempty"`
 	// SmartTapRedemptionValue: The value that will be transmitted to a Smart Tap
@@ -2201,6 +2305,9 @@ type EventTicketObject struct {
 	// can be used. An object's state will be changed to `expired` when this time
 	// period has passed.
 	ValidTimeInterval *TimeInterval `json:"validTimeInterval,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 
@@ -2219,9 +2326,9 @@ type EventTicketObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventTicketObject) MarshalJSON() ([]byte, error) {
+func (s EventTicketObject) MarshalJSON() ([]byte, error) {
 	type NoMethod EventTicketObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventTicketObjectAddMessageResponse struct {
@@ -2243,9 +2350,9 @@ type EventTicketObjectAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventTicketObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s EventTicketObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EventTicketObjectAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventTicketObjectListResponse struct {
@@ -2269,9 +2376,9 @@ type EventTicketObjectListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventTicketObjectListResponse) MarshalJSON() ([]byte, error) {
+func (s EventTicketObjectListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EventTicketObjectListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventVenue struct {
@@ -2297,9 +2404,9 @@ type EventVenue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventVenue) MarshalJSON() ([]byte, error) {
+func (s EventVenue) MarshalJSON() ([]byte, error) {
 	type NoMethod EventVenue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ExpiryNotification: Indicates that the issuer would like Google Wallet to
@@ -2321,9 +2428,9 @@ type ExpiryNotification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ExpiryNotification) MarshalJSON() ([]byte, error) {
+func (s ExpiryNotification) MarshalJSON() ([]byte, error) {
 	type NoMethod ExpiryNotification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FieldReference: Reference definition to use with field overrides.
@@ -2366,9 +2473,9 @@ type FieldReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FieldReference) MarshalJSON() ([]byte, error) {
+func (s FieldReference) MarshalJSON() ([]byte, error) {
 	type NoMethod FieldReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FieldSelector: Custom field selector to use with field overrides.
@@ -2389,9 +2496,9 @@ type FieldSelector struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FieldSelector) MarshalJSON() ([]byte, error) {
+func (s FieldSelector) MarshalJSON() ([]byte, error) {
 	type NoMethod FieldSelector
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FirstRowOption struct {
@@ -2421,9 +2528,9 @@ type FirstRowOption struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FirstRowOption) MarshalJSON() ([]byte, error) {
+func (s FirstRowOption) MarshalJSON() ([]byte, error) {
 	type NoMethod FirstRowOption
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightCarrier struct {
@@ -2467,9 +2574,9 @@ type FlightCarrier struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightCarrier) MarshalJSON() ([]byte, error) {
+func (s FlightCarrier) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightCarrier
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightClass struct {
@@ -2568,8 +2675,7 @@ type FlightClass struct {
 	// offset. Time may be specified up to millisecond precision. eg:
 	// `2027-03-05T06:30:00` This should be the local date/time at the airport (not
 	// a UTC time). Google will reject the request if UTC offset is provided. Time
-	// zones will be calculated by Google based on departure airport. If this is
-	// not set, Google will set it based on data from other sources.
+	// zones will be calculated by Google based on departure airport.
 	LocalBoardingDateTime string `json:"localBoardingDateTime,omitempty"`
 	// LocalEstimatedOrActualArrivalDateTime: The estimated time the aircraft plans
 	// to reach the destination gate (not the runway) or the actual time it reached
@@ -2581,8 +2687,7 @@ type FlightClass struct {
 	// millisecond precision. eg: `2027-03-05T06:30:00` This should be the local
 	// date/time at the airport (not a UTC time). Google will reject the request if
 	// UTC offset is provided. Time zones will be calculated by Google based on
-	// arrival airport. If this is not set, Google will set it based on data from
-	// other sources.
+	// arrival airport.
 	LocalEstimatedOrActualArrivalDateTime string `json:"localEstimatedOrActualArrivalDateTime,omitempty"`
 	// LocalEstimatedOrActualDepartureDateTime: The estimated time the aircraft
 	// plans to pull from the gate or the actual time the aircraft already pulled
@@ -2594,8 +2699,7 @@ type FlightClass struct {
 	// offset. Time may be specified up to millisecond precision. eg:
 	// `2027-03-05T06:30:00` This should be the local date/time at the airport (not
 	// a UTC time). Google will reject the request if UTC offset is provided. Time
-	// zones will be calculated by Google based on departure airport. If this is
-	// not set, Google will set it based on data from other sources.
+	// zones will be calculated by Google based on departure airport.
 	LocalEstimatedOrActualDepartureDateTime string `json:"localEstimatedOrActualDepartureDateTime,omitempty"`
 	// LocalGateClosingDateTime: The gate closing time as it would be printed on
 	// the boarding pass. Do not set this field if you do not want to print it in
@@ -2613,8 +2717,7 @@ type FlightClass struct {
 	// to millisecond precision. eg: `2027-03-05T06:30:00` This should be the local
 	// date/time at the airport (not a UTC time). Google will reject the request if
 	// UTC offset is provided. Time zones will be calculated by Google based on
-	// arrival airport. If this is not set, Google will set it based on data from
-	// other sources.
+	// arrival airport.
 	LocalScheduledArrivalDateTime string `json:"localScheduledArrivalDateTime,omitempty"`
 	// LocalScheduledDepartureDateTime: Required. The scheduled date and time when
 	// the aircraft is expected to depart the gate (not the runway) Note: This
@@ -2634,6 +2737,12 @@ type FlightClass struct {
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// class. Any additional MerchantLocations added beyond the 10 will be rejected
+	// by the validator. These locations will trigger a notification when a user
+	// enters within a Google-set radius of the point. This field replaces the
+	// deprecated LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
@@ -2659,6 +2768,19 @@ type FlightClass struct {
 	//   "oneUserAllDevices" - Legacy alias for `ONE_USER_ALL_DEVICES`. Deprecated.
 	//   "oneUserOneDevice" - Legacy alias for `ONE_USER_ONE_DEVICE`. Deprecated.
 	MultipleDevicesAndHoldersAllowedStatus string `json:"multipleDevicesAndHoldersAllowedStatus,omitempty"`
+	// NotifyPreference: Whether or not field updates to this class should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If not specified, no notification will be
+	// triggered. This setting is ephemeral and needs to be set with each PATCH or
+	// UPDATE request, otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// Origin: Required. Origin airport.
 	Origin *AirportInfo `json:"origin,omitempty"`
 	// RedemptionIssuers: Identifies which redemption issuers can redeem the pass
@@ -2698,6 +2820,10 @@ type FlightClass struct {
 	// the class, both will be displayed. The maximum number of these fields
 	// displayed is 10 from the object and 10 from the class.
 	TextModulesData []*TextModuleData `json:"textModulesData,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the class. For a pass only ten will be displayed, prioritizing those from
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 	// ViewUnlockRequirement: View Unlock Requirement options for the boarding
@@ -2731,9 +2857,9 @@ type FlightClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightClass) MarshalJSON() ([]byte, error) {
+func (s FlightClass) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightClassAddMessageResponse struct {
@@ -2755,9 +2881,9 @@ type FlightClassAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightClassAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s FlightClassAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightClassAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightClassListResponse struct {
@@ -2781,9 +2907,9 @@ type FlightClassListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightClassListResponse) MarshalJSON() ([]byte, error) {
+func (s FlightClassListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightClassListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightHeader struct {
@@ -2820,9 +2946,9 @@ type FlightHeader struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightHeader) MarshalJSON() ([]byte, error) {
+func (s FlightHeader) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightHeader
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightObject struct {
@@ -2882,16 +3008,49 @@ type FlightObject struct {
 	// Kind: Identifies what kind of resource this is. Value: the fixed string
 	// "walletobjects#flightObject".
 	Kind string `json:"kind,omitempty"`
+	// LinkedObjectIds: linked_object_ids are a list of other objects such as event
+	// ticket, loyalty, offer, generic, giftcard, transit and boarding pass that
+	// should be automatically attached to this flight object. If a user had saved
+	// this boarding pass, then these linked_object_ids would be automatically
+	// pushed to the user's wallet (unless they turned off the setting to receive
+	// such linked passes). Make sure that objects present in linked_object_ids are
+	// already inserted - if not, calls would fail. Once linked, the linked objects
+	// cannot be unlinked. You cannot link objects belonging to another issuer.
+	// There is a limit to the number of objects that can be linked to a single
+	// object. After the limit is reached, new linked objects in the call will be
+	// ignored silently. Object IDs should follow the format issuer ID. identifier
+	// where the former is issued by Google and the latter is chosen by you.
+	LinkedObjectIds []string `json:"linkedObjectIds,omitempty"`
 	// LinksModuleData: Links module data. If links module data is also defined on
 	// the class, both will be displayed.
 	LinksModuleData *LinksModuleData `json:"linksModuleData,omitempty"`
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// object. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
 	Messages []*Message `json:"messages,omitempty"`
+	// NotifyPreference: Whether or not field updates to this object should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If set to DO_NOT_NOTIFY or
+	// NOTIFICATION_SETTINGS_UNSPECIFIED, no notification will be triggered. This
+	// setting is ephemeral and needs to be set with each PATCH or UPDATE request,
+	// otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// PassConstraints: Pass constraints for the object. Includes limiting NFC and
 	// screenshot behaviors.
 	PassConstraints *PassConstraints `json:"passConstraints,omitempty"`
@@ -2902,6 +3061,12 @@ type FlightObject struct {
 	ReservationInfo *ReservationInfo `json:"reservationInfo,omitempty"`
 	// RotatingBarcode: The rotating barcode type and value.
 	RotatingBarcode *RotatingBarcode `json:"rotatingBarcode,omitempty"`
+	// SaveRestrictions: Restrictions on the object that needs to be verified
+	// before the user tries to save the pass. Note that this restrictions will
+	// only be applied during save time. If the restrictions changed after a user
+	// saves the pass, the new restrictions will not be applied to an already saved
+	// pass.
+	SaveRestrictions *SaveRestrictions `json:"saveRestrictions,omitempty"`
 	// SecurityProgramLogo: An image for the security program that applies to the
 	// passenger.
 	SecurityProgramLogo *Image `json:"securityProgramLogo,omitempty"`
@@ -2934,6 +3099,9 @@ type FlightObject struct {
 	// can be used. An object's state will be changed to `expired` when this time
 	// period has passed.
 	ValidTimeInterval *TimeInterval `json:"validTimeInterval,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 
@@ -2952,9 +3120,9 @@ type FlightObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightObject) MarshalJSON() ([]byte, error) {
+func (s FlightObject) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightObjectAddMessageResponse struct {
@@ -2976,9 +3144,9 @@ type FlightObjectAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s FlightObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightObjectAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FlightObjectListResponse struct {
@@ -3002,9 +3170,9 @@ type FlightObjectListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FlightObjectListResponse) MarshalJSON() ([]byte, error) {
+func (s FlightObjectListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod FlightObjectListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type FrequentFlyerInfo struct {
@@ -3030,9 +3198,9 @@ type FrequentFlyerInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FrequentFlyerInfo) MarshalJSON() ([]byte, error) {
+func (s FrequentFlyerInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod FrequentFlyerInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericClass: Generic Class
@@ -3066,6 +3234,12 @@ type GenericClass struct {
 	// the object, both will be displayed. The maximum number of these fields
 	// displayed is 10 from class and 10 from object.
 	LinksModuleData *LinksModuleData `json:"linksModuleData,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// class. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
@@ -3104,6 +3278,10 @@ type GenericClass struct {
 	// the object, both will be displayed. The maximum number of these fields
 	// displayed is 10 from class and 10 from object.
 	TextModulesData []*TextModuleData `json:"textModulesData,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the class. For a pass only ten will be displayed, prioritizing those from
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// ViewUnlockRequirement: View Unlock Requirement options for the generic pass.
 	//
 	// Possible values:
@@ -3132,9 +3310,9 @@ type GenericClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericClass) MarshalJSON() ([]byte, error) {
+func (s GenericClass) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericClassAddMessageResponse: Response to adding a new issuer message to
@@ -3158,9 +3336,9 @@ type GenericClassAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericClassAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s GenericClassAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericClassAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericClassListResponse: List response which contains the list of all
@@ -3186,9 +3364,9 @@ type GenericClassListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericClassListResponse) MarshalJSON() ([]byte, error) {
+func (s GenericClassListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericClassListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericObject: Generic Object
@@ -3224,6 +3402,10 @@ type GenericObject struct {
 	//   "GENERIC_HOME_INSURANCE" - Home-insurance cards
 	//   "GENERIC_ENTRY_TICKET" - Entry tickets
 	//   "GENERIC_RECEIPT" - Receipts
+	//   "GENERIC_LOYALTY_CARD" - Loyalty cards. Please note that it is advisable
+	// to use a dedicated Loyalty card pass type instead of this generic type. A
+	// dedicated loyalty card pass type offers more features and functionality than
+	// a generic pass type.
 	//   "GENERIC_OTHER" - Other type
 	GenericType string `json:"genericType,omitempty"`
 	// GroupingInfo: Information that controls how passes are grouped together.
@@ -3252,6 +3434,19 @@ type GenericObject struct {
 	// ImageModulesData: Image module data. Only one of the image from class and
 	// one from object level will be rendered when both set.
 	ImageModulesData []*ImageModuleData `json:"imageModulesData,omitempty"`
+	// LinkedObjectIds: linked_object_ids are a list of other objects such as event
+	// ticket, loyalty, offer, generic, giftcard, transit and boarding pass that
+	// should be automatically attached to this generic object. If a user had saved
+	// this generic card, then these linked_object_ids would be automatically
+	// pushed to the user's wallet (unless they turned off the setting to receive
+	// such linked passes). Make sure that objects present in linked_object_ids are
+	// already inserted - if not, calls would fail. Once linked, the linked objects
+	// cannot be unlinked. You cannot link objects belonging to another issuer.
+	// There is a limit to the number of objects that can be linked to a single
+	// object. After the limit is reached, new linked objects in the call will be
+	// ignored silently. Object IDs should follow the format issuer ID. identifier
+	// where the former is issued by Google and the latter is chosen by you.
+	LinkedObjectIds []string `json:"linkedObjectIds,omitempty"`
 	// LinksModuleData: Links module data. If `linksModuleData` is also defined on
 	// the class, both will be displayed. The maximum number of these fields
 	// displayed is 10 from class and 10 from object.
@@ -3260,6 +3455,16 @@ type GenericObject struct {
 	// view in upper left, and also on the list/thumbnail view. If the logo is not
 	// present, the first letter of `cardTitle` would be shown as logo.
 	Logo *Image `json:"logo,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// object. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
+	// Messages: An array of messages displayed in the app. All users of this
+	// object will receive its associated messages. The maximum number of these
+	// fields is 10.
+	Messages []*Message `json:"messages,omitempty"`
 	// Notifications: The notification settings that are enabled for this object.
 	Notifications *Notifications `json:"notifications,omitempty"`
 	// PassConstraints: Pass constraints for the object. Includes limiting NFC and
@@ -3267,6 +3472,12 @@ type GenericObject struct {
 	PassConstraints *PassConstraints `json:"passConstraints,omitempty"`
 	// RotatingBarcode: The rotating barcode settings/details.
 	RotatingBarcode *RotatingBarcode `json:"rotatingBarcode,omitempty"`
+	// SaveRestrictions: Restrictions on the object that needs to be verified
+	// before the user tries to save the pass. Note that this restrictions will
+	// only be applied during save time. If the restrictions changed after a user
+	// saves the pass, the new restrictions will not be applied to an already saved
+	// pass.
+	SaveRestrictions *SaveRestrictions `json:"saveRestrictions,omitempty"`
 	// SmartTapRedemptionValue: The value that will be transmitted to a Smart Tap
 	// certified terminal over NFC for this object. The class level fields
 	// `enableSmartTap` and `redemptionIssuers` must also be set up correctly in
@@ -3301,6 +3512,9 @@ type GenericObject struct {
 	// usable. When the time period is passed, the object will be considered
 	// expired, which will affect the rendering on user's devices.
 	ValidTimeInterval *TimeInterval `json:"validTimeInterval,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// WideLogo: The wide logo of the pass. When provided, this will be used in
 	// place of the logo in the top left of the card view.
 	WideLogo *Image `json:"wideLogo,omitempty"`
@@ -3320,9 +3534,9 @@ type GenericObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericObject) MarshalJSON() ([]byte, error) {
+func (s GenericObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericObjectAddMessageResponse: Response to adding a new issuer message to
@@ -3346,9 +3560,9 @@ type GenericObjectAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s GenericObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericObjectAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GenericObjectListResponse: List response which contains the list of all
@@ -3374,9 +3588,9 @@ type GenericObjectListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GenericObjectListResponse) MarshalJSON() ([]byte, error) {
+func (s GenericObjectListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GenericObjectListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GiftCardClass struct {
@@ -3465,6 +3679,12 @@ type GiftCardClass struct {
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// class. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// MerchantName: Merchant name, such as "Adam's Apparel". The app may display
 	// an ellipsis after the first 20 characters to ensure full string is displayed
 	// on smaller screens.
@@ -3494,6 +3714,19 @@ type GiftCardClass struct {
 	//   "oneUserAllDevices" - Legacy alias for `ONE_USER_ALL_DEVICES`. Deprecated.
 	//   "oneUserOneDevice" - Legacy alias for `ONE_USER_ONE_DEVICE`. Deprecated.
 	MultipleDevicesAndHoldersAllowedStatus string `json:"multipleDevicesAndHoldersAllowedStatus,omitempty"`
+	// NotifyPreference: Whether or not field updates to this class should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If not specified, no notification will be
+	// triggered. This setting is ephemeral and needs to be set with each PATCH or
+	// UPDATE request, otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// PinLabel: The label to display for the PIN, such as "4-digit PIN".
 	PinLabel string `json:"pinLabel,omitempty"`
 	// ProgramLogo: The logo of the gift card program or company. This logo is
@@ -3536,6 +3769,10 @@ type GiftCardClass struct {
 	// the class, both will be displayed. The maximum number of these fields
 	// displayed is 10 from the object and 10 from the class.
 	TextModulesData []*TextModuleData `json:"textModulesData,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the class. For a pass only ten will be displayed, prioritizing those from
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 	// ViewUnlockRequirement: View Unlock Requirement options for the gift card.
@@ -3572,9 +3809,9 @@ type GiftCardClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GiftCardClass) MarshalJSON() ([]byte, error) {
+func (s GiftCardClass) MarshalJSON() ([]byte, error) {
 	type NoMethod GiftCardClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GiftCardClassAddMessageResponse struct {
@@ -3596,9 +3833,9 @@ type GiftCardClassAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GiftCardClassAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s GiftCardClassAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GiftCardClassAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GiftCardClassListResponse struct {
@@ -3622,9 +3859,9 @@ type GiftCardClassListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GiftCardClassListResponse) MarshalJSON() ([]byte, error) {
+func (s GiftCardClassListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GiftCardClassListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GiftCardObject struct {
@@ -3686,16 +3923,49 @@ type GiftCardObject struct {
 	// Kind: Identifies what kind of resource this is. Value: the fixed string
 	// "walletobjects#giftCardObject".
 	Kind string `json:"kind,omitempty"`
+	// LinkedObjectIds: linked_object_ids are a list of other objects such as event
+	// ticket, loyalty, offer, generic, giftcard, transit and boarding pass that
+	// should be automatically attached to this giftcard object. If a user had
+	// saved this gift card, then these linked_object_ids would be automatically
+	// pushed to the user's wallet (unless they turned off the setting to receive
+	// such linked passes). Make sure that objects present in linked_object_ids are
+	// already inserted - if not, calls would fail. Once linked, the linked objects
+	// cannot be unlinked. You cannot link objects belonging to another issuer.
+	// There is a limit to the number of objects that can be linked to a single
+	// object. After the limit is reached, new linked objects in the call will be
+	// ignored silently. Object IDs should follow the format issuer ID. identifier
+	// where the former is issued by Google and the latter is chosen by you.
+	LinkedObjectIds []string `json:"linkedObjectIds,omitempty"`
 	// LinksModuleData: Links module data. If links module data is also defined on
 	// the class, both will be displayed.
 	LinksModuleData *LinksModuleData `json:"linksModuleData,omitempty"`
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// object. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
 	Messages []*Message `json:"messages,omitempty"`
+	// NotifyPreference: Whether or not field updates to this object should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If set to DO_NOT_NOTIFY or
+	// NOTIFICATION_SETTINGS_UNSPECIFIED, no notification will be triggered. This
+	// setting is ephemeral and needs to be set with each PATCH or UPDATE request,
+	// otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// PassConstraints: Pass constraints for the object. Includes limiting NFC and
 	// screenshot behaviors.
 	PassConstraints *PassConstraints `json:"passConstraints,omitempty"`
@@ -3703,6 +3973,12 @@ type GiftCardObject struct {
 	Pin string `json:"pin,omitempty"`
 	// RotatingBarcode: The rotating barcode type and value.
 	RotatingBarcode *RotatingBarcode `json:"rotatingBarcode,omitempty"`
+	// SaveRestrictions: Restrictions on the object that needs to be verified
+	// before the user tries to save the pass. Note that this restrictions will
+	// only be applied during save time. If the restrictions changed after a user
+	// saves the pass, the new restrictions will not be applied to an already saved
+	// pass.
+	SaveRestrictions *SaveRestrictions `json:"saveRestrictions,omitempty"`
 	// SmartTapRedemptionValue: The value that will be transmitted to a Smart Tap
 	// certified terminal over NFC for this object. The class level fields
 	// `enableSmartTap` and `redemptionIssuers` must also be set up correctly in
@@ -3732,6 +4008,9 @@ type GiftCardObject struct {
 	// can be used. An object's state will be changed to `expired` when this time
 	// period has passed.
 	ValidTimeInterval *TimeInterval `json:"validTimeInterval,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 
@@ -3750,9 +4029,9 @@ type GiftCardObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GiftCardObject) MarshalJSON() ([]byte, error) {
+func (s GiftCardObject) MarshalJSON() ([]byte, error) {
 	type NoMethod GiftCardObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GiftCardObjectAddMessageResponse struct {
@@ -3774,9 +4053,9 @@ type GiftCardObjectAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GiftCardObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s GiftCardObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GiftCardObjectAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GiftCardObjectListResponse struct {
@@ -3800,9 +4079,9 @@ type GiftCardObjectListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GiftCardObjectListResponse) MarshalJSON() ([]byte, error) {
+func (s GiftCardObjectListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GiftCardObjectListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GroupingInfo struct {
@@ -3827,12 +4106,12 @@ type GroupingInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GroupingInfo) MarshalJSON() ([]byte, error) {
+func (s GroupingInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GroupingInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Image: Wrapping type for Google hosted images. Next ID: 7
+// Image: Wrapping type for Google hosted images.
 type Image struct {
 	// ContentDescription: Description of the image used for accessibility.
 	ContentDescription *LocalizedString `json:"contentDescription,omitempty"`
@@ -3854,9 +4133,9 @@ type Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Image) MarshalJSON() ([]byte, error) {
+func (s Image) MarshalJSON() ([]byte, error) {
 	type NoMethod Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ImageModuleData struct {
@@ -3878,9 +4157,9 @@ type ImageModuleData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageModuleData) MarshalJSON() ([]byte, error) {
+func (s ImageModuleData) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageModuleData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ImageUri struct {
@@ -3905,9 +4184,9 @@ type ImageUri struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageUri) MarshalJSON() ([]byte, error) {
+func (s ImageUri) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageUri
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type InfoModuleData struct {
@@ -3928,9 +4207,9 @@ type InfoModuleData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InfoModuleData) MarshalJSON() ([]byte, error) {
+func (s InfoModuleData) MarshalJSON() ([]byte, error) {
 	type NoMethod InfoModuleData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Issuer struct {
@@ -3964,9 +4243,9 @@ type Issuer struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Issuer) MarshalJSON() ([]byte, error) {
+func (s Issuer) MarshalJSON() ([]byte, error) {
 	type NoMethod Issuer
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type IssuerContactInfo struct {
@@ -3991,9 +4270,9 @@ type IssuerContactInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IssuerContactInfo) MarshalJSON() ([]byte, error) {
+func (s IssuerContactInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod IssuerContactInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type IssuerListResponse struct {
@@ -4015,9 +4294,9 @@ type IssuerListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IssuerListResponse) MarshalJSON() ([]byte, error) {
+func (s IssuerListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod IssuerListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type IssuerToUserInfo struct {
@@ -4046,9 +4325,9 @@ type IssuerToUserInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IssuerToUserInfo) MarshalJSON() ([]byte, error) {
+func (s IssuerToUserInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod IssuerToUserInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type JwtInsertResponse struct {
@@ -4076,9 +4355,9 @@ type JwtInsertResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JwtInsertResponse) MarshalJSON() ([]byte, error) {
+func (s JwtInsertResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod JwtInsertResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type JwtResource struct {
@@ -4098,9 +4377,9 @@ type JwtResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *JwtResource) MarshalJSON() ([]byte, error) {
+func (s JwtResource) MarshalJSON() ([]byte, error) {
 	type NoMethod JwtResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LabelValue: A pair of text strings to be displayed in the details view. Note
@@ -4136,9 +4415,9 @@ type LabelValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LabelValue) MarshalJSON() ([]byte, error) {
+func (s LabelValue) MarshalJSON() ([]byte, error) {
 	type NoMethod LabelValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LabelValueRow struct {
@@ -4159,9 +4438,9 @@ type LabelValueRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LabelValueRow) MarshalJSON() ([]byte, error) {
+func (s LabelValueRow) MarshalJSON() ([]byte, error) {
 	type NoMethod LabelValueRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LatLongPoint struct {
@@ -4187,9 +4466,9 @@ type LatLongPoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatLongPoint) MarshalJSON() ([]byte, error) {
+func (s LatLongPoint) MarshalJSON() ([]byte, error) {
 	type NoMethod LatLongPoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LatLongPoint) UnmarshalJSON(data []byte) error {
@@ -4224,9 +4503,9 @@ type LinksModuleData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LinksModuleData) MarshalJSON() ([]byte, error) {
+func (s LinksModuleData) MarshalJSON() ([]byte, error) {
 	type NoMethod LinksModuleData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListTemplateOverride struct {
@@ -4257,9 +4536,9 @@ type ListTemplateOverride struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTemplateOverride) MarshalJSON() ([]byte, error) {
+func (s ListTemplateOverride) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTemplateOverride
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LocalizedString struct {
@@ -4284,9 +4563,9 @@ type LocalizedString struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LocalizedString) MarshalJSON() ([]byte, error) {
+func (s LocalizedString) MarshalJSON() ([]byte, error) {
 	type NoMethod LocalizedString
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LoyaltyClass struct {
@@ -4393,6 +4672,12 @@ type LoyaltyClass struct {
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// class. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
@@ -4418,6 +4703,19 @@ type LoyaltyClass struct {
 	//   "oneUserAllDevices" - Legacy alias for `ONE_USER_ALL_DEVICES`. Deprecated.
 	//   "oneUserOneDevice" - Legacy alias for `ONE_USER_ONE_DEVICE`. Deprecated.
 	MultipleDevicesAndHoldersAllowedStatus string `json:"multipleDevicesAndHoldersAllowedStatus,omitempty"`
+	// NotifyPreference: Whether or not field updates to this class should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If not specified, no notification will be
+	// triggered. This setting is ephemeral and needs to be set with each PATCH or
+	// UPDATE request, otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// ProgramLogo: Required. The logo of the loyalty program or company. This logo
 	// is displayed in both the details and list views of the app.
 	ProgramLogo *Image `json:"programLogo,omitempty"`
@@ -4477,6 +4775,10 @@ type LoyaltyClass struct {
 	// the class, both will be displayed. The maximum number of these fields
 	// displayed is 10 from the object and 10 from the class.
 	TextModulesData []*TextModuleData `json:"textModulesData,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the class. For a pass only ten will be displayed, prioritizing those from
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 	// ViewUnlockRequirement: View Unlock Requirement options for the loyalty card.
@@ -4513,9 +4815,9 @@ type LoyaltyClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoyaltyClass) MarshalJSON() ([]byte, error) {
+func (s LoyaltyClass) MarshalJSON() ([]byte, error) {
 	type NoMethod LoyaltyClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LoyaltyClassAddMessageResponse struct {
@@ -4537,9 +4839,9 @@ type LoyaltyClassAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoyaltyClassAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s LoyaltyClassAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LoyaltyClassAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LoyaltyClassListResponse struct {
@@ -4563,9 +4865,9 @@ type LoyaltyClassListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoyaltyClassListResponse) MarshalJSON() ([]byte, error) {
+func (s LoyaltyClassListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LoyaltyClassListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LoyaltyObject struct {
@@ -4623,6 +4925,19 @@ type LoyaltyObject struct {
 	// Kind: Identifies what kind of resource this is. Value: the fixed string
 	// "walletobjects#loyaltyObject".
 	Kind string `json:"kind,omitempty"`
+	// LinkedObjectIds: linked_object_ids are a list of other objects such as event
+	// ticket, loyalty, offer, generic, giftcard, transit and boarding pass that
+	// should be automatically attached to this loyalty object. If a user had saved
+	// this loyalty card, then these linked_object_ids would be automatically
+	// pushed to the user's wallet (unless they turned off the setting to receive
+	// such linked passes). Make sure that objects present in linked_object_ids are
+	// already inserted - if not, calls would fail. Once linked, the linked objects
+	// cannot be unlinked. You cannot link objects belonging to another issuer.
+	// There is a limit to the number of objects that can be linked to a single
+	// object. After the limit is reached, new linked objects in the call will be
+	// ignored silently. Object IDs should follow the format issuer ID. identifier
+	// where the former is issued by Google and the latter is chosen by you.
+	LinkedObjectIds []string `json:"linkedObjectIds,omitempty"`
 	// LinkedOfferIds: A list of offer objects linked to this loyalty card. The
 	// offer objects must already exist. Offer object IDs should follow the format
 	// issuer ID. identifier where the former is issued by Google and latter is
@@ -4636,15 +4951,41 @@ type LoyaltyObject struct {
 	Locations []*LatLongPoint `json:"locations,omitempty"`
 	// LoyaltyPoints: The loyalty reward points label, balance, and type.
 	LoyaltyPoints *LoyaltyPoints `json:"loyaltyPoints,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// object. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
 	Messages []*Message `json:"messages,omitempty"`
+	// NotifyPreference: Whether or not field updates to this object should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If set to DO_NOT_NOTIFY or
+	// NOTIFICATION_SETTINGS_UNSPECIFIED, no notification will be triggered. This
+	// setting is ephemeral and needs to be set with each PATCH or UPDATE request,
+	// otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// PassConstraints: Pass constraints for the object. Includes limiting NFC and
 	// screenshot behaviors.
 	PassConstraints *PassConstraints `json:"passConstraints,omitempty"`
 	// RotatingBarcode: The rotating barcode type and value.
 	RotatingBarcode *RotatingBarcode `json:"rotatingBarcode,omitempty"`
+	// SaveRestrictions: Restrictions on the object that needs to be verified
+	// before the user tries to save the pass. Note that this restrictions will
+	// only be applied during save time. If the restrictions changed after a user
+	// saves the pass, the new restrictions will not be applied to an already saved
+	// pass.
+	SaveRestrictions *SaveRestrictions `json:"saveRestrictions,omitempty"`
 	// SecondaryLoyaltyPoints: The secondary loyalty reward points label, balance,
 	// and type. Shown in addition to the primary loyalty points.
 	SecondaryLoyaltyPoints *LoyaltyPoints `json:"secondaryLoyaltyPoints,omitempty"`
@@ -4679,6 +5020,9 @@ type LoyaltyObject struct {
 	// can be used. An object's state will be changed to `expired` when this time
 	// period has passed.
 	ValidTimeInterval *TimeInterval `json:"validTimeInterval,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 
@@ -4697,9 +5041,9 @@ type LoyaltyObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoyaltyObject) MarshalJSON() ([]byte, error) {
+func (s LoyaltyObject) MarshalJSON() ([]byte, error) {
 	type NoMethod LoyaltyObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LoyaltyObjectAddMessageResponse struct {
@@ -4721,9 +5065,9 @@ type LoyaltyObjectAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoyaltyObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s LoyaltyObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LoyaltyObjectAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LoyaltyObjectListResponse struct {
@@ -4747,9 +5091,9 @@ type LoyaltyObjectListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoyaltyObjectListResponse) MarshalJSON() ([]byte, error) {
+func (s LoyaltyObjectListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LoyaltyObjectListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LoyaltyPoints struct {
@@ -4776,9 +5120,9 @@ type LoyaltyPoints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoyaltyPoints) MarshalJSON() ([]byte, error) {
+func (s LoyaltyPoints) MarshalJSON() ([]byte, error) {
 	type NoMethod LoyaltyPoints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LoyaltyPointsBalance struct {
@@ -4807,9 +5151,9 @@ type LoyaltyPointsBalance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoyaltyPointsBalance) MarshalJSON() ([]byte, error) {
+func (s LoyaltyPointsBalance) MarshalJSON() ([]byte, error) {
 	type NoMethod LoyaltyPointsBalance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LoyaltyPointsBalance) UnmarshalJSON(data []byte) error {
@@ -4966,9 +5310,9 @@ type Media struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Media) MarshalJSON() ([]byte, error) {
+func (s Media) MarshalJSON() ([]byte, error) {
 	type NoMethod Media
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MediaRequestInfo: Extra information added to operations that support Scotty
@@ -5044,9 +5388,55 @@ type MediaRequestInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MediaRequestInfo) MarshalJSON() ([]byte, error) {
+func (s MediaRequestInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod MediaRequestInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// MerchantLocation: Locations of interest for this class or object. Currently,
+// this location is used for geofenced notifications. When a user is within a
+// set radius of this lat/long, and dwells there, Google will trigger a
+// notification. When a user exits this radius, the notification will be
+// hidden.
+type MerchantLocation struct {
+	// Latitude: The latitude specified as any value in the range of -90.0 through
+	// +90.0, both inclusive. Values outside these bounds will be rejected.
+	Latitude float64 `json:"latitude,omitempty"`
+	// Longitude: The longitude specified in the range -180.0 through +180.0, both
+	// inclusive. Values outside these bounds will be rejected.
+	Longitude float64 `json:"longitude,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Latitude") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Latitude") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s MerchantLocation) MarshalJSON() ([]byte, error) {
+	type NoMethod MerchantLocation
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *MerchantLocation) UnmarshalJSON(data []byte) error {
+	type NoMethod MerchantLocation
+	var s1 struct {
+		Latitude  gensupport.JSONFloat64 `json:"latitude"`
+		Longitude gensupport.JSONFloat64 `json:"longitude"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.Latitude = float64(s1.Latitude)
+	s.Longitude = float64(s1.Longitude)
+	return nil
 }
 
 // Message: A message that will be displayed with a Valuable
@@ -5099,9 +5489,9 @@ type Message struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Message) MarshalJSON() ([]byte, error) {
+func (s Message) MarshalJSON() ([]byte, error) {
 	type NoMethod Message
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ModifyLinkedOfferObjects struct {
@@ -5123,9 +5513,9 @@ type ModifyLinkedOfferObjects struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyLinkedOfferObjects) MarshalJSON() ([]byte, error) {
+func (s ModifyLinkedOfferObjects) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyLinkedOfferObjects
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ModifyLinkedOfferObjectsRequest struct {
@@ -5145,9 +5535,35 @@ type ModifyLinkedOfferObjectsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ModifyLinkedOfferObjectsRequest) MarshalJSON() ([]byte, error) {
+func (s ModifyLinkedOfferObjectsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ModifyLinkedOfferObjectsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ModuleViewConstraints: Constraints that all must be met for the module to be
+// shown.
+type ModuleViewConstraints struct {
+	// DisplayInterval: The period of time that the module will be displayed to
+	// users. Can define both a `startTime` and `endTime`. The module is displayed
+	// immediately after insertion unless a `startTime` is set. The module is
+	// displayed indefinitely if `endTime` is not set.
+	DisplayInterval *TimeInterval `json:"displayInterval,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DisplayInterval") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "DisplayInterval") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ModuleViewConstraints) MarshalJSON() ([]byte, error) {
+	type NoMethod ModuleViewConstraints
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Money struct {
@@ -5172,9 +5588,9 @@ type Money struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Money) MarshalJSON() ([]byte, error) {
+func (s Money) MarshalJSON() ([]byte, error) {
 	type NoMethod Money
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Notifications: Indicates if the object needs to have notification enabled.
@@ -5202,9 +5618,9 @@ type Notifications struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Notifications) MarshalJSON() ([]byte, error) {
+func (s Notifications) MarshalJSON() ([]byte, error) {
 	type NoMethod Notifications
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectId: This is a copy of the tech.blob.ObjectId proto, which could not be
@@ -5233,9 +5649,9 @@ type ObjectId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectId) MarshalJSON() ([]byte, error) {
+func (s ObjectId) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OfferClass struct {
@@ -5326,6 +5742,12 @@ type OfferClass struct {
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// class. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
@@ -5351,6 +5773,19 @@ type OfferClass struct {
 	//   "oneUserAllDevices" - Legacy alias for `ONE_USER_ALL_DEVICES`. Deprecated.
 	//   "oneUserOneDevice" - Legacy alias for `ONE_USER_ONE_DEVICE`. Deprecated.
 	MultipleDevicesAndHoldersAllowedStatus string `json:"multipleDevicesAndHoldersAllowedStatus,omitempty"`
+	// NotifyPreference: Whether or not field updates to this class should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If not specified, no notification will be
+	// triggered. This setting is ephemeral and needs to be set with each PATCH or
+	// UPDATE request, otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// Provider: Required. The offer provider (either the aggregator name or
 	// merchant name). Recommended maximum length is 12 characters to ensure full
 	// string is displayed on smaller screens.
@@ -5419,6 +5854,10 @@ type OfferClass struct {
 	// TitleImage: The title image of the offer. This image is displayed in both
 	// the details and list views of the app.
 	TitleImage *Image `json:"titleImage,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the class. For a pass only ten will be displayed, prioritizing those from
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 	// ViewUnlockRequirement: View Unlock Requirement options for the offer.
@@ -5454,9 +5893,9 @@ type OfferClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OfferClass) MarshalJSON() ([]byte, error) {
+func (s OfferClass) MarshalJSON() ([]byte, error) {
 	type NoMethod OfferClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OfferClassAddMessageResponse struct {
@@ -5478,9 +5917,9 @@ type OfferClassAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OfferClassAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s OfferClassAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod OfferClassAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OfferClassListResponse struct {
@@ -5504,9 +5943,9 @@ type OfferClassListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OfferClassListResponse) MarshalJSON() ([]byte, error) {
+func (s OfferClassListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod OfferClassListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OfferObject struct {
@@ -5557,21 +5996,60 @@ type OfferObject struct {
 	// Kind: Identifies what kind of resource this is. Value: the fixed string
 	// "walletobjects#offerObject".
 	Kind string `json:"kind,omitempty"`
+	// LinkedObjectIds: linked_object_ids are a list of other objects such as event
+	// ticket, loyalty, offer, generic, giftcard, transit and boarding pass that
+	// should be automatically attached to this offer object. If a user had saved
+	// this offer, then these linked_object_ids would be automatically pushed to
+	// the user's wallet (unless they turned off the setting to receive such linked
+	// passes). Make sure that objects present in linked_object_ids are already
+	// inserted - if not, calls would fail. Once linked, the linked objects cannot
+	// be unlinked. You cannot link objects belonging to another issuer. There is a
+	// limit to the number of objects that can be linked to a single object. After
+	// the limit is reached, new linked objects in the call will be ignored
+	// silently. Object IDs should follow the format issuer ID.identifier where the
+	// former is issued by Google and the latter is chosen by you.
+	LinkedObjectIds []string `json:"linkedObjectIds,omitempty"`
 	// LinksModuleData: Links module data. If links module data is also defined on
 	// the class, both will be displayed.
 	LinksModuleData *LinksModuleData `json:"linksModuleData,omitempty"`
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// object. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
 	Messages []*Message `json:"messages,omitempty"`
+	// NotifyPreference: Whether or not field updates to this object should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If set to DO_NOT_NOTIFY or
+	// NOTIFICATION_SETTINGS_UNSPECIFIED, no notification will be triggered. This
+	// setting is ephemeral and needs to be set with each PATCH or UPDATE request,
+	// otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// PassConstraints: Pass constraints for the object. Includes limiting NFC and
 	// screenshot behaviors.
 	PassConstraints *PassConstraints `json:"passConstraints,omitempty"`
 	// RotatingBarcode: The rotating barcode type and value.
 	RotatingBarcode *RotatingBarcode `json:"rotatingBarcode,omitempty"`
+	// SaveRestrictions: Restrictions on the object that needs to be verified
+	// before the user tries to save the pass. Note that this restrictions will
+	// only be applied during save time. If the restrictions changed after a user
+	// saves the pass, the new restrictions will not be applied to an already saved
+	// pass.
+	SaveRestrictions *SaveRestrictions `json:"saveRestrictions,omitempty"`
 	// SmartTapRedemptionValue: The value that will be transmitted to a Smart Tap
 	// certified terminal over NFC for this object. The class level fields
 	// `enableSmartTap` and `redemptionIssuers` must also be set up correctly in
@@ -5601,6 +6079,9 @@ type OfferObject struct {
 	// can be used. An object's state will be changed to `expired` when this time
 	// period has passed.
 	ValidTimeInterval *TimeInterval `json:"validTimeInterval,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 
@@ -5619,9 +6100,9 @@ type OfferObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OfferObject) MarshalJSON() ([]byte, error) {
+func (s OfferObject) MarshalJSON() ([]byte, error) {
 	type NoMethod OfferObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OfferObjectAddMessageResponse struct {
@@ -5643,9 +6124,9 @@ type OfferObjectAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OfferObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s OfferObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod OfferObjectAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OfferObjectListResponse struct {
@@ -5669,9 +6150,9 @@ type OfferObjectListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OfferObjectListResponse) MarshalJSON() ([]byte, error) {
+func (s OfferObjectListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod OfferObjectListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Pagination struct {
@@ -5695,9 +6176,9 @@ type Pagination struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Pagination) MarshalJSON() ([]byte, error) {
+func (s Pagination) MarshalJSON() ([]byte, error) {
 	type NoMethod Pagination
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PassConstraints: Container for any constraints that may be placed on passes.
@@ -5734,9 +6215,9 @@ type PassConstraints struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PassConstraints) MarshalJSON() ([]byte, error) {
+func (s PassConstraints) MarshalJSON() ([]byte, error) {
 	type NoMethod PassConstraints
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Permission struct {
@@ -5767,9 +6248,9 @@ type Permission struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Permission) MarshalJSON() ([]byte, error) {
+func (s Permission) MarshalJSON() ([]byte, error) {
 	type NoMethod Permission
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Permissions struct {
@@ -5793,9 +6274,9 @@ type Permissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Permissions) MarshalJSON() ([]byte, error) {
+func (s Permissions) MarshalJSON() ([]byte, error) {
 	type NoMethod Permissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type PurchaseDetails struct {
@@ -5837,9 +6318,9 @@ type PurchaseDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PurchaseDetails) MarshalJSON() ([]byte, error) {
+func (s PurchaseDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod PurchaseDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ReservationInfo struct {
@@ -5867,24 +6348,40 @@ type ReservationInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReservationInfo) MarshalJSON() ([]byte, error) {
+func (s ReservationInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ReservationInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Resources struct {
-	EventTicketClasses []*EventTicketClass  `json:"eventTicketClasses,omitempty"`
+	// EventTicketClasses: A list of event ticket classes.
+	EventTicketClasses []*EventTicketClass `json:"eventTicketClasses,omitempty"`
+	// EventTicketObjects: A list of event ticket objects.
 	EventTicketObjects []*EventTicketObject `json:"eventTicketObjects,omitempty"`
-	FlightClasses      []*FlightClass       `json:"flightClasses,omitempty"`
-	FlightObjects      []*FlightObject      `json:"flightObjects,omitempty"`
-	GiftCardClasses    []*GiftCardClass     `json:"giftCardClasses,omitempty"`
-	GiftCardObjects    []*GiftCardObject    `json:"giftCardObjects,omitempty"`
-	LoyaltyClasses     []*LoyaltyClass      `json:"loyaltyClasses,omitempty"`
-	LoyaltyObjects     []*LoyaltyObject     `json:"loyaltyObjects,omitempty"`
-	OfferClasses       []*OfferClass        `json:"offerClasses,omitempty"`
-	OfferObjects       []*OfferObject       `json:"offerObjects,omitempty"`
-	TransitClasses     []*TransitClass      `json:"transitClasses,omitempty"`
-	TransitObjects     []*TransitObject     `json:"transitObjects,omitempty"`
+	// FlightClasses: A list of flight classes.
+	FlightClasses []*FlightClass `json:"flightClasses,omitempty"`
+	// FlightObjects: A list of flight objects.
+	FlightObjects []*FlightObject `json:"flightObjects,omitempty"`
+	// GenericClasses: A list of generic classes.
+	GenericClasses []*GenericClass `json:"genericClasses,omitempty"`
+	// GenericObjects: A list of generic objects.
+	GenericObjects []*GenericObject `json:"genericObjects,omitempty"`
+	// GiftCardClasses: A list of gift card classes.
+	GiftCardClasses []*GiftCardClass `json:"giftCardClasses,omitempty"`
+	// GiftCardObjects: A list of gift card objects.
+	GiftCardObjects []*GiftCardObject `json:"giftCardObjects,omitempty"`
+	// LoyaltyClasses: A list of loyalty classes.
+	LoyaltyClasses []*LoyaltyClass `json:"loyaltyClasses,omitempty"`
+	// LoyaltyObjects: A list of loyalty objects.
+	LoyaltyObjects []*LoyaltyObject `json:"loyaltyObjects,omitempty"`
+	// OfferClasses: A list of offer classes.
+	OfferClasses []*OfferClass `json:"offerClasses,omitempty"`
+	// OfferObjects: A list of offer objects.
+	OfferObjects []*OfferObject `json:"offerObjects,omitempty"`
+	// TransitClasses: A list of transit classes.
+	TransitClasses []*TransitClass `json:"transitClasses,omitempty"`
+	// TransitObjects: A list of transit objects.
+	TransitObjects []*TransitObject `json:"transitObjects,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EventTicketClasses") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -5898,9 +6395,9 @@ type Resources struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Resources) MarshalJSON() ([]byte, error) {
+func (s Resources) MarshalJSON() ([]byte, error) {
 	type NoMethod Resources
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Review struct {
@@ -5918,9 +6415,9 @@ type Review struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Review) MarshalJSON() ([]byte, error) {
+func (s Review) MarshalJSON() ([]byte, error) {
 	type NoMethod Review
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type RotatingBarcode struct {
@@ -6016,9 +6513,9 @@ type RotatingBarcode struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RotatingBarcode) MarshalJSON() ([]byte, error) {
+func (s RotatingBarcode) MarshalJSON() ([]byte, error) {
 	type NoMethod RotatingBarcode
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RotatingBarcodeTotpDetails: Configuration for the time-based OTP
@@ -6050,9 +6547,9 @@ type RotatingBarcodeTotpDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RotatingBarcodeTotpDetails) MarshalJSON() ([]byte, error) {
+func (s RotatingBarcodeTotpDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod RotatingBarcodeTotpDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RotatingBarcodeTotpDetailsTotpParameters: Configuration for the key and
@@ -6076,9 +6573,9 @@ type RotatingBarcodeTotpDetailsTotpParameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RotatingBarcodeTotpDetailsTotpParameters) MarshalJSON() ([]byte, error) {
+func (s RotatingBarcodeTotpDetailsTotpParameters) MarshalJSON() ([]byte, error) {
 	type NoMethod RotatingBarcodeTotpDetailsTotpParameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RotatingBarcodeValues: A payload containing many barcode values and start
@@ -6116,9 +6613,46 @@ type RotatingBarcodeValues struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RotatingBarcodeValues) MarshalJSON() ([]byte, error) {
+func (s RotatingBarcodeValues) MarshalJSON() ([]byte, error) {
 	type NoMethod RotatingBarcodeValues
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SaveRestrictions: Defines restrictions on the object that will be verified
+// during save. Note: this is an advanced feature, please contact Google for
+// implementation support.
+type SaveRestrictions struct {
+	// RestrictToEmailSha256: Restrict the save of the referencing object to the
+	// given email address only. This is the hex output of SHA256 sum of the email
+	// address, all lowercase and without any notations like "." or "+", except
+	// "@". For example, for example@example.com, this value will be
+	// 31c5543c1734d25c7206f5fd591525d0295bec6fe84ff82f946a34fe970a1e66 and for
+	// Example@example.com, this value will be
+	// bc34f262c93ad7122763684ccea6f07fb7f5d8a2d11e60ce15a6f43fe70ce632 If email
+	// address of the logged-in user who tries to save this pass does not match
+	// with the defined value here, users won't be allowed to save this pass. They
+	// will instead be prompted with an error to contact the issuer. This
+	// information should be gathered from the user with an explicit consent via
+	// Sign in with Google integration
+	// https://developers.google.com/identity/authentication. Please contact with
+	// support before using Save Restrictions.
+	RestrictToEmailSha256 string `json:"restrictToEmailSha256,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "RestrictToEmailSha256") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "RestrictToEmailSha256") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SaveRestrictions) MarshalJSON() ([]byte, error) {
+	type NoMethod SaveRestrictions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SecurityAnimation struct {
@@ -6142,9 +6676,52 @@ type SecurityAnimation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SecurityAnimation) MarshalJSON() ([]byte, error) {
+func (s SecurityAnimation) MarshalJSON() ([]byte, error) {
 	type NoMethod SecurityAnimation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SetPassUpdateNoticeRequest: Request to send a private pass update notice
+// information to Google, so that devices can then fetch the notice prompting
+// the user to update a pass.
+type SetPassUpdateNoticeRequest struct {
+	// ExternalPassId: Required. A fully qualified identifier of the pass that the
+	// issuer wants to notify the pass holder(s) about. Formatted as .
+	ExternalPassId string `json:"externalPassId,omitempty"`
+	// UpdateUri: Required. The issuer endpoint URI the pass holder needs to follow
+	// in order to receive an updated pass JWT. It can not contain any sensitive
+	// information. The endpoint needs to authenticate the user before giving the
+	// user the updated JWT. Example update URI
+	// https://someissuer.com/update/passId=someExternalPassId
+	UpdateUri string `json:"updateUri,omitempty"`
+	// UpdatedPassJwtSignature: Required. The JWT signature of the updated pass
+	// that the issuer wants to notify Google about. Only devices that report a
+	// different JWT signature than this JWT signature will receive the update
+	// notification.
+	UpdatedPassJwtSignature string `json:"updatedPassJwtSignature,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ExternalPassId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ExternalPassId") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SetPassUpdateNoticeRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod SetPassUpdateNoticeRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SetPassUpdateNoticeResponse: A response to a request to notify Google of an
+// awaiting update to a private pass.
+type SetPassUpdateNoticeResponse struct {
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
 }
 
 type SignUpInfo struct {
@@ -6163,9 +6740,9 @@ type SignUpInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SignUpInfo) MarshalJSON() ([]byte, error) {
+func (s SignUpInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod SignUpInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SmartTap struct {
@@ -6198,9 +6775,9 @@ type SmartTap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SmartTap) MarshalJSON() ([]byte, error) {
+func (s SmartTap) MarshalJSON() ([]byte, error) {
 	type NoMethod SmartTap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SmartTapMerchantData struct {
@@ -6223,9 +6800,9 @@ type SmartTapMerchantData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SmartTapMerchantData) MarshalJSON() ([]byte, error) {
+func (s SmartTapMerchantData) MarshalJSON() ([]byte, error) {
 	type NoMethod SmartTapMerchantData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TemplateItem struct {
@@ -6261,9 +6838,9 @@ type TemplateItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TemplateItem) MarshalJSON() ([]byte, error) {
+func (s TemplateItem) MarshalJSON() ([]byte, error) {
 	type NoMethod TemplateItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TextModuleData: Data for Text module. All fields are optional. Header will
@@ -6278,7 +6855,10 @@ type TextModuleData struct {
 	// characters to ensure full string is displayed on smaller screens.
 	Header string `json:"header,omitempty"`
 	// Id: The ID associated with a text module. This field is here to enable ease
-	// of management of text modules.
+	// of management of text modules and referencing them in template overrides.
+	// The ID should only include alphanumeric characters, '_', or '-'. It can not
+	// include dots, as dots are used to separate fields within
+	// FieldReference.fieldPaths in template overrides.
 	Id string `json:"id,omitempty"`
 	// LocalizedBody: Translated strings for the body. Recommended maximum length
 	// is 500 characters to ensure full string is displayed on smaller screens.
@@ -6300,9 +6880,9 @@ type TextModuleData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TextModuleData) MarshalJSON() ([]byte, error) {
+func (s TextModuleData) MarshalJSON() ([]byte, error) {
 	type NoMethod TextModuleData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TicketCost struct {
@@ -6326,9 +6906,9 @@ type TicketCost struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TicketCost) MarshalJSON() ([]byte, error) {
+func (s TicketCost) MarshalJSON() ([]byte, error) {
 	type NoMethod TicketCost
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TicketLeg struct {
@@ -6420,9 +7000,9 @@ type TicketLeg struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TicketLeg) MarshalJSON() ([]byte, error) {
+func (s TicketLeg) MarshalJSON() ([]byte, error) {
 	type NoMethod TicketLeg
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TicketRestrictions struct {
@@ -6449,9 +7029,9 @@ type TicketRestrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TicketRestrictions) MarshalJSON() ([]byte, error) {
+func (s TicketRestrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod TicketRestrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TicketSeat struct {
@@ -6491,9 +7071,9 @@ type TicketSeat struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TicketSeat) MarshalJSON() ([]byte, error) {
+func (s TicketSeat) MarshalJSON() ([]byte, error) {
 	type NoMethod TicketSeat
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TimeInterval struct {
@@ -6519,9 +7099,9 @@ type TimeInterval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeInterval) MarshalJSON() ([]byte, error) {
+func (s TimeInterval) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeInterval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TransitClass struct {
@@ -6659,6 +7239,12 @@ type TransitClass struct {
 	// Logo: Required. The logo image of the ticket. This image is displayed in the
 	// card detail view of the app.
 	Logo *Image `json:"logo,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// class. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
@@ -6684,6 +7270,20 @@ type TransitClass struct {
 	//   "oneUserAllDevices" - Legacy alias for `ONE_USER_ALL_DEVICES`. Deprecated.
 	//   "oneUserOneDevice" - Legacy alias for `ONE_USER_ONE_DEVICE`. Deprecated.
 	MultipleDevicesAndHoldersAllowedStatus string `json:"multipleDevicesAndHoldersAllowedStatus,omitempty"`
+	// NotifyPreference: Whether or not field updates to this class should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If set to DO_NOT_NOTIFY or
+	// NOTIFICATION_SETTINGS_UNSPECIFIED, no notification will be triggered. This
+	// setting is ephemeral and needs to be set with each PATCH or UPDATE request,
+	// otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// RedemptionIssuers: Identifies which redemption issuers can redeem the pass
 	// over Smart Tap. Redemption issuers are identified by their issuer ID.
 	// Redemption issuers must have at least one Smart Tap key configured. The
@@ -6739,6 +7339,10 @@ type TransitClass struct {
 	//   "OTHER"
 	//   "other" - Legacy alias for `OTHER`. Deprecated.
 	TransitType string `json:"transitType,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the class. For a pass only ten will be displayed, prioritizing those from
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 	// ViewUnlockRequirement: View Unlock Requirement options for the transit
@@ -6777,9 +7381,9 @@ type TransitClass struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransitClass) MarshalJSON() ([]byte, error) {
+func (s TransitClass) MarshalJSON() ([]byte, error) {
 	type NoMethod TransitClass
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TransitClassAddMessageResponse struct {
@@ -6801,9 +7405,9 @@ type TransitClassAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransitClassAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s TransitClassAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TransitClassAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TransitClassListResponse struct {
@@ -6827,9 +7431,9 @@ type TransitClassListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransitClassListResponse) MarshalJSON() ([]byte, error) {
+func (s TransitClassListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TransitClassListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TransitObject struct {
@@ -6907,16 +7511,49 @@ type TransitObject struct {
 	ImageModulesData []*ImageModuleData `json:"imageModulesData,omitempty"`
 	// InfoModuleData: Deprecated. Use textModulesData instead.
 	InfoModuleData *InfoModuleData `json:"infoModuleData,omitempty"`
+	// LinkedObjectIds: linked_object_ids are a list of other objects such as event
+	// ticket, loyalty, offer, generic, giftcard, transit and boarding pass that
+	// should be automatically attached to this transit object. If a user had saved
+	// this transit card, then these linked_object_ids would be automatically
+	// pushed to the user's wallet (unless they turned off the setting to receive
+	// such linked passes). Make sure that objects present in linked_object_ids are
+	// already inserted - if not, calls would fail. Once linked, the linked objects
+	// cannot be unlinked. You cannot link objects belonging to another issuer.
+	// There is a limit to the number of objects that can be linked to a single
+	// object. After the limit is reached, new linked objects in the call will be
+	// ignored silently. Object IDs should follow the format issuer ID. identifier
+	// where the former is issued by Google and the latter is chosen by you.
+	LinkedObjectIds []string `json:"linkedObjectIds,omitempty"`
 	// LinksModuleData: Links module data. If links module data is also defined on
 	// the class, both will be displayed.
 	LinksModuleData *LinksModuleData `json:"linksModuleData,omitempty"`
 	// Locations: Note: This field is currently not supported to trigger geo
 	// notifications.
 	Locations []*LatLongPoint `json:"locations,omitempty"`
+	// MerchantLocations: Merchant locations. There is a maximum of ten on the
+	// object. Any additional MerchantLocations added beyond the 10 will be
+	// rejected. These locations will trigger a notification when a user enters
+	// within a Google-set radius of the point. This field replaces the deprecated
+	// LatLongPoints.
+	MerchantLocations []*MerchantLocation `json:"merchantLocations,omitempty"`
 	// Messages: An array of messages displayed in the app. All users of this
 	// object will receive its associated messages. The maximum number of these
 	// fields is 10.
 	Messages []*Message `json:"messages,omitempty"`
+	// NotifyPreference: Whether or not field updates to this object should trigger
+	// notifications. When set to NOTIFY, we will attempt to trigger a field update
+	// notification to users. These notifications will only be sent to users if the
+	// field is part of an allowlist. If set to DO_NOT_NOTIFY or
+	// NOTIFICATION_SETTINGS_UNSPECIFIED, no notification will be triggered. This
+	// setting is ephemeral and needs to be set with each PATCH or UPDATE request,
+	// otherwise a notification will not be triggered.
+	//
+	// Possible values:
+	//   "NOTIFICATION_SETTINGS_FOR_UPDATES_UNSPECIFIED" - Default behavior is no
+	// notifications sent.
+	//   "NOTIFY_ON_UPDATE" - This value will result in a notification being sent,
+	// if the updated fields are part of an allowlist.
+	NotifyPreference string `json:"notifyPreference,omitempty"`
 	// PassConstraints: Pass constraints for the object. Includes limiting NFC and
 	// screenshot behaviors.
 	PassConstraints *PassConstraints `json:"passConstraints,omitempty"`
@@ -6936,6 +7573,12 @@ type TransitObject struct {
 	PurchaseDetails *PurchaseDetails `json:"purchaseDetails,omitempty"`
 	// RotatingBarcode: The rotating barcode type and value.
 	RotatingBarcode *RotatingBarcode `json:"rotatingBarcode,omitempty"`
+	// SaveRestrictions: Restrictions on the object that needs to be verified
+	// before the user tries to save the pass. Note that this restrictions will
+	// only be applied during save time. If the restrictions changed after a user
+	// saves the pass, the new restrictions will not be applied to an already saved
+	// pass.
+	SaveRestrictions *SaveRestrictions `json:"saveRestrictions,omitempty"`
 	// SmartTapRedemptionValue: The value that will be transmitted to a Smart Tap
 	// certified terminal over NFC for this object. The class level fields
 	// `enableSmartTap` and `redemptionIssuers` must also be set up correctly in
@@ -7008,6 +7651,9 @@ type TransitObject struct {
 	// can be used. An object's state will be changed to `expired` when this time
 	// period has passed.
 	ValidTimeInterval *TimeInterval `json:"validTimeInterval,omitempty"`
+	// ValueAddedModuleData: Optional value added module data. Maximum of ten on
+	// the object.
+	ValueAddedModuleData []*ValueAddedModuleData `json:"valueAddedModuleData,omitempty"`
 	// Version: Deprecated
 	Version int64 `json:"version,omitempty,string"`
 
@@ -7026,9 +7672,9 @@ type TransitObject struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransitObject) MarshalJSON() ([]byte, error) {
+func (s TransitObject) MarshalJSON() ([]byte, error) {
 	type NoMethod TransitObject
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TransitObjectAddMessageResponse struct {
@@ -7050,9 +7696,9 @@ type TransitObjectAddMessageResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransitObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
+func (s TransitObjectAddMessageResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TransitObjectAddMessageResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type TransitObjectListResponse struct {
@@ -7076,9 +7722,9 @@ type TransitObjectListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransitObjectListResponse) MarshalJSON() ([]byte, error) {
+func (s TransitObjectListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TransitObjectListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransitObjectUploadRotatingBarcodeValuesRequest: Request to upload rotating
@@ -7101,9 +7747,9 @@ type TransitObjectUploadRotatingBarcodeValuesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransitObjectUploadRotatingBarcodeValuesRequest) MarshalJSON() ([]byte, error) {
+func (s TransitObjectUploadRotatingBarcodeValuesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TransitObjectUploadRotatingBarcodeValuesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransitObjectUploadRotatingBarcodeValuesResponse: Response for uploading
@@ -7135,9 +7781,9 @@ type TranslatedString struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TranslatedString) MarshalJSON() ([]byte, error) {
+func (s TranslatedString) MarshalJSON() ([]byte, error) {
 	type NoMethod TranslatedString
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpcomingNotification: Indicates that the issuer would like Google Wallet to
@@ -7160,9 +7806,9 @@ type UpcomingNotification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpcomingNotification) MarshalJSON() ([]byte, error) {
+func (s UpcomingNotification) MarshalJSON() ([]byte, error) {
 	type NoMethod UpcomingNotification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Uri struct {
@@ -7199,9 +7845,51 @@ type Uri struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Uri) MarshalJSON() ([]byte, error) {
+func (s Uri) MarshalJSON() ([]byte, error) {
 	type NoMethod Uri
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ValueAddedModuleData: Data for Value Added module. Required fields are
+// header and uri.
+type ValueAddedModuleData struct {
+	// Body: Body to be displayed on the module. Character limit is 50 and longer
+	// strings will be truncated.
+	Body *LocalizedString `json:"body,omitempty"`
+	// Header: Header to be displayed on the module. Character limit is 60 and
+	// longer strings will be truncated.
+	Header *LocalizedString `json:"header,omitempty"`
+	// Image: Image to be displayed on the module. Recommended image ratio is 1:1.
+	// Images will be resized to fit this ratio.
+	Image *Image `json:"image,omitempty"`
+	// SortIndex: The index for sorting the modules. Modules with a lower sort
+	// index are shown before modules with a higher sort index. If unspecified, the
+	// sort index is assumed to be INT_MAX. For two modules with the same index,
+	// the sorting behavior is undefined.
+	SortIndex int64 `json:"sortIndex,omitempty"`
+	// Uri: URI that the module leads to on click. This can be a web link or a deep
+	// link as mentioned in
+	// https://developer.android.com/training/app-links/deep-linking.
+	Uri string `json:"uri,omitempty"`
+	// ViewConstraints: Constraints that all must be met for the module to be
+	// shown.
+	ViewConstraints *ModuleViewConstraints `json:"viewConstraints,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Body") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Body") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ValueAddedModuleData) MarshalJSON() ([]byte, error) {
+	type NoMethod ValueAddedModuleData
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type EventticketclassAddmessageCall struct {
@@ -7253,8 +7941,7 @@ func (c *EventticketclassAddmessageCall) Header() http.Header {
 
 func (c *EventticketclassAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7270,6 +7957,7 @@ func (c *EventticketclassAddmessageCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7305,9 +7993,11 @@ func (c *EventticketclassAddmessageCall) Do(opts ...googleapi.CallOption) (*Even
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7369,12 +8059,11 @@ func (c *EventticketclassGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/eventTicketClass/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7382,6 +8071,7 @@ func (c *EventticketclassGetCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7417,9 +8107,11 @@ func (c *EventticketclassGetCall) Do(opts ...googleapi.CallOption) (*EventTicket
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7463,8 +8155,7 @@ func (c *EventticketclassInsertCall) Header() http.Header {
 
 func (c *EventticketclassInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventticketclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.eventticketclass)
 	if err != nil {
 		return nil, err
 	}
@@ -7477,6 +8168,7 @@ func (c *EventticketclassInsertCall) doRequest(alt string) (*http.Response, erro
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7512,9 +8204,11 @@ func (c *EventticketclassInsertCall) Do(opts ...googleapi.CallOption) (*EventTic
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7594,16 +8288,16 @@ func (c *EventticketclassListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/eventTicketClass")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7639,9 +8333,11 @@ func (c *EventticketclassListCall) Do(opts ...googleapi.CallOption) (*EventTicke
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7694,8 +8390,7 @@ func (c *EventticketclassPatchCall) Header() http.Header {
 
 func (c *EventticketclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventticketclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.eventticketclass)
 	if err != nil {
 		return nil, err
 	}
@@ -7711,6 +8406,7 @@ func (c *EventticketclassPatchCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7746,9 +8442,11 @@ func (c *EventticketclassPatchCall) Do(opts ...googleapi.CallOption) (*EventTick
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7800,8 +8498,7 @@ func (c *EventticketclassUpdateCall) Header() http.Header {
 
 func (c *EventticketclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventticketclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.eventticketclass)
 	if err != nil {
 		return nil, err
 	}
@@ -7817,6 +8514,7 @@ func (c *EventticketclassUpdateCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7852,9 +8550,11 @@ func (c *EventticketclassUpdateCall) Do(opts ...googleapi.CallOption) (*EventTic
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketclass.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7907,8 +8607,7 @@ func (c *EventticketobjectAddmessageCall) Header() http.Header {
 
 func (c *EventticketobjectAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7924,6 +8623,7 @@ func (c *EventticketobjectAddmessageCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7959,9 +8659,11 @@ func (c *EventticketobjectAddmessageCall) Do(opts ...googleapi.CallOption) (*Eve
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8023,12 +8725,11 @@ func (c *EventticketobjectGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/eventTicketObject/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8036,6 +8737,7 @@ func (c *EventticketobjectGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8071,9 +8773,11 @@ func (c *EventticketobjectGetCall) Do(opts ...googleapi.CallOption) (*EventTicke
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8117,8 +8821,7 @@ func (c *EventticketobjectInsertCall) Header() http.Header {
 
 func (c *EventticketobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventticketobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.eventticketobject)
 	if err != nil {
 		return nil, err
 	}
@@ -8131,6 +8834,7 @@ func (c *EventticketobjectInsertCall) doRequest(alt string) (*http.Response, err
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8166,9 +8870,11 @@ func (c *EventticketobjectInsertCall) Do(opts ...googleapi.CallOption) (*EventTi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8248,16 +8954,16 @@ func (c *EventticketobjectListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/eventTicketObject")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8293,9 +8999,11 @@ func (c *EventticketobjectListCall) Do(opts ...googleapi.CallOption) (*EventTick
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8348,8 +9056,7 @@ func (c *EventticketobjectModifylinkedofferobjectsCall) Header() http.Header {
 
 func (c *EventticketobjectModifylinkedofferobjectsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifylinkedofferobjectsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifylinkedofferobjectsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8365,6 +9072,7 @@ func (c *EventticketobjectModifylinkedofferobjectsCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.modifylinkedofferobjects", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8400,9 +9108,11 @@ func (c *EventticketobjectModifylinkedofferobjectsCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.modifylinkedofferobjects", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8455,8 +9165,7 @@ func (c *EventticketobjectPatchCall) Header() http.Header {
 
 func (c *EventticketobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventticketobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.eventticketobject)
 	if err != nil {
 		return nil, err
 	}
@@ -8472,6 +9181,7 @@ func (c *EventticketobjectPatchCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8507,9 +9217,11 @@ func (c *EventticketobjectPatchCall) Do(opts ...googleapi.CallOption) (*EventTic
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8561,8 +9273,7 @@ func (c *EventticketobjectUpdateCall) Header() http.Header {
 
 func (c *EventticketobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.eventticketobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.eventticketobject)
 	if err != nil {
 		return nil, err
 	}
@@ -8578,6 +9289,7 @@ func (c *EventticketobjectUpdateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8613,9 +9325,11 @@ func (c *EventticketobjectUpdateCall) Do(opts ...googleapi.CallOption) (*EventTi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.eventticketobject.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8668,8 +9382,7 @@ func (c *FlightclassAddmessageCall) Header() http.Header {
 
 func (c *FlightclassAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8685,6 +9398,7 @@ func (c *FlightclassAddmessageCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightclass.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8720,9 +9434,11 @@ func (c *FlightclassAddmessageCall) Do(opts ...googleapi.CallOption) (*FlightCla
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightclass.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8784,12 +9500,11 @@ func (c *FlightclassGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/flightClass/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8797,6 +9512,7 @@ func (c *FlightclassGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightclass.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8831,9 +9547,11 @@ func (c *FlightclassGetCall) Do(opts ...googleapi.CallOption) (*FlightClass, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightclass.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8877,8 +9595,7 @@ func (c *FlightclassInsertCall) Header() http.Header {
 
 func (c *FlightclassInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.flightclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.flightclass)
 	if err != nil {
 		return nil, err
 	}
@@ -8891,6 +9608,7 @@ func (c *FlightclassInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightclass.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8925,9 +9643,11 @@ func (c *FlightclassInsertCall) Do(opts ...googleapi.CallOption) (*FlightClass, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightclass.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9007,16 +9727,16 @@ func (c *FlightclassListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/flightClass")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightclass.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9052,9 +9772,11 @@ func (c *FlightclassListCall) Do(opts ...googleapi.CallOption) (*FlightClassList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightclass.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9107,8 +9829,7 @@ func (c *FlightclassPatchCall) Header() http.Header {
 
 func (c *FlightclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.flightclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.flightclass)
 	if err != nil {
 		return nil, err
 	}
@@ -9124,6 +9845,7 @@ func (c *FlightclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightclass.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9158,9 +9880,11 @@ func (c *FlightclassPatchCall) Do(opts ...googleapi.CallOption) (*FlightClass, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightclass.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9212,8 +9936,7 @@ func (c *FlightclassUpdateCall) Header() http.Header {
 
 func (c *FlightclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.flightclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.flightclass)
 	if err != nil {
 		return nil, err
 	}
@@ -9229,6 +9952,7 @@ func (c *FlightclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightclass.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9263,9 +9987,11 @@ func (c *FlightclassUpdateCall) Do(opts ...googleapi.CallOption) (*FlightClass, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightclass.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9318,8 +10044,7 @@ func (c *FlightobjectAddmessageCall) Header() http.Header {
 
 func (c *FlightobjectAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9335,6 +10060,7 @@ func (c *FlightobjectAddmessageCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightobject.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9370,9 +10096,11 @@ func (c *FlightobjectAddmessageCall) Do(opts ...googleapi.CallOption) (*FlightOb
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightobject.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9434,12 +10162,11 @@ func (c *FlightobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/flightObject/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9447,6 +10174,7 @@ func (c *FlightobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightobject.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9481,9 +10209,11 @@ func (c *FlightobjectGetCall) Do(opts ...googleapi.CallOption) (*FlightObject, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightobject.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9527,8 +10257,7 @@ func (c *FlightobjectInsertCall) Header() http.Header {
 
 func (c *FlightobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.flightobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.flightobject)
 	if err != nil {
 		return nil, err
 	}
@@ -9541,6 +10270,7 @@ func (c *FlightobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightobject.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9575,9 +10305,11 @@ func (c *FlightobjectInsertCall) Do(opts ...googleapi.CallOption) (*FlightObject
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightobject.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9657,16 +10389,16 @@ func (c *FlightobjectListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/flightObject")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightobject.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9702,9 +10434,11 @@ func (c *FlightobjectListCall) Do(opts ...googleapi.CallOption) (*FlightObjectLi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightobject.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9757,8 +10491,7 @@ func (c *FlightobjectPatchCall) Header() http.Header {
 
 func (c *FlightobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.flightobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.flightobject)
 	if err != nil {
 		return nil, err
 	}
@@ -9774,6 +10507,7 @@ func (c *FlightobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightobject.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9808,9 +10542,11 @@ func (c *FlightobjectPatchCall) Do(opts ...googleapi.CallOption) (*FlightObject,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightobject.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9862,8 +10598,7 @@ func (c *FlightobjectUpdateCall) Header() http.Header {
 
 func (c *FlightobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.flightobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.flightobject)
 	if err != nil {
 		return nil, err
 	}
@@ -9879,6 +10614,7 @@ func (c *FlightobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.flightobject.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9913,9 +10649,11 @@ func (c *FlightobjectUpdateCall) Do(opts ...googleapi.CallOption) (*FlightObject
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.flightobject.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9968,8 +10706,7 @@ func (c *GenericclassAddmessageCall) Header() http.Header {
 
 func (c *GenericclassAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9985,6 +10722,7 @@ func (c *GenericclassAddmessageCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericclass.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10020,9 +10758,11 @@ func (c *GenericclassAddmessageCall) Do(opts ...googleapi.CallOption) (*GenericC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericclass.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10084,12 +10824,11 @@ func (c *GenericclassGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/genericClass/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10097,6 +10836,7 @@ func (c *GenericclassGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericclass.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10131,9 +10871,11 @@ func (c *GenericclassGetCall) Do(opts ...googleapi.CallOption) (*GenericClass, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericclass.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10177,8 +10919,7 @@ func (c *GenericclassInsertCall) Header() http.Header {
 
 func (c *GenericclassInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.genericclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.genericclass)
 	if err != nil {
 		return nil, err
 	}
@@ -10191,6 +10932,7 @@ func (c *GenericclassInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericclass.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10225,9 +10967,11 @@ func (c *GenericclassInsertCall) Do(opts ...googleapi.CallOption) (*GenericClass
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericclass.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10307,16 +11051,16 @@ func (c *GenericclassListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/genericClass")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericclass.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10352,9 +11096,11 @@ func (c *GenericclassListCall) Do(opts ...googleapi.CallOption) (*GenericClassLi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericclass.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10407,8 +11153,7 @@ func (c *GenericclassPatchCall) Header() http.Header {
 
 func (c *GenericclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.genericclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.genericclass)
 	if err != nil {
 		return nil, err
 	}
@@ -10424,6 +11169,7 @@ func (c *GenericclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericclass.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10458,9 +11204,11 @@ func (c *GenericclassPatchCall) Do(opts ...googleapi.CallOption) (*GenericClass,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericclass.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10512,8 +11260,7 @@ func (c *GenericclassUpdateCall) Header() http.Header {
 
 func (c *GenericclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.genericclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.genericclass)
 	if err != nil {
 		return nil, err
 	}
@@ -10529,6 +11276,7 @@ func (c *GenericclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericclass.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10563,9 +11311,11 @@ func (c *GenericclassUpdateCall) Do(opts ...googleapi.CallOption) (*GenericClass
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericclass.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10618,8 +11368,7 @@ func (c *GenericobjectAddmessageCall) Header() http.Header {
 
 func (c *GenericobjectAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10635,6 +11384,7 @@ func (c *GenericobjectAddmessageCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericobject.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10670,9 +11420,11 @@ func (c *GenericobjectAddmessageCall) Do(opts ...googleapi.CallOption) (*Generic
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericobject.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10734,12 +11486,11 @@ func (c *GenericobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/genericObject/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10747,6 +11498,7 @@ func (c *GenericobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericobject.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10781,9 +11533,11 @@ func (c *GenericobjectGetCall) Do(opts ...googleapi.CallOption) (*GenericObject,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericobject.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10827,8 +11581,7 @@ func (c *GenericobjectInsertCall) Header() http.Header {
 
 func (c *GenericobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.genericobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.genericobject)
 	if err != nil {
 		return nil, err
 	}
@@ -10841,6 +11594,7 @@ func (c *GenericobjectInsertCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericobject.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10875,9 +11629,11 @@ func (c *GenericobjectInsertCall) Do(opts ...googleapi.CallOption) (*GenericObje
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericobject.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10957,16 +11713,16 @@ func (c *GenericobjectListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/genericObject")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericobject.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11002,9 +11758,11 @@ func (c *GenericobjectListCall) Do(opts ...googleapi.CallOption) (*GenericObject
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericobject.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11057,8 +11815,7 @@ func (c *GenericobjectPatchCall) Header() http.Header {
 
 func (c *GenericobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.genericobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.genericobject)
 	if err != nil {
 		return nil, err
 	}
@@ -11074,6 +11831,7 @@ func (c *GenericobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericobject.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11108,9 +11866,11 @@ func (c *GenericobjectPatchCall) Do(opts ...googleapi.CallOption) (*GenericObjec
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericobject.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11162,8 +11922,7 @@ func (c *GenericobjectUpdateCall) Header() http.Header {
 
 func (c *GenericobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.genericobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.genericobject)
 	if err != nil {
 		return nil, err
 	}
@@ -11179,6 +11938,7 @@ func (c *GenericobjectUpdateCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.genericobject.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11213,9 +11973,11 @@ func (c *GenericobjectUpdateCall) Do(opts ...googleapi.CallOption) (*GenericObje
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.genericobject.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11268,8 +12030,7 @@ func (c *GiftcardclassAddmessageCall) Header() http.Header {
 
 func (c *GiftcardclassAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11285,6 +12046,7 @@ func (c *GiftcardclassAddmessageCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11320,9 +12082,11 @@ func (c *GiftcardclassAddmessageCall) Do(opts ...googleapi.CallOption) (*GiftCar
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11384,12 +12148,11 @@ func (c *GiftcardclassGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/giftCardClass/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11397,6 +12160,7 @@ func (c *GiftcardclassGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11431,9 +12195,11 @@ func (c *GiftcardclassGetCall) Do(opts ...googleapi.CallOption) (*GiftCardClass,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11477,8 +12243,7 @@ func (c *GiftcardclassInsertCall) Header() http.Header {
 
 func (c *GiftcardclassInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.giftcardclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.giftcardclass)
 	if err != nil {
 		return nil, err
 	}
@@ -11491,6 +12256,7 @@ func (c *GiftcardclassInsertCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11525,9 +12291,11 @@ func (c *GiftcardclassInsertCall) Do(opts ...googleapi.CallOption) (*GiftCardCla
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11607,16 +12375,16 @@ func (c *GiftcardclassListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/giftCardClass")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11652,9 +12420,11 @@ func (c *GiftcardclassListCall) Do(opts ...googleapi.CallOption) (*GiftCardClass
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11707,8 +12477,7 @@ func (c *GiftcardclassPatchCall) Header() http.Header {
 
 func (c *GiftcardclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.giftcardclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.giftcardclass)
 	if err != nil {
 		return nil, err
 	}
@@ -11724,6 +12493,7 @@ func (c *GiftcardclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11758,9 +12528,11 @@ func (c *GiftcardclassPatchCall) Do(opts ...googleapi.CallOption) (*GiftCardClas
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11812,8 +12584,7 @@ func (c *GiftcardclassUpdateCall) Header() http.Header {
 
 func (c *GiftcardclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.giftcardclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.giftcardclass)
 	if err != nil {
 		return nil, err
 	}
@@ -11829,6 +12600,7 @@ func (c *GiftcardclassUpdateCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11863,9 +12635,11 @@ func (c *GiftcardclassUpdateCall) Do(opts ...googleapi.CallOption) (*GiftCardCla
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardclass.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11918,8 +12692,7 @@ func (c *GiftcardobjectAddmessageCall) Header() http.Header {
 
 func (c *GiftcardobjectAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11935,6 +12708,7 @@ func (c *GiftcardobjectAddmessageCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11970,9 +12744,11 @@ func (c *GiftcardobjectAddmessageCall) Do(opts ...googleapi.CallOption) (*GiftCa
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12034,12 +12810,11 @@ func (c *GiftcardobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/giftCardObject/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12047,6 +12822,7 @@ func (c *GiftcardobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12081,9 +12857,11 @@ func (c *GiftcardobjectGetCall) Do(opts ...googleapi.CallOption) (*GiftCardObjec
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12127,8 +12905,7 @@ func (c *GiftcardobjectInsertCall) Header() http.Header {
 
 func (c *GiftcardobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.giftcardobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.giftcardobject)
 	if err != nil {
 		return nil, err
 	}
@@ -12141,6 +12918,7 @@ func (c *GiftcardobjectInsertCall) doRequest(alt string) (*http.Response, error)
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12175,9 +12953,11 @@ func (c *GiftcardobjectInsertCall) Do(opts ...googleapi.CallOption) (*GiftCardOb
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12257,16 +13037,16 @@ func (c *GiftcardobjectListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/giftCardObject")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12302,9 +13082,11 @@ func (c *GiftcardobjectListCall) Do(opts ...googleapi.CallOption) (*GiftCardObje
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12357,8 +13139,7 @@ func (c *GiftcardobjectPatchCall) Header() http.Header {
 
 func (c *GiftcardobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.giftcardobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.giftcardobject)
 	if err != nil {
 		return nil, err
 	}
@@ -12374,6 +13155,7 @@ func (c *GiftcardobjectPatchCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12408,9 +13190,11 @@ func (c *GiftcardobjectPatchCall) Do(opts ...googleapi.CallOption) (*GiftCardObj
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12462,8 +13246,7 @@ func (c *GiftcardobjectUpdateCall) Header() http.Header {
 
 func (c *GiftcardobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.giftcardobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.giftcardobject)
 	if err != nil {
 		return nil, err
 	}
@@ -12479,6 +13262,7 @@ func (c *GiftcardobjectUpdateCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12513,9 +13297,11 @@ func (c *GiftcardobjectUpdateCall) Do(opts ...googleapi.CallOption) (*GiftCardOb
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.giftcardobject.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12573,12 +13359,11 @@ func (c *IssuerGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/issuer/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -12586,6 +13371,7 @@ func (c *IssuerGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": strconv.FormatInt(c.resourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.issuer.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12620,9 +13406,11 @@ func (c *IssuerGetCall) Do(opts ...googleapi.CallOption) (*Issuer, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.issuer.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12666,8 +13454,7 @@ func (c *IssuerInsertCall) Header() http.Header {
 
 func (c *IssuerInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.issuer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.issuer)
 	if err != nil {
 		return nil, err
 	}
@@ -12680,6 +13467,7 @@ func (c *IssuerInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.issuer.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12714,9 +13502,11 @@ func (c *IssuerInsertCall) Do(opts ...googleapi.CallOption) (*Issuer, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.issuer.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12770,16 +13560,16 @@ func (c *IssuerListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/issuer")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.issuer.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12815,9 +13605,11 @@ func (c *IssuerListCall) Do(opts ...googleapi.CallOption) (*IssuerListResponse, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.issuer.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12866,8 +13658,7 @@ func (c *IssuerPatchCall) Header() http.Header {
 
 func (c *IssuerPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.issuer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.issuer)
 	if err != nil {
 		return nil, err
 	}
@@ -12883,6 +13674,7 @@ func (c *IssuerPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": strconv.FormatInt(c.resourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.issuer.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -12917,9 +13709,11 @@ func (c *IssuerPatchCall) Do(opts ...googleapi.CallOption) (*Issuer, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.issuer.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -12967,8 +13761,7 @@ func (c *IssuerUpdateCall) Header() http.Header {
 
 func (c *IssuerUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.issuer)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.issuer)
 	if err != nil {
 		return nil, err
 	}
@@ -12984,6 +13777,7 @@ func (c *IssuerUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": strconv.FormatInt(c.resourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.issuer.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13018,9 +13812,11 @@ func (c *IssuerUpdateCall) Do(opts ...googleapi.CallOption) (*Issuer, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.issuer.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13064,8 +13860,7 @@ func (c *JwtInsertCall) Header() http.Header {
 
 func (c *JwtInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.jwtresource)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.jwtresource)
 	if err != nil {
 		return nil, err
 	}
@@ -13078,6 +13873,7 @@ func (c *JwtInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.jwt.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13113,9 +13909,11 @@ func (c *JwtInsertCall) Do(opts ...googleapi.CallOption) (*JwtInsertResponse, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.jwt.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13168,8 +13966,7 @@ func (c *LoyaltyclassAddmessageCall) Header() http.Header {
 
 func (c *LoyaltyclassAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13185,6 +13982,7 @@ func (c *LoyaltyclassAddmessageCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13220,9 +14018,11 @@ func (c *LoyaltyclassAddmessageCall) Do(opts ...googleapi.CallOption) (*LoyaltyC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13284,12 +14084,11 @@ func (c *LoyaltyclassGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/loyaltyClass/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13297,6 +14096,7 @@ func (c *LoyaltyclassGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13331,9 +14131,11 @@ func (c *LoyaltyclassGetCall) Do(opts ...googleapi.CallOption) (*LoyaltyClass, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13377,8 +14179,7 @@ func (c *LoyaltyclassInsertCall) Header() http.Header {
 
 func (c *LoyaltyclassInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.loyaltyclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.loyaltyclass)
 	if err != nil {
 		return nil, err
 	}
@@ -13391,6 +14192,7 @@ func (c *LoyaltyclassInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13425,9 +14227,11 @@ func (c *LoyaltyclassInsertCall) Do(opts ...googleapi.CallOption) (*LoyaltyClass
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13507,16 +14311,16 @@ func (c *LoyaltyclassListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/loyaltyClass")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13552,9 +14356,11 @@ func (c *LoyaltyclassListCall) Do(opts ...googleapi.CallOption) (*LoyaltyClassLi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13607,8 +14413,7 @@ func (c *LoyaltyclassPatchCall) Header() http.Header {
 
 func (c *LoyaltyclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.loyaltyclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.loyaltyclass)
 	if err != nil {
 		return nil, err
 	}
@@ -13624,6 +14429,7 @@ func (c *LoyaltyclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13658,9 +14464,11 @@ func (c *LoyaltyclassPatchCall) Do(opts ...googleapi.CallOption) (*LoyaltyClass,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13712,8 +14520,7 @@ func (c *LoyaltyclassUpdateCall) Header() http.Header {
 
 func (c *LoyaltyclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.loyaltyclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.loyaltyclass)
 	if err != nil {
 		return nil, err
 	}
@@ -13729,6 +14536,7 @@ func (c *LoyaltyclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13763,9 +14571,11 @@ func (c *LoyaltyclassUpdateCall) Do(opts ...googleapi.CallOption) (*LoyaltyClass
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyclass.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13818,8 +14628,7 @@ func (c *LoyaltyobjectAddmessageCall) Header() http.Header {
 
 func (c *LoyaltyobjectAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -13835,6 +14644,7 @@ func (c *LoyaltyobjectAddmessageCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13870,9 +14680,11 @@ func (c *LoyaltyobjectAddmessageCall) Do(opts ...googleapi.CallOption) (*Loyalty
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -13934,12 +14746,11 @@ func (c *LoyaltyobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/loyaltyObject/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13947,6 +14758,7 @@ func (c *LoyaltyobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -13981,9 +14793,11 @@ func (c *LoyaltyobjectGetCall) Do(opts ...googleapi.CallOption) (*LoyaltyObject,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14027,8 +14841,7 @@ func (c *LoyaltyobjectInsertCall) Header() http.Header {
 
 func (c *LoyaltyobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.loyaltyobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.loyaltyobject)
 	if err != nil {
 		return nil, err
 	}
@@ -14041,6 +14854,7 @@ func (c *LoyaltyobjectInsertCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14075,9 +14889,11 @@ func (c *LoyaltyobjectInsertCall) Do(opts ...googleapi.CallOption) (*LoyaltyObje
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14157,16 +14973,16 @@ func (c *LoyaltyobjectListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/loyaltyObject")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14202,9 +15018,11 @@ func (c *LoyaltyobjectListCall) Do(opts ...googleapi.CallOption) (*LoyaltyObject
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14257,8 +15075,7 @@ func (c *LoyaltyobjectModifylinkedofferobjectsCall) Header() http.Header {
 
 func (c *LoyaltyobjectModifylinkedofferobjectsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.modifylinkedofferobjectsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.modifylinkedofferobjectsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14274,6 +15091,7 @@ func (c *LoyaltyobjectModifylinkedofferobjectsCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.modifylinkedofferobjects", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14308,9 +15126,11 @@ func (c *LoyaltyobjectModifylinkedofferobjectsCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.modifylinkedofferobjects", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14363,8 +15183,7 @@ func (c *LoyaltyobjectPatchCall) Header() http.Header {
 
 func (c *LoyaltyobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.loyaltyobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.loyaltyobject)
 	if err != nil {
 		return nil, err
 	}
@@ -14380,6 +15199,7 @@ func (c *LoyaltyobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14414,9 +15234,11 @@ func (c *LoyaltyobjectPatchCall) Do(opts ...googleapi.CallOption) (*LoyaltyObjec
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14468,8 +15290,7 @@ func (c *LoyaltyobjectUpdateCall) Header() http.Header {
 
 func (c *LoyaltyobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.loyaltyobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.loyaltyobject)
 	if err != nil {
 		return nil, err
 	}
@@ -14485,6 +15306,7 @@ func (c *LoyaltyobjectUpdateCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14519,9 +15341,11 @@ func (c *LoyaltyobjectUpdateCall) Do(opts ...googleapi.CallOption) (*LoyaltyObje
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.loyaltyobject.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14584,12 +15408,11 @@ func (c *MediaDownloadCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/transitObject/{resourceId}/downloadRotatingBarcodeValues")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -14597,6 +15420,7 @@ func (c *MediaDownloadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.media.download", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14647,9 +15471,11 @@ func (c *MediaDownloadCall) Do(opts ...googleapi.CallOption) (*Media, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.media.download", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14743,8 +15569,7 @@ func (c *MediaUploadCall) Header() http.Header {
 
 func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transitobjectuploadrotatingbarcodevaluesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transitobjectuploadrotatingbarcodevaluesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14755,14 +15580,10 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 		urls = googleapi.ResolveRelative(c.s.BasePath, "/upload/walletobjects/v1/transitObject/{resourceId}/uploadRotatingBarcodeValues")
 		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
 	}
-	if body == nil {
-		body = new(bytes.Buffer)
-		reqHeaders.Set("Content-Type", "application/json")
-	}
-	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	newBody, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, newBody)
 	if err != nil {
 		return nil, err
 	}
@@ -14771,6 +15592,7 @@ func (c *MediaUploadCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.media.upload", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14823,9 +15645,11 @@ func (c *MediaUploadCall) Do(opts ...googleapi.CallOption) (*TransitObjectUpload
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.media.upload", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14878,8 +15702,7 @@ func (c *OfferclassAddmessageCall) Header() http.Header {
 
 func (c *OfferclassAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -14895,6 +15718,7 @@ func (c *OfferclassAddmessageCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerclass.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -14930,9 +15754,11 @@ func (c *OfferclassAddmessageCall) Do(opts ...googleapi.CallOption) (*OfferClass
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerclass.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -14994,12 +15820,11 @@ func (c *OfferclassGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/offerClass/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15007,6 +15832,7 @@ func (c *OfferclassGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerclass.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15041,9 +15867,11 @@ func (c *OfferclassGetCall) Do(opts ...googleapi.CallOption) (*OfferClass, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerclass.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15087,8 +15915,7 @@ func (c *OfferclassInsertCall) Header() http.Header {
 
 func (c *OfferclassInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.offerclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.offerclass)
 	if err != nil {
 		return nil, err
 	}
@@ -15101,6 +15928,7 @@ func (c *OfferclassInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerclass.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15135,9 +15963,11 @@ func (c *OfferclassInsertCall) Do(opts ...googleapi.CallOption) (*OfferClass, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerclass.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15217,16 +16047,16 @@ func (c *OfferclassListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/offerClass")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerclass.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15262,9 +16092,11 @@ func (c *OfferclassListCall) Do(opts ...googleapi.CallOption) (*OfferClassListRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerclass.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15317,8 +16149,7 @@ func (c *OfferclassPatchCall) Header() http.Header {
 
 func (c *OfferclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.offerclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.offerclass)
 	if err != nil {
 		return nil, err
 	}
@@ -15334,6 +16165,7 @@ func (c *OfferclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerclass.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15368,9 +16200,11 @@ func (c *OfferclassPatchCall) Do(opts ...googleapi.CallOption) (*OfferClass, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerclass.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15422,8 +16256,7 @@ func (c *OfferclassUpdateCall) Header() http.Header {
 
 func (c *OfferclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.offerclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.offerclass)
 	if err != nil {
 		return nil, err
 	}
@@ -15439,6 +16272,7 @@ func (c *OfferclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerclass.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15473,9 +16307,11 @@ func (c *OfferclassUpdateCall) Do(opts ...googleapi.CallOption) (*OfferClass, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerclass.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15528,8 +16364,7 @@ func (c *OfferobjectAddmessageCall) Header() http.Header {
 
 func (c *OfferobjectAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -15545,6 +16380,7 @@ func (c *OfferobjectAddmessageCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerobject.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15580,9 +16416,11 @@ func (c *OfferobjectAddmessageCall) Do(opts ...googleapi.CallOption) (*OfferObje
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerobject.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15644,12 +16482,11 @@ func (c *OfferobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/offerObject/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -15657,6 +16494,7 @@ func (c *OfferobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerobject.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15691,9 +16529,11 @@ func (c *OfferobjectGetCall) Do(opts ...googleapi.CallOption) (*OfferObject, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerobject.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15737,8 +16577,7 @@ func (c *OfferobjectInsertCall) Header() http.Header {
 
 func (c *OfferobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.offerobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.offerobject)
 	if err != nil {
 		return nil, err
 	}
@@ -15751,6 +16590,7 @@ func (c *OfferobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerobject.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15785,9 +16625,11 @@ func (c *OfferobjectInsertCall) Do(opts ...googleapi.CallOption) (*OfferObject, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerobject.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15867,16 +16709,16 @@ func (c *OfferobjectListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/offerObject")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerobject.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -15912,9 +16754,11 @@ func (c *OfferobjectListCall) Do(opts ...googleapi.CallOption) (*OfferObjectList
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerobject.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -15967,8 +16811,7 @@ func (c *OfferobjectPatchCall) Header() http.Header {
 
 func (c *OfferobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.offerobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.offerobject)
 	if err != nil {
 		return nil, err
 	}
@@ -15984,6 +16827,7 @@ func (c *OfferobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerobject.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16018,9 +16862,11 @@ func (c *OfferobjectPatchCall) Do(opts ...googleapi.CallOption) (*OfferObject, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerobject.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16072,8 +16918,7 @@ func (c *OfferobjectUpdateCall) Header() http.Header {
 
 func (c *OfferobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.offerobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.offerobject)
 	if err != nil {
 		return nil, err
 	}
@@ -16089,6 +16934,7 @@ func (c *OfferobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.offerobject.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16123,9 +16969,11 @@ func (c *OfferobjectUpdateCall) Do(opts ...googleapi.CallOption) (*OfferObject, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.offerobject.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16184,12 +17032,11 @@ func (c *PermissionsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/permissions/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16197,6 +17044,7 @@ func (c *PermissionsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": strconv.FormatInt(c.resourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.permissions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16231,9 +17079,11 @@ func (c *PermissionsGetCall) Do(opts ...googleapi.CallOption) (*Permissions, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.permissions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16282,8 +17132,7 @@ func (c *PermissionsUpdateCall) Header() http.Header {
 
 func (c *PermissionsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.permissions)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.permissions)
 	if err != nil {
 		return nil, err
 	}
@@ -16299,6 +17148,7 @@ func (c *PermissionsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": strconv.FormatInt(c.resourceId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.permissions.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16333,9 +17183,11 @@ func (c *PermissionsUpdateCall) Do(opts ...googleapi.CallOption) (*Permissions, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.permissions.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16379,8 +17231,7 @@ func (c *SmarttapInsertCall) Header() http.Header {
 
 func (c *SmarttapInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.smarttap)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.smarttap)
 	if err != nil {
 		return nil, err
 	}
@@ -16393,6 +17244,7 @@ func (c *SmarttapInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.smarttap.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16427,9 +17279,11 @@ func (c *SmarttapInsertCall) Do(opts ...googleapi.CallOption) (*SmartTap, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.smarttap.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16482,8 +17336,7 @@ func (c *TransitclassAddmessageCall) Header() http.Header {
 
 func (c *TransitclassAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -16499,6 +17352,7 @@ func (c *TransitclassAddmessageCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitclass.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16534,9 +17388,11 @@ func (c *TransitclassAddmessageCall) Do(opts ...googleapi.CallOption) (*TransitC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitclass.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16598,12 +17454,11 @@ func (c *TransitclassGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/transitClass/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -16611,6 +17466,7 @@ func (c *TransitclassGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitclass.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16645,9 +17501,11 @@ func (c *TransitclassGetCall) Do(opts ...googleapi.CallOption) (*TransitClass, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitclass.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16691,8 +17549,7 @@ func (c *TransitclassInsertCall) Header() http.Header {
 
 func (c *TransitclassInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transitclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transitclass)
 	if err != nil {
 		return nil, err
 	}
@@ -16705,6 +17562,7 @@ func (c *TransitclassInsertCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitclass.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16739,9 +17597,11 @@ func (c *TransitclassInsertCall) Do(opts ...googleapi.CallOption) (*TransitClass
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitclass.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16821,16 +17681,16 @@ func (c *TransitclassListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/transitClass")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitclass.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16866,9 +17726,11 @@ func (c *TransitclassListCall) Do(opts ...googleapi.CallOption) (*TransitClassLi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitclass.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -16921,8 +17783,7 @@ func (c *TransitclassPatchCall) Header() http.Header {
 
 func (c *TransitclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transitclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transitclass)
 	if err != nil {
 		return nil, err
 	}
@@ -16938,6 +17799,7 @@ func (c *TransitclassPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitclass.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -16972,9 +17834,11 @@ func (c *TransitclassPatchCall) Do(opts ...googleapi.CallOption) (*TransitClass,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitclass.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17026,8 +17890,7 @@ func (c *TransitclassUpdateCall) Header() http.Header {
 
 func (c *TransitclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transitclass)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transitclass)
 	if err != nil {
 		return nil, err
 	}
@@ -17043,6 +17906,7 @@ func (c *TransitclassUpdateCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitclass.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17077,9 +17941,11 @@ func (c *TransitclassUpdateCall) Do(opts ...googleapi.CallOption) (*TransitClass
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitclass.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17132,8 +17998,7 @@ func (c *TransitobjectAddmessageCall) Header() http.Header {
 
 func (c *TransitobjectAddmessageCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.addmessagerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.addmessagerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -17149,6 +18014,7 @@ func (c *TransitobjectAddmessageCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitobject.addmessage", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17184,9 +18050,11 @@ func (c *TransitobjectAddmessageCall) Do(opts ...googleapi.CallOption) (*Transit
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitobject.addmessage", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17248,12 +18116,11 @@ func (c *TransitobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/transitObject/{resourceId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -17261,6 +18128,7 @@ func (c *TransitobjectGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitobject.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17295,9 +18163,11 @@ func (c *TransitobjectGetCall) Do(opts ...googleapi.CallOption) (*TransitObject,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitobject.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17341,8 +18211,7 @@ func (c *TransitobjectInsertCall) Header() http.Header {
 
 func (c *TransitobjectInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transitobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transitobject)
 	if err != nil {
 		return nil, err
 	}
@@ -17355,6 +18224,7 @@ func (c *TransitobjectInsertCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitobject.insert", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17389,9 +18259,11 @@ func (c *TransitobjectInsertCall) Do(opts ...googleapi.CallOption) (*TransitObje
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitobject.insert", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17471,16 +18343,16 @@ func (c *TransitobjectListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/transitObject")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitobject.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17516,9 +18388,11 @@ func (c *TransitobjectListCall) Do(opts ...googleapi.CallOption) (*TransitObject
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitobject.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17571,8 +18445,7 @@ func (c *TransitobjectPatchCall) Header() http.Header {
 
 func (c *TransitobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transitobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transitobject)
 	if err != nil {
 		return nil, err
 	}
@@ -17588,6 +18461,7 @@ func (c *TransitobjectPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitobject.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17622,9 +18496,11 @@ func (c *TransitobjectPatchCall) Do(opts ...googleapi.CallOption) (*TransitObjec
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitobject.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -17676,8 +18552,7 @@ func (c *TransitobjectUpdateCall) Header() http.Header {
 
 func (c *TransitobjectUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transitobject)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transitobject)
 	if err != nil {
 		return nil, err
 	}
@@ -17693,6 +18568,7 @@ func (c *TransitobjectUpdateCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"resourceId": c.resourceId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.transitobject.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -17727,8 +18603,109 @@ func (c *TransitobjectUpdateCall) Do(opts ...googleapi.CallOption) (*TransitObje
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.transitobject.update", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type WalletobjectsV1PrivateContentSetPassUpdateNoticeCall struct {
+	s                          *Service
+	setpassupdatenoticerequest *SetPassUpdateNoticeRequest
+	urlParams_                 gensupport.URLParams
+	ctx_                       context.Context
+	header_                    http.Header
+}
+
+// SetPassUpdateNotice: Provide Google with information about awaiting private
+// pass update. This will allow Google to provide the update notification to
+// the device that currently holds this pass.
+func (r *WalletobjectsV1PrivateContentService) SetPassUpdateNotice(setpassupdatenoticerequest *SetPassUpdateNoticeRequest) *WalletobjectsV1PrivateContentSetPassUpdateNoticeCall {
+	c := &WalletobjectsV1PrivateContentSetPassUpdateNoticeCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.setpassupdatenoticerequest = setpassupdatenoticerequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *WalletobjectsV1PrivateContentSetPassUpdateNoticeCall) Fields(s ...googleapi.Field) *WalletobjectsV1PrivateContentSetPassUpdateNoticeCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *WalletobjectsV1PrivateContentSetPassUpdateNoticeCall) Context(ctx context.Context) *WalletobjectsV1PrivateContentSetPassUpdateNoticeCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *WalletobjectsV1PrivateContentSetPassUpdateNoticeCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *WalletobjectsV1PrivateContentSetPassUpdateNoticeCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setpassupdatenoticerequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "walletobjects/v1/privateContent/setPassUpdateNotice")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "walletobjects.walletobjects.v1.privateContent.setPassUpdateNotice", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "walletobjects.walletobjects.v1.privateContent.setPassUpdateNotice" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *SetPassUpdateNoticeResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *WalletobjectsV1PrivateContentSetPassUpdateNoticeCall) Do(opts ...googleapi.CallOption) (*SetPassUpdateNoticeResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &SetPassUpdateNoticeResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "walletobjects.walletobjects.v1.privateContent.setPassUpdateNotice", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

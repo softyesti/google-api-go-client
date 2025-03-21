@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "doubleclickbidmanager:v2"
 const apiName = "doubleclickbidmanager"
@@ -114,7 +117,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Queries = NewQueriesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +137,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Queries = NewQueriesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -174,23 +177,25 @@ type QueriesReportsService struct {
 	s *Service
 }
 
-// DataRange: Report data range.
+// DataRange: The date range to be reported on.
 type DataRange struct {
-	// CustomEndDate: The ending date for the data that is shown in the report.
-	// Note, `customEndDate` is required if `range` is `CUSTOM_DATES` and ignored
-	// otherwise.
+	// CustomEndDate: If `CUSTOM_DATES` is assigned to range, this field specifies
+	// the end date for the date range that is reported on. This field is required
+	// if using `CUSTOM_DATES` range and will be ignored otherwise.
 	CustomEndDate *Date `json:"customEndDate,omitempty"`
-	// CustomStartDate: The starting data for the data that is shown in the report.
-	// Note, `customStartDate` is required if `range` is `CUSTOM_DATES` and ignored
+	// CustomStartDate: If `CUSTOM_DATES` is assigned to range, this field
+	// specifies the starting date for the date range that is reported on. This
+	// field is required if using `CUSTOM_DATES` range and will be ignored
 	// otherwise.
 	CustomStartDate *Date `json:"customStartDate,omitempty"`
-	// Range: Report data range used to generate the report.
+	// Range: The preset date range to be reported on. If `CUSTOM_DATES` is
+	// assigned to this field, fields custom_start_date and custom_end_date must be
+	// set to specify the custom date range.
 	//
 	// Possible values:
 	//   "RANGE_UNSPECIFIED" - Default value when range is not specified or is
 	// unknown in this version.
-	//   "CUSTOM_DATES" - Custom range specified by custom_start_date and
-	// custom_end_date fields.
+	//   "CUSTOM_DATES" - Custom date range.
 	//   "CURRENT_DAY" - Current day.
 	//   "PREVIOUS_DAY" - Previous day.
 	//   "WEEK_TO_DATE" - All days, including the current day, since the most
@@ -227,9 +232,9 @@ type DataRange struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DataRange) MarshalJSON() ([]byte, error) {
+func (s DataRange) MarshalJSON() ([]byte, error) {
 	type NoMethod DataRange
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Date: Represents a whole or partial calendar date, such as a birthday. The
@@ -265,16 +270,17 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// FilterPair: Filter used to match traffic data in your report.
+// FilterPair: Represents a single filter rule.
 type FilterPair struct {
-	// Type: Filter type.
+	// Type: The type of value to filter by. Defined by a Filter
+	// (/bid-manager/reference/rest/v2/filters-metrics#filters) value.
 	Type string `json:"type,omitempty"`
-	// Value: Filter value.
+	// Value: The identifying value to filter by, such as a relevant resource ID.
 	Value string `json:"value,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Type") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -289,16 +295,17 @@ type FilterPair struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FilterPair) MarshalJSON() ([]byte, error) {
+func (s FilterPair) MarshalJSON() ([]byte, error) {
 	type NoMethod FilterPair
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListQueriesResponse struct {
-	// NextPageToken: A token, which can be sent as page_token to retrieve the next
-	// page of queries. If this field is omitted, there are no subsequent pages.
+	// NextPageToken: A token to retrieve the next page of results. Pass this value
+	// in the page_token field in the subsequent call to `queries.list` method to
+	// retrieve the next page of results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
-	// Queries: The list of queries.
+	// Queries: The list of queries. This field will be absent if empty.
 	Queries []*Query `json:"queries,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -316,16 +323,17 @@ type ListQueriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListQueriesResponse) MarshalJSON() ([]byte, error) {
+func (s ListQueriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListQueriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListReportsResponse struct {
-	// NextPageToken: A token, which can be sent as page_token to retrieve the next
-	// page of reports. If this field is omitted, there are no subsequent pages.
+	// NextPageToken: A token to retrieve the next page of results. Pass this value
+	// in the page_token field in the subsequent call to `queries.reports.list`
+	// method to retrieve the next page of results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
-	// Reports: Retrieved reports.
+	// Reports: The list of reports. This field will be absent if empty.
 	Reports []*Report `json:"reports,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -343,16 +351,16 @@ type ListReportsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListReportsResponse) MarshalJSON() ([]byte, error) {
+func (s ListReportsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListReportsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Options: Additional query options.
+// Options: Report parameter options.
 type Options struct {
-	// IncludeOnlyTargetedUserLists: Set to true and filter your report by
-	// `FILTER_INSERTION_ORDER` or `FILTER_LINE_ITEM` to include data for audience
-	// lists specifically targeted by those items.
+	// IncludeOnlyTargetedUserLists: Whether to include data for audience lists
+	// specifically targeted by filtered line items or insertion orders. Requires
+	// the use of `FILTER_INSERTION_ORDER` or `FILTER_LINE_ITEM` filters.
 	IncludeOnlyTargetedUserLists bool `json:"includeOnlyTargetedUserLists,omitempty"`
 	// ForceSendFields is a list of field names (e.g.
 	// "IncludeOnlyTargetedUserLists") to unconditionally include in API requests.
@@ -367,29 +375,34 @@ type Options struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Options) MarshalJSON() ([]byte, error) {
+func (s Options) MarshalJSON() ([]byte, error) {
 	type NoMethod Options
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Parameters: Parameters of a query or report.
+// Parameters: Parameters of a generated report.
 type Parameters struct {
-	// Filters: Filters used to match traffic data in your report.
+	// Filters: Filters to limit the scope of reported data.
 	Filters []*FilterPair `json:"filters,omitempty"`
-	// GroupBys: Data is grouped by the filters listed in this field.
+	// GroupBys: Dimensions by which to segment and group the data. Defined by
+	// Filter (/bid-manager/reference/rest/v2/filters-metrics#filters) values.
 	GroupBys []string `json:"groupBys,omitempty"`
-	// Metrics: Metrics to include as columns in your report.
+	// Metrics: Metrics to define the data populating the report. Defined by Metric
+	// (/bid-manager/reference/rest/v2/filters-metrics#metrics) values.
 	Metrics []string `json:"metrics,omitempty"`
-	// Options: Additional query options.
+	// Options: Additional report parameter options.
 	Options *Options `json:"options,omitempty"`
-	// Type: The type of the report. The type of the report will dictate what
-	// dimesions, filters, and metrics can be used.
+	// Type: The type of the report. The type of the report determines the
+	// dimesions, filters, and metrics that can be used.
 	//
 	// Possible values:
 	//   "REPORT_TYPE_UNSPECIFIED" - Default value when report type is not
 	// specified or is unknown in this version.
 	//   "STANDARD" - Standard report.
-	//   "INVENTORY_AVAILABILITY" - Inventory Availability report.
+	//   "INVENTORY_AVAILABILITY" - Inventory Availability report. See the [Display
+	// & Video 360 Help Center
+	// announcement](https://support.google.com/displayvideo/answer/15874746) for
+	// more information on this deprecation.
 	//   "AUDIENCE_COMPOSITION" - Audience Composition report.
 	//   "FLOODLIGHT" - Floodlight report.
 	//   "YOUTUBE" - YouTube report.
@@ -398,6 +411,8 @@ type Parameters struct {
 	// report.
 	//   "REACH" - Reach report.
 	//   "UNIQUE_REACH_AUDIENCE" - Unique Reach Audience report.
+	//   "FULL_PATH" - Full Path report.
+	//   "PATH_ATTRIBUTION" - Path Attribution report.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Filters") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -412,22 +427,22 @@ type Parameters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Parameters) MarshalJSON() ([]byte, error) {
+func (s Parameters) MarshalJSON() ([]byte, error) {
 	type NoMethod Parameters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Query: Represents a query.
+// Query: A single query used to generate a report.
 type Query struct {
-	// Metadata: Query metadata.
+	// Metadata: The metadata of the query.
 	Metadata *QueryMetadata `json:"metadata,omitempty"`
-	// Params: Query parameters.
+	// Params: The parameters of the report generated by the query.
 	Params *Parameters `json:"params,omitempty"`
-	// QueryId: Output only. Query ID.
+	// QueryId: Output only. The unique ID of the query.
 	QueryId int64 `json:"queryId,omitempty,string"`
-	// Schedule: Information on how often and when to run a query. If `ONE_TIME` is
-	// set to the frequency field, the query will only be run at the time of
-	// creation.
+	// Schedule: When and how often the query is scheduled to run. If the frequency
+	// field is set to `ONE_TIME`, the query will only run when queries.run is
+	// called.
 	Schedule *QuerySchedule `json:"schedule,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -445,17 +460,17 @@ type Query struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Query) MarshalJSON() ([]byte, error) {
+func (s Query) MarshalJSON() ([]byte, error) {
 	type NoMethod Query
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// QueryMetadata: Query metadata.
+// QueryMetadata: The metadata of the query.
 type QueryMetadata struct {
-	// DataRange: Range of report data. All reports will be based on the same time
-	// zone as used by the advertiser.
+	// DataRange: The date range the report generated by the query will report on.
+	// This date range will be defined by the time zone as used by the advertiser.
 	DataRange *DataRange `json:"dataRange,omitempty"`
-	// Format: Format of the generated report.
+	// Format: The format of the report generated by the query.
 	//
 	// Possible values:
 	//   "FORMAT_UNSPECIFIED" - Default value when format is not specified or is
@@ -463,14 +478,18 @@ type QueryMetadata struct {
 	//   "CSV" - CSV.
 	//   "XLSX" - Excel.
 	Format string `json:"format,omitempty"`
-	// SendNotification: Whether to send an email notification when a report is
-	// ready. Defaults to false.
+	// SendNotification: Whether an email notification is sent to the query creator
+	// when a report generated by the query is ready. This value is `false` by
+	// default.
 	SendNotification bool `json:"sendNotification,omitempty"`
-	// ShareEmailAddress: List of email addresses which are sent email
-	// notifications when the report is finished. Separate from send_notification.
+	// ShareEmailAddress: List of additional email addresses with which to share
+	// the query. If send_notification is `true`, these email addresses will
+	// receive a notification when a report generated by the query is ready. If
+	// these email addresses are connected to Display & Video 360 users, the query
+	// will be available to them in the Display & Video 360 interface.
 	ShareEmailAddress []string `json:"shareEmailAddress,omitempty"`
-	// Title: Query title. It is used to name the reports generated from this
-	// query.
+	// Title: The display name of the query. This value will be used in the file
+	// name of reports generated by the query.
 	Title string `json:"title,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DataRange") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -485,34 +504,37 @@ type QueryMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryMetadata) MarshalJSON() ([]byte, error) {
+func (s QueryMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// QuerySchedule: Information on when and how frequently to run a query.
+// QuerySchedule: Settings on when and how frequently to run a query.
 type QuerySchedule struct {
-	// EndDate: Date to periodically run the query until. Not applicable to
-	// `ONE_TIME` frequency.
+	// EndDate: The date on which to end the scheduled runs. This field is required
+	// if frequency is not set to `ONE_TIME`. Otherwise, it will be ignored.
 	EndDate *Date `json:"endDate,omitempty"`
-	// Frequency: How often the query is run.
+	// Frequency: How frequently to run the query. If set to `ONE_TIME`, the query
+	// will only be run when queries.run is called.
 	//
 	// Possible values:
 	//   "FREQUENCY_UNSPECIFIED" - Default value when frequency is not specified or
 	// is unknown in this version.
-	//   "ONE_TIME" - Only once.
+	//   "ONE_TIME" - Only when the query is run manually.
 	//   "DAILY" - Once a day.
 	//   "WEEKLY" - Once a week.
 	//   "SEMI_MONTHLY" - Twice a month.
 	//   "MONTHLY" - Once a month.
-	//   "QUARTERLY" - Once a quarter
+	//   "QUARTERLY" - Once a quarter.
 	//   "YEARLY" - Once a year.
 	Frequency string `json:"frequency,omitempty"`
-	// NextRunTimezoneCode: Canonical timezone code for report generation time.
-	// Defaults to `America/New_York`.
+	// NextRunTimezoneCode: The canonical code for the timezone the query schedule
+	// is based on. Scheduled runs are usually conducted in the morning of a given
+	// day. Defaults to `America/New_York`.
 	NextRunTimezoneCode string `json:"nextRunTimezoneCode,omitempty"`
-	// StartDate: When to start running the query. Not applicable to `ONE_TIME`
-	// frequency.
+	// StartDate: The date on which to begin the scheduled runs. This field is
+	// required if frequency is not set to `ONE_TIME`. Otherwise, it will be
+	// ignored.
 	StartDate *Date `json:"startDate,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EndDate") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -527,18 +549,18 @@ type QuerySchedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QuerySchedule) MarshalJSON() ([]byte, error) {
+func (s QuerySchedule) MarshalJSON() ([]byte, error) {
 	type NoMethod QuerySchedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// Report: Represents a report.
+// Report: A single report generated by its parent report.
 type Report struct {
-	// Key: Key used to identify a report.
+	// Key: The key information identifying the report.
 	Key *ReportKey `json:"key,omitempty"`
-	// Metadata: Report metadata.
+	// Metadata: The metadata of the report.
 	Metadata *ReportMetadata `json:"metadata,omitempty"`
-	// Params: Report parameters.
+	// Params: The parameters of the report.
 	Params *Parameters `json:"params,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
@@ -556,16 +578,16 @@ type Report struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Report) MarshalJSON() ([]byte, error) {
+func (s Report) MarshalJSON() ([]byte, error) {
 	type NoMethod Report
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// ReportKey: Key used to identify a report.
+// ReportKey: Identifying information of a report.
 type ReportKey struct {
-	// QueryId: Output only. Query ID.
+	// QueryId: Output only. The unique ID of the query that generated the report.
 	QueryId int64 `json:"queryId,omitempty,string"`
-	// ReportId: Output only. Report ID.
+	// ReportId: Output only. The unique ID of the report.
 	ReportId int64 `json:"reportId,omitempty,string"`
 	// ForceSendFields is a list of field names (e.g. "QueryId") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -580,22 +602,22 @@ type ReportKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportKey) MarshalJSON() ([]byte, error) {
+func (s ReportKey) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// ReportMetadata: Report metadata.
+// ReportMetadata: The metadata of a report.
 type ReportMetadata struct {
-	// GoogleCloudStoragePath: Output only. The path to the location in Google
-	// Cloud Storage where the report is stored.
+	// GoogleCloudStoragePath: Output only. The location of the generated report
+	// file in Google Cloud Storage. This field will be absent if status.state is
+	// not `DONE`.
 	GoogleCloudStoragePath string `json:"googleCloudStoragePath,omitempty"`
-	// ReportDataEndDate: The ending time for the data that is shown in the report.
+	// ReportDataEndDate: The end date of the report data date range.
 	ReportDataEndDate *Date `json:"reportDataEndDate,omitempty"`
-	// ReportDataStartDate: The starting time for the data that is shown in the
-	// report.
+	// ReportDataStartDate: The start date of the report data date range.
 	ReportDataStartDate *Date `json:"reportDataStartDate,omitempty"`
-	// Status: Report status.
+	// Status: The status of the report.
 	Status *ReportStatus `json:"status,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "GoogleCloudStoragePath") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -610,17 +632,18 @@ type ReportMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportMetadata) MarshalJSON() ([]byte, error) {
+func (s ReportMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// ReportStatus: Report status.
+// ReportStatus: The status of a report.
 type ReportStatus struct {
-	// FinishTime: Output only. The time when this report either completed
-	// successfully or failed.
+	// FinishTime: Output only. The timestamp of when report generation finished
+	// successfully or in failure. This field will not be set unless state is
+	// `DONE` or `FAILED`.
 	FinishTime string `json:"finishTime,omitempty"`
-	// Format: The file type of the report.
+	// Format: The format of the generated report file.
 	//
 	// Possible values:
 	//   "FORMAT_UNSPECIFIED" - Default value when format is not specified or is
@@ -628,7 +651,7 @@ type ReportStatus struct {
 	//   "CSV" - CSV.
 	//   "XLSX" - Excel.
 	Format string `json:"format,omitempty"`
-	// State: Output only. The state of the report.
+	// State: Output only. The state of the report generation.
 	//
 	// Possible values:
 	//   "STATE_UNSPECIFIED" - Default value when state is not specified or is
@@ -651,15 +674,15 @@ type ReportStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportStatus) MarshalJSON() ([]byte, error) {
+func (s ReportStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// RunQueryRequest: Request to run a stored query to generate a report.
+// RunQueryRequest: Details specifying how to run a query.
 type RunQueryRequest struct {
-	// DataRange: Report data range used to generate the report. If unspecified,
-	// the original parent query's data range is used.
+	// DataRange: The date range used by the query to generate the report. If
+	// unspecified, the query's original data_range is used.
 	DataRange *DataRange `json:"dataRange,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "DataRange") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -674,9 +697,9 @@ type RunQueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunQueryRequest) MarshalJSON() ([]byte, error) {
+func (s RunQueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunQueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type QueriesCreateCall struct {
@@ -687,7 +710,7 @@ type QueriesCreateCall struct {
 	header_    http.Header
 }
 
-// Create: Creates a query.
+// Create: Creates a new query.
 func (r *QueriesService) Create(query *Query) *QueriesCreateCall {
 	c := &QueriesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.query = query
@@ -719,8 +742,7 @@ func (c *QueriesCreateCall) Header() http.Header {
 
 func (c *QueriesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.query)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.query)
 	if err != nil {
 		return nil, err
 	}
@@ -733,6 +755,7 @@ func (c *QueriesCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -767,9 +790,11 @@ func (c *QueriesCreateCall) Do(opts ...googleapi.CallOption) (*Query, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -781,9 +806,9 @@ type QueriesDeleteCall struct {
 	header_    http.Header
 }
 
-// Delete: Deletes a query as well as the associated reports.
+// Delete: Deletes an existing query as well as its generated reports.
 //
-// - queryId: ID of query to delete.
+// - queryId: The ID of the query to delete.
 func (r *QueriesService) Delete(queryId int64) *QueriesDeleteCall {
 	c := &QueriesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.queryId = queryId
@@ -815,12 +840,11 @@ func (c *QueriesDeleteCall) Header() http.Header {
 
 func (c *QueriesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "queries/{queryId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -828,6 +852,7 @@ func (c *QueriesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"queryId": strconv.FormatInt(c.queryId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -842,6 +867,7 @@ func (c *QueriesDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -856,7 +882,7 @@ type QueriesGetCall struct {
 
 // Get: Retrieves a query.
 //
-// - queryId: ID of query to retrieve.
+// - queryId: The ID of the query to retrieve.
 func (r *QueriesService) Get(queryId int64) *QueriesGetCall {
 	c := &QueriesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.queryId = queryId
@@ -899,12 +925,11 @@ func (c *QueriesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "queries/{queryId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -912,6 +937,7 @@ func (c *QueriesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"queryId": strconv.FormatInt(c.queryId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -946,9 +972,11 @@ func (c *QueriesGetCall) Do(opts ...googleapi.CallOption) (*Query, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -966,11 +994,10 @@ func (r *QueriesService) List() *QueriesListCall {
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Name of a field used to order
-// results. The default sorting order is ascending. To specify descending order
-// for a field, append a " desc" suffix. For example "metadata.title desc".
-// Sorting is only supported for the following fields: * `queryId` *
-// `metadata.title`
+// OrderBy sets the optional parameter "orderBy": Field to sort the list by.
+// Accepts the following values: * `queryId` (default) * `metadata.title` The
+// default sorting order is ascending. To specify descending order for a field,
+// add the suffix `desc` to the field name. For example, `queryId desc`.
 func (c *QueriesListCall) OrderBy(orderBy string) *QueriesListCall {
 	c.urlParams_.Set("orderBy", orderBy)
 	return c
@@ -983,9 +1010,10 @@ func (c *QueriesListCall) PageSize(pageSize int64) *QueriesListCall {
 	return c
 }
 
-// PageToken sets the optional parameter "pageToken": A page token, received
-// from a previous list call. Provide this to retrieve the subsequent page of
-// queries.
+// PageToken sets the optional parameter "pageToken": A token identifying which
+// page of results the server should return. Typically, this is the value of
+// nextPageToken, returned from the previous call to the `queries.list` method.
+// If unspecified, the first page of results is returned.
 func (c *QueriesListCall) PageToken(pageToken string) *QueriesListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -1027,16 +1055,16 @@ func (c *QueriesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "queries")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1072,9 +1100,11 @@ func (c *QueriesListCall) Do(opts ...googleapi.CallOption) (*ListQueriesResponse
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1108,9 +1138,9 @@ type QueriesRunCall struct {
 	header_         http.Header
 }
 
-// Run: Runs a stored query to generate a report.
+// Run: Runs an existing query to generate a report.
 //
-// - queryId: ID of query to run.
+// - queryId: The ID of the query to run.
 func (r *QueriesService) Run(queryId int64, runqueryrequest *RunQueryRequest) *QueriesRunCall {
 	c := &QueriesRunCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.queryId = queryId
@@ -1119,9 +1149,9 @@ func (r *QueriesService) Run(queryId int64, runqueryrequest *RunQueryRequest) *Q
 }
 
 // Synchronous sets the optional parameter "synchronous": Whether the query
-// should be run synchronously. When true, this method will not return until
-// the query has finished running. When false or not specified, this method
-// will return immediately.
+// should be run synchronously. When `true`, the request won't return until the
+// resulting report has finished running. This parameter is `false` by default.
+// Setting this parameter to `true` is **not recommended**.
 func (c *QueriesRunCall) Synchronous(synchronous bool) *QueriesRunCall {
 	c.urlParams_.Set("synchronous", fmt.Sprint(synchronous))
 	return c
@@ -1152,8 +1182,7 @@ func (c *QueriesRunCall) Header() http.Header {
 
 func (c *QueriesRunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runqueryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runqueryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1169,6 +1198,7 @@ func (c *QueriesRunCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"queryId": strconv.FormatInt(c.queryId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.run", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1203,9 +1233,11 @@ func (c *QueriesRunCall) Do(opts ...googleapi.CallOption) (*Report, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.run", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1221,8 +1253,8 @@ type QueriesReportsGetCall struct {
 
 // Get: Retrieves a report.
 //
-// - queryId: ID of the query the report is associated with.
-// - reportId: ID of the report to retrieve.
+// - queryId: The ID of the query that generated the report.
+// - reportId: The ID of the query to retrieve.
 func (r *QueriesReportsService) Get(queryId int64, reportId int64) *QueriesReportsGetCall {
 	c := &QueriesReportsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.queryId = queryId
@@ -1266,12 +1298,11 @@ func (c *QueriesReportsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "queries/{queryId}/reports/{reportId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1280,6 +1311,7 @@ func (c *QueriesReportsGetCall) doRequest(alt string) (*http.Response, error) {
 		"queryId":  strconv.FormatInt(c.queryId, 10),
 		"reportId": strconv.FormatInt(c.reportId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.reports.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1314,9 +1346,11 @@ func (c *QueriesReportsGetCall) Do(opts ...googleapi.CallOption) (*Report, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.reports.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1329,19 +1363,19 @@ type QueriesReportsListCall struct {
 	header_      http.Header
 }
 
-// List: Lists reports associated with a query.
+// List: Lists reports generated by the provided query.
 //
-// - queryId: ID of the query with which the reports are associated.
+// - queryId: The ID of the query that generated the reports.
 func (r *QueriesReportsService) List(queryId int64) *QueriesReportsListCall {
 	c := &QueriesReportsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.queryId = queryId
 	return c
 }
 
-// OrderBy sets the optional parameter "orderBy": Name of a field used to order
-// results. The default sorting order is ascending. To specify descending order
-// for a field, append a " desc" suffix. For example "key.reportId desc".
-// Sorting is only supported for the following fields: * `key.reportId`
+// OrderBy sets the optional parameter "orderBy": Field to sort the list by.
+// Accepts the following values: * `key.reportId` (default) The default sorting
+// order is ascending. To specify descending order for a field, add the suffix
+// `desc` to the field name. For example, `key.reportId desc`.
 func (c *QueriesReportsListCall) OrderBy(orderBy string) *QueriesReportsListCall {
 	c.urlParams_.Set("orderBy", orderBy)
 	return c
@@ -1354,9 +1388,10 @@ func (c *QueriesReportsListCall) PageSize(pageSize int64) *QueriesReportsListCal
 	return c
 }
 
-// PageToken sets the optional parameter "pageToken": A page token, received
-// from a previous list call. Provide this to retrieve the subsequent page of
-// reports.
+// PageToken sets the optional parameter "pageToken": A token identifying which
+// page of results the server should return. Typically, this is the value of
+// nextPageToken returned from the previous call to the `queries.reports.list`
+// method. If unspecified, the first page of results is returned.
 func (c *QueriesReportsListCall) PageToken(pageToken string) *QueriesReportsListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -1398,12 +1433,11 @@ func (c *QueriesReportsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "queries/{queryId}/reports")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1411,6 +1445,7 @@ func (c *QueriesReportsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"queryId": strconv.FormatInt(c.queryId, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.reports.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1446,9 +1481,11 @@ func (c *QueriesReportsListCall) Do(opts ...googleapi.CallOption) (*ListReportsR
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "doubleclickbidmanager.queries.reports.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

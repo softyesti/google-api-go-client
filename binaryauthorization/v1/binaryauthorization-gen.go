@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "binaryauthorization:v1"
 const apiName = "binaryauthorization"
@@ -115,7 +118,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
+	s.Systempolicy = NewSystempolicyService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +139,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	s.Systempolicy = NewSystempolicyService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -294,9 +297,9 @@ type AdmissionRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdmissionRule) MarshalJSON() ([]byte, error) {
+func (s AdmissionRule) MarshalJSON() ([]byte, error) {
 	type NoMethod AdmissionRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AdmissionWhitelistPattern: An admission allowlist pattern exempts images
@@ -320,9 +323,9 @@ type AdmissionWhitelistPattern struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdmissionWhitelistPattern) MarshalJSON() ([]byte, error) {
+func (s AdmissionWhitelistPattern) MarshalJSON() ([]byte, error) {
 	type NoMethod AdmissionWhitelistPattern
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AllowlistResult: Result of evaluating an image name allowlist.
@@ -342,9 +345,9 @@ type AllowlistResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AllowlistResult) MarshalJSON() ([]byte, error) {
+func (s AllowlistResult) MarshalJSON() ([]byte, error) {
 	type NoMethod AllowlistResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttestationAuthenticator: An attestation authenticator that will be used to
@@ -379,9 +382,9 @@ type AttestationAuthenticator struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttestationAuthenticator) MarshalJSON() ([]byte, error) {
+func (s AttestationAuthenticator) MarshalJSON() ([]byte, error) {
 	type NoMethod AttestationAuthenticator
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttestationOccurrence: Occurrence that represents a single "attestation".
@@ -423,9 +426,9 @@ type AttestationOccurrence struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttestationOccurrence) MarshalJSON() ([]byte, error) {
+func (s AttestationOccurrence) MarshalJSON() ([]byte, error) {
 	type NoMethod AttestationOccurrence
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttestationSource: Specifies the locations for fetching the provenance
@@ -452,9 +455,9 @@ type AttestationSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttestationSource) MarshalJSON() ([]byte, error) {
+func (s AttestationSource) MarshalJSON() ([]byte, error) {
 	type NoMethod AttestationSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Attestor: An attestor that attests to container image artifacts. An existing
@@ -491,9 +494,9 @@ type Attestor struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Attestor) MarshalJSON() ([]byte, error) {
+func (s Attestor) MarshalJSON() ([]byte, error) {
 	type NoMethod Attestor
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AttestorPublicKey: An attestor public key that will be used to verify
@@ -533,9 +536,9 @@ type AttestorPublicKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AttestorPublicKey) MarshalJSON() ([]byte, error) {
+func (s AttestorPublicKey) MarshalJSON() ([]byte, error) {
 	type NoMethod AttestorPublicKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Binding: Associates `members`, or principals, with a `role`.
@@ -632,9 +635,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Check: A single check to perform against a Pod. Checks are grouped into
@@ -688,9 +691,9 @@ type Check struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Check) MarshalJSON() ([]byte, error) {
+func (s Check) MarshalJSON() ([]byte, error) {
 	type NoMethod Check
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckResult: Result of evaluating one check.
@@ -722,9 +725,9 @@ type CheckResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckResult) MarshalJSON() ([]byte, error) {
+func (s CheckResult) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckResults: Result of evaluating one or more checks.
@@ -744,9 +747,9 @@ type CheckResults struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckResults) MarshalJSON() ([]byte, error) {
+func (s CheckResults) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckResults
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckSet: A conjunction of policy checks, scoped to a particular namespace
@@ -784,9 +787,9 @@ type CheckSet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckSet) MarshalJSON() ([]byte, error) {
+func (s CheckSet) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckSet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CheckSetResult: Result of evaluating one check set.
@@ -819,9 +822,9 @@ type CheckSetResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CheckSetResult) MarshalJSON() ([]byte, error) {
+func (s CheckSetResult) MarshalJSON() ([]byte, error) {
 	type NoMethod CheckSetResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -851,9 +854,9 @@ type EvaluateGkePolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EvaluateGkePolicyRequest) MarshalJSON() ([]byte, error) {
+func (s EvaluateGkePolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod EvaluateGkePolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EvaluateGkePolicyResponse: Response message for
@@ -886,9 +889,9 @@ type EvaluateGkePolicyResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EvaluateGkePolicyResponse) MarshalJSON() ([]byte, error) {
+func (s EvaluateGkePolicyResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod EvaluateGkePolicyResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EvaluationResult: Result of evaluating one check.
@@ -916,9 +919,9 @@ type EvaluationResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EvaluationResult) MarshalJSON() ([]byte, error) {
+func (s EvaluationResult) MarshalJSON() ([]byte, error) {
 	type NoMethod EvaluationResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Expr: Represents a textual expression in the Common Expression Language
@@ -964,9 +967,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GkePolicy: A Binary Authorization policy for a GKE cluster. This is one type
@@ -1006,9 +1009,9 @@ type GkePolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GkePolicy) MarshalJSON() ([]byte, error) {
+func (s GkePolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GkePolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IamPolicy: An Identity and Access Management (IAM) policy, which specifies
@@ -1096,9 +1099,9 @@ type IamPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IamPolicy) MarshalJSON() ([]byte, error) {
+func (s IamPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod IamPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageAllowlist: Images that are exempted from normal checks based on name
@@ -1121,9 +1124,9 @@ type ImageAllowlist struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageAllowlist) MarshalJSON() ([]byte, error) {
+func (s ImageAllowlist) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageAllowlist
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageFreshnessCheck: An image freshness check, which rejects images that
@@ -1146,9 +1149,9 @@ type ImageFreshnessCheck struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageFreshnessCheck) MarshalJSON() ([]byte, error) {
+func (s ImageFreshnessCheck) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageFreshnessCheck
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ImageResult: Result of evaluating one image.
@@ -1186,9 +1189,9 @@ type ImageResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ImageResult) MarshalJSON() ([]byte, error) {
+func (s ImageResult) MarshalJSON() ([]byte, error) {
 	type NoMethod ImageResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Jwt struct {
@@ -1209,9 +1212,9 @@ type Jwt struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Jwt) MarshalJSON() ([]byte, error) {
+func (s Jwt) MarshalJSON() ([]byte, error) {
 	type NoMethod Jwt
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAttestorsResponse: Response message for
@@ -1239,9 +1242,9 @@ type ListAttestorsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAttestorsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAttestorsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAttestorsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListPlatformPoliciesResponse: Response message for
@@ -1269,9 +1272,9 @@ type ListPlatformPoliciesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListPlatformPoliciesResponse) MarshalJSON() ([]byte, error) {
+func (s ListPlatformPoliciesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListPlatformPoliciesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PkixPublicKey: A public key in the PkixPublicKey format
@@ -1280,15 +1283,15 @@ func (s *ListPlatformPoliciesResponse) MarshalJSON() ([]byte, error) {
 type PkixPublicKey struct {
 	// KeyId: Optional. The ID of this public key. Signatures verified by Binary
 	// Authorization must include the ID of the public key that can be used to
-	// verify them, and that ID must match the contents of this field exactly. This
-	// may be explicitly provided by the caller, but it MUST be a valid RFC3986
-	// URI. If `key_id` is left blank and this `PkixPublicKey` is not used in the
-	// context of a wrapper (see next paragraph), a default key ID will be computed
-	// based on the digest of the DER encoding of the public key. If this
-	// `PkixPublicKey` is used in the context of a wrapper that has its own notion
-	// of key ID (e.g. `AttestorPublicKey`), then this field can either: * Match
-	// that value exactly. * Or be left blank, in which case it behaves exactly as
-	// though it is equal to that wrapper value.
+	// verify them. The ID must match exactly contents of the `key_id` field
+	// exactly. The ID may be explicitly provided by the caller, but it MUST be a
+	// valid RFC3986 URI. If `key_id` is left blank and this `PkixPublicKey` is not
+	// used in the context of a wrapper (see next paragraph), a default key ID will
+	// be computed based on the digest of the DER encoding of the public key. If
+	// this `PkixPublicKey` is used in the context of a wrapper that has its own
+	// notion of key ID (e.g. `AttestorPublicKey`), then this field can either
+	// match that value exactly, or be left blank, in which case it behaves exactly
+	// as though it is equal to that wrapper value.
 	KeyId string `json:"keyId,omitempty"`
 	// PublicKeyPem: A PEM-encoded public key, as described in
 	// https://tools.ietf.org/html/rfc7468#section-13
@@ -1339,9 +1342,9 @@ type PkixPublicKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PkixPublicKey) MarshalJSON() ([]byte, error) {
+func (s PkixPublicKey) MarshalJSON() ([]byte, error) {
 	type NoMethod PkixPublicKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PkixPublicKeySet: A bundle of PKIX public keys, used to authenticate
@@ -1364,9 +1367,9 @@ type PkixPublicKeySet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PkixPublicKeySet) MarshalJSON() ([]byte, error) {
+func (s PkixPublicKeySet) MarshalJSON() ([]byte, error) {
 	type NoMethod PkixPublicKeySet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PlatformPolicy: A Binary Authorization platform policy for deployments on
@@ -1374,6 +1377,9 @@ func (s *PkixPublicKeySet) MarshalJSON() ([]byte, error) {
 type PlatformPolicy struct {
 	// Description: Optional. A description comment about the policy.
 	Description string `json:"description,omitempty"`
+	// Etag: Optional. Used to prevent updating the policy when another request has
+	// updated it since it was retrieved.
+	Etag string `json:"etag,omitempty"`
 	// GkePolicy: Optional. GKE platform-specific policy.
 	GkePolicy *GkePolicy `json:"gkePolicy,omitempty"`
 	// Name: Output only. The relative resource name of the Binary Authorization
@@ -1397,9 +1403,9 @@ type PlatformPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PlatformPolicy) MarshalJSON() ([]byte, error) {
+func (s PlatformPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod PlatformPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PodResult: Result of evaluating the whole GKE policy for one Pod.
@@ -1435,9 +1441,9 @@ type PodResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PodResult) MarshalJSON() ([]byte, error) {
+func (s PodResult) MarshalJSON() ([]byte, error) {
 	type NoMethod PodResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: A policy for container image binary authorization.
@@ -1447,10 +1453,15 @@ type Policy struct {
 	// typically used to exclude Google or third-party infrastructure images from
 	// Binary Authorization policies.
 	AdmissionWhitelistPatterns []*AdmissionWhitelistPattern `json:"admissionWhitelistPatterns,omitempty"`
-	// ClusterAdmissionRules: Optional. Per-cluster admission rules. Cluster spec
-	// format: `location.clusterId`. There can be at most one admission rule per
-	// cluster spec. A `location` is either a compute zone (e.g. us-central1-a) or
-	// a region (e.g. us-central1). For `clusterId` syntax restrictions see
+	// ClusterAdmissionRules: Optional. A valid policy has only one of the
+	// following rule maps non-empty, i.e. only one of `cluster_admission_rules`,
+	// `kubernetes_namespace_admission_rules`,
+	// `kubernetes_service_account_admission_rules`, or
+	// `istio_service_identity_admission_rules` can be non-empty. Per-cluster
+	// admission rules. Cluster spec format: `location.clusterId`. There can be at
+	// most one admission rule per cluster spec. A `location` is either a compute
+	// zone (e.g. us-central1-a) or a region (e.g. us-central1). For `clusterId`
+	// syntax restrictions see
 	// https://cloud.google.com/container-engine/reference/rest/v1/projects.zones.clusters.
 	ClusterAdmissionRules map[string]AdmissionRule `json:"clusterAdmissionRules,omitempty"`
 	// DefaultAdmissionRule: Required. Default admission rule for a cluster without
@@ -1508,9 +1519,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Scope: A scope specifier for `CheckSet` objects.
@@ -1537,9 +1548,9 @@ type Scope struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Scope) MarshalJSON() ([]byte, error) {
+func (s Scope) MarshalJSON() ([]byte, error) {
 	type NoMethod Scope
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -1562,9 +1573,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Signature: Verifiers (e.g. Kritis implementations) MUST verify signatures
@@ -1618,9 +1629,9 @@ type Signature struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Signature) MarshalJSON() ([]byte, error) {
+func (s Signature) MarshalJSON() ([]byte, error) {
 	type NoMethod Signature
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SigstoreAuthority: A Sigstore authority, used to verify signatures that are
@@ -1647,9 +1658,9 @@ type SigstoreAuthority struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SigstoreAuthority) MarshalJSON() ([]byte, error) {
+func (s SigstoreAuthority) MarshalJSON() ([]byte, error) {
 	type NoMethod SigstoreAuthority
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SigstorePublicKey: A Sigstore public key. `SigstorePublicKey` is the public
@@ -1670,9 +1681,9 @@ type SigstorePublicKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SigstorePublicKey) MarshalJSON() ([]byte, error) {
+func (s SigstorePublicKey) MarshalJSON() ([]byte, error) {
 	type NoMethod SigstorePublicKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SigstorePublicKeySet: A bundle of Sigstore public keys, used to verify
@@ -1694,9 +1705,9 @@ type SigstorePublicKeySet struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SigstorePublicKeySet) MarshalJSON() ([]byte, error) {
+func (s SigstorePublicKeySet) MarshalJSON() ([]byte, error) {
 	type NoMethod SigstorePublicKeySet
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SigstoreSignatureCheck: A Sigstore signature check, which verifies the
@@ -1719,9 +1730,9 @@ type SigstoreSignatureCheck struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SigstoreSignatureCheck) MarshalJSON() ([]byte, error) {
+func (s SigstoreSignatureCheck) MarshalJSON() ([]byte, error) {
 	type NoMethod SigstoreSignatureCheck
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SimpleSigningAttestationCheck: Require a signed DSSE
@@ -1759,9 +1770,9 @@ type SimpleSigningAttestationCheck struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SimpleSigningAttestationCheck) MarshalJSON() ([]byte, error) {
+func (s SimpleSigningAttestationCheck) MarshalJSON() ([]byte, error) {
 	type NoMethod SimpleSigningAttestationCheck
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SlsaCheck: A SLSA provenance attestation check, which ensures that images
@@ -1785,9 +1796,9 @@ type SlsaCheck struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SlsaCheck) MarshalJSON() ([]byte, error) {
+func (s SlsaCheck) MarshalJSON() ([]byte, error) {
 	type NoMethod SlsaCheck
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -1810,9 +1821,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -1837,9 +1848,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TrustedDirectoryCheck: A trusted directory check, which rejects images that
@@ -1876,9 +1887,9 @@ type TrustedDirectoryCheck struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TrustedDirectoryCheck) MarshalJSON() ([]byte, error) {
+func (s TrustedDirectoryCheck) MarshalJSON() ([]byte, error) {
 	type NoMethod TrustedDirectoryCheck
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserOwnedGrafeasNote: An user owned Grafeas note references a Grafeas
@@ -1920,9 +1931,9 @@ type UserOwnedGrafeasNote struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserOwnedGrafeasNote) MarshalJSON() ([]byte, error) {
+func (s UserOwnedGrafeasNote) MarshalJSON() ([]byte, error) {
 	type NoMethod UserOwnedGrafeasNote
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidateAttestationOccurrenceRequest: Request message for
@@ -1951,9 +1962,9 @@ type ValidateAttestationOccurrenceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValidateAttestationOccurrenceRequest) MarshalJSON() ([]byte, error) {
+func (s ValidateAttestationOccurrenceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ValidateAttestationOccurrenceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ValidateAttestationOccurrenceResponse: Response message for
@@ -1986,9 +1997,9 @@ type ValidateAttestationOccurrenceResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ValidateAttestationOccurrenceResponse) MarshalJSON() ([]byte, error) {
+func (s ValidateAttestationOccurrenceResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ValidateAttestationOccurrenceResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VerificationRule: Specifies verification rules for evaluating the SLSA
@@ -2005,6 +2016,12 @@ type VerificationRule struct {
 	// top-level configuration. `trusted_source_repo_patterns` specifies the
 	// repositories containing this configuration.
 	ConfigBasedBuildRequired bool `json:"configBasedBuildRequired,omitempty"`
+	// CustomConstraints: Optional. A CEL expression for specifying custom
+	// constraints on the provenance payload. This can be used when users want to
+	// specify expectations on provenance fields that are not covered by the
+	// general check. For example, users can use this field to require that certain
+	// parameters should never be used during the build process.
+	CustomConstraints string `json:"customConstraints,omitempty"`
 	// TrustedBuilder: Each verification rule is used for evaluation against
 	// provenances generated by a specific builder (group). For some of the
 	// builders, such as the Google Cloud Build, users don't need to explicitly
@@ -2045,9 +2062,9 @@ type VerificationRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VerificationRule) MarshalJSON() ([]byte, error) {
+func (s VerificationRule) MarshalJSON() ([]byte, error) {
 	type NoMethod VerificationRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VulnerabilityCheck: An image vulnerability check, which rejects images that
@@ -2122,9 +2139,9 @@ type VulnerabilityCheck struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VulnerabilityCheck) MarshalJSON() ([]byte, error) {
+func (s VulnerabilityCheck) MarshalJSON() ([]byte, error) {
 	type NoMethod VulnerabilityCheck
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsGetPolicyCall struct {
@@ -2186,12 +2203,11 @@ func (c *ProjectsGetPolicyCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2199,6 +2215,7 @@ func (c *ProjectsGetPolicyCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.getPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2233,9 +2250,11 @@ func (c *ProjectsGetPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.getPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2288,8 +2307,7 @@ func (c *ProjectsUpdatePolicyCall) Header() http.Header {
 
 func (c *ProjectsUpdatePolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.policy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.policy)
 	if err != nil {
 		return nil, err
 	}
@@ -2305,6 +2323,7 @@ func (c *ProjectsUpdatePolicyCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.updatePolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2339,9 +2358,11 @@ func (c *ProjectsUpdatePolicyCall) Do(opts ...googleapi.CallOption) (*Policy, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.updatePolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2398,8 +2419,7 @@ func (c *ProjectsAttestorsCreateCall) Header() http.Header {
 
 func (c *ProjectsAttestorsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.attestor)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.attestor)
 	if err != nil {
 		return nil, err
 	}
@@ -2415,6 +2435,7 @@ func (c *ProjectsAttestorsCreateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2449,9 +2470,11 @@ func (c *ProjectsAttestorsCreateCall) Do(opts ...googleapi.CallOption) (*Attesto
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2499,12 +2522,11 @@ func (c *ProjectsAttestorsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAttestorsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2512,6 +2534,7 @@ func (c *ProjectsAttestorsDeleteCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2546,9 +2569,11 @@ func (c *ProjectsAttestorsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2607,12 +2632,11 @@ func (c *ProjectsAttestorsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2620,6 +2644,7 @@ func (c *ProjectsAttestorsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2654,9 +2679,11 @@ func (c *ProjectsAttestorsGetCall) Do(opts ...googleapi.CallOption) (*Attestor, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2734,12 +2761,11 @@ func (c *ProjectsAttestorsGetIamPolicyCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2747,6 +2773,7 @@ func (c *ProjectsAttestorsGetIamPolicyCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2781,9 +2808,11 @@ func (c *ProjectsAttestorsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*I
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2860,12 +2889,11 @@ func (c *ProjectsAttestorsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/attestors")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2873,6 +2901,7 @@ func (c *ProjectsAttestorsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2908,9 +2937,11 @@ func (c *ProjectsAttestorsListCall) Do(opts ...googleapi.CallOption) (*ListAttes
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2983,8 +3014,7 @@ func (c *ProjectsAttestorsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsAttestorsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3000,6 +3030,7 @@ func (c *ProjectsAttestorsSetIamPolicyCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3034,9 +3065,11 @@ func (c *ProjectsAttestorsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*I
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3091,8 +3124,7 @@ func (c *ProjectsAttestorsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsAttestorsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3108,6 +3140,7 @@ func (c *ProjectsAttestorsTestIamPermissionsCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3143,9 +3176,11 @@ func (c *ProjectsAttestorsTestIamPermissionsCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3195,8 +3230,7 @@ func (c *ProjectsAttestorsUpdateCall) Header() http.Header {
 
 func (c *ProjectsAttestorsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.attestor)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.attestor)
 	if err != nil {
 		return nil, err
 	}
@@ -3212,6 +3246,7 @@ func (c *ProjectsAttestorsUpdateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3246,9 +3281,11 @@ func (c *ProjectsAttestorsUpdateCall) Do(opts ...googleapi.CallOption) (*Attesto
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3298,8 +3335,7 @@ func (c *ProjectsAttestorsValidateAttestationOccurrenceCall) Header() http.Heade
 
 func (c *ProjectsAttestorsValidateAttestationOccurrenceCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.validateattestationoccurrencerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.validateattestationoccurrencerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3315,6 +3351,7 @@ func (c *ProjectsAttestorsValidateAttestationOccurrenceCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"attestor": c.attestor,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.validateAttestationOccurrence", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3350,9 +3387,11 @@ func (c *ProjectsAttestorsValidateAttestationOccurrenceCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.attestors.validateAttestationOccurrence", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3404,8 +3443,7 @@ func (c *ProjectsPlatformsGkePoliciesEvaluateCall) Header() http.Header {
 
 func (c *ProjectsPlatformsGkePoliciesEvaluateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.evaluategkepolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.evaluategkepolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3421,6 +3459,7 @@ func (c *ProjectsPlatformsGkePoliciesEvaluateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.gke.policies.evaluate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3456,9 +3495,11 @@ func (c *ProjectsPlatformsGkePoliciesEvaluateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.gke.policies.evaluate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3517,8 +3558,7 @@ func (c *ProjectsPlatformsPoliciesCreateCall) Header() http.Header {
 
 func (c *ProjectsPlatformsPoliciesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.platformpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.platformpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -3534,6 +3574,7 @@ func (c *ProjectsPlatformsPoliciesCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3568,9 +3609,11 @@ func (c *ProjectsPlatformsPoliciesCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3590,6 +3633,13 @@ type ProjectsPlatformsPoliciesDeleteCall struct {
 func (r *ProjectsPlatformsPoliciesService) Delete(name string) *ProjectsPlatformsPoliciesDeleteCall {
 	c := &ProjectsPlatformsPoliciesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
+	return c
+}
+
+// Etag sets the optional parameter "etag": Used to prevent deleting the policy
+// when another request has updated it since it was retrieved.
+func (c *ProjectsPlatformsPoliciesDeleteCall) Etag(etag string) *ProjectsPlatformsPoliciesDeleteCall {
+	c.urlParams_.Set("etag", etag)
 	return c
 }
 
@@ -3618,12 +3668,11 @@ func (c *ProjectsPlatformsPoliciesDeleteCall) Header() http.Header {
 
 func (c *ProjectsPlatformsPoliciesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3631,6 +3680,7 @@ func (c *ProjectsPlatformsPoliciesDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3665,9 +3715,11 @@ func (c *ProjectsPlatformsPoliciesDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3727,12 +3779,11 @@ func (c *ProjectsPlatformsPoliciesGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3740,6 +3791,7 @@ func (c *ProjectsPlatformsPoliciesGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3774,9 +3826,11 @@ func (c *ProjectsPlatformsPoliciesGetCall) Do(opts ...googleapi.CallOption) (*Pl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3853,12 +3907,11 @@ func (c *ProjectsPlatformsPoliciesListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/policies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3866,6 +3919,7 @@ func (c *ProjectsPlatformsPoliciesListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3901,9 +3955,11 @@ func (c *ProjectsPlatformsPoliciesListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3974,8 +4030,7 @@ func (c *ProjectsPlatformsPoliciesReplacePlatformPolicyCall) Header() http.Heade
 
 func (c *ProjectsPlatformsPoliciesReplacePlatformPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.platformpolicy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.platformpolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -3991,6 +4046,7 @@ func (c *ProjectsPlatformsPoliciesReplacePlatformPolicyCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.replacePlatformPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4025,9 +4081,11 @@ func (c *ProjectsPlatformsPoliciesReplacePlatformPolicyCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.platforms.policies.replacePlatformPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4105,12 +4163,11 @@ func (c *ProjectsPolicyGetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+resource}:getIamPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4118,6 +4175,7 @@ func (c *ProjectsPolicyGetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.policy.getIamPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4152,9 +4210,11 @@ func (c *ProjectsPolicyGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*IamP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.policy.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4206,8 +4266,7 @@ func (c *ProjectsPolicySetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsPolicySetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4223,6 +4282,7 @@ func (c *ProjectsPolicySetIamPolicyCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.policy.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4257,9 +4317,11 @@ func (c *ProjectsPolicySetIamPolicyCall) Do(opts ...googleapi.CallOption) (*IamP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.policy.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4314,8 +4376,7 @@ func (c *ProjectsPolicyTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsPolicyTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4331,6 +4392,7 @@ func (c *ProjectsPolicyTestIamPermissionsCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.projects.policy.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4366,9 +4428,11 @@ func (c *ProjectsPolicyTestIamPermissionsCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.projects.policy.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4427,12 +4491,11 @@ func (c *SystempolicyGetPolicyCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4440,6 +4503,7 @@ func (c *SystempolicyGetPolicyCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "binaryauthorization.systempolicy.getPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4474,8 +4538,10 @@ func (c *SystempolicyGetPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "binaryauthorization.systempolicy.getPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

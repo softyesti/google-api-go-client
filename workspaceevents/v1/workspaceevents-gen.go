@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "workspaceevents:v1"
 const apiName = "workspaceevents"
@@ -103,31 +106,49 @@ const (
 	// Private Service: https://www.googleapis.com/auth/chat.bot
 	ChatBotScope = "https://www.googleapis.com/auth/chat.bot"
 
-	// View, add, update, and remove members from conversations in Google Chat
+	// See, add, update, and remove members from conversations and spaces in Google
+	// Chat
 	ChatMembershipsScope = "https://www.googleapis.com/auth/chat.memberships"
 
 	// View members in Google Chat conversations.
 	ChatMembershipsReadonlyScope = "https://www.googleapis.com/auth/chat.memberships.readonly"
 
-	// View, compose, send, update, and delete messages, and add, view, and delete
-	// reactions to messages.
+	// See, compose, send, update, and delete messages as well as their message
+	// content; add, see, and delete reactions to messages.
 	ChatMessagesScope = "https://www.googleapis.com/auth/chat.messages"
 
-	// View, add, and delete reactions to messages in Google Chat
+	// See, add, and delete reactions as well as their reaction content to messages
+	// in Google Chat
 	ChatMessagesReactionsScope = "https://www.googleapis.com/auth/chat.messages.reactions"
 
-	// View reactions to messages in Google Chat
+	// View reactions as well as their reaction content to messages in Google Chat
 	ChatMessagesReactionsReadonlyScope = "https://www.googleapis.com/auth/chat.messages.reactions.readonly"
 
-	// View messages and reactions in Google Chat
+	// See messages as well as their reactions and message content in Google Chat
 	ChatMessagesReadonlyScope = "https://www.googleapis.com/auth/chat.messages.readonly"
 
-	// Create conversations and spaces and see or edit metadata (including history
-	// settings and access settings) in Google Chat
+	// Create conversations and spaces and see or update metadata (including
+	// history settings and access settings) in Google Chat
 	ChatSpacesScope = "https://www.googleapis.com/auth/chat.spaces"
 
 	// View chat and spaces in Google Chat
 	ChatSpacesReadonlyScope = "https://www.googleapis.com/auth/chat.spaces.readonly"
+
+	// See, edit, create, and delete all of your Google Drive files
+	DriveScope = "https://www.googleapis.com/auth/drive"
+
+	// See, edit, create, and delete only the specific Google Drive files you use
+	// with this app
+	DriveFileScope = "https://www.googleapis.com/auth/drive.file"
+
+	// View and manage metadata of files in your Google Drive
+	DriveMetadataScope = "https://www.googleapis.com/auth/drive.metadata"
+
+	// See information about your Google Drive files
+	DriveMetadataReadonlyScope = "https://www.googleapis.com/auth/drive.metadata.readonly"
+
+	// See and download all your Google Drive files
+	DriveReadonlyScope = "https://www.googleapis.com/auth/drive.readonly"
 
 	// Create, edit, and see information about your Google Meet conferences created
 	// by the app.
@@ -149,6 +170,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 		"https://www.googleapis.com/auth/chat.messages.readonly",
 		"https://www.googleapis.com/auth/chat.spaces",
 		"https://www.googleapis.com/auth/chat.spaces.readonly",
+		"https://www.googleapis.com/auth/drive",
+		"https://www.googleapis.com/auth/drive.file",
+		"https://www.googleapis.com/auth/drive.metadata",
+		"https://www.googleapis.com/auth/drive.metadata.readonly",
+		"https://www.googleapis.com/auth/drive.readonly",
 		"https://www.googleapis.com/auth/meetings.space.created",
 		"https://www.googleapis.com/auth/meetings.space.readonly",
 	)
@@ -162,7 +188,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Operations = NewOperationsService(s)
+	s.Subscriptions = NewSubscriptionsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -181,14 +209,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Operations = NewOperationsService(s)
-	s.Subscriptions = NewSubscriptionsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -246,19 +272,19 @@ type ListSubscriptionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSubscriptionsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSubscriptionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSubscriptionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NotificationEndpoint: The endpoint where the subscription delivers events.
 type NotificationEndpoint struct {
-	// PubsubTopic: Immutable. The Cloud Pub/Sub topic that receives events for the
+	// PubsubTopic: Immutable. The Pub/Sub topic that receives events for the
 	// subscription. Format: `projects/{project}/topics/{topic}` You must create
 	// the topic in the same Google Cloud project where you create this
 	// subscription. When the topic receives events, the events are encoded as
-	// Cloud Pub/Sub messages. For details, see the Google Cloud Pub/Sub Protocol
-	// Binding for CloudEvents
+	// Pub/Sub messages. For details, see the Google Cloud Pub/Sub Protocol Binding
+	// for CloudEvents
 	// (https://github.com/googleapis/google-cloudevents/blob/main/docs/spec/pubsub.md).
 	PubsubTopic string `json:"pubsubTopic,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "PubsubTopic") to
@@ -274,9 +300,9 @@ type NotificationEndpoint struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NotificationEndpoint) MarshalJSON() ([]byte, error) {
+func (s NotificationEndpoint) MarshalJSON() ([]byte, error) {
 	type NoMethod NotificationEndpoint
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -321,9 +347,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PayloadOptions: Options about what data to include in the event payload.
@@ -356,9 +382,9 @@ type PayloadOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PayloadOptions) MarshalJSON() ([]byte, error) {
+func (s PayloadOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod PayloadOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReactivateSubscriptionRequest: The request message for
@@ -395,9 +421,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Subscription: Developer Preview
@@ -418,11 +444,11 @@ type Subscription struct {
 	// of other fields, and might be sent on update requests to ensure the client
 	// has an up-to-date value before proceeding.
 	Etag string `json:"etag,omitempty"`
-	// EventTypes: Required. Immutable. Unordered list. Input for creating a
-	// subscription. Otherwise, output only. One or more types of events to receive
-	// about the target resource. Formatted according to the CloudEvents
-	// specification. The supported event types depend on the target resource of
-	// your subscription. For details, see Supported Google Workspace events
+	// EventTypes: Required. Unordered list. Input for creating a subscription.
+	// Otherwise, output only. One or more types of events to receive about the
+	// target resource. Formatted according to the CloudEvents specification. The
+	// supported event types depend on the target resource of your subscription.
+	// For details, see Supported Google Workspace events
 	// (https://developers.google.com/workspace/events/guides#supported-events). By
 	// default, you also receive events about the lifecycle of your subscription
 	// (https://developers.google.com/workspace/events/guides/events-lifecycle).
@@ -433,8 +459,8 @@ type Subscription struct {
 	// ExpireTime: Non-empty default. The timestamp in UTC when the subscription
 	// expires. Always displayed on output, regardless of what was used on input.
 	ExpireTime string `json:"expireTime,omitempty"`
-	// Name: Optional. Immutable. Identifier. Resource name of the subscription.
-	// Format: `subscriptions/{subscription}`
+	// Name: Identifier. Resource name of the subscription. Format:
+	// `subscriptions/{subscription}`
 	Name string `json:"name,omitempty"`
 	// NotificationEndpoint: Required. Immutable. The endpoint where the
 	// subscription delivers events, such as a Pub/Sub topic.
@@ -514,9 +540,9 @@ type Subscription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Subscription) MarshalJSON() ([]byte, error) {
+func (s Subscription) MarshalJSON() ([]byte, error) {
 	type NoMethod Subscription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type OperationsGetCall struct {
@@ -575,12 +601,11 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -588,6 +613,7 @@ func (c *OperationsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workspaceevents.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -622,9 +648,11 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workspaceevents.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -678,8 +706,7 @@ func (c *SubscriptionsCreateCall) Header() http.Header {
 
 func (c *SubscriptionsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscription)
 	if err != nil {
 		return nil, err
 	}
@@ -692,6 +719,7 @@ func (c *SubscriptionsCreateCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -726,9 +754,11 @@ func (c *SubscriptionsCreateCall) Do(opts ...googleapi.CallOption) (*Operation, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -801,12 +831,11 @@ func (c *SubscriptionsDeleteCall) Header() http.Header {
 
 func (c *SubscriptionsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -814,6 +843,7 @@ func (c *SubscriptionsDeleteCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -848,9 +878,11 @@ func (c *SubscriptionsDeleteCall) Do(opts ...googleapi.CallOption) (*Operation, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -912,12 +944,11 @@ func (c *SubscriptionsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -925,6 +956,7 @@ func (c *SubscriptionsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -959,9 +991,11 @@ func (c *SubscriptionsGetCall) Do(opts ...googleapi.CallOption) (*Subscription, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1058,16 +1092,16 @@ func (c *SubscriptionsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/subscriptions")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1103,9 +1137,11 @@ func (c *SubscriptionsListCall) Do(opts ...googleapi.CallOption) (*ListSubscript
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1144,8 +1180,8 @@ type SubscriptionsPatchCall struct {
 // method, see Update or renew a Google Workspace subscription
 // (https://developers.google.com/workspace/events/guides/update-subscription).
 //
-//   - name: Optional. Immutable. Identifier. Resource name of the subscription.
-//     Format: `subscriptions/{subscription}`.
+//   - name: Identifier. Resource name of the subscription. Format:
+//     `subscriptions/{subscription}`.
 func (r *SubscriptionsService) Patch(name string, subscription *Subscription) *SubscriptionsPatchCall {
 	c := &SubscriptionsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -1157,8 +1193,9 @@ func (r *SubscriptionsService) Patch(name string, subscription *Subscription) *S
 // omitted, updates any fields included in the request. You can update one of
 // the following fields in a subscription: * `expire_time`: The timestamp when
 // the subscription expires. * `ttl`: The time-to-live (TTL) or duration of the
-// subscription. To fully replace the subscription (the equivalent of `PUT`),
-// use `*`. Any omitted fields are updated with empty values.
+// subscription. * `event_types`: The list of event types to receive about the
+// target resource. To fully replace the subscription (the equivalent of
+// `PUT`), use `*`. Any omitted fields are updated with empty values.
 func (c *SubscriptionsPatchCall) UpdateMask(updateMask string) *SubscriptionsPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
 	return c
@@ -1196,8 +1233,7 @@ func (c *SubscriptionsPatchCall) Header() http.Header {
 
 func (c *SubscriptionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.subscription)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.subscription)
 	if err != nil {
 		return nil, err
 	}
@@ -1213,6 +1249,7 @@ func (c *SubscriptionsPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1247,9 +1284,11 @@ func (c *SubscriptionsPatchCall) Do(opts ...googleapi.CallOption) (*Operation, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1266,8 +1305,9 @@ type SubscriptionsReactivateCall struct {
 // (https://developers.google.com/workspace/preview): Reactivates a suspended
 // Google Workspace subscription. This method resets your subscription's
 // `State` field to `ACTIVE`. Before you use this method, you must fix the
-// error that suspended the subscription. To learn how to use this method, see
-// Reactivate a Google Workspace subscription
+// error that suspended the subscription. This method will ignore or reject any
+// subscription that isn't currently in a suspended state. To learn how to use
+// this method, see Reactivate a Google Workspace subscription
 // (https://developers.google.com/workspace/events/guides/reactivate-subscription).
 //
 //   - name: Resource name of the subscription. Format:
@@ -1304,8 +1344,7 @@ func (c *SubscriptionsReactivateCall) Header() http.Header {
 
 func (c *SubscriptionsReactivateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reactivatesubscriptionrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reactivatesubscriptionrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1321,6 +1360,7 @@ func (c *SubscriptionsReactivateCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.reactivate", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1355,8 +1395,10 @@ func (c *SubscriptionsReactivateCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "workspaceevents.subscriptions.reactivate", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "alloydb:v1"
 const apiName = "alloydb"
@@ -115,7 +118,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -265,9 +268,9 @@ type AuthorizedNetwork struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AuthorizedNetwork) MarshalJSON() ([]byte, error) {
+func (s AuthorizedNetwork) MarshalJSON() ([]byte, error) {
 	type NoMethod AuthorizedNetwork
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AutomatedBackupPolicy: Message describing the user-specified automated
@@ -285,8 +288,7 @@ type AutomatedBackupPolicy struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// EncryptionConfig: Optional. The encryption config can be specified to
 	// encrypt the backups with a customer-managed encryption key (CMEK). When this
-	// field is not specified, the backup will then use default encryption scheme
-	// to protect the user data.
+	// field is not specified, the backup will use the cluster's encryption config.
 	EncryptionConfig *EncryptionConfig `json:"encryptionConfig,omitempty"`
 	// Labels: Labels to apply to backups created using this configuration.
 	Labels map[string]string `json:"labels,omitempty"`
@@ -314,9 +316,9 @@ type AutomatedBackupPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AutomatedBackupPolicy) MarshalJSON() ([]byte, error) {
+func (s AutomatedBackupPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod AutomatedBackupPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Backup: Message describing Backup object
@@ -341,6 +343,7 @@ type Backup struct {
 	//   "POSTGRES_13" - DEPRECATED - The database version is Postgres 13.
 	//   "POSTGRES_14" - The database version is Postgres 14.
 	//   "POSTGRES_15" - The database version is Postgres 15.
+	//   "POSTGRES_16" - The database version is Postgres 16.
 	DatabaseVersion string `json:"databaseVersion,omitempty"`
 	// DeleteTime: Output only. Delete time stamp
 	DeleteTime string `json:"deleteTime,omitempty"`
@@ -394,6 +397,10 @@ type Backup struct {
 	//   "FAILED" - The backup failed.
 	//   "DELETING" - The backup is being deleted.
 	State string `json:"state,omitempty"`
+	// Tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+	// this resource. For example: ``` "123/environment": "production",
+	// "123/costCenter": "marketing" ```
+	Tags map[string]string `json:"tags,omitempty"`
 	// Type: The backup type, which suggests the trigger for the backup.
 	//
 	// Possible values:
@@ -427,9 +434,9 @@ type Backup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Backup) MarshalJSON() ([]byte, error) {
+func (s Backup) MarshalJSON() ([]byte, error) {
 	type NoMethod Backup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BackupSource: Message describing a BackupSource.
@@ -454,9 +461,9 @@ type BackupSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BackupSource) MarshalJSON() ([]byte, error) {
+func (s BackupSource) MarshalJSON() ([]byte, error) {
 	type NoMethod BackupSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -468,7 +475,7 @@ type ClientConnectionConfig struct {
 	// RequireConnectors: Optional. Configuration to enforce connectors only (ex:
 	// AuthProxy) connections to the database.
 	RequireConnectors bool `json:"requireConnectors,omitempty"`
-	// SslConfig: Optional. SSL config option for this instance.
+	// SslConfig: Optional. SSL configuration option for this instance.
 	SslConfig *SslConfig `json:"sslConfig,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "RequireConnectors") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -483,9 +490,9 @@ type ClientConnectionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ClientConnectionConfig) MarshalJSON() ([]byte, error) {
+func (s ClientConnectionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ClientConnectionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CloudControl2SharedOperationsReconciliationOperationMetadata: Operation
@@ -518,9 +525,36 @@ type CloudControl2SharedOperationsReconciliationOperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CloudControl2SharedOperationsReconciliationOperationMetadata) MarshalJSON() ([]byte, error) {
+func (s CloudControl2SharedOperationsReconciliationOperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod CloudControl2SharedOperationsReconciliationOperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CloudSQLBackupRunSource: The source CloudSQL backup resource.
+type CloudSQLBackupRunSource struct {
+	// BackupRunId: Required. The CloudSQL backup run ID.
+	BackupRunId int64 `json:"backupRunId,omitempty,string"`
+	// InstanceId: Required. The CloudSQL instance ID.
+	InstanceId string `json:"instanceId,omitempty"`
+	// Project: The project ID of the source CloudSQL instance. This should be the
+	// same as the AlloyDB cluster's project.
+	Project string `json:"project,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BackupRunId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BackupRunId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CloudSQLBackupRunSource) MarshalJSON() ([]byte, error) {
+	type NoMethod CloudSQLBackupRunSource
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Cluster: A cluster is a collection of regional AlloyDB resources. It can
@@ -538,6 +572,9 @@ type Cluster struct {
 	AutomatedBackupPolicy *AutomatedBackupPolicy `json:"automatedBackupPolicy,omitempty"`
 	// BackupSource: Output only. Cluster created from backup.
 	BackupSource *BackupSource `json:"backupSource,omitempty"`
+	// CloudsqlBackupRunSource: Output only. Cluster created from CloudSQL
+	// snapshot.
+	CloudsqlBackupRunSource *CloudSQLBackupRunSource `json:"cloudsqlBackupRunSource,omitempty"`
 	// ClusterType: Output only. The type of the cluster. This is an output-only
 	// field and it's populated at the Cluster creation time or the Cluster
 	// promotion time. The cluster type is determined by which RPC was used to
@@ -567,6 +604,7 @@ type Cluster struct {
 	//   "POSTGRES_13" - DEPRECATED - The database version is Postgres 13.
 	//   "POSTGRES_14" - The database version is Postgres 14.
 	//   "POSTGRES_15" - The database version is Postgres 15.
+	//   "POSTGRES_16" - The database version is Postgres 16.
 	DatabaseVersion string `json:"databaseVersion,omitempty"`
 	// DeleteTime: Output only. Delete time stamp
 	DeleteTime string `json:"deleteTime,omitempty"`
@@ -652,6 +690,20 @@ type Cluster struct {
 	// cluster are not allowed while the cluster is in this state.
 	//   "PROMOTING" - The cluster is being promoted.
 	State string `json:"state,omitempty"`
+	// SubscriptionType: Optional. Subscription type of the cluster.
+	//
+	// Possible values:
+	//   "SUBSCRIPTION_TYPE_UNSPECIFIED" - This is an unknown subscription type. By
+	// default, the subscription type is STANDARD.
+	//   "STANDARD" - Standard subscription.
+	//   "TRIAL" - Trial subscription.
+	SubscriptionType string `json:"subscriptionType,omitempty"`
+	// Tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+	// this resource. For example: ``` "123/environment": "production",
+	// "123/costCenter": "marketing" ```
+	Tags map[string]string `json:"tags,omitempty"`
+	// TrialMetadata: Output only. Metadata for free trial clusters
+	TrialMetadata *TrialMetadata `json:"trialMetadata,omitempty"`
 	// Uid: Output only. The system-generated UID of the resource. The UID is
 	// assigned when the resource is created, and it is retained until it is
 	// deleted.
@@ -674,9 +726,68 @@ type Cluster struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Cluster) MarshalJSON() ([]byte, error) {
+func (s Cluster) MarshalJSON() ([]byte, error) {
 	type NoMethod Cluster
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ClusterUpgradeDetails: Upgrade details of a cluster. This cluster can be
+// primary or secondary.
+type ClusterUpgradeDetails struct {
+	// ClusterType: Cluster type which can either be primary or secondary.
+	//
+	// Possible values:
+	//   "CLUSTER_TYPE_UNSPECIFIED" - The type of the cluster is unknown.
+	//   "PRIMARY" - Primary cluster that support read and write operations.
+	//   "SECONDARY" - Secondary cluster that is replicating from another region.
+	// This only supports read.
+	ClusterType string `json:"clusterType,omitempty"`
+	// DatabaseVersion: Database version of the cluster after the upgrade
+	// operation. This will be the target version if the upgrade was successful
+	// otherwise it remains the same as that before the upgrade operation.
+	//
+	// Possible values:
+	//   "DATABASE_VERSION_UNSPECIFIED" - This is an unknown database version.
+	//   "POSTGRES_13" - DEPRECATED - The database version is Postgres 13.
+	//   "POSTGRES_14" - The database version is Postgres 14.
+	//   "POSTGRES_15" - The database version is Postgres 15.
+	//   "POSTGRES_16" - The database version is Postgres 16.
+	DatabaseVersion string `json:"databaseVersion,omitempty"`
+	// InstanceUpgradeDetails: Upgrade details of the instances directly associated
+	// with this cluster.
+	InstanceUpgradeDetails []*InstanceUpgradeDetails `json:"instanceUpgradeDetails,omitempty"`
+	// Name: Normalized name of the cluster
+	Name string `json:"name,omitempty"`
+	// StageInfo: Array containing stage info associated with this cluster.
+	StageInfo []*StageInfo `json:"stageInfo,omitempty"`
+	// UpgradeStatus: Upgrade status of the cluster.
+	//
+	// Possible values:
+	//   "STATUS_UNSPECIFIED" - Unspecified status.
+	//   "NOT_STARTED" - Not started.
+	//   "IN_PROGRESS" - In progress.
+	//   "SUCCESS" - Operation succeeded.
+	//   "FAILED" - Operation failed.
+	//   "PARTIAL_SUCCESS" - Operation partially succeeded.
+	//   "CANCEL_IN_PROGRESS" - Cancel is in progress.
+	//   "CANCELLED" - Cancellation complete.
+	UpgradeStatus string `json:"upgradeStatus,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ClusterType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ClusterType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ClusterUpgradeDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod ClusterUpgradeDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ConnectionInfo: ConnectionInfo singleton resource.
@@ -713,9 +824,9 @@ type ConnectionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ConnectionInfo) MarshalJSON() ([]byte, error) {
+func (s ConnectionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ConnectionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContinuousBackupConfig: ContinuousBackupConfig describes the continuous
@@ -725,8 +836,7 @@ type ContinuousBackupConfig struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// EncryptionConfig: The encryption config can be specified to encrypt the
 	// backups with a customer-managed encryption key (CMEK). When this field is
-	// not specified, the backup will then use default encryption scheme to protect
-	// the user data.
+	// not specified, the backup will use the cluster's encryption config.
 	EncryptionConfig *EncryptionConfig `json:"encryptionConfig,omitempty"`
 	// RecoveryWindowDays: The number of days that are eligible to restore from
 	// using PITR. To support the entire recovery window, backups and logs are
@@ -746,9 +856,9 @@ type ContinuousBackupConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContinuousBackupConfig) MarshalJSON() ([]byte, error) {
+func (s ContinuousBackupConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ContinuousBackupConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContinuousBackupInfo: ContinuousBackupInfo describes the continuous backup
@@ -789,9 +899,9 @@ type ContinuousBackupInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContinuousBackupInfo) MarshalJSON() ([]byte, error) {
+func (s ContinuousBackupInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod ContinuousBackupInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ContinuousBackupSource: Message describing a ContinuousBackupSource.
@@ -815,9 +925,115 @@ type ContinuousBackupSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ContinuousBackupSource) MarshalJSON() ([]byte, error) {
+func (s ContinuousBackupSource) MarshalJSON() ([]byte, error) {
 	type NoMethod ContinuousBackupSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CsvExportOptions: Options for exporting data in CSV format.
+type CsvExportOptions struct {
+	// EscapeCharacter: Optional. Specifies the character that should appear before
+	// a data character that needs to be escaped. The default is the same as quote
+	// character. The value of this argument has to be a character in Hex ASCII
+	// Code.
+	EscapeCharacter string `json:"escapeCharacter,omitempty"`
+	// FieldDelimiter: Optional. Specifies the character that separates columns
+	// within each row (line) of the file. The default is comma. The value of this
+	// argument has to be a character in Hex ASCII Code.
+	FieldDelimiter string `json:"fieldDelimiter,omitempty"`
+	// QuoteCharacter: Optional. Specifies the quoting character to be used when a
+	// data value is quoted. The default is double-quote. The value of this
+	// argument has to be a character in Hex ASCII Code.
+	QuoteCharacter string `json:"quoteCharacter,omitempty"`
+	// SelectQuery: Required. The SELECT query used to extract the data.
+	SelectQuery string `json:"selectQuery,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EscapeCharacter") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EscapeCharacter") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CsvExportOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod CsvExportOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// CsvImportOptions: Options for importing data in CSV format.
+type CsvImportOptions struct {
+	// Columns: Optional. The columns to which CSV data is imported. If not
+	// specified, all columns of the database table are loaded with CSV data.
+	Columns []string `json:"columns,omitempty"`
+	// EscapeCharacter: Optional. Specifies the character that should appear before
+	// a data character that needs to be escaped. The default is same as quote
+	// character. The value of this argument has to be a character in Hex ASCII
+	// Code.
+	EscapeCharacter string `json:"escapeCharacter,omitempty"`
+	// FieldDelimiter: Optional. Specifies the character that separates columns
+	// within each row (line) of the file. The default is comma. The value of this
+	// argument has to be a character in Hex ASCII Code.
+	FieldDelimiter string `json:"fieldDelimiter,omitempty"`
+	// QuoteCharacter: Optional. Specifies the quoting character to be used when a
+	// data value is quoted. The default is double-quote. The value of this
+	// argument has to be a character in Hex ASCII Code.
+	QuoteCharacter string `json:"quoteCharacter,omitempty"`
+	// Table: Required. The database table to import CSV file into.
+	Table string `json:"table,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Columns") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Columns") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s CsvImportOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod CsvImportOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// DenyMaintenancePeriod: DenyMaintenancePeriod definition. Excepting
+// emergencies, maintenance will not be scheduled to start within this deny
+// period. The start_date must be less than the end_date.
+type DenyMaintenancePeriod struct {
+	// EndDate: Deny period end date. This can be: * A full date, with non-zero
+	// year, month and day values OR * A month and day value, with a zero year for
+	// recurring
+	EndDate *GoogleTypeDate `json:"endDate,omitempty"`
+	// StartDate: Deny period start date. This can be: * A full date, with non-zero
+	// year, month and day values OR * A month and day value, with a zero year for
+	// recurring
+	StartDate *GoogleTypeDate `json:"startDate,omitempty"`
+	// Time: Time in UTC when the deny period starts on start_date and ends on
+	// end_date. This can be: * Full time OR * All zeros for 00:00:00 UTC
+	Time *GoogleTypeTimeOfDay `json:"time,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndDate") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndDate") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s DenyMaintenancePeriod) MarshalJSON() ([]byte, error) {
+	type NoMethod DenyMaintenancePeriod
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -850,9 +1066,9 @@ type EncryptionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionConfig) MarshalJSON() ([]byte, error) {
+func (s EncryptionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EncryptionInfo: EncryptionInfo describes the encryption information of a
@@ -885,28 +1101,82 @@ type EncryptionInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EncryptionInfo) MarshalJSON() ([]byte, error) {
+func (s EncryptionInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod EncryptionInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ExportClusterRequest: Export cluster request.
+type ExportClusterRequest struct {
+	// CsvExportOptions: Options for exporting data in CSV format. Required field
+	// to be set for CSV file type.
+	CsvExportOptions *CsvExportOptions `json:"csvExportOptions,omitempty"`
+	// Database: Required. Name of the database where the export command will be
+	// executed. Note - Value provided should be the same as expected from `SELECT
+	// current_database();` and NOT as a resource reference.
+	Database string `json:"database,omitempty"`
+	// GcsDestination: Required. Option to export data to cloud storage.
+	GcsDestination *GcsDestination `json:"gcsDestination,omitempty"`
+	// SqlExportOptions: Options for exporting data in SQL format. Required field
+	// to be set for SQL file type.
+	SqlExportOptions *SqlExportOptions `json:"sqlExportOptions,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CsvExportOptions") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CsvExportOptions") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExportClusterRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ExportClusterRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ExportClusterResponse: Response of export cluster rpc.
+type ExportClusterResponse struct {
+	// GcsDestination: Required. Option to export data to cloud storage.
+	GcsDestination *GcsDestination `json:"gcsDestination,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "GcsDestination") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "GcsDestination") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ExportClusterResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ExportClusterResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FailoverInstanceRequest: Message for triggering failover on an Instance
 type FailoverInstanceRequest struct {
 	// RequestId: Optional. An optional request ID to identify requests. Specify a
-	// unique request ID so that if you must retry your request, the server will
-	// know to ignore the request if it has already been completed. The server will
-	// guarantee that for at least 60 minutes after the first request. For example,
-	// consider a situation where you make an initial request and the request times
-	// out. If you make the request again with the same request ID, the server can
-	// check if original operation with the same request ID was received, and if
-	// so, will ignore the second request. This prevents clients from accidentally
-	// creating duplicate commitments. The request ID must be a valid UUID with the
+	// unique request ID so that if you must retry your request, the server ignores
+	// the request if it has already been completed. The server guarantees that for
+	// at least 60 minutes since the first request. For example, consider a
+	// situation where you make an initial request and the request times out. If
+	// you make the request again with the same request ID, the server can check if
+	// the original operation with the same request ID was received, and if so,
+	// ignores the second request. This prevents clients from accidentally creating
+	// duplicate commitments. The request ID must be a valid UUID with the
 	// exception that zero UUID is not supported
 	// (00000000-0000-0000-0000-000000000000).
 	RequestId string `json:"requestId,omitempty"`
-	// ValidateOnly: Optional. If set, performs request validation (e.g. permission
-	// checks and any other type of validation), but do not actually execute the
-	// failover.
+	// ValidateOnly: Optional. If set, performs request validation, for example,
+	// permission checks and any other type of validation, but does not actually
+	// execute the create request.
 	ValidateOnly bool `json:"validateOnly,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "RequestId") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -921,9 +1191,33 @@ type FailoverInstanceRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FailoverInstanceRequest) MarshalJSON() ([]byte, error) {
+func (s FailoverInstanceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod FailoverInstanceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GcsDestination: Destination for Export. Export will be done to cloud
+// storage.
+type GcsDestination struct {
+	// Uri: Required. The path to the file in Google Cloud Storage where the export
+	// will be stored. The URI is in the form `gs://bucketName/fileName`.
+	Uri string `json:"uri,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Uri") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Uri") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GcsDestination) MarshalJSON() ([]byte, error) {
+	type NoMethod GcsDestination
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudLocationListLocationsResponse: The response message for
@@ -950,9 +1244,9 @@ type GoogleCloudLocationListLocationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudLocationListLocationsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudLocationListLocationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudLocationListLocationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudLocationLocation: A resource that represents a Google Cloud
@@ -989,9 +1283,47 @@ type GoogleCloudLocationLocation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudLocationLocation) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudLocationLocation) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudLocationLocation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleTypeDate: Represents a whole or partial calendar date, such as a
+// birthday. The time of day and time zone are either specified elsewhere or
+// are insignificant. The date is relative to the Gregorian Calendar. This can
+// represent one of the following: * A full date, with non-zero year, month,
+// and day values. * A month and day, with a zero year (for example, an
+// anniversary). * A year on its own, with a zero month and a zero day. * A
+// year and month, with a zero day (for example, a credit card expiration
+// date). Related types: * google.type.TimeOfDay * google.type.DateTime *
+// google.protobuf.Timestamp
+type GoogleTypeDate struct {
+	// Day: Day of a month. Must be from 1 to 31 and valid for the year and month,
+	// or 0 to specify a year by itself or a year and month where the day isn't
+	// significant.
+	Day int64 `json:"day,omitempty"`
+	// Month: Month of a year. Must be from 1 to 12, or 0 to specify a year without
+	// a month and day.
+	Month int64 `json:"month,omitempty"`
+	// Year: Year of the date. Must be from 1 to 9999, or 0 to specify a date
+	// without a year.
+	Year int64 `json:"year,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Day") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Day") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleTypeDate) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleTypeDate
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleTypeTimeOfDay: Represents a time of day. The date and time zone are
@@ -999,16 +1331,19 @@ func (s *GoogleCloudLocationLocation) MarshalJSON() ([]byte, error) {
 // allow leap seconds. Related types are google.type.Date and
 // `google.protobuf.Timestamp`.
 type GoogleTypeTimeOfDay struct {
-	// Hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-	// choose to allow the value "24:00:00" for scenarios like business closing
-	// time.
+	// Hours: Hours of a day in 24 hour format. Must be greater than or equal to 0
+	// and typically must be less than or equal to 23. An API may choose to allow
+	// the value "24:00:00" for scenarios like business closing time.
 	Hours int64 `json:"hours,omitempty"`
-	// Minutes: Minutes of hour of day. Must be from 0 to 59.
+	// Minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+	// than or equal to 59.
 	Minutes int64 `json:"minutes,omitempty"`
-	// Nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+	// Nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+	// to 0 and less than or equal to 999,999,999.
 	Nanos int64 `json:"nanos,omitempty"`
-	// Seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-	// API may allow the value 60 if it allows leap-seconds.
+	// Seconds: Seconds of a minute. Must be greater than or equal to 0 and
+	// typically must be less than or equal to 59. An API may allow the value 60 if
+	// it allows leap-seconds.
 	Seconds int64 `json:"seconds,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1023,9 +1358,69 @@ type GoogleTypeTimeOfDay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeTimeOfDay) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeTimeOfDay) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeTimeOfDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ImportClusterRequest: Import cluster request.
+type ImportClusterRequest struct {
+	// CsvImportOptions: Options for importing data in CSV format.
+	CsvImportOptions *CsvImportOptions `json:"csvImportOptions,omitempty"`
+	// Database: Optional. Name of the database to which the import will be done.
+	// For import from SQL file, this is required only if the file does not specify
+	// a database. Note - Value provided should be the same as expected from
+	// `SELECT current_database();` and NOT as a resource reference.
+	Database string `json:"database,omitempty"`
+	// GcsUri: Required. The path to the file in Google Cloud Storage where the
+	// source file for import will be stored. The URI is in the form
+	// `gs://bucketName/fileName`.
+	GcsUri string `json:"gcsUri,omitempty"`
+	// SqlImportOptions: Options for importing data in SQL format.
+	SqlImportOptions *SqlImportOptions `json:"sqlImportOptions,omitempty"`
+	// User: Optional. Database user to be used for importing the data. Note -
+	// Value provided should be the same as expected from `SELECT current_user;`
+	// and NOT as a resource reference.
+	User string `json:"user,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CsvImportOptions") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CsvImportOptions") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ImportClusterRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod ImportClusterRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ImportClusterResponse: Response of import rpc.
+type ImportClusterResponse struct {
+	// BytesDownloaded: Required. Size of the object downloaded from Google Cloud
+	// Storage in bytes.
+	BytesDownloaded int64 `json:"bytesDownloaded,omitempty,string"`
+	// ForceSendFields is a list of field names (e.g. "BytesDownloaded") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BytesDownloaded") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ImportClusterResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ImportClusterResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InjectFaultRequest: Message for triggering fault injection on an instance
@@ -1037,20 +1432,20 @@ type InjectFaultRequest struct {
 	//   "STOP_VM" - Stop the VM
 	FaultType string `json:"faultType,omitempty"`
 	// RequestId: Optional. An optional request ID to identify requests. Specify a
-	// unique request ID so that if you must retry your request, the server will
-	// know to ignore the request if it has already been completed. The server will
-	// guarantee that for at least 60 minutes after the first request. For example,
-	// consider a situation where you make an initial request and the request times
-	// out. If you make the request again with the same request ID, the server can
-	// check if original operation with the same request ID was received, and if
-	// so, will ignore the second request. This prevents clients from accidentally
-	// creating duplicate commitments. The request ID must be a valid UUID with the
+	// unique request ID so that if you must retry your request, the server ignores
+	// the request if it has already been completed. The server guarantees that for
+	// at least 60 minutes since the first request. For example, consider a
+	// situation where you make an initial request and the request times out. If
+	// you make the request again with the same request ID, the server can check if
+	// the original operation with the same request ID was received, and if so,
+	// ignores the second request. This prevents clients from accidentally creating
+	// duplicate commitments. The request ID must be a valid UUID with the
 	// exception that zero UUID is not supported
 	// (00000000-0000-0000-0000-000000000000).
 	RequestId string `json:"requestId,omitempty"`
-	// ValidateOnly: Optional. If set, performs request validation (e.g. permission
-	// checks and any other type of validation), but do not actually execute the
-	// fault injection.
+	// ValidateOnly: Optional. If set, performs request validation, for example,
+	// permission checks and any other type of validation, but does not actually
+	// execute the create request.
 	ValidateOnly bool `json:"validateOnly,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "FaultType") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1065,9 +1460,9 @@ type InjectFaultRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InjectFaultRequest) MarshalJSON() ([]byte, error) {
+func (s InjectFaultRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InjectFaultRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Instance: An Instance is a computing unit that an end customer can connect
@@ -1091,11 +1486,13 @@ type Instance struct {
 	ClientConnectionConfig *ClientConnectionConfig `json:"clientConnectionConfig,omitempty"`
 	// CreateTime: Output only. Create time stamp
 	CreateTime string `json:"createTime,omitempty"`
-	// DatabaseFlags: Database flags. Set at instance level. * They are copied from
-	// primary instance on read instance creation. * Read instances can set new or
-	// override existing flags that are relevant for reads, e.g. for enabling
-	// columnar cache on a read instance. Flags set on read instance may or may not
-	// be present on primary. This is a list of "key": "value" pairs. "key": The
+	// DatabaseFlags: Database flags. Set at the instance level. They are copied
+	// from the primary instance on secondary instance creation. Flags that have
+	// restrictions default to the value at primary instance on read instances
+	// during creation. Read instances can set new flags or override existing flags
+	// that are relevant for reads, for example, for enabling columnar cache on a
+	// read instance. Flags set on read instance might or might not be present on
+	// the primary instance. This is a list of "key": "value" pairs. "key": The
 	// name of the flag. These flags are passed at instance setup time, so include
 	// both server options and system variables for Postgres. Flags are specified
 	// with underscores, not hyphens. "value": The value of the flag. Booleans are
@@ -1145,11 +1542,16 @@ type Instance struct {
 	// The prefix of the instance resource name is the name of the parent resource:
 	// * projects/{project}/locations/{region}/clusters/{cluster_id}
 	Name string `json:"name,omitempty"`
-	// NetworkConfig: Optional. Instance level network configuration.
+	// NetworkConfig: Optional. Instance-level network configuration.
 	NetworkConfig *InstanceNetworkConfig `json:"networkConfig,omitempty"`
 	// Nodes: Output only. List of available read-only VMs in this instance,
 	// including the standby for a PRIMARY instance.
 	Nodes []*Node `json:"nodes,omitempty"`
+	// ObservabilityConfig: Configuration for observability.
+	ObservabilityConfig *ObservabilityInstanceConfig `json:"observabilityConfig,omitempty"`
+	// OutboundPublicIpAddresses: Output only. All outbound public IP addresses
+	// configured for the instance.
+	OutboundPublicIpAddresses []string `json:"outboundPublicIpAddresses,omitempty"`
 	// PscInstanceConfig: Optional. The configuration for Private Service Connect
 	// (PSC) for the instance.
 	PscInstanceConfig *PscInstanceConfig `json:"pscInstanceConfig,omitempty"`
@@ -1215,19 +1617,28 @@ type Instance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Instance) MarshalJSON() ([]byte, error) {
+func (s Instance) MarshalJSON() ([]byte, error) {
 	type NoMethod Instance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// InstanceNetworkConfig: Metadata related to instance level network
+// InstanceNetworkConfig: Metadata related to instance-level network
 // configuration.
 type InstanceNetworkConfig struct {
 	// AuthorizedExternalNetworks: Optional. A list of external network authorized
 	// to access this instance.
 	AuthorizedExternalNetworks []*AuthorizedNetwork `json:"authorizedExternalNetworks,omitempty"`
+	// EnableOutboundPublicIp: Optional. Enabling an outbound public IP address to
+	// support a database server sending requests out into the internet.
+	EnableOutboundPublicIp bool `json:"enableOutboundPublicIp,omitempty"`
 	// EnablePublicIp: Optional. Enabling public ip for the instance.
 	EnablePublicIp bool `json:"enablePublicIp,omitempty"`
+	// Network: Output only. The resource link for the VPC network in which
+	// instance resources are created and from which they are accessible via
+	// Private IP. This will be the same value as the parent cluster's network. It
+	// is specified in the form: //
+	// `projects/{project_number}/global/networks/{network_id}`.
+	Network string `json:"network,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AuthorizedExternalNetworks")
 	// to unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1241,9 +1652,57 @@ type InstanceNetworkConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InstanceNetworkConfig) MarshalJSON() ([]byte, error) {
+func (s InstanceNetworkConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod InstanceNetworkConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// InstanceUpgradeDetails: Details regarding the upgrade of instaces associated
+// with a cluster.
+type InstanceUpgradeDetails struct {
+	// InstanceType: Instance type.
+	//
+	// Possible values:
+	//   "INSTANCE_TYPE_UNSPECIFIED" - The type of the instance is unknown.
+	//   "PRIMARY" - PRIMARY instances support read and write operations.
+	//   "READ_POOL" - READ POOL instances support read operations only. Each read
+	// pool instance consists of one or more homogeneous nodes. * Read pool of size
+	// 1 can only have zonal availability. * Read pools with node count of 2 or
+	// more can have regional availability (nodes are present in 2 or more zones in
+	// a region).
+	//   "SECONDARY" - SECONDARY instances support read operations only. SECONDARY
+	// instance is a cross-region read replica
+	InstanceType string `json:"instanceType,omitempty"`
+	// Name: Normalized name of the instance.
+	Name string `json:"name,omitempty"`
+	// UpgradeStatus: Upgrade status of the instance.
+	//
+	// Possible values:
+	//   "STATUS_UNSPECIFIED" - Unspecified status.
+	//   "NOT_STARTED" - Not started.
+	//   "IN_PROGRESS" - In progress.
+	//   "SUCCESS" - Operation succeeded.
+	//   "FAILED" - Operation failed.
+	//   "PARTIAL_SUCCESS" - Operation partially succeeded.
+	//   "CANCEL_IN_PROGRESS" - Cancel is in progress.
+	//   "CANCELLED" - Cancellation complete.
+	UpgradeStatus string `json:"upgradeStatus,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "InstanceType") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "InstanceType") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s InstanceUpgradeDetails) MarshalJSON() ([]byte, error) {
+	type NoMethod InstanceUpgradeDetails
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IntegerRestrictions: Restrictions on INTEGER type values.
@@ -1265,9 +1724,9 @@ type IntegerRestrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IntegerRestrictions) MarshalJSON() ([]byte, error) {
+func (s IntegerRestrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod IntegerRestrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListBackupsResponse: Message for response to listing Backups
@@ -1295,9 +1754,9 @@ type ListBackupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListBackupsResponse) MarshalJSON() ([]byte, error) {
+func (s ListBackupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListBackupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListClustersResponse: Message for response to listing Clusters
@@ -1325,9 +1784,9 @@ type ListClustersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListClustersResponse) MarshalJSON() ([]byte, error) {
+func (s ListClustersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListClustersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListInstancesResponse: Message for response to listing Instances
@@ -1355,9 +1814,9 @@ type ListInstancesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListInstancesResponse) MarshalJSON() ([]byte, error) {
+func (s ListInstancesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListInstancesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -1383,9 +1842,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListSupportedDatabaseFlagsResponse: Message for response to listing
@@ -1412,9 +1871,9 @@ type ListSupportedDatabaseFlagsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListSupportedDatabaseFlagsResponse) MarshalJSON() ([]byte, error) {
+func (s ListSupportedDatabaseFlagsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListSupportedDatabaseFlagsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListUsersResponse: Message for response to listing Users
@@ -1442,15 +1901,19 @@ type ListUsersResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListUsersResponse) MarshalJSON() ([]byte, error) {
+func (s ListUsersResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListUsersResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MachineConfig: MachineConfig describes the configuration of a machine.
 type MachineConfig struct {
 	// CpuCount: The number of CPU's in the VM instance.
 	CpuCount int64 `json:"cpuCount,omitempty"`
+	// MachineType: Machine type of the VM instance. E.g. "n2-highmem-4",
+	// "n2-highmem-8", "c4a-highmem-4-lssd". cpu_count must match the number of
+	// vCPUs in the machine type.
+	MachineType string `json:"machineType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CpuCount") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1464,9 +1927,9 @@ type MachineConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MachineConfig) MarshalJSON() ([]byte, error) {
+func (s MachineConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod MachineConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MaintenanceSchedule: MaintenanceSchedule stores the maintenance schedule
@@ -1490,33 +1953,35 @@ type MaintenanceSchedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MaintenanceSchedule) MarshalJSON() ([]byte, error) {
+func (s MaintenanceSchedule) MarshalJSON() ([]byte, error) {
 	type NoMethod MaintenanceSchedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MaintenanceUpdatePolicy: MaintenanceUpdatePolicy defines the policy for
 // system updates.
 type MaintenanceUpdatePolicy struct {
+	// DenyMaintenancePeriods: Periods to deny maintenance. Currently limited to 1.
+	DenyMaintenancePeriods []*DenyMaintenancePeriod `json:"denyMaintenancePeriods,omitempty"`
 	// MaintenanceWindows: Preferred windows to perform maintenance. Currently
 	// limited to 1.
 	MaintenanceWindows []*MaintenanceWindow `json:"maintenanceWindows,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "MaintenanceWindows") to
+	// ForceSendFields is a list of field names (e.g. "DenyMaintenancePeriods") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "MaintenanceWindows") to include
-	// in API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "DenyMaintenancePeriods") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *MaintenanceUpdatePolicy) MarshalJSON() ([]byte, error) {
+func (s MaintenanceUpdatePolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod MaintenanceUpdatePolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MaintenanceWindow: MaintenanceWindow specifies a preferred day and time for
@@ -1550,9 +2015,9 @@ type MaintenanceWindow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MaintenanceWindow) MarshalJSON() ([]byte, error) {
+func (s MaintenanceWindow) MarshalJSON() ([]byte, error) {
 	type NoMethod MaintenanceWindow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MigrationSource: Subset of the source instance configuration that is
@@ -1583,9 +2048,9 @@ type MigrationSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MigrationSource) MarshalJSON() ([]byte, error) {
+func (s MigrationSource) MarshalJSON() ([]byte, error) {
 	type NoMethod MigrationSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NetworkConfig: Metadata related to network configuration.
@@ -1617,25 +2082,26 @@ type NetworkConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NetworkConfig) MarshalJSON() ([]byte, error) {
+func (s NetworkConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod NetworkConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Node: Details of a single node in the instance. Nodes in an AlloyDB instance
-// are ephemereal, they can change during update, failover, autohealing and
+// are ephemeral, they can change during update, failover, autohealing and
 // resize operations.
 type Node struct {
-	// Id: The identifier of the VM e.g. "test-read-0601-407e52be-ms3l".
+	// Id: Output only. The identifier of the VM e.g.
+	// "test-read-0601-407e52be-ms3l".
 	Id string `json:"id,omitempty"`
-	// Ip: The private IP address of the VM e.g. "10.57.0.34".
+	// Ip: Output only. The private IP address of the VM e.g. "10.57.0.34".
 	Ip string `json:"ip,omitempty"`
-	// State: Determined by state of the compute VM and postgres-service health.
-	// Compute VM state can have values listed in
+	// State: Output only. Determined by state of the compute VM and
+	// postgres-service health. Compute VM state can have values listed in
 	// https://cloud.google.com/compute/docs/instances/instance-life-cycle and
 	// postgres-service health can have values: HEALTHY and UNHEALTHY.
 	State string `json:"state,omitempty"`
-	// ZoneId: The Compute Engine zone of the VM e.g. "us-central1-b".
+	// ZoneId: Output only. The Compute Engine zone of the VM e.g. "us-central1-b".
 	ZoneId string `json:"zoneId,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Id") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1650,9 +2116,56 @@ type Node struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Node) MarshalJSON() ([]byte, error) {
+func (s Node) MarshalJSON() ([]byte, error) {
 	type NoMethod Node
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ObservabilityInstanceConfig: Observability Instance specific configuration.
+type ObservabilityInstanceConfig struct {
+	// Enabled: Observability feature status for an instance. This flag is turned
+	// "off" by default.
+	Enabled bool `json:"enabled,omitempty"`
+	// MaxQueryStringLength: Query string length. The default value is 10k.
+	MaxQueryStringLength int64 `json:"maxQueryStringLength,omitempty"`
+	// PreserveComments: Preserve comments in query string for an instance. This
+	// flag is turned "off" by default.
+	PreserveComments bool `json:"preserveComments,omitempty"`
+	// QueryPlansPerMinute: Number of query execution plans captured by Insights
+	// per minute for all queries combined. The default value is 200. Any integer
+	// between 0 to 200 is considered valid.
+	QueryPlansPerMinute int64 `json:"queryPlansPerMinute,omitempty"`
+	// RecordApplicationTags: Record application tags for an instance. This flag is
+	// turned "off" by default.
+	RecordApplicationTags bool `json:"recordApplicationTags,omitempty"`
+	// TrackActiveQueries: Track actively running queries on the instance. If not
+	// set, this flag is "off" by default.
+	TrackActiveQueries bool `json:"trackActiveQueries,omitempty"`
+	// TrackWaitEventTypes: Output only. Track wait event types during query
+	// execution for an instance. This flag is turned "on" by default but tracking
+	// is enabled only after observability enabled flag is also turned on. This is
+	// read-only flag and only modifiable by internal API.
+	TrackWaitEventTypes bool `json:"trackWaitEventTypes,omitempty"`
+	// TrackWaitEvents: Track wait events during query execution for an instance.
+	// This flag is turned "on" by default but tracking is enabled only after
+	// observability enabled flag is also turned on.
+	TrackWaitEvents bool `json:"trackWaitEvents,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Enabled") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Enabled") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ObservabilityInstanceConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod ObservabilityInstanceConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1697,9 +2210,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // OperationMetadata: Represents the metadata of the long-running operation.
@@ -1712,14 +2225,16 @@ type OperationMetadata struct {
 	EndTime string `json:"endTime,omitempty"`
 	// RequestedCancellation: Output only. Identifies whether the user has
 	// requested cancellation of the operation. Operations that have successfully
-	// been cancelled have Operation.error value with a google.rpc.Status.code of
-	// 1, corresponding to `Code.CANCELLED`.
+	// been cancelled have google.longrunning.Operation.error value with a
+	// google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
 	RequestedCancellation bool `json:"requestedCancellation,omitempty"`
 	// StatusMessage: Output only. Human-readable status of the operation, if any.
 	StatusMessage string `json:"statusMessage,omitempty"`
 	// Target: Output only. Server-defined resource path for the target of the
 	// operation.
 	Target string `json:"target,omitempty"`
+	// UpgradeClusterStatus: Output only. UpgradeClusterStatus related metadata.
+	UpgradeClusterStatus *UpgradeClusterStatus `json:"upgradeClusterStatus,omitempty"`
 	// Verb: Output only. Name of the verb executed by the operation.
 	Verb string `json:"verb,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ApiVersion") to
@@ -1735,9 +2250,9 @@ type OperationMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
+func (s OperationMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod OperationMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PrimaryConfig: Configuration for the primary cluster. It has the list of
@@ -1760,9 +2275,9 @@ type PrimaryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PrimaryConfig) MarshalJSON() ([]byte, error) {
+func (s PrimaryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PrimaryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PromoteClusterRequest: Message for promoting a Cluster
@@ -1772,20 +2287,20 @@ type PromoteClusterRequest struct {
 	// an ABORTED error will be returned.
 	Etag string `json:"etag,omitempty"`
 	// RequestId: Optional. An optional request ID to identify requests. Specify a
-	// unique request ID so that if you must retry your request, the server will
-	// know to ignore the request if it has already been completed. The server will
-	// guarantee that for at least 60 minutes after the first request. For example,
-	// consider a situation where you make an initial request and the request times
-	// out. If you make the request again with the same request ID, the server can
-	// check if original operation with the same request ID was received, and if
-	// so, will ignore the second request. This prevents clients from accidentally
-	// creating duplicate commitments. The request ID must be a valid UUID with the
+	// unique request ID so that if you must retry your request, the server ignores
+	// the request if it has already been completed. The server guarantees that for
+	// at least 60 minutes since the first request. For example, consider a
+	// situation where you make an initial request and the request times out. If
+	// you make the request again with the same request ID, the server can check if
+	// original operation with the same request ID was received, and if so, will
+	// ignore the second request. This prevents clients from accidentally creating
+	// duplicate commitments. The request ID must be a valid UUID with the
 	// exception that zero UUID is not supported
 	// (00000000-0000-0000-0000-000000000000).
 	RequestId string `json:"requestId,omitempty"`
-	// ValidateOnly: Optional. If set, performs request validation (e.g. permission
-	// checks and any other type of validation), but do not actually execute the
-	// delete.
+	// ValidateOnly: Optional. If set, performs request validation, for example,
+	// permission checks and any other type of validation, but does not actually
+	// execute the create request.
 	ValidateOnly bool `json:"validateOnly,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Etag") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1800,9 +2315,46 @@ type PromoteClusterRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PromoteClusterRequest) MarshalJSON() ([]byte, error) {
+func (s PromoteClusterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod PromoteClusterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PscAutoConnectionConfig: Configuration for setting up PSC service
+// automation. Consumer projects in the configs will be allowlisted
+// automatically for the instance.
+type PscAutoConnectionConfig struct {
+	// ConsumerNetwork: The consumer network for the PSC service automation,
+	// example: "projects/vpc-host-project/global/networks/default". The consumer
+	// network might be hosted a different project than the consumer project.
+	ConsumerNetwork string `json:"consumerNetwork,omitempty"`
+	// ConsumerNetworkStatus: Output only. The status of the service connection
+	// policy.
+	ConsumerNetworkStatus string `json:"consumerNetworkStatus,omitempty"`
+	// ConsumerProject: The consumer project to which the PSC service automation
+	// endpoint will be created.
+	ConsumerProject string `json:"consumerProject,omitempty"`
+	// IpAddress: Output only. The IP address of the PSC service automation
+	// endpoint.
+	IpAddress string `json:"ipAddress,omitempty"`
+	// Status: Output only. The status of the PSC service automation connection.
+	Status string `json:"status,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ConsumerNetwork") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ConsumerNetwork") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PscAutoConnectionConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod PscAutoConnectionConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PscConfig: PscConfig contains PSC related configuration at a cluster level.
@@ -1810,6 +2362,9 @@ type PscConfig struct {
 	// PscEnabled: Optional. Create an instance that allows connections from
 	// Private Service Connect endpoints to the instance.
 	PscEnabled bool `json:"pscEnabled,omitempty"`
+	// ServiceOwnedProjectNumber: Output only. The project number that needs to be
+	// allowlisted on the network attachment to enable outbound connectivity.
+	ServiceOwnedProjectNumber int64 `json:"serviceOwnedProjectNumber,omitempty,string"`
 	// ForceSendFields is a list of field names (e.g. "PscEnabled") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -1823,9 +2378,9 @@ type PscConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PscConfig) MarshalJSON() ([]byte, error) {
+func (s PscConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PscConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PscInstanceConfig: PscInstanceConfig contains PSC related configuration at
@@ -1834,9 +2389,17 @@ type PscInstanceConfig struct {
 	// AllowedConsumerProjects: Optional. List of consumer projects that are
 	// allowed to create PSC endpoints to service-attachments to this instance.
 	AllowedConsumerProjects []string `json:"allowedConsumerProjects,omitempty"`
+	// PscAutoConnections: Optional. Configurations for setting up PSC service
+	// automation.
+	PscAutoConnections []*PscAutoConnectionConfig `json:"pscAutoConnections,omitempty"`
 	// PscDnsName: Output only. The DNS name of the instance for PSC connectivity.
 	// Name convention: ...alloydb-psc.goog
 	PscDnsName string `json:"pscDnsName,omitempty"`
+	// PscInterfaceConfigs: Optional. Configurations for setting up PSC interfaces
+	// attached to the instance which are used for outbound connectivity. Only
+	// primary instances can have PSC interface attached. Currently we only support
+	// 0 or 1 PSC interface.
+	PscInterfaceConfigs []*PscInterfaceConfig `json:"pscInterfaceConfigs,omitempty"`
 	// ServiceAttachmentLink: Output only. The service attachment created when
 	// Private Service Connect (PSC) is enabled for the instance. The name of the
 	// resource will be in the format of `projects//regions//serviceAttachments/`
@@ -1854,9 +2417,37 @@ type PscInstanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PscInstanceConfig) MarshalJSON() ([]byte, error) {
+func (s PscInstanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod PscInstanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// PscInterfaceConfig: Configuration for setting up a PSC interface to enable
+// outbound connectivity.
+type PscInterfaceConfig struct {
+	// NetworkAttachmentResource: The network attachment resource created in the
+	// consumer network to which the PSC interface will be linked. This is of the
+	// format:
+	// "projects/${CONSUMER_PROJECT}/regions/${REGION}/networkAttachments/${NETWORK_
+	// ATTACHMENT_NAME}". The network attachment must be in the same region as the
+	// instance.
+	NetworkAttachmentResource string `json:"networkAttachmentResource,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "NetworkAttachmentResource")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NetworkAttachmentResource") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s PscInterfaceConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod PscInterfaceConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QuantityBasedExpiry: A backup's position in a quantity-based retention
@@ -1888,9 +2479,9 @@ type QuantityBasedExpiry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QuantityBasedExpiry) MarshalJSON() ([]byte, error) {
+func (s QuantityBasedExpiry) MarshalJSON() ([]byte, error) {
 	type NoMethod QuantityBasedExpiry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QuantityBasedRetention: A quantity based policy specifies that a certain
@@ -1911,9 +2502,9 @@ type QuantityBasedRetention struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QuantityBasedRetention) MarshalJSON() ([]byte, error) {
+func (s QuantityBasedRetention) MarshalJSON() ([]byte, error) {
 	type NoMethod QuantityBasedRetention
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryInsightsInstanceConfig: QueryInsights Instance specific configuration.
@@ -1944,9 +2535,9 @@ type QueryInsightsInstanceConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryInsightsInstanceConfig) MarshalJSON() ([]byte, error) {
+func (s QueryInsightsInstanceConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryInsightsInstanceConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReadPoolConfig: Configuration for a read pool instance.
@@ -1966,44 +2557,70 @@ type ReadPoolConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReadPoolConfig) MarshalJSON() ([]byte, error) {
+func (s ReadPoolConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod ReadPoolConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-type RestartInstanceRequest struct {
-	// RequestId: Optional. An optional request ID to identify requests. Specify a
-	// unique request ID so that if you must retry your request, the server will
-	// know to ignore the request if it has already been completed. The server will
-	// guarantee that for at least 60 minutes after the first request. For example,
-	// consider a situation where you make an initial request and the request times
-	// out. If you make the request again with the same request ID, the server can
-	// check if original operation with the same request ID was received, and if
-	// so, will ignore the second request. This prevents clients from accidentally
-	// creating duplicate commitments. The request ID must be a valid UUID with the
-	// exception that zero UUID is not supported
-	// (00000000-0000-0000-0000-000000000000).
-	RequestId string `json:"requestId,omitempty"`
-	// ValidateOnly: Optional. If set, performs request validation (e.g. permission
-	// checks and any other type of validation), but do not actually execute the
-	// restart.
-	ValidateOnly bool `json:"validateOnly,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "RequestId") to
+// ReadPoolInstancesUpgradeStageStatus: Read pool instances upgrade specific
+// status.
+type ReadPoolInstancesUpgradeStageStatus struct {
+	// UpgradeStats: Read pool instances upgrade statistics.
+	UpgradeStats *Stats `json:"upgradeStats,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "UpgradeStats") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "RequestId") to include in API
+	// NullFields is a list of field names (e.g. "UpgradeStats") to include in API
 	// requests with the JSON null value. By default, fields with empty values are
 	// omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *RestartInstanceRequest) MarshalJSON() ([]byte, error) {
+func (s ReadPoolInstancesUpgradeStageStatus) MarshalJSON() ([]byte, error) {
+	type NoMethod ReadPoolInstancesUpgradeStageStatus
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+type RestartInstanceRequest struct {
+	// NodeIds: Optional. Full name of the nodes as obtained from
+	// INSTANCE_VIEW_FULL to restart upon. Applicable only to read instances.
+	NodeIds []string `json:"nodeIds,omitempty"`
+	// RequestId: Optional. An optional request ID to identify requests. Specify a
+	// unique request ID so that if you must retry your request, the server ignores
+	// the request if it has already been completed. The server guarantees that for
+	// at least 60 minutes since the first request. For example, consider a
+	// situation where you make an initial request and the request times out. If
+	// you make the request again with the same request ID, the server can check if
+	// the original operation with the same request ID was received, and if so,
+	// ignores the second request. This prevents clients from accidentally creating
+	// duplicate commitments. The request ID must be a valid UUID with the
+	// exception that zero UUID is not supported
+	// (00000000-0000-0000-0000-000000000000).
+	RequestId string `json:"requestId,omitempty"`
+	// ValidateOnly: Optional. If set, performs request validation, for example,
+	// permission checks and any other type of validation, but does not actually
+	// execute the create request.
+	ValidateOnly bool `json:"validateOnly,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "NodeIds") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "NodeIds") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RestartInstanceRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RestartInstanceRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RestoreClusterRequest: Message for restoring a Cluster from a backup or
@@ -2019,20 +2636,20 @@ type RestoreClusterRequest struct {
 	// be enabled in the source cluster for this operation to succeed.
 	ContinuousBackupSource *ContinuousBackupSource `json:"continuousBackupSource,omitempty"`
 	// RequestId: Optional. An optional request ID to identify requests. Specify a
-	// unique request ID so that if you must retry your request, the server will
-	// know to ignore the request if it has already been completed. The server will
-	// guarantee that for at least 60 minutes since the first request. For example,
-	// consider a situation where you make an initial request and the request times
-	// out. If you make the request again with the same request ID, the server can
-	// check if original operation with the same request ID was received, and if
-	// so, will ignore the second request. This prevents clients from accidentally
-	// creating duplicate commitments. The request ID must be a valid UUID with the
+	// unique request ID so that if you must retry your request, the server ignores
+	// the request if it has already been completed. The server guarantees that for
+	// at least 60 minutes since the first request. For example, consider a
+	// situation where you make an initial request and the request times out. If
+	// you make the request again with the same request ID, the server can check if
+	// the original operation with the same request ID was received, and if so,
+	// ignores the second request. This prevents clients from accidentally creating
+	// duplicate commitments. The request ID must be a valid UUID with the
 	// exception that zero UUID is not supported
 	// (00000000-0000-0000-0000-000000000000).
 	RequestId string `json:"requestId,omitempty"`
-	// ValidateOnly: Optional. If set, performs request validation (e.g. permission
-	// checks and any other type of validation), but do not actually execute the
-	// import request.
+	// ValidateOnly: Optional. If set, performs request validation, for example,
+	// permission checks and any other type of validation, but does not actually
+	// execute the create request.
 	ValidateOnly bool `json:"validateOnly,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "BackupSource") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2047,9 +2664,36 @@ type RestoreClusterRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RestoreClusterRequest) MarshalJSON() ([]byte, error) {
+func (s RestoreClusterRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RestoreClusterRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// RestoreFromCloudSQLRequest: Message for registering Restoring from CloudSQL
+// resource.
+type RestoreFromCloudSQLRequest struct {
+	// CloudsqlBackupRunSource: Cluster created from CloudSQL backup run.
+	CloudsqlBackupRunSource *CloudSQLBackupRunSource `json:"cloudsqlBackupRunSource,omitempty"`
+	// Cluster: Required. The resource being created
+	Cluster *Cluster `json:"cluster,omitempty"`
+	// ClusterId: Required. ID of the requesting object.
+	ClusterId string `json:"clusterId,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CloudsqlBackupRunSource") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CloudsqlBackupRunSource") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s RestoreFromCloudSQLRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod RestoreFromCloudSQLRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SecondaryConfig: Configuration information for the secondary cluster. This
@@ -2071,9 +2715,44 @@ type SecondaryConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SecondaryConfig) MarshalJSON() ([]byte, error) {
+func (s SecondaryConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SecondaryConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SqlExportOptions: Options for exporting data in SQL format.
+type SqlExportOptions struct {
+	// CleanTargetObjects: Optional. If true, output commands to DROP all the
+	// dumped database objects prior to outputting the commands for creating them.
+	CleanTargetObjects bool `json:"cleanTargetObjects,omitempty"`
+	// IfExistTargetObjects: Optional. If true, use DROP ... IF EXISTS commands to
+	// check for the object's existence before dropping it in clean_target_objects
+	// mode.
+	IfExistTargetObjects bool `json:"ifExistTargetObjects,omitempty"`
+	// SchemaOnly: Optional. If true, only export the schema.
+	SchemaOnly bool `json:"schemaOnly,omitempty"`
+	// Tables: Optional. Tables to export from.
+	Tables []string `json:"tables,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CleanTargetObjects") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CleanTargetObjects") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SqlExportOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod SqlExportOptions
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SqlImportOptions: Options for importing data in SQL format.
+type SqlImportOptions struct {
 }
 
 // SslConfig: SSL configuration.
@@ -2091,7 +2770,7 @@ type SslConfig struct {
 	// behavior.
 	//
 	// Possible values:
-	//   "SSL_MODE_UNSPECIFIED" - SSL mode not specified. Defaults to
+	//   "SSL_MODE_UNSPECIFIED" - SSL mode is not specified. Defaults to
 	// ENCRYPTED_ONLY.
 	//   "SSL_MODE_ALLOW" - SSL connections are optional. CA verification not
 	// enforced.
@@ -2099,8 +2778,8 @@ type SslConfig struct {
 	// enforced. Clients may use locally self-signed certificates (default psql
 	// client behavior).
 	//   "SSL_MODE_VERIFY_CA" - SSL connections are required. CA verification
-	// enforced. Clients must have certificates signed by a Cluster CA, e.g. via
-	// GenerateClientCertificate.
+	// enforced. Clients must have certificates signed by a Cluster CA, for
+	// example, using GenerateClientCertificate.
 	//   "ALLOW_UNENCRYPTED_AND_ENCRYPTED" - SSL connections are optional. CA
 	// verification not enforced.
 	//   "ENCRYPTED_ONLY" - SSL connections are required. CA verification not
@@ -2119,9 +2798,131 @@ type SslConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SslConfig) MarshalJSON() ([]byte, error) {
+func (s SslConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod SslConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageInfo: Stage information for different stages in the upgrade process.
+type StageInfo struct {
+	// LogsUrl: logs_url is the URL for the logs associated with a stage if that
+	// stage has logs. Right now, only three stages have logs: ALLOYDB_PRECHECK,
+	// PG_UPGRADE_CHECK, PRIMARY_INSTANCE_UPGRADE.
+	LogsUrl string `json:"logsUrl,omitempty"`
+	// Stage: The stage.
+	//
+	// Possible values:
+	//   "STAGE_UNSPECIFIED" - Unspecified stage.
+	//   "ALLOYDB_PRECHECK" - Pre-upgrade custom checks, not covered by pg_upgrade.
+	//   "PG_UPGRADE_CHECK" - Pre-upgrade pg_upgrade checks.
+	//   "PREPARE_FOR_UPGRADE" - Clone the original cluster.
+	//   "PRIMARY_INSTANCE_UPGRADE" - Upgrade the primary instance(downtime).
+	//   "READ_POOL_INSTANCES_UPGRADE" - This stage is read pool upgrade.
+	//   "ROLLBACK" - Rollback in case of critical failures.
+	//   "CLEANUP" - Cleanup.
+	Stage string `json:"stage,omitempty"`
+	// Status: Status of the stage.
+	//
+	// Possible values:
+	//   "STATUS_UNSPECIFIED" - Unspecified status.
+	//   "NOT_STARTED" - Not started.
+	//   "IN_PROGRESS" - In progress.
+	//   "SUCCESS" - Operation succeeded.
+	//   "FAILED" - Operation failed.
+	//   "PARTIAL_SUCCESS" - Operation partially succeeded.
+	//   "CANCEL_IN_PROGRESS" - Cancel is in progress.
+	//   "CANCELLED" - Cancellation complete.
+	Status string `json:"status,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "LogsUrl") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "LogsUrl") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageInfo) MarshalJSON() ([]byte, error) {
+	type NoMethod StageInfo
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StageStatus: Status of an upgrade stage.
+type StageStatus struct {
+	// ReadPoolInstancesUpgrade: Read pool instances upgrade metadata.
+	ReadPoolInstancesUpgrade *ReadPoolInstancesUpgradeStageStatus `json:"readPoolInstancesUpgrade,omitempty"`
+	// Stage: Upgrade stage.
+	//
+	// Possible values:
+	//   "STAGE_UNSPECIFIED" - Unspecified stage.
+	//   "ALLOYDB_PRECHECK" - Pre-upgrade custom checks, not covered by pg_upgrade.
+	//   "PG_UPGRADE_CHECK" - Pre-upgrade pg_upgrade checks.
+	//   "PREPARE_FOR_UPGRADE" - Clone the original cluster.
+	//   "PRIMARY_INSTANCE_UPGRADE" - Upgrade the primary instance(downtime).
+	//   "READ_POOL_INSTANCES_UPGRADE" - This stage is read pool upgrade.
+	//   "ROLLBACK" - Rollback in case of critical failures.
+	//   "CLEANUP" - Cleanup.
+	Stage string `json:"stage,omitempty"`
+	// State: State of this stage.
+	//
+	// Possible values:
+	//   "STATUS_UNSPECIFIED" - Unspecified status.
+	//   "NOT_STARTED" - Not started.
+	//   "IN_PROGRESS" - In progress.
+	//   "SUCCESS" - Operation succeeded.
+	//   "FAILED" - Operation failed.
+	//   "PARTIAL_SUCCESS" - Operation partially succeeded.
+	//   "CANCEL_IN_PROGRESS" - Cancel is in progress.
+	//   "CANCELLED" - Cancellation complete.
+	State string `json:"state,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ReadPoolInstancesUpgrade")
+	// to unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ReadPoolInstancesUpgrade") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StageStatus) MarshalJSON() ([]byte, error) {
+	type NoMethod StageStatus
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// Stats: Upgrade stats for read pool instances.
+type Stats struct {
+	// Failed: Number of read pool instances which failed to upgrade.
+	Failed int64 `json:"failed,omitempty"`
+	// NotStarted: Number of read pool instances for which upgrade has not started.
+	NotStarted int64 `json:"notStarted,omitempty"`
+	// Ongoing: Number of read pool instances undergoing upgrade.
+	Ongoing int64 `json:"ongoing,omitempty"`
+	// Success: Number of read pool instances successfully upgraded.
+	Success int64 `json:"success,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Failed") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Failed") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s Stats) MarshalJSON() ([]byte, error) {
+	type NoMethod Stats
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -2153,14 +2954,18 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration:
 // Configuration for availability of database instance
 type StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration struct {
+	// AutomaticFailoverRoutingConfigured: Checks for existence of (multi-cluster)
+	// routing configuration that allows automatic failover to a different
+	// zone/region in case of an outage. Applicable to Bigtable resources.
+	AutomaticFailoverRoutingConfigured bool `json:"automaticFailoverRoutingConfigured,omitempty"`
 	// AvailabilityType: Availability type. Potential values: * `ZONAL`: The
 	// instance serves data from only one zone. Outages in that zone affect data
 	// accessibility. * `REGIONAL`: The instance can serve data from more than one
@@ -2178,22 +2983,24 @@ type StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration struct {
 	CrossRegionReplicaConfigured bool `json:"crossRegionReplicaConfigured,omitempty"`
 	ExternalReplicaConfigured    bool `json:"externalReplicaConfigured,omitempty"`
 	PromotableReplicaConfigured  bool `json:"promotableReplicaConfigured,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "AvailabilityType") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
+	// ForceSendFields is a list of field names (e.g.
+	// "AutomaticFailoverRoutingConfigured") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "AvailabilityType") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	// NullFields is a list of field names (e.g.
+	// "AutomaticFailoverRoutingConfigured") to include in API requests with the
+	// JSON null value. By default, fields with empty values are omitted from API
+	// requests. See https://pkg.go.dev/google.golang.org/api#hdr-NullFields for
+	// more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainBackupConfiguration: Configuration for
@@ -2221,9 +3028,9 @@ type StorageDatabasecenterPartnerapiV1mainBackupConfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainBackupConfiguration) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainBackupConfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainBackupConfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainBackupRun: A backup run.
@@ -2255,9 +3062,9 @@ type StorageDatabasecenterPartnerapiV1mainBackupRun struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainBackupRun) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainBackupRun) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainBackupRun
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainCompliance: Contains compliance
@@ -2281,64 +3088,36 @@ type StorageDatabasecenterPartnerapiV1mainCompliance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainCompliance) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainCompliance) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainCompliance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainCustomMetadataData: Any custom metadata
-// associated with the resource. i.e. A spanner instance can have multiple
+// associated with the resource. e.g. A spanner instance can have multiple
 // databases with its own unique metadata. Information for these individual
 // databases can be captured in custom metadata data
 type StorageDatabasecenterPartnerapiV1mainCustomMetadataData struct {
-	DatabaseMetadata []*StorageDatabasecenterPartnerapiV1mainDatabaseMetadata `json:"databaseMetadata,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "DatabaseMetadata") to
-	// unconditionally include in API requests. By default, fields with empty or
+	// InternalResourceMetadata: Metadata for individual internal resources in an
+	// instance. e.g. spanner instance can have multiple databases with unique
+	// configuration.
+	InternalResourceMetadata []*StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata `json:"internalResourceMetadata,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "InternalResourceMetadata")
+	// to unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "DatabaseMetadata") to include in
-	// API requests with the JSON null value. By default, fields with empty values
-	// are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "InternalResourceMetadata") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainCustomMetadataData) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainCustomMetadataData) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainCustomMetadataData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
-}
-
-// StorageDatabasecenterPartnerapiV1mainDatabaseMetadata: Metadata for
-// individual databases created in an instance. i.e. spanner instance can have
-// multiple databases with unique configuration settings.
-type StorageDatabasecenterPartnerapiV1mainDatabaseMetadata struct {
-	// BackupConfiguration: Backup configuration for this database
-	BackupConfiguration *StorageDatabasecenterPartnerapiV1mainBackupConfiguration `json:"backupConfiguration,omitempty"`
-	// BackupRun: Information about the last backup attempt for this database
-	BackupRun  *StorageDatabasecenterPartnerapiV1mainBackupRun          `json:"backupRun,omitempty"`
-	Product    *StorageDatabasecenterProtoCommonProduct                 `json:"product,omitempty"`
-	ResourceId *StorageDatabasecenterPartnerapiV1mainDatabaseResourceId `json:"resourceId,omitempty"`
-	// ResourceName: Required. Database name. Resource name to follow CAIS
-	// resource_name format as noted here go/condor-common-datamodel
-	ResourceName string `json:"resourceName,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "BackupConfiguration") to
-	// unconditionally include in API requests. By default, fields with empty or
-	// default values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
-	// details.
-	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "BackupConfiguration") to include
-	// in API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. See
-	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
-	NullFields []string `json:"-"`
-}
-
-func (s *StorageDatabasecenterPartnerapiV1mainDatabaseMetadata) MarshalJSON() ([]byte, error) {
-	type NoMethod StorageDatabasecenterPartnerapiV1mainDatabaseMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed:
@@ -2356,8 +3135,7 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed struct {
 	//   "SECURITY_FINDING_DATA" - Database resource security health signal data
 	//   "RECOMMENDATION_SIGNAL_DATA" - Database resource recommendation signal
 	// data
-	FeedType string `json:"feedType,omitempty"`
-	// ObservabilityMetricData: More feed data would be added in subsequent CLs
+	FeedType                 string                                                                         `json:"feedType,omitempty"`
 	ObservabilityMetricData  *StorageDatabasecenterPartnerapiV1mainObservabilityMetricData                  `json:"observabilityMetricData,omitempty"`
 	RecommendationSignalData *StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalData `json:"recommendationSignalData,omitempty"`
 	ResourceHealthSignalData *StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData         `json:"resourceHealthSignalData,omitempty"`
@@ -2378,9 +3156,9 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData:
@@ -2450,6 +3228,22 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData struc
 	// SignalId: Required. Unique identifier for the signal. This is an unique id
 	// which would be mainatined by partner to identify a signal.
 	SignalId string `json:"signalId,omitempty"`
+	// SignalSeverity: The severity of the signal, such as if it's a HIGH or LOW
+	// severity.
+	//
+	// Possible values:
+	//   "SIGNAL_SEVERITY_UNSPECIFIED" - This value is used for findings when a
+	// source doesn't write a severity value.
+	//   "CRITICAL" - A critical vulnerability is easily discoverable by an
+	// external actor, exploitable.
+	//   "HIGH" - A high risk vulnerability can be easily discovered and exploited
+	// in combination with other vulnerabilities.
+	//   "MEDIUM" - A medium risk vulnerability could be used by an actor to gain
+	// access to resources or privileges that enable them to eventually gain access
+	// and the ability to execute arbitrary code or exfiltrate data.
+	//   "LOW" - A low risk vulnerability hampers a security organization's ability
+	// to detect vulnerabilities or active threats in their deployment.
+	SignalSeverity string `json:"signalSeverity,omitempty"`
 	// SignalType: Required. Type of signal, for example,
 	// `AVAILABLE_IN_MULTIPLE_ZONES`, `LOGGING_MOST_ERRORS`, etc.
 	//
@@ -2635,6 +3429,28 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData struc
 	//   "SIGNAL_TYPE_DATA_EXPORT_TO_PUBLIC_CLOUD_STORAGE_BUCKET" - Detects if
 	// database instance data exported to a Cloud Storage bucket that is owned by
 	// the organization and is publicly accessible.
+	//   "SIGNAL_TYPE_WEAK_PASSWORD_HASH_ALGORITHM" - Detects if a database
+	// instance is using a weak password hash algorithm.
+	//   "SIGNAL_TYPE_NO_USER_PASSWORD_POLICY" - Detects if a database instance has
+	// no user password policy set.
+	//   "SIGNAL_TYPE_HOT_NODE" - Detects if a database instance/cluster has a hot
+	// node.
+	//   "SIGNAL_TYPE_NO_POINT_IN_TIME_RECOVERY" - Detects if a database instance
+	// has no point in time recovery enabled.
+	//   "SIGNAL_TYPE_RESOURCE_SUSPENDED" - Detects if a database instance/cluster
+	// is suspended.
+	//   "SIGNAL_TYPE_EXPENSIVE_COMMANDS" - Detects that expensive commands are
+	// being run on a database instance impacting overall performance.
+	//   "SIGNAL_TYPE_NO_MAINTENANCE_POLICY_CONFIGURED" - Indicates that the
+	// instance does not have a maintenance policy configured.
+	//   "SIGNAL_TYPE_NO_DELETION_PROTECTION" - Deletion Protection Disabled for
+	// the resource
+	//   "SIGNAL_TYPE_INEFFICIENT_QUERY" - Indicates that the instance has
+	// inefficient queries detected.
+	//   "SIGNAL_TYPE_READ_INTENSIVE_WORKLOAD" - Indicates that the instance has
+	// read intensive workload.
+	//   "SIGNAL_TYPE_MEMORY_LIMIT" - Indicates that the instance is nearing memory
+	// limit.
 	SignalType string `json:"signalType,omitempty"`
 	// Possible values:
 	//   "STATE_UNSPECIFIED" - Unspecified state.
@@ -2656,9 +3472,9 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData struc
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainDatabaseResourceId: DatabaseResourceId
@@ -2687,8 +3503,10 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceId struct {
 	// ResourceType: Required. The type of resource this ID is identifying. Ex
 	// redis.googleapis.com/Instance, redis.googleapis.com/Cluster,
 	// alloydb.googleapis.com/Cluster, alloydb.googleapis.com/Instance,
-	// spanner.googleapis.com/Instance REQUIRED Please refer
-	// go/condor-common-datamodel
+	// spanner.googleapis.com/Instance, spanner.googleapis.com/Database,
+	// firestore.googleapis.com/Database, sqladmin.googleapis.com/Instance,
+	// bigtableadmin.googleapis.com/Cluster, bigtableadmin.googleapis.com/Instance
+	// REQUIRED Please refer go/condor-common-datamodel
 	ResourceType string `json:"resourceType,omitempty"`
 	// UniqueId: Required. A service-local token that distinguishes this resource
 	// from other resources within the same service.
@@ -2706,13 +3524,13 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainDatabaseResourceId) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainDatabaseResourceId) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainDatabaseResourceId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata: Common model
-// for database resource instance metadata.
+// for database resource instance metadata. Next ID: 25
 type StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata struct {
 	// AvailabilityConfiguration: Availability configuration for this instance
 	AvailabilityConfiguration *StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration `json:"availabilityConfiguration,omitempty"`
@@ -2736,6 +3554,16 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata struct {
 	CurrentState string `json:"currentState,omitempty"`
 	// CustomMetadata: Any custom metadata associated with the resource
 	CustomMetadata *StorageDatabasecenterPartnerapiV1mainCustomMetadataData `json:"customMetadata,omitempty"`
+	// Edition: Optional. Edition represents whether the instance is ENTERPRISE or
+	// ENTERPRISE_PLUS. This information is core to Cloud SQL only and is used to
+	// identify the edition of the instance.
+	//
+	// Possible values:
+	//   "EDITION_UNSPECIFIED" - Default, to make it consistent with instance
+	// edition enum.
+	//   "EDITION_ENTERPRISE" - Represents the enterprise edition.
+	//   "EDITION_ENTERPRISE_PLUS" - Represents the enterprise plus edition.
+	Edition string `json:"edition,omitempty"`
 	// Entitlements: Entitlements associated with the resource
 	Entitlements []*StorageDatabasecenterPartnerapiV1mainEntitlement `json:"entitlements,omitempty"`
 	// ExpectedState: The state that the instance is expected to be in. For
@@ -2751,12 +3579,14 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata struct {
 	//   "DELETED" - Instance is deleted.
 	//   "STATE_OTHER" - For rest of the other category
 	ExpectedState string `json:"expectedState,omitempty"`
+	// GcbdrConfiguration: GCBDR configuration for the resource.
+	GcbdrConfiguration *StorageDatabasecenterPartnerapiV1mainGCBDRConfiguration `json:"gcbdrConfiguration,omitempty"`
 	// Id: Required. Unique identifier for a Database resource
 	Id *StorageDatabasecenterPartnerapiV1mainDatabaseResourceId `json:"id,omitempty"`
 	// InstanceType: The type of the instance. Specified at creation time.
 	//
 	// Possible values:
-	//   "INSTANCE_TYPE_UNSPECIFIED"
+	//   "INSTANCE_TYPE_UNSPECIFIED" - Unspecified.
 	//   "SUB_RESOURCE_TYPE_UNSPECIFIED" - For rest of the other categories.
 	//   "PRIMARY" - A regular primary database instance.
 	//   "SECONDARY" - A cluster or an instance acting as a secondary.
@@ -2766,6 +3596,8 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata struct {
 	//   "SUB_RESOURCE_TYPE_SECONDARY" - A cluster or an instance acting as a
 	// secondary.
 	//   "SUB_RESOURCE_TYPE_READ_REPLICA" - An instance acting as a read-replica.
+	//   "SUB_RESOURCE_TYPE_EXTERNAL_PRIMARY" - An instance acting as an external
+	// primary.
 	//   "SUB_RESOURCE_TYPE_OTHER" - For rest of the other categories.
 	InstanceType string `json:"instanceType,omitempty"`
 	// Location: The resource location. REQUIRED
@@ -2777,6 +3609,10 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata struct {
 	// Database resource. Else it would be NULL. REQUIRED if the immediate parent
 	// exists when first time resource is getting ingested, otherwise optional.
 	PrimaryResourceId *StorageDatabasecenterPartnerapiV1mainDatabaseResourceId `json:"primaryResourceId,omitempty"`
+	// PrimaryResourceLocation: Primary resource location. REQUIRED if the
+	// immediate parent exists when first time resource is getting ingested,
+	// otherwise optional.
+	PrimaryResourceLocation string `json:"primaryResourceLocation,omitempty"`
 	// Product: The product this resource represents.
 	Product *StorageDatabasecenterProtoCommonProduct `json:"product,omitempty"`
 	// ResourceContainer: Closest parent Cloud Resource Manager container of this
@@ -2790,6 +3626,20 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata struct {
 	// the same source. Resource name to follow CAIS resource_name format as noted
 	// here go/condor-common-datamodel
 	ResourceName string `json:"resourceName,omitempty"`
+	// SuspensionReason: Optional. Suspension reason for the resource.
+	//
+	// Possible values:
+	//   "SUSPENSION_REASON_UNSPECIFIED" - Suspension reason is unspecified.
+	//   "WIPEOUT_HIDE_EVENT" - Wipeout hide event.
+	//   "WIPEOUT_PURGE_EVENT" - Wipeout purge event.
+	//   "BILLING_DISABLED" - Billing disabled for project
+	//   "ABUSER_DETECTED" - Abuse detected for resource
+	//   "ENCRYPTION_KEY_INACCESSIBLE" - Encryption key inaccessible.
+	//   "REPLICATED_CLUSTER_ENCRYPTION_KEY_INACCESSIBLE" - Replicated cluster
+	// encryption key inaccessible.
+	SuspensionReason string `json:"suspensionReason,omitempty"`
+	// TagsSet: Optional. Tags associated with this resources.
+	TagsSet *StorageDatabasecenterPartnerapiV1mainTags `json:"tagsSet,omitempty"`
 	// UpdationTime: The time at which the resource was updated and recorded at
 	// partner service.
 	UpdationTime string `json:"updationTime,omitempty"`
@@ -2808,9 +3658,9 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalData
@@ -3046,6 +3896,28 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalDa
 	//   "SIGNAL_TYPE_DATA_EXPORT_TO_PUBLIC_CLOUD_STORAGE_BUCKET" - Detects if
 	// database instance data exported to a Cloud Storage bucket that is owned by
 	// the organization and is publicly accessible.
+	//   "SIGNAL_TYPE_WEAK_PASSWORD_HASH_ALGORITHM" - Detects if a database
+	// instance is using a weak password hash algorithm.
+	//   "SIGNAL_TYPE_NO_USER_PASSWORD_POLICY" - Detects if a database instance has
+	// no user password policy set.
+	//   "SIGNAL_TYPE_HOT_NODE" - Detects if a database instance/cluster has a hot
+	// node.
+	//   "SIGNAL_TYPE_NO_POINT_IN_TIME_RECOVERY" - Detects if a database instance
+	// has no point in time recovery enabled.
+	//   "SIGNAL_TYPE_RESOURCE_SUSPENDED" - Detects if a database instance/cluster
+	// is suspended.
+	//   "SIGNAL_TYPE_EXPENSIVE_COMMANDS" - Detects that expensive commands are
+	// being run on a database instance impacting overall performance.
+	//   "SIGNAL_TYPE_NO_MAINTENANCE_POLICY_CONFIGURED" - Indicates that the
+	// instance does not have a maintenance policy configured.
+	//   "SIGNAL_TYPE_NO_DELETION_PROTECTION" - Deletion Protection Disabled for
+	// the resource
+	//   "SIGNAL_TYPE_INEFFICIENT_QUERY" - Indicates that the instance has
+	// inefficient queries detected.
+	//   "SIGNAL_TYPE_READ_INTENSIVE_WORKLOAD" - Indicates that the instance has
+	// read intensive workload.
+	//   "SIGNAL_TYPE_MEMORY_LIMIT" - Indicates that the instance is nearing memory
+	// limit.
 	SignalType string `json:"signalType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AdditionalMetadata") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -3060,9 +3932,9 @@ type StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalDa
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalData) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalData) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainEntitlement: Proto representing the
@@ -3082,8 +3954,12 @@ type StorageDatabasecenterPartnerapiV1mainEntitlement struct {
 	// Type: An enum that represents the type of this entitlement.
 	//
 	// Possible values:
-	//   "ENTITLEMENT_TYPE_UNSPECIFIED"
-	//   "GEMINI" - The root entitlement representing Gemini package ownership.
+	//   "ENTITLEMENT_TYPE_UNSPECIFIED" - The entitlement type is unspecified.
+	//   "GEMINI" - The root entitlement representing Gemini package ownership.This
+	// will no longer be supported in the future.
+	//   "NATIVE" - The entitlement representing Native Tier, This will be the
+	// default Entitlement going forward with GCA Enablement.
+	//   "GCA_STANDARD" - The entitlement representing GCA-Standard Tier.
 	Type string `json:"type,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EntitlementState") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -3098,21 +3974,85 @@ type StorageDatabasecenterPartnerapiV1mainEntitlement struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainEntitlement) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainEntitlement) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainEntitlement
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StorageDatabasecenterPartnerapiV1mainGCBDRConfiguration: GCBDR Configuration
+// for the resource.
+type StorageDatabasecenterPartnerapiV1mainGCBDRConfiguration struct {
+	// GcbdrManaged: Whether the resource is managed by GCBDR.
+	GcbdrManaged bool `json:"gcbdrManaged,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "GcbdrManaged") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "GcbdrManaged") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StorageDatabasecenterPartnerapiV1mainGCBDRConfiguration) MarshalJSON() ([]byte, error) {
+	type NoMethod StorageDatabasecenterPartnerapiV1mainGCBDRConfiguration
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata: Metadata for
+// individual internal resources in an instance. e.g. spanner instance can have
+// multiple databases with unique configuration settings. Similarly bigtable
+// can have multiple clusters within same bigtable instance.
+type StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata struct {
+	// BackupConfiguration: Backup configuration for this database
+	BackupConfiguration *StorageDatabasecenterPartnerapiV1mainBackupConfiguration `json:"backupConfiguration,omitempty"`
+	// BackupRun: Information about the last backup attempt for this database
+	BackupRun *StorageDatabasecenterPartnerapiV1mainBackupRun `json:"backupRun,omitempty"`
+	// IsDeletionProtectionEnabled: Whether deletion protection is enabled for this
+	// internal resource.
+	IsDeletionProtectionEnabled bool                                                     `json:"isDeletionProtectionEnabled,omitempty"`
+	Product                     *StorageDatabasecenterProtoCommonProduct                 `json:"product,omitempty"`
+	ResourceId                  *StorageDatabasecenterPartnerapiV1mainDatabaseResourceId `json:"resourceId,omitempty"`
+	// ResourceName: Required. internal resource name for spanner this will be
+	// database name
+	// e.g."spanner.googleapis.com/projects/123/abc/instances/inst1/databases/db1"
+	ResourceName string `json:"resourceName,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "BackupConfiguration") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "BackupConfiguration") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainMachineConfiguration:
 // MachineConfiguration describes the configuration of a machine specific to
 // Database Resource.
 type StorageDatabasecenterPartnerapiV1mainMachineConfiguration struct {
-	// CpuCount: The number of CPUs. TODO(b/342344482, b/342346271) add proto
-	// validations again after bug fix.
+	// CpuCount: The number of CPUs. Deprecated. Use vcpu_count instead.
+	// TODO(b/342344482) add proto validations again after bug fix.
 	CpuCount int64 `json:"cpuCount,omitempty"`
-	// MemorySizeInBytes: Memory size in bytes. TODO(b/342344482, b/342346271) add
-	// proto validations again after bug fix.
+	// MemorySizeInBytes: Memory size in bytes. TODO(b/342344482) add proto
+	// validations again after bug fix.
 	MemorySizeInBytes int64 `json:"memorySizeInBytes,omitempty,string"`
+	// ShardCount: Optional. Number of shards (if applicable).
+	ShardCount int64 `json:"shardCount,omitempty"`
+	// VcpuCount: Optional. The number of vCPUs. TODO(b/342344482) add proto
+	// validations again after bug fix.
+	VcpuCount float64 `json:"vcpuCount,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "CpuCount") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -3126,9 +4066,23 @@ type StorageDatabasecenterPartnerapiV1mainMachineConfiguration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainMachineConfiguration) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainMachineConfiguration) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainMachineConfiguration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *StorageDatabasecenterPartnerapiV1mainMachineConfiguration) UnmarshalJSON(data []byte) error {
+	type NoMethod StorageDatabasecenterPartnerapiV1mainMachineConfiguration
+	var s1 struct {
+		VcpuCount gensupport.JSONFloat64 `json:"vcpuCount"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.VcpuCount = float64(s1.VcpuCount)
+	return nil
 }
 
 type StorageDatabasecenterPartnerapiV1mainObservabilityMetricData struct {
@@ -3136,7 +4090,10 @@ type StorageDatabasecenterPartnerapiV1mainObservabilityMetricData struct {
 	//
 	// Possible values:
 	//   "AGGREGATION_TYPE_UNSPECIFIED" - Unspecified aggregation type.
-	//   "MAXIMUM" - Maximum aggregation type.
+	//   "PEAK" - PEAK aggregation type.
+	//   "P99" - P99 aggregation type.
+	//   "P95" - P95 aggregation type.
+	//   "CURRENT" - current aggregation type.
 	AggregationType string `json:"aggregationType,omitempty"`
 	// MetricType: Required. Type of metric like CPU, Memory, etc.
 	//
@@ -3147,6 +4104,14 @@ type StorageDatabasecenterPartnerapiV1mainObservabilityMetricData struct {
 	//   "MEMORY_UTILIZATION" - Memory utilization for a resource. The value is a
 	// fraction between 0.0 and 1.0 (may momentarily exceed 1.0 in some cases).
 	//   "NETWORK_CONNECTIONS" - Number of network connections for a resource.
+	//   "STORAGE_UTILIZATION" - Storage utilization for a resource. The value is a
+	// fraction between 0.0 and 1.0 (may momentarily exceed 1.0 in some cases).
+	//   "STORAGE_USED_BYTES" - Sotrage used by a resource.
+	//   "NODE_COUNT" - Node count for a resource. It represents the number of node
+	// units in a bigtable/spanner instance.
+	//   "MEMORY_USED_BYTES" - Memory used by a resource (in bytes).
+	//   "PROCESSING_UNIT_COUNT" - Processing units used by a resource. It
+	// represents the number of processing units in a spanner instance.
 	MetricType string `json:"metricType,omitempty"`
 	// ObservationTime: Required. The time the metric value was observed.
 	ObservationTime string `json:"observationTime,omitempty"`
@@ -3169,9 +4134,9 @@ type StorageDatabasecenterPartnerapiV1mainObservabilityMetricData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainObservabilityMetricData) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainObservabilityMetricData) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainObservabilityMetricData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainOperationError: An error that occurred
@@ -3206,13 +4171,16 @@ type StorageDatabasecenterPartnerapiV1mainOperationError struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainOperationError) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainOperationError) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainOperationError
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type StorageDatabasecenterPartnerapiV1mainRetentionSettings struct {
-	QuantityBasedRetention int64 `json:"quantityBasedRetention,omitempty"`
+	// DurationBasedRetention: Duration based retention period i.e. 172800 seconds
+	// (2 days)
+	DurationBasedRetention string `json:"durationBasedRetention,omitempty"`
+	QuantityBasedRetention int64  `json:"quantityBasedRetention,omitempty"`
 	// RetentionUnit: The unit that 'retained_backups' represents.
 	//
 	// Possible values:
@@ -3220,26 +4188,57 @@ type StorageDatabasecenterPartnerapiV1mainRetentionSettings struct {
 	// be treated as COUNT.
 	//   "COUNT" - Retention will be by count, eg. "retain the most recent 7
 	// backups".
-	//   "TIME" - Retention will be by Time, eg. "retain the last 7 days backups".
+	//   "TIME" - Retention will be by Time, eg. "retain backups till a specific
+	// time" i.e. till 2024-05-01T00:00:00Z.
+	//   "DURATION" - Retention will be by duration, eg. "retain the backups for
+	// 172800 seconds (2 days)".
 	//   "RETENTION_UNIT_OTHER" - For rest of the other category
 	RetentionUnit      string `json:"retentionUnit,omitempty"`
 	TimeBasedRetention string `json:"timeBasedRetention,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "QuantityBasedRetention") to
+	// TimestampBasedRetentionTime: Timestamp based retention period i.e.
+	// 2024-05-01T00:00:00Z
+	TimestampBasedRetentionTime string `json:"timestampBasedRetentionTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "DurationBasedRetention") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "QuantityBasedRetention") to
+	// NullFields is a list of field names (e.g. "DurationBasedRetention") to
 	// include in API requests with the JSON null value. By default, fields with
 	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainRetentionSettings) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainRetentionSettings) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainRetentionSettings
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// StorageDatabasecenterPartnerapiV1mainTags: Message type for storing tags.
+// Tags provide a way to create annotations for resources, and in some cases
+// conditionally allow or deny policies based on whether a resource has a
+// specific tag.
+type StorageDatabasecenterPartnerapiV1mainTags struct {
+	// Tags: The Tag key/value mappings.
+	Tags map[string]string `json:"tags,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Tags") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Tags") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s StorageDatabasecenterPartnerapiV1mainTags) MarshalJSON() ([]byte, error) {
+	type NoMethod StorageDatabasecenterPartnerapiV1mainTags
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterPartnerapiV1mainUserLabels: Message type for storing
@@ -3261,9 +4260,9 @@ type StorageDatabasecenterPartnerapiV1mainUserLabels struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterPartnerapiV1mainUserLabels) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterPartnerapiV1mainUserLabels) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterPartnerapiV1mainUserLabels
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterProtoCommonProduct: Product specification for Condor
@@ -3294,6 +4293,8 @@ type StorageDatabasecenterProtoCommonProduct struct {
 	// dialect.
 	//   "ENGINE_OTHER" - Other refers to rest of other database engine. This is to
 	// be when engine is known, but it is not present in this enum.
+	//   "ENGINE_FIRESTORE_WITH_NATIVE_MODE" - Firestore with native mode.
+	//   "ENGINE_FIRESTORE_WITH_DATASTORE_MODE" - Firestore with datastore mode.
 	Engine string `json:"engine,omitempty"`
 	// Type: Type of specific database product. It could be CloudSQL, AlloyDB etc..
 	//
@@ -3311,6 +4312,7 @@ type StorageDatabasecenterProtoCommonProduct struct {
 	//   "PRODUCT_TYPE_BIGTABLE" - Bigtable product area in GCP
 	//   "PRODUCT_TYPE_OTHER" - Other refers to rest of other product type. This is
 	// to be when product type is known, but it is not present in this enum.
+	//   "PRODUCT_TYPE_FIRESTORE" - Firestore product area in GCP.
 	Type string `json:"type,omitempty"`
 	// Version: Version of the underlying database engine. Example values: For
 	// MySQL, it could be "8.0", "5.7" etc.. For Postgres, it could be "14", "15"
@@ -3329,9 +4331,9 @@ type StorageDatabasecenterProtoCommonProduct struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterProtoCommonProduct) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterProtoCommonProduct) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterProtoCommonProduct
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // StorageDatabasecenterProtoCommonTypedValue: TypedValue represents the value
@@ -3358,9 +4360,9 @@ type StorageDatabasecenterProtoCommonTypedValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StorageDatabasecenterProtoCommonTypedValue) MarshalJSON() ([]byte, error) {
+func (s StorageDatabasecenterProtoCommonTypedValue) MarshalJSON() ([]byte, error) {
 	type NoMethod StorageDatabasecenterProtoCommonTypedValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *StorageDatabasecenterProtoCommonTypedValue) UnmarshalJSON(data []byte) error {
@@ -3395,9 +4397,9 @@ type StringRestrictions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StringRestrictions) MarshalJSON() ([]byte, error) {
+func (s StringRestrictions) MarshalJSON() ([]byte, error) {
 	type NoMethod StringRestrictions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SupportedDatabaseFlag: SupportedDatabaseFlag gives general information about
@@ -3418,11 +4420,23 @@ type SupportedDatabaseFlag struct {
 	// e.g.: * projects/{project}/locations/{location}/flags/{flag} This field
 	// currently has no semantic meaning.
 	Name string `json:"name,omitempty"`
+	// RecommendedIntegerValue: The recommended value for an INTEGER flag.
+	RecommendedIntegerValue int64 `json:"recommendedIntegerValue,omitempty,string"`
+	// RecommendedStringValue: The recommended value for a STRING flag.
+	RecommendedStringValue string `json:"recommendedStringValue,omitempty"`
 	// RequiresDbRestart: Whether setting or updating this flag on an Instance
 	// requires a database restart. If a flag that requires database restart is
 	// set, the backend will automatically restart the database (making sure to
 	// satisfy any availability SLO's).
 	RequiresDbRestart bool `json:"requiresDbRestart,omitempty"`
+	// Scope: The scope of the flag.
+	//
+	// Possible values:
+	//   "SCOPE_UNSPECIFIED" - The scope of the flag is not specified. Default is
+	// DATABASE.
+	//   "DATABASE" - The flag is a database flag.
+	//   "CONNECTION_POOL" - The flag is a connection pool flag.
+	Scope string `json:"scope,omitempty"`
 	// StringRestrictions: Restriction on STRING type value.
 	StringRestrictions *StringRestrictions `json:"stringRestrictions,omitempty"`
 	// SupportedDbVersions: Major database engine versions for which this flag is
@@ -3433,6 +4447,7 @@ type SupportedDatabaseFlag struct {
 	//   "POSTGRES_13" - DEPRECATED - The database version is Postgres 13.
 	//   "POSTGRES_14" - The database version is Postgres 14.
 	//   "POSTGRES_15" - The database version is Postgres 15.
+	//   "POSTGRES_16" - The database version is Postgres 16.
 	SupportedDbVersions []string `json:"supportedDbVersions,omitempty"`
 	// Possible values:
 	//   "VALUE_TYPE_UNSPECIFIED" - This is an unknown flag type.
@@ -3454,9 +4469,45 @@ type SupportedDatabaseFlag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SupportedDatabaseFlag) MarshalJSON() ([]byte, error) {
+func (s SupportedDatabaseFlag) MarshalJSON() ([]byte, error) {
 	type NoMethod SupportedDatabaseFlag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// SwitchoverClusterRequest: Message for switching over to a cluster
+type SwitchoverClusterRequest struct {
+	// RequestId: Optional. An optional request ID to identify requests. Specify a
+	// unique request ID so that if you must retry your request, the server ignores
+	// the request if it has already been completed. The server guarantees that for
+	// at least 60 minutes since the first request. For example, consider a
+	// situation where you make an initial request and the request times out. If
+	// you make the request again with the same request ID, the server can check if
+	// the original operation with the same request ID was received, and if so,
+	// ignores the second request. This prevents clients from accidentally creating
+	// duplicate commitments. The request ID must be a valid UUID with the
+	// exception that zero UUID is not supported
+	// (00000000-0000-0000-0000-000000000000).
+	RequestId string `json:"requestId,omitempty"`
+	// ValidateOnly: Optional. If set, performs request validation, for example,
+	// permission checks and any other type of validation, but does not actually
+	// execute the create request.
+	ValidateOnly bool `json:"validateOnly,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "RequestId") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "RequestId") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s SwitchoverClusterRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod SwitchoverClusterRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeBasedRetention: A time based retention policy specifies that all backups
@@ -3477,9 +4528,181 @@ type TimeBasedRetention struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeBasedRetention) MarshalJSON() ([]byte, error) {
+func (s TimeBasedRetention) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeBasedRetention
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// TrialMetadata: Contains information and all metadata related to TRIAL
+// clusters.
+type TrialMetadata struct {
+	// EndTime: End time of the trial cluster.
+	EndTime string `json:"endTime,omitempty"`
+	// GraceEndTime: grace end time of the cluster.
+	GraceEndTime string `json:"graceEndTime,omitempty"`
+	// StartTime: start time of the trial cluster.
+	StartTime string `json:"startTime,omitempty"`
+	// UpgradeTime: Upgrade time of trial cluster to Standard cluster.
+	UpgradeTime string `json:"upgradeTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "EndTime") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "EndTime") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s TrialMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod TrialMetadata
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UpgradeClusterRequest: Upgrades a cluster.
+type UpgradeClusterRequest struct {
+	// Etag: Optional. The current etag of the Cluster. If an etag is provided and
+	// does not match the current etag of the Cluster, upgrade will be blocked and
+	// an ABORTED error will be returned.
+	Etag string `json:"etag,omitempty"`
+	// RequestId: Optional. An optional request ID to identify requests. Specify a
+	// unique request ID so that if you must retry your request, the server ignores
+	// the request if it has already been completed. The server guarantees that for
+	// at least 60 minutes since the first request. For example, consider a
+	// situation where you make an initial request and the request times out. If
+	// you make the request again with the same request ID, the server can check if
+	// the original operation with the same request ID was received, and if so,
+	// ignores the second request. This prevents clients from accidentally creating
+	// duplicate commitments. The request ID must be a valid UUID with the
+	// exception that zero UUID is not supported
+	// (00000000-0000-0000-0000-000000000000).
+	RequestId string `json:"requestId,omitempty"`
+	// ValidateOnly: Optional. If set, performs request validation, for example,
+	// permission checks and any other type of validation, but does not actually
+	// execute the create request.
+	ValidateOnly bool `json:"validateOnly,omitempty"`
+	// Version: Required. The version the cluster is going to be upgraded to.
+	//
+	// Possible values:
+	//   "DATABASE_VERSION_UNSPECIFIED" - This is an unknown database version.
+	//   "POSTGRES_13" - DEPRECATED - The database version is Postgres 13.
+	//   "POSTGRES_14" - The database version is Postgres 14.
+	//   "POSTGRES_15" - The database version is Postgres 15.
+	//   "POSTGRES_16" - The database version is Postgres 16.
+	Version string `json:"version,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Etag") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Etag") to include in API requests
+	// with the JSON null value. By default, fields with empty values are omitted
+	// from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UpgradeClusterRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UpgradeClusterRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UpgradeClusterResponse: UpgradeClusterResponse contains the response for
+// upgrade cluster operation.
+type UpgradeClusterResponse struct {
+	// ClusterUpgradeDetails: Array of upgrade details for the current cluster and
+	// all the secondary clusters associated with this cluster.
+	ClusterUpgradeDetails []*ClusterUpgradeDetails `json:"clusterUpgradeDetails,omitempty"`
+	// Message: A user friendly message summarising the upgrade operation details
+	// and the next steps for the user if there is any.
+	Message string `json:"message,omitempty"`
+	// Status: Status of upgrade operation.
+	//
+	// Possible values:
+	//   "STATUS_UNSPECIFIED" - Unspecified status.
+	//   "NOT_STARTED" - Not started.
+	//   "IN_PROGRESS" - In progress.
+	//   "SUCCESS" - Operation succeeded.
+	//   "FAILED" - Operation failed.
+	//   "PARTIAL_SUCCESS" - Operation partially succeeded.
+	//   "CANCEL_IN_PROGRESS" - Cancel is in progress.
+	//   "CANCELLED" - Cancellation complete.
+	Status string `json:"status,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "ClusterUpgradeDetails") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "ClusterUpgradeDetails") to
+	// include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UpgradeClusterResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod UpgradeClusterResponse
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// UpgradeClusterStatus: Message for current status of the Major Version
+// Upgrade operation.
+type UpgradeClusterStatus struct {
+	// Cancellable: Whether the operation is cancellable.
+	Cancellable bool `json:"cancellable,omitempty"`
+	// SourceVersion: Source database major version.
+	//
+	// Possible values:
+	//   "DATABASE_VERSION_UNSPECIFIED" - This is an unknown database version.
+	//   "POSTGRES_13" - DEPRECATED - The database version is Postgres 13.
+	//   "POSTGRES_14" - The database version is Postgres 14.
+	//   "POSTGRES_15" - The database version is Postgres 15.
+	//   "POSTGRES_16" - The database version is Postgres 16.
+	SourceVersion string `json:"sourceVersion,omitempty"`
+	// Stages: Status of all upgrade stages.
+	Stages []*StageStatus `json:"stages,omitempty"`
+	// State: Cluster Major Version Upgrade state.
+	//
+	// Possible values:
+	//   "STATUS_UNSPECIFIED" - Unspecified status.
+	//   "NOT_STARTED" - Not started.
+	//   "IN_PROGRESS" - In progress.
+	//   "SUCCESS" - Operation succeeded.
+	//   "FAILED" - Operation failed.
+	//   "PARTIAL_SUCCESS" - Operation partially succeeded.
+	//   "CANCEL_IN_PROGRESS" - Cancel is in progress.
+	//   "CANCELLED" - Cancellation complete.
+	State string `json:"state,omitempty"`
+	// TargetVersion: Target database major version.
+	//
+	// Possible values:
+	//   "DATABASE_VERSION_UNSPECIFIED" - This is an unknown database version.
+	//   "POSTGRES_13" - DEPRECATED - The database version is Postgres 13.
+	//   "POSTGRES_14" - The database version is Postgres 14.
+	//   "POSTGRES_15" - The database version is Postgres 15.
+	//   "POSTGRES_16" - The database version is Postgres 16.
+	TargetVersion string `json:"targetVersion,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Cancellable") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Cancellable") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s UpgradeClusterStatus) MarshalJSON() ([]byte, error) {
+	type NoMethod UpgradeClusterStatus
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // User: Message describing User object.
@@ -3487,6 +4710,9 @@ type User struct {
 	// DatabaseRoles: Optional. List of database roles this user has. The database
 	// role strings are subject to the PostgreSQL naming conventions.
 	DatabaseRoles []string `json:"databaseRoles,omitempty"`
+	// KeepExtraRoles: Input only. If the user already exists and it has additional
+	// roles, keep them granted.
+	KeepExtraRoles bool `json:"keepExtraRoles,omitempty"`
 	// Name: Output only. Name of the resource in the form of
 	// projects/{project}/locations/{location}/cluster/{cluster}/users/{user}.
 	Name string `json:"name,omitempty"`
@@ -3517,9 +4743,9 @@ type User struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *User) MarshalJSON() ([]byte, error) {
+func (s User) MarshalJSON() ([]byte, error) {
 	type NoMethod User
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UserPassword: The username/password for a database user. Used for specifying
@@ -3542,9 +4768,9 @@ type UserPassword struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UserPassword) MarshalJSON() ([]byte, error) {
+func (s UserPassword) MarshalJSON() ([]byte, error) {
 	type NoMethod UserPassword
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WeeklySchedule: A weekly schedule starts a backup at prescribed start times
@@ -3584,9 +4810,9 @@ type WeeklySchedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WeeklySchedule) MarshalJSON() ([]byte, error) {
+func (s WeeklySchedule) MarshalJSON() ([]byte, error) {
 	type NoMethod WeeklySchedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetCall struct {
@@ -3643,12 +4869,11 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3656,6 +4881,7 @@ func (c *ProjectsLocationsGetCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3691,9 +4917,11 @@ func (c *ProjectsLocationsGetCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3775,12 +5003,11 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/locations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3788,6 +5015,7 @@ func (c *ProjectsLocationsListCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3823,9 +5051,11 @@ func (c *ProjectsLocationsListCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3878,13 +5108,13 @@ func (c *ProjectsLocationsBackupsCreateCall) BackupId(backupId string) *Projects
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsBackupsCreateCall) RequestId(requestId string) *ProjectsLocationsBackupsCreateCall {
@@ -3924,8 +5154,7 @@ func (c *ProjectsLocationsBackupsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsBackupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.backup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.backup)
 	if err != nil {
 		return nil, err
 	}
@@ -3941,6 +5170,7 @@ func (c *ProjectsLocationsBackupsCreateCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3975,9 +5205,11 @@ func (c *ProjectsLocationsBackupsCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4009,13 +5241,13 @@ func (c *ProjectsLocationsBackupsDeleteCall) Etag(etag string) *ProjectsLocation
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes after
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsBackupsDeleteCall) RequestId(requestId string) *ProjectsLocationsBackupsDeleteCall {
@@ -4055,12 +5287,11 @@ func (c *ProjectsLocationsBackupsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsBackupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4068,6 +5299,7 @@ func (c *ProjectsLocationsBackupsDeleteCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4102,9 +5334,11 @@ func (c *ProjectsLocationsBackupsDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4162,12 +5396,11 @@ func (c *ProjectsLocationsBackupsGetCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4175,6 +5408,7 @@ func (c *ProjectsLocationsBackupsGetCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4209,9 +5443,11 @@ func (c *ProjectsLocationsBackupsGetCall) Do(opts ...googleapi.CallOption) (*Bac
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4297,12 +5533,11 @@ func (c *ProjectsLocationsBackupsListCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/backups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4310,6 +5545,7 @@ func (c *ProjectsLocationsBackupsListCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4345,9 +5581,11 @@ func (c *ProjectsLocationsBackupsListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4408,13 +5646,13 @@ func (c *ProjectsLocationsBackupsPatchCall) AllowMissing(allowMissing bool) *Pro
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsBackupsPatchCall) RequestId(requestId string) *ProjectsLocationsBackupsPatchCall {
@@ -4464,8 +5702,7 @@ func (c *ProjectsLocationsBackupsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsBackupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.backup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.backup)
 	if err != nil {
 		return nil, err
 	}
@@ -4481,6 +5718,7 @@ func (c *ProjectsLocationsBackupsPatchCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4515,9 +5753,11 @@ func (c *ProjectsLocationsBackupsPatchCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.backups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4550,13 +5790,13 @@ func (c *ProjectsLocationsClustersCreateCall) ClusterId(clusterId string) *Proje
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersCreateCall) RequestId(requestId string) *ProjectsLocationsClustersCreateCall {
@@ -4565,8 +5805,8 @@ func (c *ProjectsLocationsClustersCreateCall) RequestId(requestId string) *Proje
 }
 
 // ValidateOnly sets the optional parameter "validateOnly": If set, performs
-// request validation (e.g. permission checks and any other type of
-// validation), but do not actually execute the create request.
+// request validation, for example, permission checks and any other type of
+// validation, but does not actually execute the create request.
 func (c *ProjectsLocationsClustersCreateCall) ValidateOnly(validateOnly bool) *ProjectsLocationsClustersCreateCall {
 	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
 	return c
@@ -4597,8 +5837,7 @@ func (c *ProjectsLocationsClustersCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -4614,6 +5853,7 @@ func (c *ProjectsLocationsClustersCreateCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4648,9 +5888,11 @@ func (c *ProjectsLocationsClustersCreateCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4684,13 +5926,13 @@ func (c *ProjectsLocationsClustersCreatesecondaryCall) ClusterId(clusterId strin
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersCreatesecondaryCall) RequestId(requestId string) *ProjectsLocationsClustersCreatesecondaryCall {
@@ -4699,8 +5941,8 @@ func (c *ProjectsLocationsClustersCreatesecondaryCall) RequestId(requestId strin
 }
 
 // ValidateOnly sets the optional parameter "validateOnly": If set, performs
-// request validation (e.g. permission checks and any other type of
-// validation), but do not actually execute the create request.
+// request validation, for example, permission checks and any other type of
+// validation, but does not actually execute the create request.
 func (c *ProjectsLocationsClustersCreatesecondaryCall) ValidateOnly(validateOnly bool) *ProjectsLocationsClustersCreatesecondaryCall {
 	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
 	return c
@@ -4731,8 +5973,7 @@ func (c *ProjectsLocationsClustersCreatesecondaryCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersCreatesecondaryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -4748,6 +5989,7 @@ func (c *ProjectsLocationsClustersCreatesecondaryCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.createsecondary", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4782,9 +6024,11 @@ func (c *ProjectsLocationsClustersCreatesecondaryCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.createsecondary", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4823,13 +6067,13 @@ func (c *ProjectsLocationsClustersDeleteCall) Force(force bool) *ProjectsLocatio
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes after
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersDeleteCall) RequestId(requestId string) *ProjectsLocationsClustersDeleteCall {
@@ -4838,8 +6082,8 @@ func (c *ProjectsLocationsClustersDeleteCall) RequestId(requestId string) *Proje
 }
 
 // ValidateOnly sets the optional parameter "validateOnly": If set, performs
-// request validation (e.g. permission checks and any other type of
-// validation), but do not actually execute the delete.
+// request validation, for example, permission checks and any other type of
+// validation, but does not actually execute the create request.
 func (c *ProjectsLocationsClustersDeleteCall) ValidateOnly(validateOnly bool) *ProjectsLocationsClustersDeleteCall {
 	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
 	return c
@@ -4870,12 +6114,11 @@ func (c *ProjectsLocationsClustersDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4883,6 +6126,7 @@ func (c *ProjectsLocationsClustersDeleteCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4917,9 +6161,114 @@ func (c *ProjectsLocationsClustersDeleteCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.delete", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsClustersExportCall struct {
+	s                    *Service
+	name                 string
+	exportclusterrequest *ExportClusterRequest
+	urlParams_           gensupport.URLParams
+	ctx_                 context.Context
+	header_              http.Header
+}
+
+// Export: Exports data from the cluster. Imperative only.
+//
+// - name: The resource name of the cluster.
+func (r *ProjectsLocationsClustersService) Export(name string, exportclusterrequest *ExportClusterRequest) *ProjectsLocationsClustersExportCall {
+	c := &ProjectsLocationsClustersExportCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.exportclusterrequest = exportclusterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsClustersExportCall) Fields(s ...googleapi.Field) *ProjectsLocationsClustersExportCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsClustersExportCall) Context(ctx context.Context) *ProjectsLocationsClustersExportCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsClustersExportCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsClustersExportCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.exportclusterrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:export")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.export", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "alloydb.projects.locations.clusters.export" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsClustersExportCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5002,12 +6351,11 @@ func (c *ProjectsLocationsClustersGetCall) doRequest(alt string) (*http.Response
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5015,6 +6363,7 @@ func (c *ProjectsLocationsClustersGetCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5049,9 +6398,114 @@ func (c *ProjectsLocationsClustersGetCall) Do(opts ...googleapi.CallOption) (*Cl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsClustersImportCall struct {
+	s                    *Service
+	name                 string
+	importclusterrequest *ImportClusterRequest
+	urlParams_           gensupport.URLParams
+	ctx_                 context.Context
+	header_              http.Header
+}
+
+// Import: Imports data to the cluster. Imperative only.
+//
+// - name: The resource name of the cluster.
+func (r *ProjectsLocationsClustersService) Import(name string, importclusterrequest *ImportClusterRequest) *ProjectsLocationsClustersImportCall {
+	c := &ProjectsLocationsClustersImportCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.importclusterrequest = importclusterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsClustersImportCall) Fields(s ...googleapi.Field) *ProjectsLocationsClustersImportCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsClustersImportCall) Context(ctx context.Context) *ProjectsLocationsClustersImportCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsClustersImportCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsClustersImportCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.importclusterrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:import")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.import", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "alloydb.projects.locations.clusters.import" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsClustersImportCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5140,12 +6594,11 @@ func (c *ProjectsLocationsClustersListCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/clusters")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5153,6 +6606,7 @@ func (c *ProjectsLocationsClustersListCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5188,9 +6642,11 @@ func (c *ProjectsLocationsClustersListCall) Do(opts ...googleapi.CallOption) (*L
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5249,13 +6705,13 @@ func (c *ProjectsLocationsClustersPatchCall) AllowMissing(allowMissing bool) *Pr
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersPatchCall) RequestId(requestId string) *ProjectsLocationsClustersPatchCall {
@@ -5274,8 +6730,8 @@ func (c *ProjectsLocationsClustersPatchCall) UpdateMask(updateMask string) *Proj
 }
 
 // ValidateOnly sets the optional parameter "validateOnly": If set, performs
-// request validation (e.g. permission checks and any other type of
-// validation), but do not actually execute the update request.
+// request validation, for example, permission checks and any other type of
+// validation, but does not actually execute the create request.
 func (c *ProjectsLocationsClustersPatchCall) ValidateOnly(validateOnly bool) *ProjectsLocationsClustersPatchCall {
 	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
 	return c
@@ -5306,8 +6762,7 @@ func (c *ProjectsLocationsClustersPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.cluster)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -5323,6 +6778,7 @@ func (c *ProjectsLocationsClustersPatchCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5357,9 +6813,11 @@ func (c *ProjectsLocationsClustersPatchCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5410,8 +6868,7 @@ func (c *ProjectsLocationsClustersPromoteCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersPromoteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.promoteclusterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.promoteclusterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5427,6 +6884,7 @@ func (c *ProjectsLocationsClustersPromoteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.promote", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5461,9 +6919,11 @@ func (c *ProjectsLocationsClustersPromoteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.promote", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5514,8 +6974,7 @@ func (c *ProjectsLocationsClustersRestoreCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersRestoreCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.restoreclusterrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.restoreclusterrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5531,6 +6990,7 @@ func (c *ProjectsLocationsClustersRestoreCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.restore", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5565,9 +7025,324 @@ func (c *ProjectsLocationsClustersRestoreCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.restore", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsClustersRestoreFromCloudSQLCall struct {
+	s                          *Service
+	parent                     string
+	restorefromcloudsqlrequest *RestoreFromCloudSQLRequest
+	urlParams_                 gensupport.URLParams
+	ctx_                       context.Context
+	header_                    http.Header
+}
+
+// RestoreFromCloudSQL: Restores an AlloyDB cluster from a CloudSQL resource.
+//
+//   - parent: The location of the new cluster. For the required format, see the
+//     comment on Cluster.name field.
+func (r *ProjectsLocationsClustersService) RestoreFromCloudSQL(parent string, restorefromcloudsqlrequest *RestoreFromCloudSQLRequest) *ProjectsLocationsClustersRestoreFromCloudSQLCall {
+	c := &ProjectsLocationsClustersRestoreFromCloudSQLCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.parent = parent
+	c.restorefromcloudsqlrequest = restorefromcloudsqlrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsClustersRestoreFromCloudSQLCall) Fields(s ...googleapi.Field) *ProjectsLocationsClustersRestoreFromCloudSQLCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsClustersRestoreFromCloudSQLCall) Context(ctx context.Context) *ProjectsLocationsClustersRestoreFromCloudSQLCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsClustersRestoreFromCloudSQLCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsClustersRestoreFromCloudSQLCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.restorefromcloudsqlrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/clusters:restoreFromCloudSQL")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"parent": c.parent,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.restoreFromCloudSQL", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "alloydb.projects.locations.clusters.restoreFromCloudSQL" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsClustersRestoreFromCloudSQLCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.restoreFromCloudSQL", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsClustersSwitchoverCall struct {
+	s                        *Service
+	name                     string
+	switchoverclusterrequest *SwitchoverClusterRequest
+	urlParams_               gensupport.URLParams
+	ctx_                     context.Context
+	header_                  http.Header
+}
+
+// Switchover: Switches the roles of PRIMARY and SECONDARY clusters without any
+// data loss. This promotes the SECONDARY cluster to PRIMARY and sets up the
+// original PRIMARY cluster to replicate from this newly promoted cluster.
+//
+//   - name: The name of the resource. For the required format, see the comment
+//     on the Cluster.name field.
+func (r *ProjectsLocationsClustersService) Switchover(name string, switchoverclusterrequest *SwitchoverClusterRequest) *ProjectsLocationsClustersSwitchoverCall {
+	c := &ProjectsLocationsClustersSwitchoverCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.switchoverclusterrequest = switchoverclusterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsClustersSwitchoverCall) Fields(s ...googleapi.Field) *ProjectsLocationsClustersSwitchoverCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsClustersSwitchoverCall) Context(ctx context.Context) *ProjectsLocationsClustersSwitchoverCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsClustersSwitchoverCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsClustersSwitchoverCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.switchoverclusterrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:switchover")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.switchover", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "alloydb.projects.locations.clusters.switchover" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsClustersSwitchoverCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.switchover", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsClustersUpgradeCall struct {
+	s                     *Service
+	name                  string
+	upgradeclusterrequest *UpgradeClusterRequest
+	urlParams_            gensupport.URLParams
+	ctx_                  context.Context
+	header_               http.Header
+}
+
+// Upgrade: Upgrades a single Cluster. Imperative only.
+//
+// - name: The resource name of the cluster.
+func (r *ProjectsLocationsClustersService) Upgrade(name string, upgradeclusterrequest *UpgradeClusterRequest) *ProjectsLocationsClustersUpgradeCall {
+	c := &ProjectsLocationsClustersUpgradeCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.upgradeclusterrequest = upgradeclusterrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsClustersUpgradeCall) Fields(s ...googleapi.Field) *ProjectsLocationsClustersUpgradeCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsClustersUpgradeCall) Context(ctx context.Context) *ProjectsLocationsClustersUpgradeCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsClustersUpgradeCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsClustersUpgradeCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.upgradeclusterrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:upgrade")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("PATCH", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.upgrade", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "alloydb.projects.locations.clusters.upgrade" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at all) in
+// error.(*googleapi.Error).Header. Use googleapi.IsNotModified to check
+// whether the returned error was because http.StatusNotModified was returned.
+func (c *ProjectsLocationsClustersUpgradeCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.upgrade", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5600,13 +7375,13 @@ func (c *ProjectsLocationsClustersInstancesCreateCall) InstanceId(instanceId str
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersInstancesCreateCall) RequestId(requestId string) *ProjectsLocationsClustersInstancesCreateCall {
@@ -5615,8 +7390,8 @@ func (c *ProjectsLocationsClustersInstancesCreateCall) RequestId(requestId strin
 }
 
 // ValidateOnly sets the optional parameter "validateOnly": If set, performs
-// request validation (e.g. permission checks and any other type of
-// validation), but do not actually execute the create request.
+// request validation, for example, permission checks and any other type of
+// validation, but does not actually execute the create request.
 func (c *ProjectsLocationsClustersInstancesCreateCall) ValidateOnly(validateOnly bool) *ProjectsLocationsClustersInstancesCreateCall {
 	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
 	return c
@@ -5647,8 +7422,7 @@ func (c *ProjectsLocationsClustersInstancesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersInstancesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instance)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.instance)
 	if err != nil {
 		return nil, err
 	}
@@ -5664,6 +7438,7 @@ func (c *ProjectsLocationsClustersInstancesCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5698,9 +7473,11 @@ func (c *ProjectsLocationsClustersInstancesCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5734,13 +7511,13 @@ func (c *ProjectsLocationsClustersInstancesCreatesecondaryCall) InstanceId(insta
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersInstancesCreatesecondaryCall) RequestId(requestId string) *ProjectsLocationsClustersInstancesCreatesecondaryCall {
@@ -5749,8 +7526,8 @@ func (c *ProjectsLocationsClustersInstancesCreatesecondaryCall) RequestId(reques
 }
 
 // ValidateOnly sets the optional parameter "validateOnly": If set, performs
-// request validation (e.g. permission checks and any other type of
-// validation), but do not actually execute the create request.
+// request validation, for example, permission checks and any other type of
+// validation, but does not actually execute the create request.
 func (c *ProjectsLocationsClustersInstancesCreatesecondaryCall) ValidateOnly(validateOnly bool) *ProjectsLocationsClustersInstancesCreatesecondaryCall {
 	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
 	return c
@@ -5781,8 +7558,7 @@ func (c *ProjectsLocationsClustersInstancesCreatesecondaryCall) Header() http.He
 
 func (c *ProjectsLocationsClustersInstancesCreatesecondaryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instance)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.instance)
 	if err != nil {
 		return nil, err
 	}
@@ -5798,6 +7574,7 @@ func (c *ProjectsLocationsClustersInstancesCreatesecondaryCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.createsecondary", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5832,9 +7609,11 @@ func (c *ProjectsLocationsClustersInstancesCreatesecondaryCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.createsecondary", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5866,13 +7645,13 @@ func (c *ProjectsLocationsClustersInstancesDeleteCall) Etag(etag string) *Projec
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes after
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersInstancesDeleteCall) RequestId(requestId string) *ProjectsLocationsClustersInstancesDeleteCall {
@@ -5881,8 +7660,8 @@ func (c *ProjectsLocationsClustersInstancesDeleteCall) RequestId(requestId strin
 }
 
 // ValidateOnly sets the optional parameter "validateOnly": If set, performs
-// request validation (e.g. permission checks and any other type of
-// validation), but do not actually execute the delete.
+// request validation, for example, permission checks and any other type of
+// validation, but does not actually execute the create request.
 func (c *ProjectsLocationsClustersInstancesDeleteCall) ValidateOnly(validateOnly bool) *ProjectsLocationsClustersInstancesDeleteCall {
 	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
 	return c
@@ -5913,12 +7692,11 @@ func (c *ProjectsLocationsClustersInstancesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersInstancesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5926,6 +7704,7 @@ func (c *ProjectsLocationsClustersInstancesDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5960,9 +7739,11 @@ func (c *ProjectsLocationsClustersInstancesDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6012,8 +7793,7 @@ func (c *ProjectsLocationsClustersInstancesFailoverCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersInstancesFailoverCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.failoverinstancerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.failoverinstancerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6029,6 +7809,7 @@ func (c *ProjectsLocationsClustersInstancesFailoverCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.failover", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6063,9 +7844,11 @@ func (c *ProjectsLocationsClustersInstancesFailoverCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.failover", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6146,12 +7929,11 @@ func (c *ProjectsLocationsClustersInstancesGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6159,6 +7941,7 @@ func (c *ProjectsLocationsClustersInstancesGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6193,9 +7976,11 @@ func (c *ProjectsLocationsClustersInstancesGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6221,13 +8006,13 @@ func (r *ProjectsLocationsClustersInstancesService) GetConnectionInfo(parent str
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes after
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersInstancesGetConnectionInfoCall) RequestId(requestId string) *ProjectsLocationsClustersInstancesGetConnectionInfoCall {
@@ -6271,12 +8056,11 @@ func (c *ProjectsLocationsClustersInstancesGetConnectionInfoCall) doRequest(alt 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/connectionInfo")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6284,6 +8068,7 @@ func (c *ProjectsLocationsClustersInstancesGetConnectionInfoCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.getConnectionInfo", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6318,9 +8103,11 @@ func (c *ProjectsLocationsClustersInstancesGetConnectionInfoCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.getConnectionInfo", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6369,8 +8156,7 @@ func (c *ProjectsLocationsClustersInstancesInjectFaultCall) Header() http.Header
 
 func (c *ProjectsLocationsClustersInstancesInjectFaultCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.injectfaultrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.injectfaultrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6386,6 +8172,7 @@ func (c *ProjectsLocationsClustersInstancesInjectFaultCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.injectFault", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6420,9 +8207,11 @@ func (c *ProjectsLocationsClustersInstancesInjectFaultCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.injectFault", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6512,12 +8301,11 @@ func (c *ProjectsLocationsClustersInstancesListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/instances")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6525,6 +8313,7 @@ func (c *ProjectsLocationsClustersInstancesListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6560,9 +8349,11 @@ func (c *ProjectsLocationsClustersInstancesListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6624,13 +8415,13 @@ func (c *ProjectsLocationsClustersInstancesPatchCall) AllowMissing(allowMissing 
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersInstancesPatchCall) RequestId(requestId string) *ProjectsLocationsClustersInstancesPatchCall {
@@ -6649,8 +8440,8 @@ func (c *ProjectsLocationsClustersInstancesPatchCall) UpdateMask(updateMask stri
 }
 
 // ValidateOnly sets the optional parameter "validateOnly": If set, performs
-// request validation (e.g. permission checks and any other type of
-// validation), but do not actually execute the update request.
+// request validation, for example, permission checks and any other type of
+// validation, but does not actually execute the create request.
 func (c *ProjectsLocationsClustersInstancesPatchCall) ValidateOnly(validateOnly bool) *ProjectsLocationsClustersInstancesPatchCall {
 	c.urlParams_.Set("validateOnly", fmt.Sprint(validateOnly))
 	return c
@@ -6681,8 +8472,7 @@ func (c *ProjectsLocationsClustersInstancesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersInstancesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instance)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.instance)
 	if err != nil {
 		return nil, err
 	}
@@ -6698,6 +8488,7 @@ func (c *ProjectsLocationsClustersInstancesPatchCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6732,9 +8523,11 @@ func (c *ProjectsLocationsClustersInstancesPatchCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6783,8 +8576,7 @@ func (c *ProjectsLocationsClustersInstancesRestartCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersInstancesRestartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.restartinstancerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.restartinstancerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6800,6 +8592,7 @@ func (c *ProjectsLocationsClustersInstancesRestartCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.restart", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6834,9 +8627,11 @@ func (c *ProjectsLocationsClustersInstancesRestartCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.instances.restart", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6861,13 +8656,13 @@ func (r *ProjectsLocationsClustersUsersService) Create(parent string, user *User
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersUsersCreateCall) RequestId(requestId string) *ProjectsLocationsClustersUsersCreateCall {
@@ -6914,8 +8709,7 @@ func (c *ProjectsLocationsClustersUsersCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersUsersCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.user)
 	if err != nil {
 		return nil, err
 	}
@@ -6931,6 +8725,7 @@ func (c *ProjectsLocationsClustersUsersCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6965,9 +8760,11 @@ func (c *ProjectsLocationsClustersUsersCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6991,13 +8788,13 @@ func (r *ProjectsLocationsClustersUsersService) Delete(name string) *ProjectsLoc
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes after
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersUsersDeleteCall) RequestId(requestId string) *ProjectsLocationsClustersUsersDeleteCall {
@@ -7037,12 +8834,11 @@ func (c *ProjectsLocationsClustersUsersDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersUsersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7050,6 +8846,7 @@ func (c *ProjectsLocationsClustersUsersDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7084,9 +8881,11 @@ func (c *ProjectsLocationsClustersUsersDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7145,12 +8944,11 @@ func (c *ProjectsLocationsClustersUsersGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7158,6 +8956,7 @@ func (c *ProjectsLocationsClustersUsersGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7192,9 +8991,11 @@ func (c *ProjectsLocationsClustersUsersGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7280,12 +9081,11 @@ func (c *ProjectsLocationsClustersUsersListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/users")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7293,6 +9093,7 @@ func (c *ProjectsLocationsClustersUsersListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7328,9 +9129,11 @@ func (c *ProjectsLocationsClustersUsersListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7384,13 +9187,13 @@ func (c *ProjectsLocationsClustersUsersPatchCall) AllowMissing(allowMissing bool
 
 // RequestId sets the optional parameter "requestId": An optional request ID to
 // identify requests. Specify a unique request ID so that if you must retry
-// your request, the server will know to ignore the request if it has already
-// been completed. The server will guarantee that for at least 60 minutes since
-// the first request. For example, consider a situation where you make an
-// initial request and the request times out. If you make the request again
-// with the same request ID, the server can check if original operation with
-// the same request ID was received, and if so, will ignore the second request.
-// This prevents clients from accidentally creating duplicate commitments. The
+// your request, the server ignores the request if it has already been
+// completed. The server guarantees that for at least 60 minutes since the
+// first request. For example, consider a situation where you make an initial
+// request and the request times out. If you make the request again with the
+// same request ID, the server can check if the original operation with the
+// same request ID was received, and if so, ignores the second request. This
+// prevents clients from accidentally creating duplicate commitments. The
 // request ID must be a valid UUID with the exception that zero UUID is not
 // supported (00000000-0000-0000-0000-000000000000).
 func (c *ProjectsLocationsClustersUsersPatchCall) RequestId(requestId string) *ProjectsLocationsClustersUsersPatchCall {
@@ -7440,8 +9243,7 @@ func (c *ProjectsLocationsClustersUsersPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsClustersUsersPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.user)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.user)
 	if err != nil {
 		return nil, err
 	}
@@ -7457,6 +9259,7 @@ func (c *ProjectsLocationsClustersUsersPatchCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7491,9 +9294,11 @@ func (c *ProjectsLocationsClustersUsersPatchCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.clusters.users.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7513,7 +9318,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -7549,8 +9354,7 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7566,6 +9370,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7600,9 +9405,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7651,12 +9458,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7664,6 +9470,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7698,9 +9505,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7760,12 +9569,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7773,6 +9581,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7807,9 +9616,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7888,12 +9699,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7901,6 +9711,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7936,9 +9747,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8000,6 +9813,22 @@ func (c *ProjectsLocationsSupportedDatabaseFlagsListCall) PageToken(pageToken st
 	return c
 }
 
+// Scope sets the optional parameter "scope": The scope for which supported
+// flags are requested. If not specified, default is DATABASE.
+//
+// Possible values:
+//
+//	"SCOPE_UNSPECIFIED" - The scope of the flag is not specified. Default is
+//
+// DATABASE.
+//
+//	"DATABASE" - The flag is a database flag.
+//	"CONNECTION_POOL" - The flag is a connection pool flag.
+func (c *ProjectsLocationsSupportedDatabaseFlagsListCall) Scope(scope string) *ProjectsLocationsSupportedDatabaseFlagsListCall {
+	c.urlParams_.Set("scope", scope)
+	return c
+}
+
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
 // details.
@@ -8036,12 +9865,11 @@ func (c *ProjectsLocationsSupportedDatabaseFlagsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/supportedDatabaseFlags")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8049,6 +9877,7 @@ func (c *ProjectsLocationsSupportedDatabaseFlagsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "alloydb.projects.locations.supportedDatabaseFlags.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8084,9 +9913,11 @@ func (c *ProjectsLocationsSupportedDatabaseFlagsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "alloydb.projects.locations.supportedDatabaseFlags.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 

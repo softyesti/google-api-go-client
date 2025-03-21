@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "datacatalog:v1"
 const apiName = "datacatalog"
@@ -115,7 +118,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Catalog = NewCatalogService(s)
+	s.Entries = NewEntriesService(s)
+	s.Organizations = NewOrganizationsService(s)
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,21 +141,20 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Catalog = NewCatalogService(s)
-	s.Entries = NewEntriesService(s)
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
 	Catalog *CatalogService
 
 	Entries *EntriesService
+
+	Organizations *OrganizationsService
 
 	Projects *ProjectsService
 }
@@ -175,6 +181,27 @@ func NewEntriesService(s *Service) *EntriesService {
 }
 
 type EntriesService struct {
+	s *Service
+}
+
+func NewOrganizationsService(s *Service) *OrganizationsService {
+	rs := &OrganizationsService{s: s}
+	rs.Locations = NewOrganizationsLocationsService(s)
+	return rs
+}
+
+type OrganizationsService struct {
+	s *Service
+
+	Locations *OrganizationsLocationsService
+}
+
+func NewOrganizationsLocationsService(s *Service) *OrganizationsLocationsService {
+	rs := &OrganizationsLocationsService{s: s}
+	return rs
+}
+
+type OrganizationsLocationsService struct {
 	s *Service
 }
 
@@ -413,9 +440,9 @@ type Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Binding) MarshalJSON() ([]byte, error) {
+func (s Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -470,9 +497,9 @@ type Expr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Expr) MarshalJSON() ([]byte, error) {
+func (s Expr) MarshalJSON() ([]byte, error) {
 	type NoMethod Expr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetIamPolicyRequest: Request message for `GetIamPolicy` method.
@@ -493,9 +520,9 @@ type GetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GetPolicyOptions: Encapsulates settings provided to GetIamPolicy.
@@ -525,9 +552,9 @@ type GetPolicyOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GetPolicyOptions) MarshalJSON() ([]byte, error) {
+func (s GetPolicyOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GetPolicyOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1BigQueryConnectionSpec: Specification for the
@@ -557,9 +584,9 @@ type GoogleCloudDatacatalogV1BigQueryConnectionSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1BigQueryConnectionSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1BigQueryConnectionSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1BigQueryConnectionSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1BigQueryDateShardedSpec: Specification for a group
@@ -594,9 +621,9 @@ type GoogleCloudDatacatalogV1BigQueryDateShardedSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1BigQueryDateShardedSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1BigQueryDateShardedSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1BigQueryDateShardedSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1BigQueryRoutineSpec: Fields specific for BigQuery
@@ -617,9 +644,9 @@ type GoogleCloudDatacatalogV1BigQueryRoutineSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1BigQueryRoutineSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1BigQueryRoutineSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1BigQueryRoutineSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1BigQueryTableSpec: Describes a BigQuery table.
@@ -651,9 +678,9 @@ type GoogleCloudDatacatalogV1BigQueryTableSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1BigQueryTableSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1BigQueryTableSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1BigQueryTableSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1BusinessContext: Business Context of the entry.
@@ -675,9 +702,9 @@ type GoogleCloudDatacatalogV1BusinessContext struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1BusinessContext) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1BusinessContext) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1BusinessContext
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1CloudBigtableInstanceSpec: Specification that
@@ -699,9 +726,9 @@ type GoogleCloudDatacatalogV1CloudBigtableInstanceSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1CloudBigtableInstanceSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1CloudBigtableInstanceSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1CloudBigtableInstanceSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1CloudBigtableInstanceSpecCloudBigtableClusterSpec:
@@ -728,9 +755,9 @@ type GoogleCloudDatacatalogV1CloudBigtableInstanceSpecCloudBigtableClusterSpec s
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1CloudBigtableInstanceSpecCloudBigtableClusterSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1CloudBigtableInstanceSpecCloudBigtableClusterSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1CloudBigtableInstanceSpecCloudBigtableClusterSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1CloudBigtableSystemSpec: Specification that applies
@@ -753,9 +780,9 @@ type GoogleCloudDatacatalogV1CloudBigtableSystemSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1CloudBigtableSystemSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1CloudBigtableSystemSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1CloudBigtableSystemSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1CloudSqlBigQueryConnectionSpec: Specification for
@@ -786,9 +813,9 @@ type GoogleCloudDatacatalogV1CloudSqlBigQueryConnectionSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1CloudSqlBigQueryConnectionSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1CloudSqlBigQueryConnectionSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1CloudSqlBigQueryConnectionSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ColumnSchema: A column within a schema. Columns can
@@ -847,9 +874,9 @@ type GoogleCloudDatacatalogV1ColumnSchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ColumnSchema) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ColumnSchema) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ColumnSchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ColumnSchemaFieldElementType: Represents the type of
@@ -870,9 +897,9 @@ type GoogleCloudDatacatalogV1ColumnSchemaFieldElementType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ColumnSchemaFieldElementType) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ColumnSchemaFieldElementType) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ColumnSchemaFieldElementType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ColumnSchemaLookerColumnSpec: Column info specific
@@ -901,9 +928,9 @@ type GoogleCloudDatacatalogV1ColumnSchemaLookerColumnSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ColumnSchemaLookerColumnSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ColumnSchemaLookerColumnSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ColumnSchemaLookerColumnSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1CommonUsageStats: Common statistics on the entry's
@@ -924,9 +951,9 @@ type GoogleCloudDatacatalogV1CommonUsageStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1CommonUsageStats) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1CommonUsageStats) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1CommonUsageStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1Contacts: Contact people for the entry.
@@ -949,9 +976,9 @@ type GoogleCloudDatacatalogV1Contacts struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1Contacts) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1Contacts) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1Contacts
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ContactsPerson: A contact person for the entry.
@@ -974,9 +1001,9 @@ type GoogleCloudDatacatalogV1ContactsPerson struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ContactsPerson) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ContactsPerson) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ContactsPerson
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1CrossRegionalSource: Cross-regional source used to
@@ -997,9 +1024,9 @@ type GoogleCloudDatacatalogV1CrossRegionalSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1CrossRegionalSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1CrossRegionalSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1CrossRegionalSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DataSource: Physical location of an entry.
@@ -1032,9 +1059,9 @@ type GoogleCloudDatacatalogV1DataSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DataSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DataSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DataSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DataSourceConnectionSpec: Specification that applies
@@ -1058,15 +1085,15 @@ type GoogleCloudDatacatalogV1DataSourceConnectionSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DataSourceConnectionSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DataSourceConnectionSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DataSourceConnectionSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DatabaseTableSpec: Specification that applies to a
 // table resource. Valid only for entries with the `TABLE` type.
 type GoogleCloudDatacatalogV1DatabaseTableSpec struct {
-	// DatabaseViewSpec: Spec what aplies to tables that are actually views. Not
+	// DatabaseViewSpec: Spec what applies to tables that are actually views. Not
 	// set for "real" tables.
 	DatabaseViewSpec *GoogleCloudDatacatalogV1DatabaseTableSpecDatabaseViewSpec `json:"databaseViewSpec,omitempty"`
 	// DataplexTable: Output only. Fields specific to a Dataplex table and present
@@ -1092,9 +1119,9 @@ type GoogleCloudDatacatalogV1DatabaseTableSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DatabaseTableSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DatabaseTableSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DatabaseTableSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DatabaseTableSpecDatabaseViewSpec: Specification
@@ -1124,9 +1151,9 @@ type GoogleCloudDatacatalogV1DatabaseTableSpecDatabaseViewSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DatabaseTableSpecDatabaseViewSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DatabaseTableSpecDatabaseViewSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DatabaseTableSpecDatabaseViewSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DataplexExternalTable: External table registered by
@@ -1170,9 +1197,9 @@ type GoogleCloudDatacatalogV1DataplexExternalTable struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DataplexExternalTable) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DataplexExternalTable) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DataplexExternalTable
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DataplexFilesetSpec: Entry specyfication for a
@@ -1193,9 +1220,9 @@ type GoogleCloudDatacatalogV1DataplexFilesetSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DataplexFilesetSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DataplexFilesetSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DataplexFilesetSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DataplexSpec: Common Dataplex fields.
@@ -1225,9 +1252,9 @@ type GoogleCloudDatacatalogV1DataplexSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DataplexSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DataplexSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DataplexSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DataplexTableSpec: Entry specification for a
@@ -1254,9 +1281,9 @@ type GoogleCloudDatacatalogV1DataplexTableSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DataplexTableSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DataplexTableSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DataplexTableSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DatasetSpec: Specification that applies to a
@@ -1277,9 +1304,9 @@ type GoogleCloudDatacatalogV1DatasetSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DatasetSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DatasetSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DatasetSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1DumpItem: Wrapper for any item that can be contained
@@ -1300,9 +1327,9 @@ type GoogleCloudDatacatalogV1DumpItem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1DumpItem) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1DumpItem) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1DumpItem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1Entry: Entry metadata. A Data Catalog entry
@@ -1486,9 +1513,9 @@ type GoogleCloudDatacatalogV1Entry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1Entry) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1Entry) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1Entry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1EntryGroup: Entry group metadata. An `EntryGroup`
@@ -1509,6 +1536,12 @@ type GoogleCloudDatacatalogV1EntryGroup struct {
 	// The entry group itself and its child resources might not be stored in the
 	// location specified in its name.
 	Name string `json:"name,omitempty"`
+	// TransferredToDataplex: Optional. When set to [true], it means DataCatalog
+	// EntryGroup was transferred to Dataplex Catalog Service. It makes EntryGroup
+	// and its Entries to be read-only in DataCatalog. However, new Tags on
+	// EntryGroup and its Entries can be created. After setting the flag to [true]
+	// it cannot be unset.
+	TransferredToDataplex bool `json:"transferredToDataplex,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -1525,9 +1558,9 @@ type GoogleCloudDatacatalogV1EntryGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1EntryGroup) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1EntryGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1EntryGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1EntryOverview: Entry overview fields for rich text
@@ -1554,9 +1587,9 @@ type GoogleCloudDatacatalogV1EntryOverview struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1EntryOverview) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1EntryOverview) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1EntryOverview
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ExportTaxonomiesResponse: Response message for
@@ -1580,21 +1613,21 @@ type GoogleCloudDatacatalogV1ExportTaxonomiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ExportTaxonomiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ExportTaxonomiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ExportTaxonomiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1FeatureOnlineStoreSpec: Detail description of the
 // source information of a Vertex Feature Online Store.
 type GoogleCloudDatacatalogV1FeatureOnlineStoreSpec struct {
-	// StorageType: Output only. Type of underelaying storage for the
+	// StorageType: Output only. Type of underlying storage for the
 	// FeatureOnlineStore.
 	//
 	// Possible values:
 	//   "STORAGE_TYPE_UNSPECIFIED" - Should not be used.
 	//   "BIGTABLE" - Underlsying storgae is Bigtable.
-	//   "OPTIMIZED" - Underlaying is optimized online server (Lightning).
+	//   "OPTIMIZED" - Underlying is optimized online server (Lightning).
 	StorageType string `json:"storageType,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "StorageType") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1609,9 +1642,9 @@ type GoogleCloudDatacatalogV1FeatureOnlineStoreSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1FeatureOnlineStoreSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1FeatureOnlineStoreSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1FeatureOnlineStoreSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudDatacatalogV1FieldType struct {
@@ -1640,9 +1673,9 @@ type GoogleCloudDatacatalogV1FieldType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1FieldType) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1FieldType) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1FieldType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudDatacatalogV1FieldTypeEnumType struct {
@@ -1666,9 +1699,9 @@ type GoogleCloudDatacatalogV1FieldTypeEnumType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1FieldTypeEnumType) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1FieldTypeEnumType) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1FieldTypeEnumType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleCloudDatacatalogV1FieldTypeEnumTypeEnumValue struct {
@@ -1690,9 +1723,9 @@ type GoogleCloudDatacatalogV1FieldTypeEnumTypeEnumValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1FieldTypeEnumTypeEnumValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1FieldTypeEnumTypeEnumValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1FieldTypeEnumTypeEnumValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1FilesetSpec: Specification that applies to a
@@ -1714,9 +1747,9 @@ type GoogleCloudDatacatalogV1FilesetSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1FilesetSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1FilesetSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1FilesetSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1GcsFileSpec: Specification of a single file in Cloud
@@ -1742,9 +1775,9 @@ type GoogleCloudDatacatalogV1GcsFileSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1GcsFileSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1GcsFileSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1GcsFileSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1GcsFilesetSpec: Describes a Cloud Storage fileset
@@ -1784,9 +1817,9 @@ type GoogleCloudDatacatalogV1GcsFilesetSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1GcsFilesetSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1GcsFilesetSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1GcsFilesetSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ImportEntriesMetadata: Metadata message for
@@ -1820,9 +1853,9 @@ type GoogleCloudDatacatalogV1ImportEntriesMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ImportEntriesMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ImportEntriesMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ImportEntriesMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ImportEntriesRequest: Request message for
@@ -1847,9 +1880,9 @@ type GoogleCloudDatacatalogV1ImportEntriesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ImportEntriesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ImportEntriesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ImportEntriesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ImportEntriesResponse: Response message for
@@ -1874,9 +1907,9 @@ type GoogleCloudDatacatalogV1ImportEntriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ImportEntriesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ImportEntriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ImportEntriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ImportTaxonomiesRequest: Request message for
@@ -1899,9 +1932,9 @@ type GoogleCloudDatacatalogV1ImportTaxonomiesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ImportTaxonomiesRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ImportTaxonomiesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ImportTaxonomiesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ImportTaxonomiesResponse: Response message for
@@ -1925,9 +1958,9 @@ type GoogleCloudDatacatalogV1ImportTaxonomiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ImportTaxonomiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ImportTaxonomiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ImportTaxonomiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1InlineSource: Inline source containing taxonomies to
@@ -1948,9 +1981,9 @@ type GoogleCloudDatacatalogV1InlineSource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1InlineSource) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1InlineSource) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1InlineSource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ListEntriesResponse: Response message for
@@ -1977,9 +2010,9 @@ type GoogleCloudDatacatalogV1ListEntriesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ListEntriesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ListEntriesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ListEntriesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ListEntryGroupsResponse: Response message for
@@ -2006,9 +2039,9 @@ type GoogleCloudDatacatalogV1ListEntryGroupsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ListEntryGroupsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ListEntryGroupsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ListEntryGroupsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ListPolicyTagsResponse: Response message for
@@ -2035,9 +2068,9 @@ type GoogleCloudDatacatalogV1ListPolicyTagsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ListPolicyTagsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ListPolicyTagsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ListPolicyTagsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ListTagsResponse: Response message for ListTags.
@@ -2063,9 +2096,9 @@ type GoogleCloudDatacatalogV1ListTagsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ListTagsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ListTagsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ListTagsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ListTaxonomiesResponse: Response message for
@@ -2092,9 +2125,9 @@ type GoogleCloudDatacatalogV1ListTaxonomiesResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ListTaxonomiesResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ListTaxonomiesResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ListTaxonomiesResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1LookerSystemSpec: Specification that applies to
@@ -2128,9 +2161,53 @@ type GoogleCloudDatacatalogV1LookerSystemSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1LookerSystemSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1LookerSystemSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1LookerSystemSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDatacatalogV1MigrationConfig: The configuration related to the
+// migration to Dataplex applied to an organization or project. It is the
+// response message for SetConfig and RetrieveEffectiveConfig.
+type GoogleCloudDatacatalogV1MigrationConfig struct {
+	// CatalogUiExperience: Opt-in status for the UI switch to Dataplex.
+	//
+	// Possible values:
+	//   "CATALOG_UI_EXPERIENCE_UNSPECIFIED" - Default value. The default UI is
+	// Dataplex.
+	//   "CATALOG_UI_EXPERIENCE_ENABLED" - The UI is Dataplex.
+	//   "CATALOG_UI_EXPERIENCE_DISABLED" - The UI is Data Catalog.
+	CatalogUiExperience string `json:"catalogUiExperience,omitempty"`
+	// TagTemplateMigration: Opt-in status for the migration of Tag Templates to
+	// Dataplex.
+	//
+	// Possible values:
+	//   "TAG_TEMPLATE_MIGRATION_UNSPECIFIED" - Default value. Migration of Tag
+	// Templates from Data Catalog to Dataplex is not performed.
+	//   "TAG_TEMPLATE_MIGRATION_ENABLED" - Migration of Tag Templates from Data
+	// Catalog to Dataplex is enabled.
+	//   "TAG_TEMPLATE_MIGRATION_DISABLED" - Migration of Tag Templates from Data
+	// Catalog to Dataplex is disabled.
+	TagTemplateMigration string `json:"tagTemplateMigration,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "CatalogUiExperience") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CatalogUiExperience") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDatacatalogV1MigrationConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDatacatalogV1MigrationConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ModelSpec: Specification that applies to a model.
@@ -2151,9 +2228,9 @@ type GoogleCloudDatacatalogV1ModelSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ModelSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ModelSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ModelSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ModifyEntryContactsRequest: Request message for
@@ -2174,9 +2251,9 @@ type GoogleCloudDatacatalogV1ModifyEntryContactsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ModifyEntryContactsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ModifyEntryContactsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ModifyEntryContactsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ModifyEntryOverviewRequest: Request message for
@@ -2197,9 +2274,39 @@ type GoogleCloudDatacatalogV1ModifyEntryOverviewRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ModifyEntryOverviewRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ModifyEntryOverviewRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ModifyEntryOverviewRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDatacatalogV1OrganizationConfig: The configuration related to the
+// migration from Data Catalog to Dataplex that has been applied to an
+// organization and any projects under it. It is the response message for
+// RetrieveConfig.
+type GoogleCloudDatacatalogV1OrganizationConfig struct {
+	// Config: Map of organizations and project resource names and their
+	// configuration. The format for the map keys is
+	// `organizations/{organizationId}` or `projects/{projectId}`.
+	Config map[string]GoogleCloudDatacatalogV1MigrationConfig `json:"config,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the server.
+	googleapi.ServerResponse `json:"-"`
+	// ForceSendFields is a list of field names (e.g. "Config") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Config") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDatacatalogV1OrganizationConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDatacatalogV1OrganizationConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1PersonalDetails: Entry metadata relevant only to the
@@ -2222,9 +2329,9 @@ type GoogleCloudDatacatalogV1PersonalDetails struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1PersonalDetails) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1PersonalDetails) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1PersonalDetails
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1PhysicalSchema: Native schema used by a resource
@@ -2256,9 +2363,9 @@ type GoogleCloudDatacatalogV1PhysicalSchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1PhysicalSchema) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1PhysicalSchema) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1PhysicalSchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1PhysicalSchemaAvroSchema: Schema in Avro JSON
@@ -2279,9 +2386,9 @@ type GoogleCloudDatacatalogV1PhysicalSchemaAvroSchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1PhysicalSchemaAvroSchema) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1PhysicalSchemaAvroSchema) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1PhysicalSchemaAvroSchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1PhysicalSchemaCsvSchema: Marks a CSV-encoded data
@@ -2317,9 +2424,9 @@ type GoogleCloudDatacatalogV1PhysicalSchemaProtobufSchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1PhysicalSchemaProtobufSchema) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1PhysicalSchemaProtobufSchema) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1PhysicalSchemaProtobufSchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1PhysicalSchemaThriftSchema: Schema in Thrift format.
@@ -2339,9 +2446,9 @@ type GoogleCloudDatacatalogV1PhysicalSchemaThriftSchema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1PhysicalSchemaThriftSchema) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1PhysicalSchemaThriftSchema) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1PhysicalSchemaThriftSchema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1PolicyTag: Denotes one policy tag in a taxonomy, for
@@ -2387,9 +2494,9 @@ type GoogleCloudDatacatalogV1PolicyTag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1PolicyTag) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1PolicyTag) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1PolicyTag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ReconcileTagsMetadata: Long-running operation
@@ -2420,9 +2527,9 @@ type GoogleCloudDatacatalogV1ReconcileTagsMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ReconcileTagsMetadata) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ReconcileTagsMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ReconcileTagsMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ReconcileTagsRequest: Request message for
@@ -2452,9 +2559,9 @@ type GoogleCloudDatacatalogV1ReconcileTagsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ReconcileTagsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ReconcileTagsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ReconcileTagsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ReconcileTagsResponse: Long-running operation
@@ -2479,9 +2586,9 @@ type GoogleCloudDatacatalogV1ReconcileTagsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ReconcileTagsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ReconcileTagsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ReconcileTagsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1RenameTagTemplateFieldEnumValueRequest: Request
@@ -2503,9 +2610,9 @@ type GoogleCloudDatacatalogV1RenameTagTemplateFieldEnumValueRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1RenameTagTemplateFieldEnumValueRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1RenameTagTemplateFieldEnumValueRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1RenameTagTemplateFieldEnumValueRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1RenameTagTemplateFieldRequest: Request message for
@@ -2527,9 +2634,9 @@ type GoogleCloudDatacatalogV1RenameTagTemplateFieldRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1RenameTagTemplateFieldRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1RenameTagTemplateFieldRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1RenameTagTemplateFieldRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ReplaceTaxonomyRequest: Request message for
@@ -2551,9 +2658,9 @@ type GoogleCloudDatacatalogV1ReplaceTaxonomyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ReplaceTaxonomyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ReplaceTaxonomyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ReplaceTaxonomyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1RoutineSpec: Specification that applies to a
@@ -2592,9 +2699,9 @@ type GoogleCloudDatacatalogV1RoutineSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1RoutineSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1RoutineSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1RoutineSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1RoutineSpecArgument: Input or output argument of a
@@ -2627,9 +2734,9 @@ type GoogleCloudDatacatalogV1RoutineSpecArgument struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1RoutineSpecArgument) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1RoutineSpecArgument) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1RoutineSpecArgument
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1Schema: Represents a schema, for example, a
@@ -2652,9 +2759,9 @@ type GoogleCloudDatacatalogV1Schema struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1Schema) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1Schema) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1Schema
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1SearchCatalogRequest: Request message for
@@ -2712,9 +2819,9 @@ type GoogleCloudDatacatalogV1SearchCatalogRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1SearchCatalogRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1SearchCatalogRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1SearchCatalogRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1SearchCatalogRequestScope: The criteria that select
@@ -2760,9 +2867,9 @@ type GoogleCloudDatacatalogV1SearchCatalogRequestScope struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1SearchCatalogRequestScope) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1SearchCatalogRequestScope) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1SearchCatalogRequestScope
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1SearchCatalogResponse: Response message for
@@ -2796,9 +2903,9 @@ type GoogleCloudDatacatalogV1SearchCatalogResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1SearchCatalogResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1SearchCatalogResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1SearchCatalogResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1SearchCatalogResult: Result in the response to a
@@ -2877,9 +2984,9 @@ type GoogleCloudDatacatalogV1SearchCatalogResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1SearchCatalogResult) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1SearchCatalogResult) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1SearchCatalogResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1SerializedPolicyTag: A nested protocol buffer that
@@ -2909,9 +3016,9 @@ type GoogleCloudDatacatalogV1SerializedPolicyTag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1SerializedPolicyTag) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1SerializedPolicyTag) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1SerializedPolicyTag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1SerializedTaxonomy: A nested protocol buffer that
@@ -2947,9 +3054,9 @@ type GoogleCloudDatacatalogV1SerializedTaxonomy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1SerializedTaxonomy) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1SerializedTaxonomy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1SerializedTaxonomy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ServiceSpec: Specification that applies to a Service
@@ -2971,9 +3078,48 @@ type GoogleCloudDatacatalogV1ServiceSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ServiceSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ServiceSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ServiceSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudDatacatalogV1SetConfigRequest: Request message for SetConfig.
+type GoogleCloudDatacatalogV1SetConfigRequest struct {
+	// CatalogUiExperience: Opt-in status for the UI switch to Dataplex.
+	//
+	// Possible values:
+	//   "CATALOG_UI_EXPERIENCE_UNSPECIFIED" - Default value. The default UI is
+	// Dataplex.
+	//   "CATALOG_UI_EXPERIENCE_ENABLED" - The UI is Dataplex.
+	//   "CATALOG_UI_EXPERIENCE_DISABLED" - The UI is Data Catalog.
+	CatalogUiExperience string `json:"catalogUiExperience,omitempty"`
+	// TagTemplateMigration: Opt-in status for the migration of Tag Templates to
+	// Dataplex.
+	//
+	// Possible values:
+	//   "TAG_TEMPLATE_MIGRATION_UNSPECIFIED" - Default value. Migration of Tag
+	// Templates from Data Catalog to Dataplex is not performed.
+	//   "TAG_TEMPLATE_MIGRATION_ENABLED" - Migration of Tag Templates from Data
+	// Catalog to Dataplex is enabled.
+	//   "TAG_TEMPLATE_MIGRATION_DISABLED" - Migration of Tag Templates from Data
+	// Catalog to Dataplex is disabled.
+	TagTemplateMigration string `json:"tagTemplateMigration,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "CatalogUiExperience") to
+	// unconditionally include in API requests. By default, fields with empty or
+	// default values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "CatalogUiExperience") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudDatacatalogV1SetConfigRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudDatacatalogV1SetConfigRequest
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1SqlDatabaseSystemSpec: Specification that applies to
@@ -3002,9 +3148,9 @@ type GoogleCloudDatacatalogV1SqlDatabaseSystemSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1SqlDatabaseSystemSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1SqlDatabaseSystemSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1SqlDatabaseSystemSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1StarEntryRequest: Request message for StarEntry.
@@ -3049,9 +3195,9 @@ type GoogleCloudDatacatalogV1StorageProperties struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1StorageProperties) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1StorageProperties) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1StorageProperties
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1SystemTimestamps: Timestamps associated with this
@@ -3080,9 +3226,9 @@ type GoogleCloudDatacatalogV1SystemTimestamps struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1SystemTimestamps) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1SystemTimestamps) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1SystemTimestamps
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1TableSpec: Normal BigQuery table specification.
@@ -3106,9 +3252,9 @@ type GoogleCloudDatacatalogV1TableSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1TableSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1TableSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1TableSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1Tag: Tags contain custom metadata and are attached
@@ -3122,6 +3268,20 @@ type GoogleCloudDatacatalogV1Tag struct {
 	// schema. To attach a tag to a nested column, separate column names with a dot
 	// (`.`). Example: `column.nested_column`.
 	Column string `json:"column,omitempty"`
+	// DataplexTransferStatus: Output only. Denotes the transfer status of the Tag
+	// Template.
+	//
+	// Possible values:
+	//   "DATAPLEX_TRANSFER_STATUS_UNSPECIFIED" - Default value. TagTemplate and
+	// its tags are only visible and editable in DataCatalog.
+	//   "MIGRATED" - TagTemplate and its tags are auto-copied to Dataplex service.
+	// Visible in both services. Editable in DataCatalog, read-only in Dataplex.
+	// Deprecated: Individual TagTemplate migration is deprecated in favor of
+	// organization or project wide TagTemplate migration opt-in.
+	//   "TRANSFERRED" - TagTemplate and its tags are auto-copied to Dataplex
+	// service. Visible in both services. Editable in Dataplex, read-only in
+	// DataCatalog.
+	DataplexTransferStatus string `json:"dataplexTransferStatus,omitempty"`
 	// Fields: Required. Maps the ID of a tag field to its value and additional
 	// information about that field. Tag template defines valid field IDs. A tag
 	// must have at least 1 field and at most 500 fields.
@@ -3153,9 +3313,9 @@ type GoogleCloudDatacatalogV1Tag struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1Tag) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1Tag) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1Tag
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1TagField: Contains the value and additional
@@ -3197,9 +3357,9 @@ type GoogleCloudDatacatalogV1TagField struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1TagField) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1TagField) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1TagField
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDatacatalogV1TagField) UnmarshalJSON(data []byte) error {
@@ -3233,9 +3393,9 @@ type GoogleCloudDatacatalogV1TagFieldEnumValue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1TagFieldEnumValue) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1TagFieldEnumValue) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1TagFieldEnumValue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1TagTemplate: A tag template defines a tag that can
@@ -3254,6 +3414,11 @@ type GoogleCloudDatacatalogV1TagTemplate struct {
 	// its tags are only visible and editable in DataCatalog.
 	//   "MIGRATED" - TagTemplate and its tags are auto-copied to Dataplex service.
 	// Visible in both services. Editable in DataCatalog, read-only in Dataplex.
+	// Deprecated: Individual TagTemplate migration is deprecated in favor of
+	// organization or project wide TagTemplate migration opt-in.
+	//   "TRANSFERRED" - TagTemplate and its tags are auto-copied to Dataplex
+	// service. Visible in both services. Editable in Dataplex, read-only in
+	// DataCatalog.
 	DataplexTransferStatus string `json:"dataplexTransferStatus,omitempty"`
 	// DisplayName: Display name for this template. Defaults to an empty string.
 	// The name must contain only Unicode letters, numbers (0-9), underscores (_),
@@ -3293,9 +3458,9 @@ type GoogleCloudDatacatalogV1TagTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1TagTemplate) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1TagTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1TagTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1TagTemplateField: The template for an individual
@@ -3341,9 +3506,9 @@ type GoogleCloudDatacatalogV1TagTemplateField struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1TagTemplateField) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1TagTemplateField) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1TagTemplateField
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1TaggedEntry: Wrapper containing Entry and
@@ -3370,9 +3535,9 @@ type GoogleCloudDatacatalogV1TaggedEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1TaggedEntry) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1TaggedEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1TaggedEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1Taxonomy: A taxonomy is a collection of hierarchical
@@ -3428,9 +3593,9 @@ type GoogleCloudDatacatalogV1Taxonomy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1Taxonomy) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1Taxonomy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1Taxonomy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1TaxonomyService: The source system of the Taxonomy.
@@ -3457,9 +3622,9 @@ type GoogleCloudDatacatalogV1TaxonomyService struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1TaxonomyService) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1TaxonomyService) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1TaxonomyService
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1UnstarEntryRequest: Request message for UnstarEntry.
@@ -3502,9 +3667,9 @@ type GoogleCloudDatacatalogV1UsageSignal struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1UsageSignal) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1UsageSignal) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1UsageSignal
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1UsageStats: Detailed statistics on the entry's
@@ -3537,9 +3702,9 @@ type GoogleCloudDatacatalogV1UsageStats struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1UsageStats) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1UsageStats) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1UsageStats
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudDatacatalogV1UsageStats) UnmarshalJSON(data []byte) error {
@@ -3604,9 +3769,9 @@ type GoogleCloudDatacatalogV1VertexDatasetSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1VertexDatasetSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1VertexDatasetSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1VertexDatasetSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1VertexModelSourceInfo: Detail description of the
@@ -3641,9 +3806,9 @@ type GoogleCloudDatacatalogV1VertexModelSourceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1VertexModelSourceInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1VertexModelSourceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1VertexModelSourceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1VertexModelSpec: Specification for vertex model
@@ -3674,9 +3839,9 @@ type GoogleCloudDatacatalogV1VertexModelSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1VertexModelSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1VertexModelSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1VertexModelSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudDatacatalogV1ViewSpec: Table view specification.
@@ -3696,9 +3861,9 @@ type GoogleCloudDatacatalogV1ViewSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudDatacatalogV1ViewSpec) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudDatacatalogV1ViewSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudDatacatalogV1ViewSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -3724,9 +3889,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -3771,9 +3936,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Policy: An Identity and Access Management (IAM) policy, which specifies
@@ -3861,9 +4026,9 @@ type Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Policy) MarshalJSON() ([]byte, error) {
+func (s Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -3886,9 +4051,9 @@ type SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -3920,9 +4085,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsRequest: Request message for `TestIamPermissions` method.
@@ -3945,9 +4110,9 @@ type TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestIamPermissionsResponse: Response message for `TestIamPermissions`
@@ -3972,9 +4137,9 @@ type TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CatalogSearchCall struct {
@@ -4026,8 +4191,7 @@ func (c *CatalogSearchCall) Header() http.Header {
 
 func (c *CatalogSearchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1searchcatalogrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1searchcatalogrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4040,6 +4204,7 @@ func (c *CatalogSearchCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.catalog.search", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4075,9 +4240,11 @@ func (c *CatalogSearchCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDataca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.catalog.search", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4170,8 +4337,7 @@ func (c *EntriesLookupCall) Project(project string) *EntriesLookupCall {
 // `bigquery.table.{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` *
 // `bigquery.dataset.{PROJECT_ID}.{DATASET_ID}` *
 // `datacatalog.entry.{PROJECT_ID}.{LOCATION_ID}.{ENTRY_GROUP_ID}.{ENTRY_ID}`
-// Identifiers (`*_ID`) should comply with the [Lexical structure in Standard
-// SQL]
+// Identifiers (`*_ID`) should comply with the [Lexical structure in GoogleSQL]
 // (https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical).
 func (c *EntriesLookupCall) SqlResource(sqlResource string) *EntriesLookupCall {
 	c.urlParams_.Set("sqlResource", sqlResource)
@@ -4214,16 +4380,16 @@ func (c *EntriesLookupCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/entries:lookup")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.entries.lookup", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4259,9 +4425,561 @@ func (c *EntriesLookupCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDataca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.entries.lookup", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsRetrieveConfigCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// RetrieveConfig: Retrieves the configuration related to the migration from
+// Data Catalog to Dataplex for a specific organization, including all the
+// projects under it which have a separate configuration set.
+//
+// - name: The organization whose config is being retrieved.
+func (r *OrganizationsLocationsService) RetrieveConfig(name string) *OrganizationsLocationsRetrieveConfigCall {
+	c := &OrganizationsLocationsRetrieveConfigCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsRetrieveConfigCall) Fields(s ...googleapi.Field) *OrganizationsLocationsRetrieveConfigCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *OrganizationsLocationsRetrieveConfigCall) IfNoneMatch(entityTag string) *OrganizationsLocationsRetrieveConfigCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsRetrieveConfigCall) Context(ctx context.Context) *OrganizationsLocationsRetrieveConfigCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsRetrieveConfigCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsRetrieveConfigCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:retrieveConfig")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.organizations.locations.retrieveConfig", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datacatalog.organizations.locations.retrieveConfig" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDatacatalogV1OrganizationConfig.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsRetrieveConfigCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDatacatalogV1OrganizationConfig, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDatacatalogV1OrganizationConfig{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.organizations.locations.retrieveConfig", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsRetrieveEffectiveConfigCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// RetrieveEffectiveConfig: Retrieves the effective configuration related to
+// the migration from Data Catalog to Dataplex for a specific organization or
+// project. If there is no specific configuration set for the resource, the
+// setting is checked hierarchicahlly through the ancestors of the resource,
+// starting from the resource itself.
+//
+// - name: The resource whose effective config is being retrieved.
+func (r *OrganizationsLocationsService) RetrieveEffectiveConfig(name string) *OrganizationsLocationsRetrieveEffectiveConfigCall {
+	c := &OrganizationsLocationsRetrieveEffectiveConfigCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsRetrieveEffectiveConfigCall) Fields(s ...googleapi.Field) *OrganizationsLocationsRetrieveEffectiveConfigCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *OrganizationsLocationsRetrieveEffectiveConfigCall) IfNoneMatch(entityTag string) *OrganizationsLocationsRetrieveEffectiveConfigCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsRetrieveEffectiveConfigCall) Context(ctx context.Context) *OrganizationsLocationsRetrieveEffectiveConfigCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsRetrieveEffectiveConfigCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsRetrieveEffectiveConfigCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:retrieveEffectiveConfig")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.organizations.locations.retrieveEffectiveConfig", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datacatalog.organizations.locations.retrieveEffectiveConfig" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDatacatalogV1MigrationConfig.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsRetrieveEffectiveConfigCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDatacatalogV1MigrationConfig, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDatacatalogV1MigrationConfig{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.organizations.locations.retrieveEffectiveConfig", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type OrganizationsLocationsSetConfigCall struct {
+	s                                        *Service
+	name                                     string
+	googleclouddatacatalogv1setconfigrequest *GoogleCloudDatacatalogV1SetConfigRequest
+	urlParams_                               gensupport.URLParams
+	ctx_                                     context.Context
+	header_                                  http.Header
+}
+
+// SetConfig: Sets the configuration related to the migration to Dataplex for
+// an organization or project.
+//
+// - name: The organization or project whose config is being specified.
+func (r *OrganizationsLocationsService) SetConfig(name string, googleclouddatacatalogv1setconfigrequest *GoogleCloudDatacatalogV1SetConfigRequest) *OrganizationsLocationsSetConfigCall {
+	c := &OrganizationsLocationsSetConfigCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googleclouddatacatalogv1setconfigrequest = googleclouddatacatalogv1setconfigrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *OrganizationsLocationsSetConfigCall) Fields(s ...googleapi.Field) *OrganizationsLocationsSetConfigCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *OrganizationsLocationsSetConfigCall) Context(ctx context.Context) *OrganizationsLocationsSetConfigCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *OrganizationsLocationsSetConfigCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *OrganizationsLocationsSetConfigCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1setconfigrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:setConfig")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.organizations.locations.setConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datacatalog.organizations.locations.setConfig" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDatacatalogV1MigrationConfig.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *OrganizationsLocationsSetConfigCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDatacatalogV1MigrationConfig, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDatacatalogV1MigrationConfig{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.organizations.locations.setConfig", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsRetrieveEffectiveConfigCall struct {
+	s            *Service
+	name         string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// RetrieveEffectiveConfig: Retrieves the effective configuration related to
+// the migration from Data Catalog to Dataplex for a specific organization or
+// project. If there is no specific configuration set for the resource, the
+// setting is checked hierarchicahlly through the ancestors of the resource,
+// starting from the resource itself.
+//
+// - name: The resource whose effective config is being retrieved.
+func (r *ProjectsLocationsService) RetrieveEffectiveConfig(name string) *ProjectsLocationsRetrieveEffectiveConfigCall {
+	c := &ProjectsLocationsRetrieveEffectiveConfigCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsRetrieveEffectiveConfigCall) Fields(s ...googleapi.Field) *ProjectsLocationsRetrieveEffectiveConfigCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ProjectsLocationsRetrieveEffectiveConfigCall) IfNoneMatch(entityTag string) *ProjectsLocationsRetrieveEffectiveConfigCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsRetrieveEffectiveConfigCall) Context(ctx context.Context) *ProjectsLocationsRetrieveEffectiveConfigCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsRetrieveEffectiveConfigCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsRetrieveEffectiveConfigCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:retrieveEffectiveConfig")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.retrieveEffectiveConfig", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datacatalog.projects.locations.retrieveEffectiveConfig" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDatacatalogV1MigrationConfig.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsRetrieveEffectiveConfigCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDatacatalogV1MigrationConfig, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDatacatalogV1MigrationConfig{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.retrieveEffectiveConfig", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ProjectsLocationsSetConfigCall struct {
+	s                                        *Service
+	name                                     string
+	googleclouddatacatalogv1setconfigrequest *GoogleCloudDatacatalogV1SetConfigRequest
+	urlParams_                               gensupport.URLParams
+	ctx_                                     context.Context
+	header_                                  http.Header
+}
+
+// SetConfig: Sets the configuration related to the migration to Dataplex for
+// an organization or project.
+//
+// - name: The organization or project whose config is being specified.
+func (r *ProjectsLocationsService) SetConfig(name string, googleclouddatacatalogv1setconfigrequest *GoogleCloudDatacatalogV1SetConfigRequest) *ProjectsLocationsSetConfigCall {
+	c := &ProjectsLocationsSetConfigCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.name = name
+	c.googleclouddatacatalogv1setconfigrequest = googleclouddatacatalogv1setconfigrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ProjectsLocationsSetConfigCall) Fields(s ...googleapi.Field) *ProjectsLocationsSetConfigCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ProjectsLocationsSetConfigCall) Context(ctx context.Context) *ProjectsLocationsSetConfigCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ProjectsLocationsSetConfigCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsLocationsSetConfigCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1setconfigrequest)
+	if err != nil {
+		return nil, err
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:setConfig")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("POST", urls, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"name": c.name,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.setConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "datacatalog.projects.locations.setConfig" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *GoogleCloudDatacatalogV1MigrationConfig.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *ProjectsLocationsSetConfigCall) Do(opts ...googleapi.CallOption) (*GoogleCloudDatacatalogV1MigrationConfig, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &GoogleCloudDatacatalogV1MigrationConfig{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.setConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4335,8 +5053,7 @@ func (c *ProjectsLocationsEntryGroupsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1entrygroup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1entrygroup)
 	if err != nil {
 		return nil, err
 	}
@@ -4352,6 +5069,7 @@ func (c *ProjectsLocationsEntryGroupsCreateCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4387,9 +5105,11 @@ func (c *ProjectsLocationsEntryGroupsCreateCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4445,12 +5165,11 @@ func (c *ProjectsLocationsEntryGroupsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4458,6 +5177,7 @@ func (c *ProjectsLocationsEntryGroupsDeleteCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4492,9 +5212,11 @@ func (c *ProjectsLocationsEntryGroupsDeleteCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4559,12 +5281,11 @@ func (c *ProjectsLocationsEntryGroupsGetCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4572,6 +5293,7 @@ func (c *ProjectsLocationsEntryGroupsGetCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4607,9 +5329,11 @@ func (c *ProjectsLocationsEntryGroupsGetCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4667,8 +5391,7 @@ func (c *ProjectsLocationsEntryGroupsGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4684,6 +5407,7 @@ func (c *ProjectsLocationsEntryGroupsGetIamPolicyCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4718,9 +5442,11 @@ func (c *ProjectsLocationsEntryGroupsGetIamPolicyCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4794,12 +5520,11 @@ func (c *ProjectsLocationsEntryGroupsListCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/entryGroups")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4807,6 +5532,7 @@ func (c *ProjectsLocationsEntryGroupsListCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4842,9 +5568,11 @@ func (c *ProjectsLocationsEntryGroupsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4927,8 +5655,7 @@ func (c *ProjectsLocationsEntryGroupsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1entrygroup)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1entrygroup)
 	if err != nil {
 		return nil, err
 	}
@@ -4944,6 +5671,7 @@ func (c *ProjectsLocationsEntryGroupsPatchCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4979,9 +5707,11 @@ func (c *ProjectsLocationsEntryGroupsPatchCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5038,8 +5768,7 @@ func (c *ProjectsLocationsEntryGroupsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5055,6 +5784,7 @@ func (c *ProjectsLocationsEntryGroupsSetIamPolicyCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5089,9 +5819,11 @@ func (c *ProjectsLocationsEntryGroupsSetIamPolicyCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5148,8 +5880,7 @@ func (c *ProjectsLocationsEntryGroupsTestIamPermissionsCall) Header() http.Heade
 
 func (c *ProjectsLocationsEntryGroupsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5165,6 +5896,7 @@ func (c *ProjectsLocationsEntryGroupsTestIamPermissionsCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5200,9 +5932,11 @@ func (c *ProjectsLocationsEntryGroupsTestIamPermissionsCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5267,8 +6001,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsEntriesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1entry)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1entry)
 	if err != nil {
 		return nil, err
 	}
@@ -5284,6 +6017,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesCreateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5319,9 +6053,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesCreateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5371,12 +6107,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsEntriesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5384,6 +6119,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5418,9 +6154,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesDeleteCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5478,12 +6216,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesGetCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5491,6 +6228,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesGetCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5526,9 +6264,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesGetCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5586,8 +6326,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesGetIamPolicyCall) Header() http.Head
 
 func (c *ProjectsLocationsEntryGroupsEntriesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5603,6 +6342,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesGetIamPolicyCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5637,9 +6377,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesGetIamPolicyCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5695,8 +6437,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesImportCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsEntriesImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1importentriesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1importentriesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5712,6 +6453,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesImportCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5746,9 +6488,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesImportCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5833,12 +6577,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesListCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/entries")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5846,6 +6589,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesListCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5881,9 +6625,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesListCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5955,8 +6701,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesModifyEntryContactsCall) Header() ht
 
 func (c *ProjectsLocationsEntryGroupsEntriesModifyEntryContactsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1modifyentrycontactsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1modifyentrycontactsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -5972,6 +6717,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesModifyEntryContactsCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.modifyEntryContacts", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6007,9 +6753,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesModifyEntryContactsCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.modifyEntryContacts", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6060,8 +6808,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesModifyEntryOverviewCall) Header() ht
 
 func (c *ProjectsLocationsEntryGroupsEntriesModifyEntryOverviewCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1modifyentryoverviewrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1modifyentryoverviewrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6077,6 +6824,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesModifyEntryOverviewCall) doRequest(a
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.modifyEntryOverview", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6112,9 +6860,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesModifyEntryOverviewCall) Do(opts ...
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.modifyEntryOverview", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6182,8 +6932,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsEntriesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1entry)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1entry)
 	if err != nil {
 		return nil, err
 	}
@@ -6199,6 +6948,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesPatchCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6234,9 +6984,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesPatchCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6285,8 +7037,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesStarCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsEntriesStarCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1starentryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1starentryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6302,6 +7053,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesStarCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.star", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6337,9 +7089,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesStarCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.star", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6396,8 +7150,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTestIamPermissionsCall) Header() htt
 
 func (c *ProjectsLocationsEntryGroupsEntriesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6413,6 +7166,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTestIamPermissionsCall) doRequest(al
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6448,9 +7202,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesTestIamPermissionsCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6499,8 +7255,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesUnstarCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsEntriesUnstarCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1unstarentryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1unstarentryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6516,6 +7271,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesUnstarCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.unstar", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6551,9 +7307,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesUnstarCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.unstar", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6611,8 +7369,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsCreateCall) Header() http.Header
 
 func (c *ProjectsLocationsEntryGroupsEntriesTagsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1tag)
 	if err != nil {
 		return nil, err
 	}
@@ -6628,6 +7385,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsCreateCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6663,9 +7421,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsCreateCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6711,12 +7471,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsDeleteCall) Header() http.Header
 
 func (c *ProjectsLocationsEntryGroupsEntriesTagsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6724,6 +7483,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsDeleteCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6758,9 +7518,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsDeleteCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6835,12 +7597,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsListCall) doRequest(alt string) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/tags")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6848,6 +7609,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsListCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6883,9 +7645,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsListCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6966,8 +7730,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsPatchCall) Header() http.Header 
 
 func (c *ProjectsLocationsEntryGroupsEntriesTagsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1tag)
 	if err != nil {
 		return nil, err
 	}
@@ -6983,6 +7746,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsPatchCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7018,9 +7782,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsPatchCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7073,8 +7839,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsReconcileCall) Header() http.Hea
 
 func (c *ProjectsLocationsEntryGroupsEntriesTagsReconcileCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1reconciletagsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1reconciletagsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -7090,6 +7855,7 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsReconcileCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.reconcile", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7124,9 +7890,11 @@ func (c *ProjectsLocationsEntryGroupsEntriesTagsReconcileCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.entries.tags.reconcile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7184,8 +7952,7 @@ func (c *ProjectsLocationsEntryGroupsTagsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsTagsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1tag)
 	if err != nil {
 		return nil, err
 	}
@@ -7201,6 +7968,7 @@ func (c *ProjectsLocationsEntryGroupsTagsCreateCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.tags.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7236,9 +8004,11 @@ func (c *ProjectsLocationsEntryGroupsTagsCreateCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.tags.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7284,12 +8054,11 @@ func (c *ProjectsLocationsEntryGroupsTagsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsTagsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7297,6 +8066,7 @@ func (c *ProjectsLocationsEntryGroupsTagsDeleteCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.tags.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7331,9 +8101,11 @@ func (c *ProjectsLocationsEntryGroupsTagsDeleteCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.tags.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7408,12 +8180,11 @@ func (c *ProjectsLocationsEntryGroupsTagsListCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/tags")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7421,6 +8192,7 @@ func (c *ProjectsLocationsEntryGroupsTagsListCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.tags.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7456,9 +8228,11 @@ func (c *ProjectsLocationsEntryGroupsTagsListCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.tags.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7539,8 +8313,7 @@ func (c *ProjectsLocationsEntryGroupsTagsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsEntryGroupsTagsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1tag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1tag)
 	if err != nil {
 		return nil, err
 	}
@@ -7556,6 +8329,7 @@ func (c *ProjectsLocationsEntryGroupsTagsPatchCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.tags.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7591,9 +8365,11 @@ func (c *ProjectsLocationsEntryGroupsTagsPatchCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.entryGroups.tags.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7612,7 +8388,7 @@ type ProjectsLocationsOperationsCancelCall struct {
 // other methods to check whether the cancellation succeeded or whether the
 // operation completed despite cancellation. On successful cancellation, the
 // operation is not deleted; instead, it becomes an operation with an
-// Operation.error value with a google.rpc.Status.code of 1, corresponding to
+// Operation.error value with a google.rpc.Status.code of `1`, corresponding to
 // `Code.CANCELLED`.
 //
 // - name: The name of the operation resource to be cancelled.
@@ -7647,12 +8423,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}:cancel")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("POST", urls, body)
+	req, err := http.NewRequest("POST", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7660,6 +8435,7 @@ func (c *ProjectsLocationsOperationsCancelCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.operations.cancel", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7694,9 +8470,11 @@ func (c *ProjectsLocationsOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.operations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7745,12 +8523,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7758,6 +8535,7 @@ func (c *ProjectsLocationsOperationsDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.operations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7792,9 +8570,11 @@ func (c *ProjectsLocationsOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.operations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7854,12 +8634,11 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7867,6 +8646,7 @@ func (c *ProjectsLocationsOperationsGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.operations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7901,9 +8681,11 @@ func (c *ProjectsLocationsOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.operations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7982,12 +8764,11 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}/operations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7995,6 +8776,7 @@ func (c *ProjectsLocationsOperationsListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.operations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8030,9 +8812,11 @@ func (c *ProjectsLocationsOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.operations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8114,8 +8898,7 @@ func (c *ProjectsLocationsTagTemplatesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1tagtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1tagtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -8131,6 +8914,7 @@ func (c *ProjectsLocationsTagTemplatesCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8166,9 +8950,11 @@ func (c *ProjectsLocationsTagTemplatesCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8224,12 +9010,11 @@ func (c *ProjectsLocationsTagTemplatesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8237,6 +9022,7 @@ func (c *ProjectsLocationsTagTemplatesDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8271,9 +9057,11 @@ func (c *ProjectsLocationsTagTemplatesDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8331,12 +9119,11 @@ func (c *ProjectsLocationsTagTemplatesGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8344,6 +9131,7 @@ func (c *ProjectsLocationsTagTemplatesGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8379,9 +9167,11 @@ func (c *ProjectsLocationsTagTemplatesGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8439,8 +9229,7 @@ func (c *ProjectsLocationsTagTemplatesGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8456,6 +9245,7 @@ func (c *ProjectsLocationsTagTemplatesGetIamPolicyCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8490,9 +9280,11 @@ func (c *ProjectsLocationsTagTemplatesGetIamPolicyCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8559,8 +9351,7 @@ func (c *ProjectsLocationsTagTemplatesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1tagtemplate)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1tagtemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -8576,6 +9367,7 @@ func (c *ProjectsLocationsTagTemplatesPatchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8611,9 +9403,11 @@ func (c *ProjectsLocationsTagTemplatesPatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8670,8 +9464,7 @@ func (c *ProjectsLocationsTagTemplatesSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8687,6 +9480,7 @@ func (c *ProjectsLocationsTagTemplatesSetIamPolicyCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8721,9 +9515,11 @@ func (c *ProjectsLocationsTagTemplatesSetIamPolicyCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8780,8 +9576,7 @@ func (c *ProjectsLocationsTagTemplatesTestIamPermissionsCall) Header() http.Head
 
 func (c *ProjectsLocationsTagTemplatesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -8797,6 +9592,7 @@ func (c *ProjectsLocationsTagTemplatesTestIamPermissionsCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8832,9 +9628,11 @@ func (c *ProjectsLocationsTagTemplatesTestIamPermissionsCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8897,8 +9695,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesFieldsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1tagtemplatefield)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1tagtemplatefield)
 	if err != nil {
 		return nil, err
 	}
@@ -8914,6 +9711,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsCreateCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8949,9 +9747,11 @@ func (c *ProjectsLocationsTagTemplatesFieldsCreateCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9009,12 +9809,11 @@ func (c *ProjectsLocationsTagTemplatesFieldsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesFieldsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9022,6 +9821,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsDeleteCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9056,9 +9856,11 @@ func (c *ProjectsLocationsTagTemplatesFieldsDeleteCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9125,8 +9927,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesFieldsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1tagtemplatefield)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1tagtemplatefield)
 	if err != nil {
 		return nil, err
 	}
@@ -9142,6 +9943,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsPatchCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9177,9 +9979,11 @@ func (c *ProjectsLocationsTagTemplatesFieldsPatchCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9230,8 +10034,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsRenameCall) Header() http.Header {
 
 func (c *ProjectsLocationsTagTemplatesFieldsRenameCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1renametagtemplatefieldrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1renametagtemplatefieldrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9247,6 +10050,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsRenameCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.rename", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9282,9 +10086,11 @@ func (c *ProjectsLocationsTagTemplatesFieldsRenameCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.rename", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9333,8 +10139,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsEnumValuesRenameCall) Header() http.
 
 func (c *ProjectsLocationsTagTemplatesFieldsEnumValuesRenameCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1renametagtemplatefieldenumvaluerequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1renametagtemplatefieldenumvaluerequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9350,6 +10155,7 @@ func (c *ProjectsLocationsTagTemplatesFieldsEnumValuesRenameCall) doRequest(alt 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.enumValues.rename", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9385,9 +10191,11 @@ func (c *ProjectsLocationsTagTemplatesFieldsEnumValuesRenameCall) Do(opts ...goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.tagTemplates.fields.enumValues.rename", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9436,8 +10244,7 @@ func (c *ProjectsLocationsTaxonomiesCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1taxonomy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1taxonomy)
 	if err != nil {
 		return nil, err
 	}
@@ -9453,6 +10260,7 @@ func (c *ProjectsLocationsTaxonomiesCreateCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9488,9 +10296,11 @@ func (c *ProjectsLocationsTaxonomiesCreateCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9539,12 +10349,11 @@ func (c *ProjectsLocationsTaxonomiesDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9552,6 +10361,7 @@ func (c *ProjectsLocationsTaxonomiesDeleteCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9586,9 +10396,11 @@ func (c *ProjectsLocationsTaxonomiesDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9665,12 +10477,11 @@ func (c *ProjectsLocationsTaxonomiesExportCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/taxonomies:export")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9678,6 +10489,7 @@ func (c *ProjectsLocationsTaxonomiesExportCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.export", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9713,9 +10525,11 @@ func (c *ProjectsLocationsTaxonomiesExportCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.export", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9773,12 +10587,11 @@ func (c *ProjectsLocationsTaxonomiesGetCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9786,6 +10599,7 @@ func (c *ProjectsLocationsTaxonomiesGetCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9821,9 +10635,11 @@ func (c *ProjectsLocationsTaxonomiesGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9873,8 +10689,7 @@ func (c *ProjectsLocationsTaxonomiesGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9890,6 +10705,7 @@ func (c *ProjectsLocationsTaxonomiesGetIamPolicyCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -9924,9 +10740,11 @@ func (c *ProjectsLocationsTaxonomiesGetIamPolicyCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9979,8 +10797,7 @@ func (c *ProjectsLocationsTaxonomiesImportCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesImportCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1importtaxonomiesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1importtaxonomiesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -9996,6 +10813,7 @@ func (c *ProjectsLocationsTaxonomiesImportCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.import", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10031,9 +10849,11 @@ func (c *ProjectsLocationsTaxonomiesImportCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.import", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10115,12 +10935,11 @@ func (c *ProjectsLocationsTaxonomiesListCall) doRequest(alt string) (*http.Respo
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/taxonomies")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10128,6 +10947,7 @@ func (c *ProjectsLocationsTaxonomiesListCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10163,9 +10983,11 @@ func (c *ProjectsLocationsTaxonomiesListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10245,8 +11067,7 @@ func (c *ProjectsLocationsTaxonomiesPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1taxonomy)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1taxonomy)
 	if err != nil {
 		return nil, err
 	}
@@ -10262,6 +11083,7 @@ func (c *ProjectsLocationsTaxonomiesPatchCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10297,9 +11119,11 @@ func (c *ProjectsLocationsTaxonomiesPatchCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10353,8 +11177,7 @@ func (c *ProjectsLocationsTaxonomiesReplaceCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesReplaceCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1replacetaxonomyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1replacetaxonomyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10370,6 +11193,7 @@ func (c *ProjectsLocationsTaxonomiesReplaceCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.replace", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10405,9 +11229,11 @@ func (c *ProjectsLocationsTaxonomiesReplaceCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.replace", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10457,8 +11283,7 @@ func (c *ProjectsLocationsTaxonomiesSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10474,6 +11299,7 @@ func (c *ProjectsLocationsTaxonomiesSetIamPolicyCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10508,9 +11334,11 @@ func (c *ProjectsLocationsTaxonomiesSetIamPolicyCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10562,8 +11390,7 @@ func (c *ProjectsLocationsTaxonomiesTestIamPermissionsCall) Header() http.Header
 
 func (c *ProjectsLocationsTaxonomiesTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10579,6 +11406,7 @@ func (c *ProjectsLocationsTaxonomiesTestIamPermissionsCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10614,9 +11442,11 @@ func (c *ProjectsLocationsTaxonomiesTestIamPermissionsCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10664,8 +11494,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesPolicyTagsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1policytag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1policytag)
 	if err != nil {
 		return nil, err
 	}
@@ -10681,6 +11510,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsCreateCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10716,9 +11546,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsCreateCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10768,12 +11600,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesPolicyTagsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10781,6 +11612,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsDeleteCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10815,9 +11647,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsDeleteCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10875,12 +11709,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsGetCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -10888,6 +11721,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsGetCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -10923,9 +11757,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsGetCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -10975,8 +11811,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsGetIamPolicyCall) Header() http.He
 
 func (c *ProjectsLocationsTaxonomiesPolicyTagsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -10992,6 +11827,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsGetIamPolicyCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11026,9 +11862,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsGetIamPolicyCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11102,12 +11940,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsListCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/policyTags")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11115,6 +11952,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsListCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11150,9 +11988,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsListCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11233,8 +12073,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsTaxonomiesPolicyTagsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleclouddatacatalogv1policytag)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleclouddatacatalogv1policytag)
 	if err != nil {
 		return nil, err
 	}
@@ -11250,6 +12089,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsPatchCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11285,9 +12125,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsPatchCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11337,8 +12179,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsSetIamPolicyCall) Header() http.He
 
 func (c *ProjectsLocationsTaxonomiesPolicyTagsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11354,6 +12195,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsSetIamPolicyCall) doRequest(alt st
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11388,9 +12230,11 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsSetIamPolicyCall) Do(opts ...googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -11442,8 +12286,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsTestIamPermissionsCall) Header() h
 
 func (c *ProjectsLocationsTaxonomiesPolicyTagsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -11459,6 +12302,7 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsTestIamPermissionsCall) doRequest(
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -11494,8 +12338,10 @@ func (c *ProjectsLocationsTaxonomiesPolicyTagsTestIamPermissionsCall) Do(opts ..
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "datacatalog.projects.locations.taxonomies.policyTags.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

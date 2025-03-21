@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "identitytoolkit:v2"
 const apiName = "identitytoolkit"
@@ -124,7 +127,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
+	s.DefaultSupportedIdps = NewDefaultSupportedIdpsService(s)
+	s.Projects = NewProjectsService(s)
+	s.V2 = NewV2Service(s)
 	if err != nil {
 		return nil, err
 	}
@@ -143,16 +150,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	s.DefaultSupportedIdps = NewDefaultSupportedIdpsService(s)
-	s.Projects = NewProjectsService(s)
-	s.V2 = NewV2Service(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -349,9 +352,9 @@ type GoogleCloudIdentitytoolkitAdminV2AllowByDefault struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2AllowByDefault) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2AllowByDefault) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2AllowByDefault
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2AllowlistOnly: Defines a policy of only
@@ -374,9 +377,9 @@ type GoogleCloudIdentitytoolkitAdminV2AllowlistOnly struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2AllowlistOnly) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2AllowlistOnly) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2AllowlistOnly
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2Anonymous: Configuration options related to
@@ -397,9 +400,9 @@ type GoogleCloudIdentitytoolkitAdminV2Anonymous struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2Anonymous) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2Anonymous) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2Anonymous
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2AppleSignInConfig: Additional config for
@@ -422,9 +425,9 @@ type GoogleCloudIdentitytoolkitAdminV2AppleSignInConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2AppleSignInConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2AppleSignInConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2AppleSignInConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2BlockingFunctionsConfig: Configuration
@@ -449,9 +452,9 @@ type GoogleCloudIdentitytoolkitAdminV2BlockingFunctionsConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2BlockingFunctionsConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2BlockingFunctionsConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2BlockingFunctionsConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ClientConfig: Options related to how
@@ -478,9 +481,9 @@ type GoogleCloudIdentitytoolkitAdminV2ClientConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ClientConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ClientConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ClientConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ClientPermissionConfig: Options related to
@@ -502,9 +505,9 @@ type GoogleCloudIdentitytoolkitAdminV2ClientPermissionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ClientPermissionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ClientPermissionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ClientPermissionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ClientPermissions: Configuration related to
@@ -529,9 +532,9 @@ type GoogleCloudIdentitytoolkitAdminV2ClientPermissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ClientPermissions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ClientPermissions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ClientPermissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2CodeFlowConfig: Additional config for Apple
@@ -556,9 +559,9 @@ type GoogleCloudIdentitytoolkitAdminV2CodeFlowConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2CodeFlowConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2CodeFlowConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2CodeFlowConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2Config: Represents an Identity Toolkit
@@ -574,12 +577,17 @@ type GoogleCloudIdentitytoolkitAdminV2Config struct {
 	// Client: Options related to how clients making requests on behalf of a
 	// project should be configured.
 	Client *GoogleCloudIdentitytoolkitAdminV2ClientConfig `json:"client,omitempty"`
+	// DefaultHostingSite: Output only. Default Firebase hosting site name
+	DefaultHostingSite string `json:"defaultHostingSite,omitempty"`
 	// EmailPrivacyConfig: Configuration for settings related to email privacy and
 	// public visibility.
 	EmailPrivacyConfig *GoogleCloudIdentitytoolkitAdminV2EmailPrivacyConfig `json:"emailPrivacyConfig,omitempty"`
 	// Mfa: Configuration for this project's multi-factor authentication, including
 	// whether it is active and what factors can be used for the second factor
 	Mfa *GoogleCloudIdentitytoolkitAdminV2MultiFactorAuthConfig `json:"mfa,omitempty"`
+	// MobileLinksConfig: Configuration for settings related to univeral links
+	// (iOS) and app links (Android).
+	MobileLinksConfig *GoogleCloudIdentitytoolkitAdminV2MobileLinksConfig `json:"mobileLinksConfig,omitempty"`
 	// Monitoring: Configuration related to monitoring project activity.
 	Monitoring *GoogleCloudIdentitytoolkitAdminV2MonitoringConfig `json:"monitoring,omitempty"`
 	// MultiTenant: Configuration related to multi-tenant functionality.
@@ -623,9 +631,9 @@ type GoogleCloudIdentitytoolkitAdminV2Config struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2Config) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2Config) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2Config
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2CustomStrengthOptions: Custom strength
@@ -659,9 +667,9 @@ type GoogleCloudIdentitytoolkitAdminV2CustomStrengthOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2CustomStrengthOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2CustomStrengthOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2CustomStrengthOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdp: Standard Identity
@@ -684,9 +692,9 @@ type GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdp struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdp) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdp) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdp
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdpConfig: Configurations
@@ -720,9 +728,9 @@ type GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdpConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2DefaultSupportedIdpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2DnsInfo: Information of custom domain DNS
@@ -762,9 +770,9 @@ type GoogleCloudIdentitytoolkitAdminV2DnsInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2DnsInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2DnsInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2DnsInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2Email: Configuration options related to
@@ -789,9 +797,9 @@ type GoogleCloudIdentitytoolkitAdminV2Email struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2Email) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2Email) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2Email
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2EmailPrivacyConfig: Configuration for
@@ -821,9 +829,9 @@ type GoogleCloudIdentitytoolkitAdminV2EmailPrivacyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2EmailPrivacyConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2EmailPrivacyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2EmailPrivacyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2EmailTemplate: Email template. The subject
@@ -867,9 +875,9 @@ type GoogleCloudIdentitytoolkitAdminV2EmailTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2EmailTemplate) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2EmailTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2EmailTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ForwardInboundCredentials: Indicates which
@@ -896,9 +904,9 @@ type GoogleCloudIdentitytoolkitAdminV2ForwardInboundCredentials struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ForwardInboundCredentials) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ForwardInboundCredentials) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ForwardInboundCredentials
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2HashConfig: History information of the hash
@@ -949,9 +957,9 @@ type GoogleCloudIdentitytoolkitAdminV2HashConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2HashConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2HashConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2HashConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2IdpCertificate: The IDP's certificate data
@@ -972,9 +980,9 @@ type GoogleCloudIdentitytoolkitAdminV2IdpCertificate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2IdpCertificate) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2IdpCertificate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2IdpCertificate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2IdpConfig: The SAML IdP (Identity Provider)
@@ -1002,9 +1010,9 @@ type GoogleCloudIdentitytoolkitAdminV2IdpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2IdpConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2IdpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2IdpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2InboundSamlConfig: A pair of SAML RP-IDP
@@ -1041,9 +1049,9 @@ type GoogleCloudIdentitytoolkitAdminV2InboundSamlConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2InboundSamlConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2InboundSamlConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2InboundSamlConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2Inheritance: Settings that the tenants will
@@ -1067,9 +1075,9 @@ type GoogleCloudIdentitytoolkitAdminV2Inheritance struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2Inheritance) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2Inheritance) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2Inheritance
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2InitializeIdentityPlatformRequest: Request
@@ -1108,9 +1116,9 @@ type GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpConfigsResponse str
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpsResponse: Response
@@ -1137,9 +1145,9 @@ type GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ListDefaultSupportedIdpsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ListInboundSamlConfigsResponse: Response
@@ -1166,9 +1174,9 @@ type GoogleCloudIdentitytoolkitAdminV2ListInboundSamlConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ListInboundSamlConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ListInboundSamlConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ListInboundSamlConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ListOAuthIdpConfigsResponse: Response for
@@ -1195,9 +1203,9 @@ type GoogleCloudIdentitytoolkitAdminV2ListOAuthIdpConfigsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ListOAuthIdpConfigsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ListOAuthIdpConfigsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ListOAuthIdpConfigsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ListTenantsResponse: Response message for
@@ -1223,9 +1231,40 @@ type GoogleCloudIdentitytoolkitAdminV2ListTenantsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ListTenantsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ListTenantsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ListTenantsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// GoogleCloudIdentitytoolkitAdminV2MobileLinksConfig: Configuration mobile
+// links.
+type GoogleCloudIdentitytoolkitAdminV2MobileLinksConfig struct {
+	// Domain: Open code in app domain to use for app links and universal links.
+	//
+	// Possible values:
+	//   "DOMAIN_UNSPECIFIED" - Default value. The default domain is the Firebase
+	// Dynamic Link domain before the FDL deprecation and the hosting domain after
+	// the FDL deprecation.
+	//   "FIREBASE_DYNAMIC_LINK_DOMAIN" - Use Firebase Dynamic Link domain as app
+	// link domain. Default value.
+	//   "HOSTING_DOMAIN" - Use hosting domain as app link domain.
+	Domain string `json:"domain,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Domain") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Domain") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudIdentitytoolkitAdminV2MobileLinksConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudIdentitytoolkitAdminV2MobileLinksConfig
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2MonitoringConfig: Configuration related to
@@ -1247,9 +1286,9 @@ type GoogleCloudIdentitytoolkitAdminV2MonitoringConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2MonitoringConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2MonitoringConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2MonitoringConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2MultiFactorAuthConfig: Options related to
@@ -1287,9 +1326,9 @@ type GoogleCloudIdentitytoolkitAdminV2MultiFactorAuthConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2MultiFactorAuthConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2MultiFactorAuthConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2MultiFactorAuthConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2MultiTenantConfig: Configuration related to
@@ -1316,9 +1355,9 @@ type GoogleCloudIdentitytoolkitAdminV2MultiTenantConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2MultiTenantConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2MultiTenantConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2MultiTenantConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2NotificationConfig: Configuration related
@@ -1343,9 +1382,9 @@ type GoogleCloudIdentitytoolkitAdminV2NotificationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2NotificationConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2NotificationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2NotificationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2OAuthIdpConfig: Configuration options for
@@ -1387,9 +1426,9 @@ type GoogleCloudIdentitytoolkitAdminV2OAuthIdpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2OAuthIdpConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2OAuthIdpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2OAuthIdpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2OAuthResponseType: The response type to
@@ -1419,9 +1458,9 @@ type GoogleCloudIdentitytoolkitAdminV2OAuthResponseType struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2OAuthResponseType) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2OAuthResponseType) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2OAuthResponseType
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2PasswordPolicyConfig: The configuration for
@@ -1459,9 +1498,9 @@ type GoogleCloudIdentitytoolkitAdminV2PasswordPolicyConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2PasswordPolicyConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2PasswordPolicyConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2PasswordPolicyConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2PasswordPolicyVersion: The strength
@@ -1485,9 +1524,9 @@ type GoogleCloudIdentitytoolkitAdminV2PasswordPolicyVersion struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2PasswordPolicyVersion) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2PasswordPolicyVersion) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2PasswordPolicyVersion
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2Permissions: Configuration related to
@@ -1512,9 +1551,9 @@ type GoogleCloudIdentitytoolkitAdminV2Permissions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2Permissions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2Permissions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2Permissions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2PhoneNumber: Configuration options related
@@ -1537,9 +1576,9 @@ type GoogleCloudIdentitytoolkitAdminV2PhoneNumber struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2PhoneNumber) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2PhoneNumber) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2PhoneNumber
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2ProviderConfig: ProviderConfig describes
@@ -1569,9 +1608,9 @@ type GoogleCloudIdentitytoolkitAdminV2ProviderConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2ProviderConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2ProviderConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2ProviderConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2QuotaConfig: Configuration related to
@@ -1593,9 +1632,9 @@ type GoogleCloudIdentitytoolkitAdminV2QuotaConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2QuotaConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2QuotaConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2QuotaConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2RecaptchaConfig: The reCAPTCHA Enterprise
@@ -1603,7 +1642,7 @@ func (s *GoogleCloudIdentitytoolkitAdminV2QuotaConfig) MarshalJSON() ([]byte, er
 type GoogleCloudIdentitytoolkitAdminV2RecaptchaConfig struct {
 	// EmailPasswordEnforcementState: The reCAPTCHA config for email/password
 	// provider, containing the enforcement status. The email/password provider
-	// contains all related user flows protected by reCAPTCHA.
+	// contains all email related user flows protected by reCAPTCHA.
 	//
 	// Possible values:
 	//   "RECAPTCHA_PROVIDER_ENFORCEMENT_STATE_UNSPECIFIED" - Enforcement state has
@@ -1615,11 +1654,35 @@ type GoogleCloudIdentitytoolkitAdminV2RecaptchaConfig struct {
 	// ManagedRules: The managed rules for authentication action based on reCAPTCHA
 	// scores. The rules are shared across providers for a given tenant project.
 	ManagedRules []*GoogleCloudIdentitytoolkitAdminV2RecaptchaManagedRule `json:"managedRules,omitempty"`
+	// PhoneEnforcementState: The reCAPTCHA config for phone provider, containing
+	// the enforcement status. The phone provider contains all SMS related user
+	// flows protected by reCAPTCHA.
+	//
+	// Possible values:
+	//   "RECAPTCHA_PROVIDER_ENFORCEMENT_STATE_UNSPECIFIED" - Enforcement state has
+	// not been set.
+	//   "OFF" - Unenforced.
+	//   "AUDIT" - reCAPTCHA assessment is created, result is not used to enforce.
+	//   "ENFORCE" - reCAPTCHA assessment is created, result is used to enforce.
+	PhoneEnforcementState string `json:"phoneEnforcementState,omitempty"`
 	// RecaptchaKeys: The reCAPTCHA keys.
 	RecaptchaKeys []*GoogleCloudIdentitytoolkitAdminV2RecaptchaKey `json:"recaptchaKeys,omitempty"`
+	// TollFraudManagedRules: The managed rules for the authentication action based
+	// on reCAPTCHA toll fraud risk scores. Toll fraud managed rules will only take
+	// effect when the phone_enforcement_state is AUDIT or ENFORCE and
+	// use_sms_toll_fraud_protection is true.
+	TollFraudManagedRules []*GoogleCloudIdentitytoolkitAdminV2RecaptchaTollFraudManagedRule `json:"tollFraudManagedRules,omitempty"`
 	// UseAccountDefender: Whether to use the account defender for reCAPTCHA
 	// assessment. Defaults to `false`.
 	UseAccountDefender bool `json:"useAccountDefender,omitempty"`
+	// UseSmsBotScore: Whether to use the rCE bot score for reCAPTCHA phone
+	// provider. Can only be true when the phone_enforcement_state is AUDIT or
+	// ENFORCE.
+	UseSmsBotScore bool `json:"useSmsBotScore,omitempty"`
+	// UseSmsTollFraudProtection: Whether to use the rCE sms toll fraud protection
+	// risk score for reCAPTCHA phone provider. Can only be true when the
+	// phone_enforcement_state is AUDIT or ENFORCE.
+	UseSmsTollFraudProtection bool `json:"useSmsTollFraudProtection,omitempty"`
 	// ForceSendFields is a list of field names (e.g.
 	// "EmailPasswordEnforcementState") to unconditionally include in API requests.
 	// By default, fields with empty or default values are omitted from API
@@ -1633,9 +1696,9 @@ type GoogleCloudIdentitytoolkitAdminV2RecaptchaConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2RecaptchaConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2RecaptchaConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2RecaptchaConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2RecaptchaKey: The reCAPTCHA key config.
@@ -1665,9 +1728,9 @@ type GoogleCloudIdentitytoolkitAdminV2RecaptchaKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2RecaptchaKey) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2RecaptchaKey) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2RecaptchaKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2RecaptchaManagedRule: The config for a
@@ -1702,9 +1765,9 @@ type GoogleCloudIdentitytoolkitAdminV2RecaptchaManagedRule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2RecaptchaManagedRule) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2RecaptchaManagedRule) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2RecaptchaManagedRule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *GoogleCloudIdentitytoolkitAdminV2RecaptchaManagedRule) UnmarshalJSON(data []byte) error {
@@ -1718,6 +1781,57 @@ func (s *GoogleCloudIdentitytoolkitAdminV2RecaptchaManagedRule) UnmarshalJSON(da
 		return err
 	}
 	s.EndScore = float64(s1.EndScore)
+	return nil
+}
+
+// GoogleCloudIdentitytoolkitAdminV2RecaptchaTollFraudManagedRule: The config
+// for a reCAPTCHA toll fraud assessment managed rule. Models a single interval
+// [start_score, end_score]. The end_score is implicit. It is either the
+// closest smaller end_score (if one is available) or 0. Intervals in aggregate
+// span [0, 1] without overlapping.
+type GoogleCloudIdentitytoolkitAdminV2RecaptchaTollFraudManagedRule struct {
+	// Action: The action taken if the reCAPTCHA score of a request is within the
+	// interval [start_score, end_score].
+	//
+	// Possible values:
+	//   "RECAPTCHA_ACTION_UNSPECIFIED" - The reCAPTCHA action is not specified.
+	//   "BLOCK" - The reCAPTCHA-protected request will be blocked.
+	Action string `json:"action,omitempty"`
+	// StartScore: The start score (inclusive) for an action. Must be a value
+	// between 0.0 and 1.0, at 11 discrete values; e.g. 0, 0.1, 0.2, 0.3, ... 0.9,
+	// 1.0. A score of 0.0 indicates the safest request (likely legitimate),
+	// whereas 1.0 indicates the riskiest request (likely toll fraud). See
+	// https://cloud.google.com/recaptcha-enterprise/docs/sms-fraud-detection#create-assessment-sms.
+	StartScore float64 `json:"startScore,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Action") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Action") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s GoogleCloudIdentitytoolkitAdminV2RecaptchaTollFraudManagedRule) MarshalJSON() ([]byte, error) {
+	type NoMethod GoogleCloudIdentitytoolkitAdminV2RecaptchaTollFraudManagedRule
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+func (s *GoogleCloudIdentitytoolkitAdminV2RecaptchaTollFraudManagedRule) UnmarshalJSON(data []byte) error {
+	type NoMethod GoogleCloudIdentitytoolkitAdminV2RecaptchaTollFraudManagedRule
+	var s1 struct {
+		StartScore gensupport.JSONFloat64 `json:"startScore"`
+		*NoMethod
+	}
+	s1.NoMethod = (*NoMethod)(s)
+	if err := json.Unmarshal(data, &s1); err != nil {
+		return err
+	}
+	s.StartScore = float64(s1.StartScore)
 	return nil
 }
 
@@ -1739,9 +1853,9 @@ type GoogleCloudIdentitytoolkitAdminV2RequestLogging struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2RequestLogging) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2RequestLogging) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2RequestLogging
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2SendEmail: Options for email sending.
@@ -1785,9 +1899,9 @@ type GoogleCloudIdentitytoolkitAdminV2SendEmail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2SendEmail) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2SendEmail) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2SendEmail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2SendSms: Options for SMS sending.
@@ -1809,9 +1923,9 @@ type GoogleCloudIdentitytoolkitAdminV2SendSms struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2SendSms) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2SendSms) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2SendSms
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2SignInConfig: Configuration related to
@@ -1844,9 +1958,9 @@ type GoogleCloudIdentitytoolkitAdminV2SignInConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2SignInConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2SignInConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2SignInConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2SmsRegionConfig: Configures the regions
@@ -1872,9 +1986,9 @@ type GoogleCloudIdentitytoolkitAdminV2SmsRegionConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2SmsRegionConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2SmsRegionConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2SmsRegionConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2SmsTemplate: The template to use when
@@ -1898,9 +2012,9 @@ type GoogleCloudIdentitytoolkitAdminV2SmsTemplate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2SmsTemplate) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2SmsTemplate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2SmsTemplate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2Smtp: Configuration for SMTP relay
@@ -1935,9 +2049,9 @@ type GoogleCloudIdentitytoolkitAdminV2Smtp struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2Smtp) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2Smtp) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2Smtp
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2SpCertificate: The SP's certificate data
@@ -1960,9 +2074,9 @@ type GoogleCloudIdentitytoolkitAdminV2SpCertificate struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2SpCertificate) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2SpCertificate) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2SpCertificate
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2SpConfig: The SAML SP (Service Provider)
@@ -1989,9 +2103,9 @@ type GoogleCloudIdentitytoolkitAdminV2SpConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2SpConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2SpConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2SpConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2TemporaryQuota: Temporary quota increase /
@@ -2016,9 +2130,9 @@ type GoogleCloudIdentitytoolkitAdminV2TemporaryQuota struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2TemporaryQuota) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2TemporaryQuota) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2TemporaryQuota
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2Tenant: A Tenant contains configuration for
@@ -2056,6 +2170,9 @@ type GoogleCloudIdentitytoolkitAdminV2Tenant struct {
 	Inheritance *GoogleCloudIdentitytoolkitAdminV2Inheritance `json:"inheritance,omitempty"`
 	// MfaConfig: The tenant-level configuration of MFA options.
 	MfaConfig *GoogleCloudIdentitytoolkitAdminV2MultiFactorAuthConfig `json:"mfaConfig,omitempty"`
+	// MobileLinksConfig: Optional. Deprecated. Never launched. Configuration for
+	// settings related to univeral links (iOS) and app links (Android).
+	MobileLinksConfig *GoogleCloudIdentitytoolkitAdminV2MobileLinksConfig `json:"mobileLinksConfig,omitempty"`
 	// Monitoring: Configuration related to monitoring project activity.
 	Monitoring *GoogleCloudIdentitytoolkitAdminV2MonitoringConfig `json:"monitoring,omitempty"`
 	// Name: Output only. Resource name of a tenant. For example:
@@ -2088,9 +2205,9 @@ type GoogleCloudIdentitytoolkitAdminV2Tenant struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2Tenant) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2Tenant) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2Tenant
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2TotpMfaProviderConfig:
@@ -2112,9 +2229,9 @@ type GoogleCloudIdentitytoolkitAdminV2TotpMfaProviderConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2TotpMfaProviderConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2TotpMfaProviderConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2TotpMfaProviderConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitAdminV2Trigger: Synchronous Cloud Function with
@@ -2137,9 +2254,9 @@ type GoogleCloudIdentitytoolkitAdminV2Trigger struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitAdminV2Trigger) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitAdminV2Trigger) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitAdminV2Trigger
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2AutoRetrievalInfo: The information required to
@@ -2161,9 +2278,9 @@ type GoogleCloudIdentitytoolkitV2AutoRetrievalInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2AutoRetrievalInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2AutoRetrievalInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2AutoRetrievalInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2CustomStrengthOptions: Custom strength options
@@ -2197,9 +2314,9 @@ type GoogleCloudIdentitytoolkitV2CustomStrengthOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2CustomStrengthOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2CustomStrengthOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2CustomStrengthOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentRequest: Finishes enrolling
@@ -2232,9 +2349,9 @@ type GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentResponse:
@@ -2264,9 +2381,9 @@ type GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2FinalizeMfaEnrollmentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneRequestInfo: Phone Verification
@@ -2294,9 +2411,9 @@ type GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneRequestInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneRequestInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneRequestInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneRequestInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneResponseInfo: Phone Verification
@@ -2323,9 +2440,9 @@ type GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneResponseInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneResponseInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneResponseInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2FinalizeMfaPhoneResponseInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2FinalizeMfaSignInRequest: Finalizes sign-in by
@@ -2357,9 +2474,9 @@ type GoogleCloudIdentitytoolkitV2FinalizeMfaSignInRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2FinalizeMfaSignInRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2FinalizeMfaSignInRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2FinalizeMfaSignInRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2FinalizeMfaSignInResponse: FinalizeMfaSignIn
@@ -2387,9 +2504,9 @@ type GoogleCloudIdentitytoolkitV2FinalizeMfaSignInResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2FinalizeMfaSignInResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2FinalizeMfaSignInResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2FinalizeMfaSignInResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2FinalizeMfaTotpEnrollmentRequestInfo: Mfa
@@ -2412,9 +2529,9 @@ type GoogleCloudIdentitytoolkitV2FinalizeMfaTotpEnrollmentRequestInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2FinalizeMfaTotpEnrollmentRequestInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2FinalizeMfaTotpEnrollmentRequestInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2FinalizeMfaTotpEnrollmentRequestInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2FinalizeMfaTotpEnrollmentResponseInfo: Mfa
@@ -2440,9 +2557,9 @@ type GoogleCloudIdentitytoolkitV2MfaTotpSignInRequestInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2MfaTotpSignInRequestInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2MfaTotpSignInRequestInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2MfaTotpSignInRequestInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2PasswordPolicy: Configuration for password
@@ -2486,9 +2603,9 @@ type GoogleCloudIdentitytoolkitV2PasswordPolicy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2PasswordPolicy) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2PasswordPolicy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2PasswordPolicy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2RecaptchaConfig: Configuration for reCAPTCHA
@@ -2501,6 +2618,12 @@ type GoogleCloudIdentitytoolkitV2RecaptchaConfig struct {
 	// reCAPTCHA enforcement state is AUDIT or ENFORCE on at least one of the
 	// reCAPTCHA providers.
 	RecaptchaKey string `json:"recaptchaKey,omitempty"`
+	// UseSmsBotScore: Whether to use the rCE bot score for reCAPTCHA phone
+	// provider.
+	UseSmsBotScore bool `json:"useSmsBotScore,omitempty"`
+	// UseSmsTollFraudProtection: Whether to use the rCE sms toll fraud protection
+	// risk score for reCAPTCHA phone provider.
+	UseSmsTollFraudProtection bool `json:"useSmsTollFraudProtection,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the server.
 	googleapi.ServerResponse `json:"-"`
@@ -2517,9 +2640,9 @@ type GoogleCloudIdentitytoolkitV2RecaptchaConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2RecaptchaConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2RecaptchaConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2RecaptchaConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2RecaptchaEnforcementState: Enforcement states
@@ -2538,6 +2661,7 @@ type GoogleCloudIdentitytoolkitV2RecaptchaEnforcementState struct {
 	// Possible values:
 	//   "RECAPTCHA_PROVIDER_UNSPECIFIED" - reCAPTCHA provider not specified
 	//   "EMAIL_PASSWORD_PROVIDER" - Email password provider
+	//   "PHONE_PROVIDER" - Phone auth provider
 	Provider string `json:"provider,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "EnforcementState") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -2552,9 +2676,9 @@ type GoogleCloudIdentitytoolkitV2RecaptchaEnforcementState struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2RecaptchaEnforcementState) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2RecaptchaEnforcementState) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2RecaptchaEnforcementState
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2RevokeTokenRequest: Request message for
@@ -2601,9 +2725,9 @@ type GoogleCloudIdentitytoolkitV2RevokeTokenRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2RevokeTokenRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2RevokeTokenRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2RevokeTokenRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2RevokeTokenResponse: Response message for
@@ -2640,9 +2764,9 @@ type GoogleCloudIdentitytoolkitV2StartMfaEnrollmentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2StartMfaEnrollmentRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2StartMfaEnrollmentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2StartMfaEnrollmentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2StartMfaEnrollmentResponse: StartMfaEnrollment
@@ -2669,9 +2793,9 @@ type GoogleCloudIdentitytoolkitV2StartMfaEnrollmentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2StartMfaEnrollmentResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2StartMfaEnrollmentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2StartMfaEnrollmentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2StartMfaPhoneRequestInfo: App Verification info
@@ -2680,6 +2804,18 @@ type GoogleCloudIdentitytoolkitV2StartMfaPhoneRequestInfo struct {
 	// AutoRetrievalInfo: Android only. Used by Google Play Services to identify
 	// the app for auto-retrieval.
 	AutoRetrievalInfo *GoogleCloudIdentitytoolkitV2AutoRetrievalInfo `json:"autoRetrievalInfo,omitempty"`
+	// CaptchaResponse: The reCAPTCHA Enterprise token provided by the reCAPTCHA
+	// client-side integration. Required when reCAPTCHA enterprise is enabled.
+	CaptchaResponse string `json:"captchaResponse,omitempty"`
+	// ClientType: The client type, web, android or ios. Required when reCAPTCHA
+	// Enterprise is enabled.
+	//
+	// Possible values:
+	//   "CLIENT_TYPE_UNSPECIFIED" - Client type is not specified.
+	//   "CLIENT_TYPE_WEB" - Client type is web.
+	//   "CLIENT_TYPE_ANDROID" - Client type is android.
+	//   "CLIENT_TYPE_IOS" - Client type is ios.
+	ClientType string `json:"clientType,omitempty"`
 	// IosReceipt: iOS only. Receipt of successful app token validation with APNS.
 	IosReceipt string `json:"iosReceipt,omitempty"`
 	// IosSecret: iOS only. Secret delivered to iOS app via APNS.
@@ -2694,6 +2830,13 @@ type GoogleCloudIdentitytoolkitV2StartMfaPhoneRequestInfo struct {
 	PlayIntegrityToken string `json:"playIntegrityToken,omitempty"`
 	// RecaptchaToken: Web only. Recaptcha solution.
 	RecaptchaToken string `json:"recaptchaToken,omitempty"`
+	// RecaptchaVersion: The reCAPTCHA version of the reCAPTCHA token in the
+	// captcha_response. Required when reCAPTCHA Enterprise is enabled.
+	//
+	// Possible values:
+	//   "RECAPTCHA_VERSION_UNSPECIFIED" - The reCAPTCHA version is not specified.
+	//   "RECAPTCHA_ENTERPRISE" - The reCAPTCHA enterprise.
+	RecaptchaVersion string `json:"recaptchaVersion,omitempty"`
 	// SafetyNetToken: Android only. Used to assert application identity in place
 	// of a recaptcha token. A SafetyNet Token can be generated via the SafetyNet
 	// Android Attestation API
@@ -2713,9 +2856,9 @@ type GoogleCloudIdentitytoolkitV2StartMfaPhoneRequestInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2StartMfaPhoneRequestInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2StartMfaPhoneRequestInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2StartMfaPhoneRequestInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2StartMfaPhoneResponseInfo: Phone Verification
@@ -2736,9 +2879,9 @@ type GoogleCloudIdentitytoolkitV2StartMfaPhoneResponseInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2StartMfaPhoneResponseInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2StartMfaPhoneResponseInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2StartMfaPhoneResponseInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2StartMfaSignInRequest: Starts multi-factor
@@ -2769,9 +2912,9 @@ type GoogleCloudIdentitytoolkitV2StartMfaSignInRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2StartMfaSignInRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2StartMfaSignInRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2StartMfaSignInRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2StartMfaSignInResponse: StartMfaSignIn response.
@@ -2797,9 +2940,9 @@ type GoogleCloudIdentitytoolkitV2StartMfaSignInResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2StartMfaSignInResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2StartMfaSignInResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2StartMfaSignInResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2StartMfaTotpEnrollmentRequestInfo: Mfa request
@@ -2841,9 +2984,9 @@ type GoogleCloudIdentitytoolkitV2StartMfaTotpEnrollmentResponseInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2StartMfaTotpEnrollmentResponseInfo) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2StartMfaTotpEnrollmentResponseInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2StartMfaTotpEnrollmentResponseInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2WithdrawMfaRequest: Withdraws MFA.
@@ -2869,9 +3012,9 @@ type GoogleCloudIdentitytoolkitV2WithdrawMfaRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2WithdrawMfaRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2WithdrawMfaRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2WithdrawMfaRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleCloudIdentitytoolkitV2WithdrawMfaResponse: Withdraws MultiFactorAuth
@@ -2897,9 +3040,9 @@ type GoogleCloudIdentitytoolkitV2WithdrawMfaResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleCloudIdentitytoolkitV2WithdrawMfaResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleCloudIdentitytoolkitV2WithdrawMfaResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleCloudIdentitytoolkitV2WithdrawMfaResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1AuditConfig: Specifies the audit configuration for a service. The
@@ -2938,9 +3081,9 @@ type GoogleIamV1AuditConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1AuditConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1AuditConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1AuditConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1AuditLogConfig: Provides the configuration for logging a type of
@@ -2973,9 +3116,9 @@ type GoogleIamV1AuditLogConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1AuditLogConfig) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1AuditLogConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1AuditLogConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1Binding: Associates `members`, or principals, with a `role`.
@@ -3072,9 +3215,9 @@ type GoogleIamV1Binding struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1Binding) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1Binding) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1Binding
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1GetIamPolicyRequest: Request message for `GetIamPolicy` method.
@@ -3095,9 +3238,9 @@ type GoogleIamV1GetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1GetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1GetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1GetPolicyOptions: Encapsulates settings provided to GetIamPolicy.
@@ -3127,9 +3270,9 @@ type GoogleIamV1GetPolicyOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1GetPolicyOptions) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1GetPolicyOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1GetPolicyOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1Policy: An Identity and Access Management (IAM) policy, which
@@ -3219,9 +3362,9 @@ type GoogleIamV1Policy struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1Policy) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1Policy) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1Policy
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1SetIamPolicyRequest: Request message for `SetIamPolicy` method.
@@ -3248,9 +3391,9 @@ type GoogleIamV1SetIamPolicyRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1SetIamPolicyRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1TestIamPermissionsRequest: Request message for
@@ -3274,9 +3417,9 @@ type GoogleIamV1TestIamPermissionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1TestIamPermissionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleIamV1TestIamPermissionsResponse: Response message for
@@ -3301,9 +3444,9 @@ type GoogleIamV1TestIamPermissionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleIamV1TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
+func (s GoogleIamV1TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleIamV1TestIamPermissionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleProtobufEmpty: A generic empty message that you can re-use to avoid
@@ -3359,9 +3502,9 @@ type GoogleTypeExpr struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleTypeExpr) MarshalJSON() ([]byte, error) {
+func (s GoogleTypeExpr) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleTypeExpr
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AccountsRevokeTokenCall struct {
@@ -3408,8 +3551,7 @@ func (c *AccountsRevokeTokenCall) Header() http.Header {
 
 func (c *AccountsRevokeTokenCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv2revoketokenrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv2revoketokenrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3422,6 +3564,7 @@ func (c *AccountsRevokeTokenCall) doRequest(alt string) (*http.Response, error) 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.revokeToken", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3457,9 +3600,11 @@ func (c *AccountsRevokeTokenCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.revokeToken", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3503,8 +3648,7 @@ func (c *AccountsMfaEnrollmentFinalizeCall) Header() http.Header {
 
 func (c *AccountsMfaEnrollmentFinalizeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv2finalizemfaenrollmentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv2finalizemfaenrollmentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3517,6 +3661,7 @@ func (c *AccountsMfaEnrollmentFinalizeCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaEnrollment.finalize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3552,9 +3697,11 @@ func (c *AccountsMfaEnrollmentFinalizeCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaEnrollment.finalize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3599,8 +3746,7 @@ func (c *AccountsMfaEnrollmentStartCall) Header() http.Header {
 
 func (c *AccountsMfaEnrollmentStartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv2startmfaenrollmentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv2startmfaenrollmentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3613,6 +3759,7 @@ func (c *AccountsMfaEnrollmentStartCall) doRequest(alt string) (*http.Response, 
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaEnrollment.start", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3650,9 +3797,11 @@ func (c *AccountsMfaEnrollmentStartCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaEnrollment.start", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3697,8 +3846,7 @@ func (c *AccountsMfaEnrollmentWithdrawCall) Header() http.Header {
 
 func (c *AccountsMfaEnrollmentWithdrawCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv2withdrawmfarequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv2withdrawmfarequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3711,6 +3859,7 @@ func (c *AccountsMfaEnrollmentWithdrawCall) doRequest(alt string) (*http.Respons
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaEnrollment.withdraw", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3746,9 +3895,11 @@ func (c *AccountsMfaEnrollmentWithdrawCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaEnrollment.withdraw", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3792,8 +3943,7 @@ func (c *AccountsMfaSignInFinalizeCall) Header() http.Header {
 
 func (c *AccountsMfaSignInFinalizeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv2finalizemfasigninrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv2finalizemfasigninrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3806,6 +3956,7 @@ func (c *AccountsMfaSignInFinalizeCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaSignIn.finalize", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3841,9 +3992,11 @@ func (c *AccountsMfaSignInFinalizeCall) Do(opts ...googleapi.CallOption) (*Googl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaSignIn.finalize", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3887,8 +4040,7 @@ func (c *AccountsMfaSignInStartCall) Header() http.Header {
 
 func (c *AccountsMfaSignInStartCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitv2startmfasigninrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitv2startmfasigninrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3901,6 +4053,7 @@ func (c *AccountsMfaSignInStartCall) doRequest(alt string) (*http.Response, erro
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaSignIn.start", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3936,9 +4089,11 @@ func (c *AccountsMfaSignInStartCall) Do(opts ...googleapi.CallOption) (*GoogleCl
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.accounts.mfaSignIn.start", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4006,16 +4161,16 @@ func (c *DefaultSupportedIdpsListCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/defaultSupportedIdps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.defaultSupportedIdps.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4051,9 +4206,11 @@ func (c *DefaultSupportedIdpsListCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.defaultSupportedIdps.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4133,12 +4290,11 @@ func (c *ProjectsGetConfigCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4146,6 +4302,7 @@ func (c *ProjectsGetConfigCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.getConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4181,9 +4338,11 @@ func (c *ProjectsGetConfigCall) Do(opts ...googleapi.CallOption) (*GoogleCloudId
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.getConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4241,8 +4400,7 @@ func (c *ProjectsUpdateConfigCall) Header() http.Header {
 
 func (c *ProjectsUpdateConfigCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2config)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2config)
 	if err != nil {
 		return nil, err
 	}
@@ -4258,6 +4416,7 @@ func (c *ProjectsUpdateConfigCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.updateConfig", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4293,9 +4452,11 @@ func (c *ProjectsUpdateConfigCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.updateConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4353,8 +4514,7 @@ func (c *ProjectsDefaultSupportedIdpConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsDefaultSupportedIdpConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2defaultsupportedidpconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2defaultsupportedidpconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -4370,6 +4530,7 @@ func (c *ProjectsDefaultSupportedIdpConfigsCreateCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4405,9 +4566,11 @@ func (c *ProjectsDefaultSupportedIdpConfigsCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4455,12 +4618,11 @@ func (c *ProjectsDefaultSupportedIdpConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsDefaultSupportedIdpConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4468,6 +4630,7 @@ func (c *ProjectsDefaultSupportedIdpConfigsDeleteCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4503,9 +4666,11 @@ func (c *ProjectsDefaultSupportedIdpConfigsDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4565,12 +4730,11 @@ func (c *ProjectsDefaultSupportedIdpConfigsGetCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4578,6 +4742,7 @@ func (c *ProjectsDefaultSupportedIdpConfigsGetCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4613,9 +4778,11 @@ func (c *ProjectsDefaultSupportedIdpConfigsGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4689,12 +4856,11 @@ func (c *ProjectsDefaultSupportedIdpConfigsListCall) doRequest(alt string) (*htt
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/defaultSupportedIdpConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4702,6 +4868,7 @@ func (c *ProjectsDefaultSupportedIdpConfigsListCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4737,9 +4904,11 @@ func (c *ProjectsDefaultSupportedIdpConfigsListCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4818,8 +4987,7 @@ func (c *ProjectsDefaultSupportedIdpConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsDefaultSupportedIdpConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2defaultsupportedidpconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2defaultsupportedidpconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -4835,6 +5003,7 @@ func (c *ProjectsDefaultSupportedIdpConfigsPatchCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4870,9 +5039,11 @@ func (c *ProjectsDefaultSupportedIdpConfigsPatchCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.defaultSupportedIdpConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -4925,8 +5096,7 @@ func (c *ProjectsIdentityPlatformInitializeAuthCall) Header() http.Header {
 
 func (c *ProjectsIdentityPlatformInitializeAuthCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2initializeidentityplatformrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2initializeidentityplatformrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -4942,6 +5112,7 @@ func (c *ProjectsIdentityPlatformInitializeAuthCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"project": c.project,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.identityPlatform.initializeAuth", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -4977,9 +5148,11 @@ func (c *ProjectsIdentityPlatformInitializeAuthCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.identityPlatform.initializeAuth", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5036,8 +5209,7 @@ func (c *ProjectsInboundSamlConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsInboundSamlConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2inboundsamlconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2inboundsamlconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -5053,6 +5225,7 @@ func (c *ProjectsInboundSamlConfigsCreateCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5088,9 +5261,11 @@ func (c *ProjectsInboundSamlConfigsCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5138,12 +5313,11 @@ func (c *ProjectsInboundSamlConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsInboundSamlConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5151,6 +5325,7 @@ func (c *ProjectsInboundSamlConfigsDeleteCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5186,9 +5361,11 @@ func (c *ProjectsInboundSamlConfigsDeleteCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5247,12 +5424,11 @@ func (c *ProjectsInboundSamlConfigsGetCall) doRequest(alt string) (*http.Respons
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5260,6 +5436,7 @@ func (c *ProjectsInboundSamlConfigsGetCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5295,9 +5472,11 @@ func (c *ProjectsInboundSamlConfigsGetCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5370,12 +5549,11 @@ func (c *ProjectsInboundSamlConfigsListCall) doRequest(alt string) (*http.Respon
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/inboundSamlConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5383,6 +5561,7 @@ func (c *ProjectsInboundSamlConfigsListCall) doRequest(alt string) (*http.Respon
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5418,9 +5597,11 @@ func (c *ProjectsInboundSamlConfigsListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5500,8 +5681,7 @@ func (c *ProjectsInboundSamlConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsInboundSamlConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2inboundsamlconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2inboundsamlconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -5517,6 +5697,7 @@ func (c *ProjectsInboundSamlConfigsPatchCall) doRequest(alt string) (*http.Respo
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5552,9 +5733,11 @@ func (c *ProjectsInboundSamlConfigsPatchCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.inboundSamlConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5610,8 +5793,7 @@ func (c *ProjectsOauthIdpConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsOauthIdpConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2oauthidpconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2oauthidpconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -5627,6 +5809,7 @@ func (c *ProjectsOauthIdpConfigsCreateCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5662,9 +5845,11 @@ func (c *ProjectsOauthIdpConfigsCreateCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5711,12 +5896,11 @@ func (c *ProjectsOauthIdpConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsOauthIdpConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5724,6 +5908,7 @@ func (c *ProjectsOauthIdpConfigsDeleteCall) doRequest(alt string) (*http.Respons
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5759,9 +5944,11 @@ func (c *ProjectsOauthIdpConfigsDeleteCall) Do(opts ...googleapi.CallOption) (*G
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5820,12 +6007,11 @@ func (c *ProjectsOauthIdpConfigsGetCall) doRequest(alt string) (*http.Response, 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5833,6 +6019,7 @@ func (c *ProjectsOauthIdpConfigsGetCall) doRequest(alt string) (*http.Response, 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5868,9 +6055,11 @@ func (c *ProjectsOauthIdpConfigsGetCall) Do(opts ...googleapi.CallOption) (*Goog
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -5943,12 +6132,11 @@ func (c *ProjectsOauthIdpConfigsListCall) doRequest(alt string) (*http.Response,
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/oauthIdpConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5956,6 +6144,7 @@ func (c *ProjectsOauthIdpConfigsListCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -5991,9 +6180,11 @@ func (c *ProjectsOauthIdpConfigsListCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6073,8 +6264,7 @@ func (c *ProjectsOauthIdpConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsOauthIdpConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2oauthidpconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2oauthidpconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -6090,6 +6280,7 @@ func (c *ProjectsOauthIdpConfigsPatchCall) doRequest(alt string) (*http.Response
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6125,9 +6316,11 @@ func (c *ProjectsOauthIdpConfigsPatchCall) Do(opts ...googleapi.CallOption) (*Go
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.oauthIdpConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6176,8 +6369,7 @@ func (c *ProjectsTenantsCreateCall) Header() http.Header {
 
 func (c *ProjectsTenantsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2tenant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -6193,6 +6385,7 @@ func (c *ProjectsTenantsCreateCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6228,9 +6421,11 @@ func (c *ProjectsTenantsCreateCall) Do(opts ...googleapi.CallOption) (*GoogleClo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6276,12 +6471,11 @@ func (c *ProjectsTenantsDeleteCall) Header() http.Header {
 
 func (c *ProjectsTenantsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6289,6 +6483,7 @@ func (c *ProjectsTenantsDeleteCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6324,9 +6519,11 @@ func (c *ProjectsTenantsDeleteCall) Do(opts ...googleapi.CallOption) (*GooglePro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6384,12 +6581,11 @@ func (c *ProjectsTenantsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6397,6 +6593,7 @@ func (c *ProjectsTenantsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6432,9 +6629,11 @@ func (c *ProjectsTenantsGetCall) Do(opts ...googleapi.CallOption) (*GoogleCloudI
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6487,8 +6686,7 @@ func (c *ProjectsTenantsGetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsTenantsGetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv1getiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv1getiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6504,6 +6702,7 @@ func (c *ProjectsTenantsGetIamPolicyCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.getIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6539,9 +6738,11 @@ func (c *ProjectsTenantsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.getIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6615,12 +6816,11 @@ func (c *ProjectsTenantsListCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/tenants")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6628,6 +6828,7 @@ func (c *ProjectsTenantsListCall) doRequest(alt string) (*http.Response, error) 
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6663,9 +6864,11 @@ func (c *ProjectsTenantsListCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6744,8 +6947,7 @@ func (c *ProjectsTenantsPatchCall) Header() http.Header {
 
 func (c *ProjectsTenantsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2tenant)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -6761,6 +6963,7 @@ func (c *ProjectsTenantsPatchCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6796,9 +6999,11 @@ func (c *ProjectsTenantsPatchCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6850,8 +7055,7 @@ func (c *ProjectsTenantsSetIamPolicyCall) Header() http.Header {
 
 func (c *ProjectsTenantsSetIamPolicyCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv1setiampolicyrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv1setiampolicyrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6867,6 +7071,7 @@ func (c *ProjectsTenantsSetIamPolicyCall) doRequest(alt string) (*http.Response,
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.setIamPolicy", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -6902,9 +7107,11 @@ func (c *ProjectsTenantsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Goo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.setIamPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -6957,8 +7164,7 @@ func (c *ProjectsTenantsTestIamPermissionsCall) Header() http.Header {
 
 func (c *ProjectsTenantsTestIamPermissionsCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googleiamv1testiampermissionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googleiamv1testiampermissionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -6974,6 +7180,7 @@ func (c *ProjectsTenantsTestIamPermissionsCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"resource": c.resource,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.testIamPermissions", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7009,9 +7216,11 @@ func (c *ProjectsTenantsTestIamPermissionsCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.testIamPermissions", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7069,8 +7278,7 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsCreateCall) Header() http.Head
 
 func (c *ProjectsTenantsDefaultSupportedIdpConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2defaultsupportedidpconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2defaultsupportedidpconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -7086,6 +7294,7 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsCreateCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7121,9 +7330,11 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsCreateCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7171,12 +7382,11 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsDeleteCall) Header() http.Head
 
 func (c *ProjectsTenantsDefaultSupportedIdpConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7184,6 +7394,7 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsDeleteCall) doRequest(alt stri
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7219,9 +7430,11 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsDeleteCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7281,12 +7494,11 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsGetCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7294,6 +7506,7 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsGetCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7329,9 +7542,11 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsGetCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7405,12 +7620,11 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsListCall) doRequest(alt string
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/defaultSupportedIdpConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7418,6 +7632,7 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsListCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7453,9 +7668,11 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsListCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7534,8 +7751,7 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsPatchCall) Header() http.Heade
 
 func (c *ProjectsTenantsDefaultSupportedIdpConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2defaultsupportedidpconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2defaultsupportedidpconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -7551,6 +7767,7 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsPatchCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7586,9 +7803,11 @@ func (c *ProjectsTenantsDefaultSupportedIdpConfigsPatchCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.defaultSupportedIdpConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7645,8 +7864,7 @@ func (c *ProjectsTenantsInboundSamlConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsTenantsInboundSamlConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2inboundsamlconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2inboundsamlconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -7662,6 +7880,7 @@ func (c *ProjectsTenantsInboundSamlConfigsCreateCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7697,9 +7916,11 @@ func (c *ProjectsTenantsInboundSamlConfigsCreateCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7747,12 +7968,11 @@ func (c *ProjectsTenantsInboundSamlConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsTenantsInboundSamlConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7760,6 +7980,7 @@ func (c *ProjectsTenantsInboundSamlConfigsDeleteCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7795,9 +8016,11 @@ func (c *ProjectsTenantsInboundSamlConfigsDeleteCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7856,12 +8079,11 @@ func (c *ProjectsTenantsInboundSamlConfigsGetCall) doRequest(alt string) (*http.
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7869,6 +8091,7 @@ func (c *ProjectsTenantsInboundSamlConfigsGetCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -7904,9 +8127,11 @@ func (c *ProjectsTenantsInboundSamlConfigsGetCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -7979,12 +8204,11 @@ func (c *ProjectsTenantsInboundSamlConfigsListCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/inboundSamlConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7992,6 +8216,7 @@ func (c *ProjectsTenantsInboundSamlConfigsListCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8027,9 +8252,11 @@ func (c *ProjectsTenantsInboundSamlConfigsListCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8109,8 +8336,7 @@ func (c *ProjectsTenantsInboundSamlConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsTenantsInboundSamlConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2inboundsamlconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2inboundsamlconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -8126,6 +8352,7 @@ func (c *ProjectsTenantsInboundSamlConfigsPatchCall) doRequest(alt string) (*htt
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8161,9 +8388,11 @@ func (c *ProjectsTenantsInboundSamlConfigsPatchCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.inboundSamlConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8219,8 +8448,7 @@ func (c *ProjectsTenantsOauthIdpConfigsCreateCall) Header() http.Header {
 
 func (c *ProjectsTenantsOauthIdpConfigsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2oauthidpconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2oauthidpconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -8236,6 +8464,7 @@ func (c *ProjectsTenantsOauthIdpConfigsCreateCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8271,9 +8500,11 @@ func (c *ProjectsTenantsOauthIdpConfigsCreateCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8320,12 +8551,11 @@ func (c *ProjectsTenantsOauthIdpConfigsDeleteCall) Header() http.Header {
 
 func (c *ProjectsTenantsOauthIdpConfigsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8333,6 +8563,7 @@ func (c *ProjectsTenantsOauthIdpConfigsDeleteCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8368,9 +8599,11 @@ func (c *ProjectsTenantsOauthIdpConfigsDeleteCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8429,12 +8662,11 @@ func (c *ProjectsTenantsOauthIdpConfigsGetCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8442,6 +8674,7 @@ func (c *ProjectsTenantsOauthIdpConfigsGetCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8477,9 +8710,11 @@ func (c *ProjectsTenantsOauthIdpConfigsGetCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8552,12 +8787,11 @@ func (c *ProjectsTenantsOauthIdpConfigsListCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/{+parent}/oauthIdpConfigs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8565,6 +8799,7 @@ func (c *ProjectsTenantsOauthIdpConfigsListCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8600,9 +8835,11 @@ func (c *ProjectsTenantsOauthIdpConfigsListCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8682,8 +8919,7 @@ func (c *ProjectsTenantsOauthIdpConfigsPatchCall) Header() http.Header {
 
 func (c *ProjectsTenantsOauthIdpConfigsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.googlecloudidentitytoolkitadminv2oauthidpconfig)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.googlecloudidentitytoolkitadminv2oauthidpconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -8699,6 +8935,7 @@ func (c *ProjectsTenantsOauthIdpConfigsPatchCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8734,9 +8971,11 @@ func (c *ProjectsTenantsOauthIdpConfigsPatchCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.projects.tenants.oauthIdpConfigs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8796,16 +9035,16 @@ func (c *V2GetPasswordPolicyCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/passwordPolicy")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.getPasswordPolicy", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8841,9 +9080,11 @@ func (c *V2GetPasswordPolicyCall) Do(opts ...googleapi.CallOption) (*GoogleCloud
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.getPasswordPolicy", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -8929,16 +9170,16 @@ func (c *V2GetRecaptchaConfigCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v2/recaptchaConfig")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "identitytoolkit.getRecaptchaConfig", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -8974,8 +9215,10 @@ func (c *V2GetRecaptchaConfigCall) Do(opts ...googleapi.CallOption) (*GoogleClou
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "identitytoolkit.getRecaptchaConfig", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

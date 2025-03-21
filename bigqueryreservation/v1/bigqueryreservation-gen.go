@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "bigqueryreservation:v1"
 const apiName = "bigqueryreservation"
@@ -125,7 +128,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Projects = NewProjectsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -144,13 +148,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Projects = NewProjectsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -227,6 +230,15 @@ type Assignment struct {
 	// Assignee: The resource which will use the reservation. E.g.
 	// `projects/myproject`, `folders/123`, or `organizations/456`.
 	Assignee string `json:"assignee,omitempty"`
+	// EnableGeminiInBigquery: Optional. This field controls if "Gemini in
+	// BigQuery" (https://cloud.google.com/gemini/docs/bigquery/overview) features
+	// should be enabled for this reservation assignment, which is not on by
+	// default. "Gemini in BigQuery" has a distinct compliance posture from
+	// BigQuery. If this field is set to true, the assignment job type is QUERY,
+	// and the parent reservation edition is ENTERPRISE_PLUS, then the assignment
+	// will give the grantee project/organization access to "Gemini in BigQuery"
+	// features.
+	EnableGeminiInBigquery bool `json:"enableGeminiInBigquery,omitempty"`
 	// JobType: Which type of jobs will use the reservation.
 	//
 	// Possible values:
@@ -272,15 +284,18 @@ type Assignment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Assignment) MarshalJSON() ([]byte, error) {
+func (s Assignment) MarshalJSON() ([]byte, error) {
 	type NoMethod Assignment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Autoscale: Auto scaling settings.
 type Autoscale struct {
 	// CurrentSlots: Output only. The slot capacity added to this reservation when
-	// autoscale happens. Will be between [0, max_slots].
+	// autoscale happens. Will be between [0, max_slots]. Note: after users reduce
+	// max_slots, it may take a while before it can be propagated, so current_slots
+	// may stay in the original value and could be larger than max_slots for that
+	// brief period (less than one minute)
 	CurrentSlots int64 `json:"currentSlots,omitempty,string"`
 	// MaxSlots: Number of slots to be scaled when needed.
 	MaxSlots int64 `json:"maxSlots,omitempty,string"`
@@ -297,9 +312,9 @@ type Autoscale struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Autoscale) MarshalJSON() ([]byte, error) {
+func (s Autoscale) MarshalJSON() ([]byte, error) {
 	type NoMethod Autoscale
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BiReservation: Represents a BI Reservation.
@@ -329,9 +344,9 @@ type BiReservation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BiReservation) MarshalJSON() ([]byte, error) {
+func (s BiReservation) MarshalJSON() ([]byte, error) {
 	type NoMethod BiReservation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CapacityCommitment: Capacity commitment is a way to purchase compute
@@ -343,10 +358,15 @@ func (s *BiReservation) MarshalJSON() ([]byte, error) {
 // project.
 type CapacityCommitment struct {
 	// CommitmentEndTime: Output only. The end of the current commitment period. It
-	// is applicable only for ACTIVE capacity commitments.
+	// is applicable only for ACTIVE capacity commitments. Note after renewal,
+	// commitment_end_time is the time the renewed commitment expires. So itwould
+	// be at a time after commitment_start_time + committed period, because we
+	// don't change commitment_start_time ,
 	CommitmentEndTime string `json:"commitmentEndTime,omitempty"`
 	// CommitmentStartTime: Output only. The start of the current commitment
-	// period. It is applicable only for ACTIVE capacity commitments.
+	// period. It is applicable only for ACTIVE capacity commitments. Note after
+	// the commitment is renewed, commitment_start_time won't be changed. It refers
+	// to the start time of the original commitment.
 	CommitmentStartTime string `json:"commitmentStartTime,omitempty"`
 	// Edition: Edition of the capacity commitment.
 	//
@@ -355,7 +375,7 @@ type CapacityCommitment struct {
 	// ENTERPRISE.
 	//   "STANDARD" - Standard edition.
 	//   "ENTERPRISE" - Enterprise edition.
-	//   "ENTERPRISE_PLUS" - Enterprise plus edition.
+	//   "ENTERPRISE_PLUS" - Enterprise Plus edition.
 	Edition string `json:"edition,omitempty"`
 	// FailureStatus: Output only. For FAILED commitment plan, provides the reason
 	// of failure.
@@ -475,9 +495,9 @@ type CapacityCommitment struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CapacityCommitment) MarshalJSON() ([]byte, error) {
+func (s CapacityCommitment) MarshalJSON() ([]byte, error) {
 	type NoMethod CapacityCommitment
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -518,9 +538,9 @@ type ListAssignmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAssignmentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAssignmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAssignmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListCapacityCommitmentsResponse: The response for
@@ -547,9 +567,9 @@ type ListCapacityCommitmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListCapacityCommitmentsResponse) MarshalJSON() ([]byte, error) {
+func (s ListCapacityCommitmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListCapacityCommitmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListReservationsResponse: The response for
@@ -576,35 +596,41 @@ type ListReservationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListReservationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListReservationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListReservationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MergeCapacityCommitmentsRequest: The request for
 // ReservationService.MergeCapacityCommitments.
 type MergeCapacityCommitmentsRequest struct {
+	// CapacityCommitmentId: Optional. The optional resulting capacity commitment
+	// ID. Capacity commitment name will be generated automatically if this field
+	// is empty. This field must only contain lower case alphanumeric characters or
+	// dashes. The first and last character cannot be a dash. Max length is 64
+	// characters.
+	CapacityCommitmentId string `json:"capacityCommitmentId,omitempty"`
 	// CapacityCommitmentIds: Ids of capacity commitments to merge. These capacity
 	// commitments must exist under admin project and location specified in the
 	// parent. ID is the last portion of capacity commitment name e.g., 'abc' for
 	// projects/myproject/locations/US/capacityCommitments/abc
 	CapacityCommitmentIds []string `json:"capacityCommitmentIds,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "CapacityCommitmentIds") to
+	// ForceSendFields is a list of field names (e.g. "CapacityCommitmentId") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "CapacityCommitmentIds") to
-	// include in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. See
+	// NullFields is a list of field names (e.g. "CapacityCommitmentId") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *MergeCapacityCommitmentsRequest) MarshalJSON() ([]byte, error) {
+func (s MergeCapacityCommitmentsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MergeCapacityCommitmentsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MoveAssignmentRequest: The request for ReservationService.MoveAssignment.
@@ -633,9 +659,41 @@ type MoveAssignmentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MoveAssignmentRequest) MarshalJSON() ([]byte, error) {
+func (s MoveAssignmentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod MoveAssignmentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
+}
+
+// ReplicationStatus: Disaster Recovery(DR) replication status of the
+// reservation.
+type ReplicationStatus struct {
+	// Error: Output only. The last error encountered while trying to replicate
+	// changes from the primary to the secondary. This field is only available if
+	// the replication has not succeeded since.
+	Error *Status `json:"error,omitempty"`
+	// LastErrorTime: Output only. The time at which the last error was encountered
+	// while trying to replicate changes from the primary to the secondary. This
+	// field is only available if the replication has not succeeded since.
+	LastErrorTime string `json:"lastErrorTime,omitempty"`
+	// LastReplicationTime: Output only. A timestamp corresponding to the last
+	// change on the primary that was successfully replicated to the secondary.
+	LastReplicationTime string `json:"lastReplicationTime,omitempty"`
+	// ForceSendFields is a list of field names (e.g. "Error") to unconditionally
+	// include in API requests. By default, fields with empty or default values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
+	// details.
+	ForceSendFields []string `json:"-"`
+	// NullFields is a list of field names (e.g. "Error") to include in API
+	// requests with the JSON null value. By default, fields with empty values are
+	// omitted from API requests. See
+	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
+	NullFields []string `json:"-"`
+}
+
+func (s ReplicationStatus) MarshalJSON() ([]byte, error) {
+	type NoMethod ReplicationStatus
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Reservation: A reservation is a mechanism used to guarantee slots to users.
@@ -647,7 +705,7 @@ type Reservation struct {
 	// target due to asynchronous nature of the system and various optimizations
 	// for small queries. Default value is 0 which means that concurrency target
 	// will be automatically computed by the system. NOTE: this field is exposed as
-	// target job concurrency in the Information Schema, DDL and BQ CLI.
+	// target job concurrency in the Information Schema, DDL and BigQuery CLI.
 	Concurrency int64 `json:"concurrency,omitempty,string"`
 	// CreationTime: Output only. Creation time of the reservation.
 	CreationTime string `json:"creationTime,omitempty"`
@@ -658,13 +716,51 @@ type Reservation struct {
 	// ENTERPRISE.
 	//   "STANDARD" - Standard edition.
 	//   "ENTERPRISE" - Enterprise edition.
-	//   "ENTERPRISE_PLUS" - Enterprise plus edition.
+	//   "ENTERPRISE_PLUS" - Enterprise Plus edition.
 	Edition string `json:"edition,omitempty"`
 	// IgnoreIdleSlots: If false, any query or pipeline job using this reservation
 	// will use idle slots from other reservations within the same admin project.
 	// If true, a query or pipeline job using this reservation will execute with
 	// the slot capacity specified in the slot_capacity field at most.
 	IgnoreIdleSlots bool `json:"ignoreIdleSlots,omitempty"`
+	// Labels: Optional. The labels associated with this reservation. You can use
+	// these to organize and group your reservations. You can set this property
+	// when inserting or updating a reservation.
+	Labels map[string]string `json:"labels,omitempty"`
+	// MaxSlots: Optional. The overall max slots for the reservation, covering
+	// slot_capacity (baseline), idle slots (if ignore_idle_slots is false) and
+	// scaled slots. If present, the reservation won't use more than the specified
+	// number of slots, even if there is demand and supply (from idle slots). NOTE:
+	// capping a reservation's idle slot usage is best effort and its usage may
+	// exceed the max_slots value. However, in terms of autoscale.current_slots
+	// (which accounts for the additional added slots), it will never exceed the
+	// max_slots - baseline. This field must be set together with the scaling_mode
+	// enum value, otherwise the request will be rejected with error code
+	// `google.rpc.Code.INVALID_ARGUMENT`. If the max_slots and scaling_mode are
+	// set, the autoscale or autoscale.max_slots field must be unset. Otherwise the
+	// request will be rejected with error code `google.rpc.Code.INVALID_ARGUMENT`.
+	// However, the autoscale field may still be in the output. The
+	// autopscale.max_slots will always show as 0 and the autoscaler.current_slots
+	// will represent the current slots from autoscaler excluding idle slots. For
+	// example, if the max_slots is 1000 and scaling_mode is AUTOSCALE_ONLY, then
+	// in the output, the autoscaler.max_slots will be 0 and the
+	// autoscaler.current_slots may be any value between 0 and 1000. If the
+	// max_slots is 1000, scaling_mode is ALL_SLOTS, the baseline is 100 and idle
+	// slots usage is 200, then in the output, the autoscaler.max_slots will be 0
+	// and the autoscaler.current_slots will not be higher than 700. If the
+	// max_slots is 1000, scaling_mode is IDLE_SLOTS_ONLY, then in the output, the
+	// autoscaler field will be null. If the max_slots and scaling_mode are set,
+	// then the ignore_idle_slots field must be aligned with the scaling_mode enum
+	// value.(See details in ScalingMode comments). Otherwise the request will be
+	// rejected with error code `google.rpc.Code.INVALID_ARGUMENT`. Please note,
+	// the max_slots is for user to manage the part of slots greater than the
+	// baseline. Therefore, we don't allow users to set max_slots smaller or equal
+	// to the baseline as it will not be meaningful. If the field is present and
+	// slot_capacity>=max_slots, requests will be rejected with error code
+	// `google.rpc.Code.INVALID_ARGUMENT`. Please note that if max_slots is set to
+	// 0, we will treat it as unset. Customers can set max_slots to 0 and set
+	// scaling_mode to SCALING_MODE_UNSPECIFIED to disable the max_slots feature.
+	MaxSlots int64 `json:"maxSlots,omitempty,string"`
 	// MultiRegionAuxiliary: Applicable only for reservations located within one of
 	// the BigQuery multi-regions (US or EU). If set to true, this reservation is
 	// placed in the organization's secondary region which is designated for
@@ -678,41 +774,83 @@ type Reservation struct {
 	// with a letter and must not end with a dash. Its maximum length is 64
 	// characters.
 	Name string `json:"name,omitempty"`
-	// OriginalPrimaryLocation: Optional. The original primary location of the
-	// reservation which is set only during its creation and remains unchanged
-	// afterwards. It can be used by the customer to answer questions about
-	// disaster recovery billing. The field is output only for customers and should
-	// not be specified, however, the google.api.field_behavior is not set to
-	// OUTPUT_ONLY since these fields are set in rerouted requests sent across
-	// regions.
+	// OriginalPrimaryLocation: Output only. The location where the reservation was
+	// originally created. This is set only during the failover reservation's
+	// creation. All billing charges for the failover reservation will be applied
+	// to this location.
 	OriginalPrimaryLocation string `json:"originalPrimaryLocation,omitempty"`
-	// PrimaryLocation: Optional. The primary location of the reservation. The
-	// field is only meaningful for reservation used for cross region disaster
-	// recovery. The field is output only for customers and should not be
-	// specified, however, the google.api.field_behavior is not set to OUTPUT_ONLY
-	// since these fields are set in rerouted requests sent across regions.
+	// PrimaryLocation: Output only. The current location of the reservation's
+	// primary replica. This field is only set for reservations using the managed
+	// disaster recovery feature.
 	PrimaryLocation string `json:"primaryLocation,omitempty"`
-	// SecondaryLocation: Optional. The secondary location of the reservation which
-	// is used for cross region disaster recovery purposes. Customer can set this
-	// in create/update reservation calls to create a failover reservation or
-	// convert a non-failover reservation to a failover reservation.
+	// ReplicationStatus: Output only. The Disaster Recovery(DR) replication status
+	// of the reservation. This is only available for the primary replicas of
+	// DR/failover reservations and provides information about the both the
+	// staleness of the secondary and the last error encountered while trying to
+	// replicate changes from the primary to the secondary. If this field is blank,
+	// it means that the reservation is either not a DR reservation or the
+	// reservation is a DR secondary or that any replication operations on the
+	// reservation have succeeded.
+	ReplicationStatus *ReplicationStatus `json:"replicationStatus,omitempty"`
+	// ScalingMode: The scaling mode for the reservation. If the field is present
+	// but max_slots is not present, requests will be rejected with error code
+	// `google.rpc.Code.INVALID_ARGUMENT`.
+	//
+	// Possible values:
+	//   "SCALING_MODE_UNSPECIFIED" - Default value of ScalingMode.
+	//   "AUTOSCALE_ONLY" - The reservation will scale up only using slots from
+	// autoscaling. It will not use any idle slots even if there may be some
+	// available. The upper limit that autoscaling can scale up to will be
+	// max_slots - baseline. For example, if max_slots is 1000, baseline is 200 and
+	// customer sets ScalingMode to AUTOSCALE_ONLY, then autoscalerg will scale up
+	// to 800 slots and no idle slots will be used. Please note, in this mode, the
+	// ignore_idle_slots field must be set to true. Otherwise the request will be
+	// rejected with error code `google.rpc.Code.INVALID_ARGUMENT`.
+	//   "IDLE_SLOTS_ONLY" - The reservation will scale up using only idle slots
+	// contributed by other reservations or from unassigned commitments. If no idle
+	// slots are available it will not scale up further. If the idle slots which it
+	// is using are reclaimed by the contributing reservation(s) it may be forced
+	// to scale down. The max idle slots the reservation can be max_slots -
+	// baseline capacity. For example, if max_slots is 1000, baseline is 200 and
+	// customer sets ScalingMode to IDLE_SLOTS_ONLY, 1. if there are 1000 idle
+	// slots available in other reservations, the reservation will scale up to 1000
+	// slots with 200 baseline and 800 idle slots. 2. if there are 500 idle slots
+	// available in other reservations, the reservation will scale up to 700 slots
+	// with 200 baseline and 300 idle slots. Please note, in this mode, the
+	// reservation might not be able to scale up to max_slots. Please note, in this
+	// mode, the ignore_idle_slots field must be set to false. Otherwise the
+	// request will be rejected with error code `google.rpc.Code.INVALID_ARGUMENT`.
+	//   "ALL_SLOTS" - The reservation will scale up using all slots available to
+	// it. It will use idle slots contributed by other reservations or from
+	// unassigned commitments first. If no idle slots are available it will scale
+	// up using autoscaling. For example, if max_slots is 1000, baseline is 200 and
+	// customer sets ScalingMode to ALL_SLOTS, 1. if there are 800 idle slots
+	// available in other reservations, the reservation will scale up to 1000 slots
+	// with 200 baseline and 800 idle slots. 2. if there are 500 idle slots
+	// available in other reservations, the reservation will scale up to 1000 slots
+	// with 200 baseline, 500 idle slots and 300 autoscaling slots. 3. if there are
+	// no idle slots available in other reservations, it will scale up to 1000
+	// slots with 200 baseline and 800 autoscaling slots. Please note, in this
+	// mode, the ignore_idle_slots field must be set to false. Otherwise the
+	// request will be rejected with error code `google.rpc.Code.INVALID_ARGUMENT`.
+	ScalingMode string `json:"scalingMode,omitempty"`
+	// SecondaryLocation: Optional. The current location of the reservation's
+	// secondary replica. This field is only set for reservations using the managed
+	// disaster recovery feature. Users can set this in create reservation calls to
+	// create a failover reservation or in update reservation calls to convert a
+	// non-failover reservation to a failover reservation(or vice versa).
 	SecondaryLocation string `json:"secondaryLocation,omitempty"`
 	// SlotCapacity: Baseline slots available to this reservation. A slot is a unit
 	// of computational power in BigQuery, and serves as the unit of parallelism.
 	// Queries using this reservation might use more slots during runtime if
-	// ignore_idle_slots is set to false, or autoscaling is enabled. If edition is
-	// EDITION_UNSPECIFIED and total slot_capacity of the reservation and its
-	// siblings exceeds the total slot_count of all capacity commitments, the
-	// request will fail with `google.rpc.Code.RESOURCE_EXHAUSTED`. If edition is
-	// any value but EDITION_UNSPECIFIED, then the above requirement is not needed.
-	// The total slot_capacity of the reservation and its siblings may exceed the
-	// total slot_count of capacity commitments. In that case, the exceeding slots
-	// will be charged with the autoscale SKU. You can increase the number of
-	// baseline slots in a reservation every few minutes. If you want to decrease
-	// your baseline slots, you are limited to once an hour if you have recently
-	// changed your baseline slot capacity and your baseline slots exceed your
-	// committed slots. Otherwise, you can decrease your baseline slots every few
-	// minutes.
+	// ignore_idle_slots is set to false, or autoscaling is enabled. The total
+	// slot_capacity of the reservation and its siblings may exceed the total
+	// slot_count of capacity commitments. In that case, the exceeding slots will
+	// be charged with the autoscale SKU. You can increase the number of baseline
+	// slots in a reservation every few minutes. If you want to decrease your
+	// baseline slots, you are limited to once an hour if you have recently changed
+	// your baseline slot capacity and your baseline slots exceed your committed
+	// slots. Otherwise, you can decrease your baseline slots every few minutes.
 	SlotCapacity int64 `json:"slotCapacity,omitempty,string"`
 	// UpdateTime: Output only. Last update time of the reservation.
 	UpdateTime string `json:"updateTime,omitempty"`
@@ -732,9 +870,9 @@ type Reservation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Reservation) MarshalJSON() ([]byte, error) {
+func (s Reservation) MarshalJSON() ([]byte, error) {
 	type NoMethod Reservation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchAllAssignmentsResponse: The response for
@@ -761,9 +899,9 @@ type SearchAllAssignmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchAllAssignmentsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchAllAssignmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchAllAssignmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchAssignmentsResponse: The response for
@@ -790,9 +928,9 @@ type SearchAssignmentsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchAssignmentsResponse) MarshalJSON() ([]byte, error) {
+func (s SearchAssignmentsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchAssignmentsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SplitCapacityCommitmentRequest: The request for
@@ -813,9 +951,9 @@ type SplitCapacityCommitmentRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SplitCapacityCommitmentRequest) MarshalJSON() ([]byte, error) {
+func (s SplitCapacityCommitmentRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SplitCapacityCommitmentRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SplitCapacityCommitmentResponse: The response for
@@ -841,9 +979,9 @@ type SplitCapacityCommitmentResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SplitCapacityCommitmentResponse) MarshalJSON() ([]byte, error) {
+func (s SplitCapacityCommitmentResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SplitCapacityCommitmentResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -875,9 +1013,9 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TableReference: Fully qualified reference to BigQuery table. Internally
@@ -902,9 +1040,9 @@ type TableReference struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TableReference) MarshalJSON() ([]byte, error) {
+func (s TableReference) MarshalJSON() ([]byte, error) {
 	type NoMethod TableReference
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ProjectsLocationsGetBiReservationCall struct {
@@ -962,12 +1100,11 @@ func (c *ProjectsLocationsGetBiReservationCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -975,6 +1112,7 @@ func (c *ProjectsLocationsGetBiReservationCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.getBiReservation", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1009,9 +1147,11 @@ func (c *ProjectsLocationsGetBiReservationCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.getBiReservation", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1103,12 +1243,11 @@ func (c *ProjectsLocationsSearchAllAssignmentsCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}:searchAllAssignments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1116,6 +1255,7 @@ func (c *ProjectsLocationsSearchAllAssignmentsCall) doRequest(alt string) (*http
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.searchAllAssignments", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1151,9 +1291,11 @@ func (c *ProjectsLocationsSearchAllAssignmentsCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.searchAllAssignments", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1267,12 +1409,11 @@ func (c *ProjectsLocationsSearchAssignmentsCall) doRequest(alt string) (*http.Re
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}:searchAssignments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1280,6 +1421,7 @@ func (c *ProjectsLocationsSearchAssignmentsCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.searchAssignments", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1315,9 +1457,11 @@ func (c *ProjectsLocationsSearchAssignmentsCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.searchAssignments", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1399,8 +1543,7 @@ func (c *ProjectsLocationsUpdateBiReservationCall) Header() http.Header {
 
 func (c *ProjectsLocationsUpdateBiReservationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.bireservation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.bireservation)
 	if err != nil {
 		return nil, err
 	}
@@ -1416,6 +1559,7 @@ func (c *ProjectsLocationsUpdateBiReservationCall) doRequest(alt string) (*http.
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.updateBiReservation", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1450,9 +1594,11 @@ func (c *ProjectsLocationsUpdateBiReservationCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.updateBiReservation", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1520,8 +1666,7 @@ func (c *ProjectsLocationsCapacityCommitmentsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsCapacityCommitmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.capacitycommitment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.capacitycommitment)
 	if err != nil {
 		return nil, err
 	}
@@ -1537,6 +1682,7 @@ func (c *ProjectsLocationsCapacityCommitmentsCreateCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1572,9 +1718,11 @@ func (c *ProjectsLocationsCapacityCommitmentsCreateCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1631,12 +1779,11 @@ func (c *ProjectsLocationsCapacityCommitmentsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsCapacityCommitmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1644,6 +1791,7 @@ func (c *ProjectsLocationsCapacityCommitmentsDeleteCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1678,9 +1826,11 @@ func (c *ProjectsLocationsCapacityCommitmentsDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1739,12 +1889,11 @@ func (c *ProjectsLocationsCapacityCommitmentsGetCall) doRequest(alt string) (*ht
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1752,6 +1901,7 @@ func (c *ProjectsLocationsCapacityCommitmentsGetCall) doRequest(alt string) (*ht
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1787,9 +1937,11 @@ func (c *ProjectsLocationsCapacityCommitmentsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1862,12 +2014,11 @@ func (c *ProjectsLocationsCapacityCommitmentsListCall) doRequest(alt string) (*h
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/capacityCommitments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1875,6 +2026,7 @@ func (c *ProjectsLocationsCapacityCommitmentsListCall) doRequest(alt string) (*h
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1910,9 +2062,11 @@ func (c *ProjectsLocationsCapacityCommitmentsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1986,8 +2140,7 @@ func (c *ProjectsLocationsCapacityCommitmentsMergeCall) Header() http.Header {
 
 func (c *ProjectsLocationsCapacityCommitmentsMergeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.mergecapacitycommitmentsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.mergecapacitycommitmentsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2003,6 +2156,7 @@ func (c *ProjectsLocationsCapacityCommitmentsMergeCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.merge", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2038,9 +2192,11 @@ func (c *ProjectsLocationsCapacityCommitmentsMergeCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.merge", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2103,8 +2259,7 @@ func (c *ProjectsLocationsCapacityCommitmentsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsCapacityCommitmentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.capacitycommitment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.capacitycommitment)
 	if err != nil {
 		return nil, err
 	}
@@ -2120,6 +2275,7 @@ func (c *ProjectsLocationsCapacityCommitmentsPatchCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2155,9 +2311,11 @@ func (c *ProjectsLocationsCapacityCommitmentsPatchCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2210,8 +2368,7 @@ func (c *ProjectsLocationsCapacityCommitmentsSplitCall) Header() http.Header {
 
 func (c *ProjectsLocationsCapacityCommitmentsSplitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.splitcapacitycommitmentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.splitcapacitycommitmentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2227,6 +2384,7 @@ func (c *ProjectsLocationsCapacityCommitmentsSplitCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.split", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2262,9 +2420,11 @@ func (c *ProjectsLocationsCapacityCommitmentsSplitCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.capacityCommitments.split", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2321,8 +2481,7 @@ func (c *ProjectsLocationsReservationsCreateCall) Header() http.Header {
 
 func (c *ProjectsLocationsReservationsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reservation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reservation)
 	if err != nil {
 		return nil, err
 	}
@@ -2338,6 +2497,7 @@ func (c *ProjectsLocationsReservationsCreateCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2372,9 +2532,11 @@ func (c *ProjectsLocationsReservationsCreateCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2422,12 +2584,11 @@ func (c *ProjectsLocationsReservationsDeleteCall) Header() http.Header {
 
 func (c *ProjectsLocationsReservationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2435,6 +2596,7 @@ func (c *ProjectsLocationsReservationsDeleteCall) doRequest(alt string) (*http.R
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2469,9 +2631,11 @@ func (c *ProjectsLocationsReservationsDeleteCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2484,7 +2648,7 @@ type ProjectsLocationsReservationsFailoverReservationCall struct {
 	header_                    http.Header
 }
 
-// FailoverReservation: Failover a reservation to the secondary location. The
+// FailoverReservation: Fail over a reservation to the secondary location. The
 // operation should be done in the current secondary location, which will be
 // promoted to the new primary location for the reservation. Attempting to
 // failover a reservation in the current primary location will fail with the
@@ -2524,8 +2688,7 @@ func (c *ProjectsLocationsReservationsFailoverReservationCall) Header() http.Hea
 
 func (c *ProjectsLocationsReservationsFailoverReservationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.failoverreservationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.failoverreservationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2541,6 +2704,7 @@ func (c *ProjectsLocationsReservationsFailoverReservationCall) doRequest(alt str
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.failoverReservation", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2575,9 +2739,11 @@ func (c *ProjectsLocationsReservationsFailoverReservationCall) Do(opts ...google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.failoverReservation", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2636,12 +2802,11 @@ func (c *ProjectsLocationsReservationsGetCall) doRequest(alt string) (*http.Resp
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2649,6 +2814,7 @@ func (c *ProjectsLocationsReservationsGetCall) doRequest(alt string) (*http.Resp
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2683,9 +2849,11 @@ func (c *ProjectsLocationsReservationsGetCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2758,12 +2926,11 @@ func (c *ProjectsLocationsReservationsListCall) doRequest(alt string) (*http.Res
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/reservations")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2771,6 +2938,7 @@ func (c *ProjectsLocationsReservationsListCall) doRequest(alt string) (*http.Res
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2806,9 +2974,11 @@ func (c *ProjectsLocationsReservationsListCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2888,8 +3058,7 @@ func (c *ProjectsLocationsReservationsPatchCall) Header() http.Header {
 
 func (c *ProjectsLocationsReservationsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reservation)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reservation)
 	if err != nil {
 		return nil, err
 	}
@@ -2905,6 +3074,7 @@ func (c *ProjectsLocationsReservationsPatchCall) doRequest(alt string) (*http.Re
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2939,9 +3109,11 @@ func (c *ProjectsLocationsReservationsPatchCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3019,8 +3191,7 @@ func (c *ProjectsLocationsReservationsAssignmentsCreateCall) Header() http.Heade
 
 func (c *ProjectsLocationsReservationsAssignmentsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assignment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.assignment)
 	if err != nil {
 		return nil, err
 	}
@@ -3036,6 +3207,7 @@ func (c *ProjectsLocationsReservationsAssignmentsCreateCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3070,9 +3242,11 @@ func (c *ProjectsLocationsReservationsAssignmentsCreateCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3126,12 +3300,11 @@ func (c *ProjectsLocationsReservationsAssignmentsDeleteCall) Header() http.Heade
 
 func (c *ProjectsLocationsReservationsAssignmentsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3139,6 +3312,7 @@ func (c *ProjectsLocationsReservationsAssignmentsDeleteCall) doRequest(alt strin
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3173,9 +3347,11 @@ func (c *ProjectsLocationsReservationsAssignmentsDeleteCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3258,12 +3434,11 @@ func (c *ProjectsLocationsReservationsAssignmentsListCall) doRequest(alt string)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/assignments")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3271,6 +3446,7 @@ func (c *ProjectsLocationsReservationsAssignmentsListCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3306,9 +3482,11 @@ func (c *ProjectsLocationsReservationsAssignmentsListCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3381,8 +3559,7 @@ func (c *ProjectsLocationsReservationsAssignmentsMoveCall) Header() http.Header 
 
 func (c *ProjectsLocationsReservationsAssignmentsMoveCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.moveassignmentrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.moveassignmentrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3398,6 +3575,7 @@ func (c *ProjectsLocationsReservationsAssignmentsMoveCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.move", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3432,9 +3610,11 @@ func (c *ProjectsLocationsReservationsAssignmentsMoveCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.move", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3493,8 +3673,7 @@ func (c *ProjectsLocationsReservationsAssignmentsPatchCall) Header() http.Header
 
 func (c *ProjectsLocationsReservationsAssignmentsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.assignment)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.assignment)
 	if err != nil {
 		return nil, err
 	}
@@ -3510,6 +3689,7 @@ func (c *ProjectsLocationsReservationsAssignmentsPatchCall) doRequest(alt string
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3544,8 +3724,10 @@ func (c *ProjectsLocationsReservationsAssignmentsPatchCall) Do(opts ...googleapi
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "bigqueryreservation.projects.locations.reservations.assignments.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

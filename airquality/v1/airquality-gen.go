@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "airquality:v1"
 const apiName = "airquality"
@@ -115,7 +118,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.CurrentConditions = NewCurrentConditionsService(s)
+	s.Forecast = NewForecastService(s)
+	s.History = NewHistoryService(s)
+	s.MapTypes = NewMapTypesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,16 +141,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.CurrentConditions = NewCurrentConditionsService(s)
-	s.Forecast = NewForecastService(s)
-	s.History = NewHistoryService(s)
-	s.MapTypes = NewMapTypesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -231,9 +234,9 @@ type AdditionalInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AdditionalInfo) MarshalJSON() ([]byte, error) {
+func (s AdditionalInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod AdditionalInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AirQualityIndex: The basic object for representing different air quality
@@ -281,9 +284,9 @@ type AirQualityIndex struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AirQualityIndex) MarshalJSON() ([]byte, error) {
+func (s AirQualityIndex) MarshalJSON() ([]byte, error) {
 	type NoMethod AirQualityIndex
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Color: Represents a color in the RGBA color space. This representation is
@@ -364,9 +367,9 @@ type Color struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Color) MarshalJSON() ([]byte, error) {
+func (s Color) MarshalJSON() ([]byte, error) {
 	type NoMethod Color
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Color) UnmarshalJSON(data []byte) error {
@@ -399,7 +402,7 @@ type Concentration struct {
 	//   "MICROGRAMS_PER_CUBIC_METER" - The "µg/m^3" (micrograms per cubic meter)
 	// concentration unit.
 	Units string `json:"units,omitempty"`
-	// Value: Value of pollutant concentration.
+	// Value: Value of the pollutant concentration.
 	Value float64 `json:"value,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Units") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -414,9 +417,9 @@ type Concentration struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Concentration) MarshalJSON() ([]byte, error) {
+func (s Concentration) MarshalJSON() ([]byte, error) {
 	type NoMethod Concentration
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Concentration) UnmarshalJSON(data []byte) error {
@@ -457,9 +460,9 @@ type CustomLocalAqi struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *CustomLocalAqi) MarshalJSON() ([]byte, error) {
+func (s CustomLocalAqi) MarshalJSON() ([]byte, error) {
 	type NoMethod CustomLocalAqi
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HealthRecommendations: Health recommendations for different population
@@ -493,9 +496,9 @@ type HealthRecommendations struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HealthRecommendations) MarshalJSON() ([]byte, error) {
+func (s HealthRecommendations) MarshalJSON() ([]byte, error) {
 	type NoMethod HealthRecommendations
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HourInfo: Contains the air quality information for each hour in the
@@ -534,9 +537,9 @@ type HourInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HourInfo) MarshalJSON() ([]byte, error) {
+func (s HourInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod HourInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HourlyForecast: Contains the air quality information for each hour in the
@@ -574,9 +577,9 @@ type HourlyForecast struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HourlyForecast) MarshalJSON() ([]byte, error) {
+func (s HourlyForecast) MarshalJSON() ([]byte, error) {
 	type NoMethod HourlyForecast
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HttpBody: Message that represents an arbitrary HTTP body. It should only be
@@ -621,9 +624,9 @@ type HttpBody struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HttpBody) MarshalJSON() ([]byte, error) {
+func (s HttpBody) MarshalJSON() ([]byte, error) {
 	type NoMethod HttpBody
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Interval: Represents a time interval, encoded as a Timestamp start
@@ -652,9 +655,9 @@ type Interval struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Interval) MarshalJSON() ([]byte, error) {
+func (s Interval) MarshalJSON() ([]byte, error) {
 	type NoMethod Interval
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LatLng: An object that represents a latitude/longitude pair. This is
@@ -680,9 +683,9 @@ type LatLng struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LatLng) MarshalJSON() ([]byte, error) {
+func (s LatLng) MarshalJSON() ([]byte, error) {
 	type NoMethod LatLng
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *LatLng) UnmarshalJSON(data []byte) error {
@@ -782,9 +785,9 @@ type LookupCurrentConditionsRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupCurrentConditionsRequest) MarshalJSON() ([]byte, error) {
+func (s LookupCurrentConditionsRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupCurrentConditionsRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LookupCurrentConditionsResponse struct {
@@ -828,9 +831,9 @@ type LookupCurrentConditionsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupCurrentConditionsResponse) MarshalJSON() ([]byte, error) {
+func (s LookupCurrentConditionsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupCurrentConditionsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupForecastRequest: The request object of the air quality forecast API.
@@ -927,9 +930,9 @@ type LookupForecastRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupForecastRequest) MarshalJSON() ([]byte, error) {
+func (s LookupForecastRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupForecastRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupForecastResponse: The response object of the air quality forecast API.
@@ -961,9 +964,9 @@ type LookupForecastResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupForecastResponse) MarshalJSON() ([]byte, error) {
+func (s LookupForecastResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupForecastResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LookupHistoryRequest: The request object of the air quality history API.
@@ -1069,9 +1072,9 @@ type LookupHistoryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupHistoryRequest) MarshalJSON() ([]byte, error) {
+func (s LookupHistoryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupHistoryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type LookupHistoryResponse struct {
@@ -1102,17 +1105,17 @@ type LookupHistoryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LookupHistoryResponse) MarshalJSON() ([]byte, error) {
+func (s LookupHistoryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod LookupHistoryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Pollutant: Data regarding an air quality pollutant.
 type Pollutant struct {
 	// AdditionalInfo: Additional information about the pollutant.
 	AdditionalInfo *AdditionalInfo `json:"additionalInfo,omitempty"`
-	// Code: The pollutant's code name. For example: "so2". A list of all available
-	// codes could be found here
+	// Code: The pollutant's code name (for example, "so2"). For a list of
+	// supported pollutant codes, see Reported pollutants
 	// (/maps/documentation/air-quality/pollutants#reported_pollutants).
 	Code string `json:"code,omitempty"`
 	// Concentration: The pollutant's concentration level measured by one of the
@@ -1122,7 +1125,7 @@ type Pollutant struct {
 	DisplayName string `json:"displayName,omitempty"`
 	// FullName: The pollutant's full name. For chemical compounds, this is the
 	// IUPAC name. Example: "Sulfur Dioxide". For more information about the IUPAC
-	// names table, see https://iupac.org/what-we-do/periodic-table-of-elements/
+	// names table, see https://iupac.org/what-we-do/periodic-table-of-elements/.
 	FullName string `json:"fullName,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AdditionalInfo") to
 	// unconditionally include in API requests. By default, fields with empty or
@@ -1137,9 +1140,9 @@ type Pollutant struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Pollutant) MarshalJSON() ([]byte, error) {
+func (s Pollutant) MarshalJSON() ([]byte, error) {
 	type NoMethod Pollutant
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type CurrentConditionsLookupCall struct {
@@ -1184,8 +1187,7 @@ func (c *CurrentConditionsLookupCall) Header() http.Header {
 
 func (c *CurrentConditionsLookupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.lookupcurrentconditionsrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.lookupcurrentconditionsrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1198,6 +1200,7 @@ func (c *CurrentConditionsLookupCall) doRequest(alt string) (*http.Response, err
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "airquality.currentConditions.lookup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1233,9 +1236,11 @@ func (c *CurrentConditionsLookupCall) Do(opts ...googleapi.CallOption) (*LookupC
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "airquality.currentConditions.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1280,8 +1285,7 @@ func (c *ForecastLookupCall) Header() http.Header {
 
 func (c *ForecastLookupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.lookupforecastrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.lookupforecastrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1294,6 +1298,7 @@ func (c *ForecastLookupCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "airquality.forecast.lookup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1329,9 +1334,11 @@ func (c *ForecastLookupCall) Do(opts ...googleapi.CallOption) (*LookupForecastRe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "airquality.forecast.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1397,8 +1404,7 @@ func (c *HistoryLookupCall) Header() http.Header {
 
 func (c *HistoryLookupCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.lookuphistoryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.lookuphistoryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1411,6 +1417,7 @@ func (c *HistoryLookupCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "airquality.history.lookup", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1446,9 +1453,11 @@ func (c *HistoryLookupCall) Do(opts ...googleapi.CallOption) (*LookupHistoryResp
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "airquality.history.lookup", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1545,12 +1554,11 @@ func (c *MapTypesHeatmapTilesLookupHeatmapTileCall) doRequest(alt string) (*http
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/mapTypes/{mapType}/heatmapTiles/{zoom}/{x}/{y}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1561,6 +1569,7 @@ func (c *MapTypesHeatmapTilesLookupHeatmapTileCall) doRequest(alt string) (*http
 		"x":       strconv.FormatInt(c.x, 10),
 		"y":       strconv.FormatInt(c.y, 10),
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "airquality.mapTypes.heatmapTiles.lookupHeatmapTile", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1595,8 +1604,10 @@ func (c *MapTypesHeatmapTilesLookupHeatmapTileCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "airquality.mapTypes.heatmapTiles.lookupHeatmapTile", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

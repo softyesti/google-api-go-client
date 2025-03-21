@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "manufacturers:v1"
 const apiName = "manufacturers"
@@ -114,7 +117,8 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Accounts = NewAccountsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +137,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Accounts = NewAccountsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -259,6 +262,12 @@ type Attributes struct {
 	// "ClientShoppingCatalog" or "PartnerShoppingCatalog". For more information,
 	// see https://support.google.com/manufacturers/answer/7443550
 	IncludedDestination []string `json:"includedDestination,omitempty"`
+	// IntendedCountry: Optional. List of countries to show this product in.
+	// Countries provided in this attribute will override any of the countries
+	// configured at feed level. The values should be: the CLDR territory code
+	// (http://www.unicode.org/repos/cldr/tags/latest/common/main/en.xml) of the
+	// countries in which this item will be shown.
+	IntendedCountry []string `json:"intendedCountry,omitempty"`
 	// ItemGroupId: The item group id of the product. For more information, see
 	// https://support.google.com/manufacturers/answer/6124116#itemgroupid.
 	ItemGroupId string `json:"itemGroupId,omitempty"`
@@ -345,9 +354,9 @@ type Attributes struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Attributes) MarshalJSON() ([]byte, error) {
+func (s Attributes) MarshalJSON() ([]byte, error) {
 	type NoMethod Attributes
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Capacity: The capacity of a product. For more information, see
@@ -370,9 +379,9 @@ type Capacity struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Capacity) MarshalJSON() ([]byte, error) {
+func (s Capacity) MarshalJSON() ([]byte, error) {
 	type NoMethod Capacity
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Certification: Description of a certification.
@@ -404,9 +413,9 @@ type Certification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Certification) MarshalJSON() ([]byte, error) {
+func (s Certification) MarshalJSON() ([]byte, error) {
 	type NoMethod Certification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Count: The number of products in a single package. For more information, see
@@ -429,15 +438,24 @@ type Count struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Count) MarshalJSON() ([]byte, error) {
+func (s Count) MarshalJSON() ([]byte, error) {
 	type NoMethod Count
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DestinationStatus: The destination status.
 type DestinationStatus struct {
+	// ApprovedCountries: Output only. List of country codes (ISO 3166-1 alpha-2)
+	// where the offer is approved.
+	ApprovedCountries []string `json:"approvedCountries,omitempty"`
 	// Destination: The name of the destination.
 	Destination string `json:"destination,omitempty"`
+	// DisapprovedCountries: Output only. List of country codes (ISO 3166-1
+	// alpha-2) where the offer is disapproved.
+	DisapprovedCountries []string `json:"disapprovedCountries,omitempty"`
+	// PendingCountries: Output only. List of country codes (ISO 3166-1 alpha-2)
+	// where the offer is pending approval.
+	PendingCountries []string `json:"pendingCountries,omitempty"`
 	// Status: The status of the destination.
 	//
 	// Possible values:
@@ -446,22 +464,22 @@ type DestinationStatus struct {
 	//   "PENDING" - The decision is still pending.
 	//   "DISAPPROVED" - The product is disapproved. Please look at the issues.
 	Status string `json:"status,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Destination") to
+	// ForceSendFields is a list of field names (e.g. "ApprovedCountries") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Destination") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "ApprovedCountries") to include in
+	// API requests with the JSON null value. By default, fields with empty values
+	// are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *DestinationStatus) MarshalJSON() ([]byte, error) {
+func (s DestinationStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod DestinationStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -496,9 +514,9 @@ type FeatureDescription struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FeatureDescription) MarshalJSON() ([]byte, error) {
+func (s FeatureDescription) MarshalJSON() ([]byte, error) {
 	type NoMethod FeatureDescription
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // FloatUnit: Combination of float amount and unit.
@@ -520,9 +538,9 @@ type FloatUnit struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *FloatUnit) MarshalJSON() ([]byte, error) {
+func (s FloatUnit) MarshalJSON() ([]byte, error) {
 	type NoMethod FloatUnit
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *FloatUnit) UnmarshalJSON(data []byte) error {
@@ -561,9 +579,9 @@ type GoogleShoppingManufacturersV1ProductCertification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleShoppingManufacturersV1ProductCertification) MarshalJSON() ([]byte, error) {
+func (s GoogleShoppingManufacturersV1ProductCertification) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleShoppingManufacturersV1ProductCertification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Grocery struct {
@@ -598,9 +616,9 @@ type Grocery struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Grocery) MarshalJSON() ([]byte, error) {
+func (s Grocery) MarshalJSON() ([]byte, error) {
 	type NoMethod Grocery
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Grocery) UnmarshalJSON(data []byte) error {
@@ -665,13 +683,16 @@ type Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Image) MarshalJSON() ([]byte, error) {
+func (s Image) MarshalJSON() ([]byte, error) {
 	type NoMethod Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Issue: Product issue.
 type Issue struct {
+	// ApplicableCountries: Output only. List of country codes (ISO 3166-1 alpha-2)
+	// where issue applies to the manufacturer product.
+	ApplicableCountries []string `json:"applicableCountries,omitempty"`
 	// Attribute: If present, the attribute that triggered the issue. For more
 	// information about attributes, see
 	// https://support.google.com/manufacturers/answer/6124116.
@@ -709,22 +730,22 @@ type Issue struct {
 	// Type: The server-generated type of the issue, for example,
 	// “INCORRECT_TEXT_FORMATTING”, “IMAGE_NOT_SERVEABLE”, etc.
 	Type string `json:"type,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Attribute") to
+	// ForceSendFields is a list of field names (e.g. "ApplicableCountries") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Attribute") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "ApplicableCountries") to include
+	// in API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
 
-func (s *Issue) MarshalJSON() ([]byte, error) {
+func (s Issue) MarshalJSON() ([]byte, error) {
 	type NoMethod Issue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListProductCertificationsResponse: Response for ListProductCertifications
@@ -752,9 +773,9 @@ type ListProductCertificationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListProductCertificationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListProductCertificationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListProductCertificationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ListProductsResponse struct {
@@ -779,9 +800,9 @@ type ListProductsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListProductsResponse) MarshalJSON() ([]byte, error) {
+func (s ListProductsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListProductsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type Nutrition struct {
@@ -884,9 +905,9 @@ type Nutrition struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Nutrition) MarshalJSON() ([]byte, error) {
+func (s Nutrition) MarshalJSON() ([]byte, error) {
 	type NoMethod Nutrition
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *Nutrition) UnmarshalJSON(data []byte) error {
@@ -952,9 +973,9 @@ type Price struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Price) MarshalJSON() ([]byte, error) {
+func (s Price) MarshalJSON() ([]byte, error) {
 	type NoMethod Price
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Product: Product data.
@@ -967,6 +988,8 @@ type Product struct {
 	ContentLanguage string `json:"contentLanguage,omitempty"`
 	// DestinationStatuses: The status of the destinations.
 	DestinationStatuses []*DestinationStatus `json:"destinationStatuses,omitempty"`
+	// FeedLabel: Optional. The feed label for the product.
+	FeedLabel string `json:"feedLabel,omitempty"`
 	// Issues: A server-generated list of issues associated with the product.
 	Issues []*Issue `json:"issues,omitempty"`
 	// Name: Name in the format `{target_country}:{content_language}:{product_id}`.
@@ -1001,9 +1024,9 @@ type Product struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Product) MarshalJSON() ([]byte, error) {
+func (s Product) MarshalJSON() ([]byte, error) {
 	type NoMethod Product
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProductCertification: Product certification data.
@@ -1055,9 +1078,9 @@ type ProductCertification struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProductCertification) MarshalJSON() ([]byte, error) {
+func (s ProductCertification) MarshalJSON() ([]byte, error) {
 	type NoMethod ProductCertification
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ProductDetail: A product detail of the product. For more information, see
@@ -1083,9 +1106,9 @@ type ProductDetail struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ProductDetail) MarshalJSON() ([]byte, error) {
+func (s ProductDetail) MarshalJSON() ([]byte, error) {
 	type NoMethod ProductDetail
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // VoluntaryNutritionFact: Voluntary Nutrition Facts.
@@ -1109,9 +1132,9 @@ type VoluntaryNutritionFact struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *VoluntaryNutritionFact) MarshalJSON() ([]byte, error) {
+func (s VoluntaryNutritionFact) MarshalJSON() ([]byte, error) {
 	type NoMethod VoluntaryNutritionFact
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *VoluntaryNutritionFact) UnmarshalJSON(data []byte) error {
@@ -1172,12 +1195,11 @@ func (c *AccountsLanguagesProductCertificationsDeleteCall) Header() http.Header 
 
 func (c *AccountsLanguagesProductCertificationsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1185,6 +1207,7 @@ func (c *AccountsLanguagesProductCertificationsDeleteCall) doRequest(alt string)
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "manufacturers.accounts.languages.productCertifications.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1219,9 +1242,11 @@ func (c *AccountsLanguagesProductCertificationsDeleteCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "manufacturers.accounts.languages.productCertifications.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1281,12 +1306,11 @@ func (c *AccountsLanguagesProductCertificationsGetCall) doRequest(alt string) (*
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1294,6 +1318,7 @@ func (c *AccountsLanguagesProductCertificationsGetCall) doRequest(alt string) (*
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "manufacturers.accounts.languages.productCertifications.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1329,9 +1354,11 @@ func (c *AccountsLanguagesProductCertificationsGetCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "manufacturers.accounts.languages.productCertifications.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1410,12 +1437,11 @@ func (c *AccountsLanguagesProductCertificationsListCall) doRequest(alt string) (
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/productCertifications")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1423,6 +1449,7 @@ func (c *AccountsLanguagesProductCertificationsListCall) doRequest(alt string) (
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "manufacturers.accounts.languages.productCertifications.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1458,9 +1485,11 @@ func (c *AccountsLanguagesProductCertificationsListCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "manufacturers.accounts.languages.productCertifications.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1544,8 +1573,7 @@ func (c *AccountsLanguagesProductCertificationsPatchCall) Header() http.Header {
 
 func (c *AccountsLanguagesProductCertificationsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.productcertification)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.productcertification)
 	if err != nil {
 		return nil, err
 	}
@@ -1561,6 +1589,7 @@ func (c *AccountsLanguagesProductCertificationsPatchCall) doRequest(alt string) 
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.nameid,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "manufacturers.accounts.languages.productCertifications.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1596,9 +1625,11 @@ func (c *AccountsLanguagesProductCertificationsPatchCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "manufacturers.accounts.languages.productCertifications.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1654,12 +1685,11 @@ func (c *AccountsProductsDeleteCall) Header() http.Header {
 
 func (c *AccountsProductsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/products/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1668,6 +1698,7 @@ func (c *AccountsProductsDeleteCall) doRequest(alt string) (*http.Response, erro
 		"parent": c.parent,
 		"name":   c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "manufacturers.accounts.products.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1702,9 +1733,11 @@ func (c *AccountsProductsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "manufacturers.accounts.products.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1790,12 +1823,11 @@ func (c *AccountsProductsGetCall) doRequest(alt string) (*http.Response, error) 
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/products/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1804,6 +1836,7 @@ func (c *AccountsProductsGetCall) doRequest(alt string) (*http.Response, error) 
 		"parent": c.parent,
 		"name":   c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "manufacturers.accounts.products.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1838,9 +1871,11 @@ func (c *AccountsProductsGetCall) Do(opts ...googleapi.CallOption) (*Product, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "manufacturers.accounts.products.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1927,12 +1962,11 @@ func (c *AccountsProductsListCall) doRequest(alt string) (*http.Response, error)
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+parent}/products")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1940,6 +1974,7 @@ func (c *AccountsProductsListCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"parent": c.parent,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "manufacturers.accounts.products.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1975,9 +2010,11 @@ func (c *AccountsProductsListCall) Do(opts ...googleapi.CallOption) (*ListProduc
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "manufacturers.accounts.products.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2066,8 +2103,7 @@ func (c *AccountsProductsUpdateCall) Header() http.Header {
 
 func (c *AccountsProductsUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.attributes)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.attributes)
 	if err != nil {
 		return nil, err
 	}
@@ -2084,6 +2120,7 @@ func (c *AccountsProductsUpdateCall) doRequest(alt string) (*http.Response, erro
 		"parent": c.parent,
 		"name":   c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "manufacturers.accounts.products.update", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2118,8 +2155,10 @@ func (c *AccountsProductsUpdateCall) Do(opts ...googleapi.CallOption) (*Empty, e
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "manufacturers.accounts.products.update", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

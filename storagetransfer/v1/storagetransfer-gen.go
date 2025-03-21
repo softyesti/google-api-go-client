@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "storagetransfer:v1"
 const apiName = "storagetransfer"
@@ -115,7 +118,11 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.GoogleServiceAccounts = NewGoogleServiceAccountsService(s)
+	s.Projects = NewProjectsService(s)
+	s.TransferJobs = NewTransferJobsService(s)
+	s.TransferOperations = NewTransferOperationsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -134,16 +141,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.GoogleServiceAccounts = NewGoogleServiceAccountsService(s)
-	s.Projects = NewProjectsService(s)
-	s.TransferJobs = NewTransferJobsService(s)
-	s.TransferOperations = NewTransferOperationsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -249,9 +252,9 @@ type AgentPool struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentPool) MarshalJSON() ([]byte, error) {
+func (s AgentPool) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentPool
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AwsAccessKey: AWS access key (see AWS Security Credentials
@@ -277,9 +280,9 @@ type AwsAccessKey struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AwsAccessKey) MarshalJSON() ([]byte, error) {
+func (s AwsAccessKey) MarshalJSON() ([]byte, error) {
 	type NoMethod AwsAccessKey
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AwsS3CompatibleData: An AwsS3CompatibleData resource.
@@ -310,9 +313,9 @@ type AwsS3CompatibleData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AwsS3CompatibleData) MarshalJSON() ([]byte, error) {
+func (s AwsS3CompatibleData) MarshalJSON() ([]byte, error) {
 	type NoMethod AwsS3CompatibleData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AwsS3Data: An AwsS3Data resource can be a data source, but not a data sink.
@@ -371,9 +374,9 @@ type AwsS3Data struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AwsS3Data) MarshalJSON() ([]byte, error) {
+func (s AwsS3Data) MarshalJSON() ([]byte, error) {
 	type NoMethod AwsS3Data
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AzureBlobStorageData: An AzureBlobStorageData resource can be a data source,
@@ -420,9 +423,9 @@ type AzureBlobStorageData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AzureBlobStorageData) MarshalJSON() ([]byte, error) {
+func (s AzureBlobStorageData) MarshalJSON() ([]byte, error) {
 	type NoMethod AzureBlobStorageData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AzureCredentials: Azure credentials For information on our data retention
@@ -447,9 +450,9 @@ type AzureCredentials struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AzureCredentials) MarshalJSON() ([]byte, error) {
+func (s AzureCredentials) MarshalJSON() ([]byte, error) {
 	type NoMethod AzureCredentials
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BandwidthLimit: Specifies a bandwidth limit for an agent pool.
@@ -470,9 +473,9 @@ type BandwidthLimit struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BandwidthLimit) MarshalJSON() ([]byte, error) {
+func (s BandwidthLimit) MarshalJSON() ([]byte, error) {
 	type NoMethod BandwidthLimit
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // CancelOperationRequest: The request message for Operations.CancelOperation.
@@ -512,9 +515,9 @@ type Date struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Date) MarshalJSON() ([]byte, error) {
+func (s Date) MarshalJSON() ([]byte, error) {
 	type NoMethod Date
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -546,9 +549,9 @@ type ErrorLogEntry struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ErrorLogEntry) MarshalJSON() ([]byte, error) {
+func (s ErrorLogEntry) MarshalJSON() ([]byte, error) {
 	type NoMethod ErrorLogEntry
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ErrorSummary: A summary of errors by error code, plus a count and sample
@@ -654,9 +657,9 @@ type ErrorSummary struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ErrorSummary) MarshalJSON() ([]byte, error) {
+func (s ErrorSummary) MarshalJSON() ([]byte, error) {
 	type NoMethod ErrorSummary
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // EventStream: Specifies the Event-driven transfer options. Event-driven
@@ -690,9 +693,9 @@ type EventStream struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *EventStream) MarshalJSON() ([]byte, error) {
+func (s EventStream) MarshalJSON() ([]byte, error) {
 	type NoMethod EventStream
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GcsData: In a GcsData resource, an object's name is the Cloud Storage
@@ -729,9 +732,9 @@ type GcsData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GcsData) MarshalJSON() ([]byte, error) {
+func (s GcsData) MarshalJSON() ([]byte, error) {
 	type NoMethod GcsData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // GoogleServiceAccount: Google service account
@@ -756,9 +759,9 @@ type GoogleServiceAccount struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *GoogleServiceAccount) MarshalJSON() ([]byte, error) {
+func (s GoogleServiceAccount) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleServiceAccount
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HdfsData: An HdfsData resource specifies a path within an HDFS entity (e.g.
@@ -781,9 +784,9 @@ type HdfsData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HdfsData) MarshalJSON() ([]byte, error) {
+func (s HdfsData) MarshalJSON() ([]byte, error) {
 	type NoMethod HdfsData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // HttpData: An HttpData resource specifies a list of objects on the web to be
@@ -826,9 +829,9 @@ type HttpData struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *HttpData) MarshalJSON() ([]byte, error) {
+func (s HttpData) MarshalJSON() ([]byte, error) {
 	type NoMethod HttpData
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListAgentPoolsResponse: Response from ListAgentPools.
@@ -853,9 +856,9 @@ type ListAgentPoolsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListAgentPoolsResponse) MarshalJSON() ([]byte, error) {
+func (s ListAgentPoolsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListAgentPoolsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListOperationsResponse: The response message for Operations.ListOperations.
@@ -881,9 +884,9 @@ type ListOperationsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
+func (s ListOperationsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListOperationsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ListTransferJobsResponse: Response from ListTransferJobs.
@@ -908,9 +911,9 @@ type ListTransferJobsResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ListTransferJobsResponse) MarshalJSON() ([]byte, error) {
+func (s ListTransferJobsResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ListTransferJobsResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // LoggingConfig: Specifies the logging behavior for transfer operations. Logs
@@ -942,7 +945,7 @@ type LoggingConfig struct {
 	//   "LOGGABLE_ACTION_UNSPECIFIED" - Default value. This value is unused.
 	//   "FIND" - Listing objects in a bucket.
 	//   "DELETE" - Deleting objects at the source or the destination.
-	//   "COPY" - Copying objects to Google Cloud Storage.
+	//   "COPY" - Copying objects to the destination.
 	LogActions []string `json:"logActions,omitempty"`
 	// ForceSendFields is a list of field names (e.g.
 	// "EnableOnpremGcsTransferLogs") to unconditionally include in API requests.
@@ -957,9 +960,9 @@ type LoggingConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *LoggingConfig) MarshalJSON() ([]byte, error) {
+func (s LoggingConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod LoggingConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MetadataOptions: Specifies the metadata options for running a transfer.
@@ -1049,8 +1052,9 @@ type MetadataOptions struct {
 	TemporaryHold string `json:"temporaryHold,omitempty"`
 	// TimeCreated: Specifies how each object's `timeCreated` metadata is preserved
 	// for transfers. If unspecified, the default behavior is the same as
-	// TIME_CREATED_SKIP. This behavior is supported for transfers to GCS buckets
-	// from GCS, S3, Azure, S3 Compatible, and Azure sources.
+	// TIME_CREATED_SKIP. This behavior is supported for transfers to Cloud Storage
+	// buckets from Cloud Storage, Amazon S3, S3-compatible storage, and Azure
+	// sources.
 	//
 	// Possible values:
 	//   "TIME_CREATED_UNSPECIFIED" - TimeCreated behavior is unspecified.
@@ -1083,9 +1087,9 @@ type MetadataOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MetadataOptions) MarshalJSON() ([]byte, error) {
+func (s MetadataOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod MetadataOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // NotificationConfig: Specification to configure notifications published to
@@ -1138,9 +1142,9 @@ type NotificationConfig struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *NotificationConfig) MarshalJSON() ([]byte, error) {
+func (s NotificationConfig) MarshalJSON() ([]byte, error) {
 	type NoMethod NotificationConfig
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ObjectConditions: Conditions that determine which objects are transferred.
@@ -1232,9 +1236,9 @@ type ObjectConditions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ObjectConditions) MarshalJSON() ([]byte, error) {
+func (s ObjectConditions) MarshalJSON() ([]byte, error) {
 	type NoMethod ObjectConditions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Operation: This resource represents a long-running operation that is the
@@ -1276,9 +1280,9 @@ type Operation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Operation) MarshalJSON() ([]byte, error) {
+func (s Operation) MarshalJSON() ([]byte, error) {
 	type NoMethod Operation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // PauseTransferOperationRequest: Request passed to PauseTransferOperation.
@@ -1302,24 +1306,26 @@ type PosixFilesystem struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *PosixFilesystem) MarshalJSON() ([]byte, error) {
+func (s PosixFilesystem) MarshalJSON() ([]byte, error) {
 	type NoMethod PosixFilesystem
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// ReplicationSpec: Specifies the configuration for running a replication job.
+// ReplicationSpec: Specifies the configuration for a cross-bucket replication
+// job. Cross-bucket replication copies new or updated objects from a source
+// Cloud Storage bucket to a destination Cloud Storage bucket. Existing objects
+// in the source bucket are not copied by a new cross-bucket replication job.
 type ReplicationSpec struct {
-	// GcsDataSink: Specifies cloud Storage data sink.
+	// GcsDataSink: The Cloud Storage bucket to which to replicate objects.
 	GcsDataSink *GcsData `json:"gcsDataSink,omitempty"`
-	// GcsDataSource: Specifies cloud Storage data source.
+	// GcsDataSource: The Cloud Storage bucket from which to replicate objects.
 	GcsDataSource *GcsData `json:"gcsDataSource,omitempty"`
-	// ObjectConditions: Specifies the object conditions to only include objects
-	// that satisfy these conditions in the set of data source objects. Object
-	// conditions based on objects' "last modification time" do not exclude objects
-	// in a data sink.
+	// ObjectConditions: Object conditions that determine which objects are
+	// transferred. For replication jobs, only `include_prefixes` and
+	// `exclude_prefixes` are supported.
 	ObjectConditions *ObjectConditions `json:"objectConditions,omitempty"`
-	// TransferOptions: Specifies the actions to be performed on the object during
-	// replication. Delete options are not supported for replication and when
+	// TransferOptions: Specifies the metadata options to be applied during
+	// replication. Delete options are not supported. If a delete option is
 	// specified, the request fails with an INVALID_ARGUMENT error.
 	TransferOptions *TransferOptions `json:"transferOptions,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "GcsDataSink") to
@@ -1335,9 +1341,9 @@ type ReplicationSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReplicationSpec) MarshalJSON() ([]byte, error) {
+func (s ReplicationSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod ReplicationSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResumeTransferOperationRequest: Request passed to ResumeTransferOperation.
@@ -1362,9 +1368,9 @@ type RunTransferJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunTransferJobRequest) MarshalJSON() ([]byte, error) {
+func (s RunTransferJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunTransferJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // S3CompatibleMetadata: S3CompatibleMetadata contains the metadata fields that
@@ -1421,9 +1427,9 @@ type S3CompatibleMetadata struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *S3CompatibleMetadata) MarshalJSON() ([]byte, error) {
+func (s S3CompatibleMetadata) MarshalJSON() ([]byte, error) {
 	type NoMethod S3CompatibleMetadata
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Schedule: Transfers can be scheduled to recur or to run just once.
@@ -1431,7 +1437,7 @@ type Schedule struct {
 	// EndTimeOfDay: The time in UTC that no further transfer operations are
 	// scheduled. Combined with schedule_end_date, `end_time_of_day` specifies the
 	// end date and time for starting new transfer operations. This field must be
-	// greater than or equal to the timestamp corresponding to the combintation of
+	// greater than or equal to the timestamp corresponding to the combination of
 	// schedule_start_date and start_time_of_day, and is subject to the following:
 	// * If `end_time_of_day` is not set and `schedule_end_date` is set, then a
 	// default value of `23:59:59` is used for `end_time_of_day`. * If
@@ -1483,9 +1489,9 @@ type Schedule struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Schedule) MarshalJSON() ([]byte, error) {
+func (s Schedule) MarshalJSON() ([]byte, error) {
 	type NoMethod Schedule
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Status: The `Status` type defines a logical error model that is suitable for
@@ -1517,25 +1523,28 @@ type Status struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Status) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	type NoMethod Status
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TimeOfDay: Represents a time of day. The date and time zone are either not
 // significant or are specified elsewhere. An API may choose to allow leap
 // seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 type TimeOfDay struct {
-	// Hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-	// choose to allow the value "24:00:00" for scenarios like business closing
-	// time.
+	// Hours: Hours of a day in 24 hour format. Must be greater than or equal to 0
+	// and typically must be less than or equal to 23. An API may choose to allow
+	// the value "24:00:00" for scenarios like business closing time.
 	Hours int64 `json:"hours,omitempty"`
-	// Minutes: Minutes of hour of day. Must be from 0 to 59.
+	// Minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+	// than or equal to 59.
 	Minutes int64 `json:"minutes,omitempty"`
-	// Nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+	// Nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+	// to 0 and less than or equal to 999,999,999.
 	Nanos int64 `json:"nanos,omitempty"`
-	// Seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-	// API may allow the value 60 if it allows leap-seconds.
+	// Seconds: Seconds of a minute. Must be greater than or equal to 0 and
+	// typically must be less than or equal to 59. An API may allow the value 60 if
+	// it allows leap-seconds.
 	Seconds int64 `json:"seconds,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "Hours") to unconditionally
 	// include in API requests. By default, fields with empty or default values are
@@ -1550,9 +1559,9 @@ type TimeOfDay struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TimeOfDay) MarshalJSON() ([]byte, error) {
+func (s TimeOfDay) MarshalJSON() ([]byte, error) {
 	type NoMethod TimeOfDay
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferCounters: A collection of counters that report the progress of a
@@ -1637,9 +1646,9 @@ type TransferCounters struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferCounters) MarshalJSON() ([]byte, error) {
+func (s TransferCounters) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferCounters
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferJob: This resource represents the configuration of a transfer job
@@ -1723,9 +1732,9 @@ type TransferJob struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferJob) MarshalJSON() ([]byte, error) {
+func (s TransferJob) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferJob
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferManifest: Specifies where the manifest is located.
@@ -1748,9 +1757,9 @@ type TransferManifest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferManifest) MarshalJSON() ([]byte, error) {
+func (s TransferManifest) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferManifest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferOperation: A description of the execution of a transfer.
@@ -1803,9 +1812,9 @@ type TransferOperation struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferOperation) MarshalJSON() ([]byte, error) {
+func (s TransferOperation) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferOperation
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferOptions: TransferOptions define the actions to be performed on
@@ -1824,7 +1833,7 @@ type TransferOptions struct {
 	MetadataOptions *MetadataOptions `json:"metadataOptions,omitempty"`
 	// OverwriteObjectsAlreadyExistingInSink: When to overwrite objects that
 	// already exist in the sink. The default is that only objects that are
-	// different from the source are ovewritten. If true, all objects in the sink
+	// different from the source are overwritten. If true, all objects in the sink
 	// whose name matches an object in the source are overwritten with the source
 	// object.
 	OverwriteObjectsAlreadyExistingInSink bool `json:"overwriteObjectsAlreadyExistingInSink,omitempty"`
@@ -1857,9 +1866,9 @@ type TransferOptions struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferOptions) MarshalJSON() ([]byte, error) {
+func (s TransferOptions) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferOptions
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TransferSpec: Configuration for running a transfer.
@@ -1921,9 +1930,9 @@ type TransferSpec struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TransferSpec) MarshalJSON() ([]byte, error) {
+func (s TransferSpec) MarshalJSON() ([]byte, error) {
 	type NoMethod TransferSpec
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UpdateTransferJobRequest: Request passed to UpdateTransferJob.
@@ -1958,9 +1967,9 @@ type UpdateTransferJobRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UpdateTransferJobRequest) MarshalJSON() ([]byte, error) {
+func (s UpdateTransferJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod UpdateTransferJobRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type GoogleServiceAccountsGetCall struct {
@@ -2024,12 +2033,11 @@ func (c *GoogleServiceAccountsGetCall) doRequest(alt string) (*http.Response, er
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/googleServiceAccounts/{projectId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2037,6 +2045,7 @@ func (c *GoogleServiceAccountsGetCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.googleServiceAccounts.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2072,9 +2081,11 @@ func (c *GoogleServiceAccountsGetCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.googleServiceAccounts.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2135,8 +2146,7 @@ func (c *ProjectsAgentPoolsCreateCall) Header() http.Header {
 
 func (c *ProjectsAgentPoolsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.agentpool)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.agentpool)
 	if err != nil {
 		return nil, err
 	}
@@ -2152,6 +2162,7 @@ func (c *ProjectsAgentPoolsCreateCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2186,9 +2197,11 @@ func (c *ProjectsAgentPoolsCreateCall) Do(opts ...googleapi.CallOption) (*AgentP
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2234,12 +2247,11 @@ func (c *ProjectsAgentPoolsDeleteCall) Header() http.Header {
 
 func (c *ProjectsAgentPoolsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2247,6 +2259,7 @@ func (c *ProjectsAgentPoolsDeleteCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2281,9 +2294,11 @@ func (c *ProjectsAgentPoolsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2341,12 +2356,11 @@ func (c *ProjectsAgentPoolsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2354,6 +2368,7 @@ func (c *ProjectsAgentPoolsGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2388,9 +2403,11 @@ func (c *ProjectsAgentPoolsGetCall) Do(opts ...googleapi.CallOption) (*AgentPool
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2472,12 +2489,11 @@ func (c *ProjectsAgentPoolsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/projects/{+projectId}/agentPools")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2485,6 +2501,7 @@ func (c *ProjectsAgentPoolsListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"projectId": c.projectId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2520,9 +2537,11 @@ func (c *ProjectsAgentPoolsListCall) Do(opts ...googleapi.CallOption) (*ListAgen
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2601,8 +2620,7 @@ func (c *ProjectsAgentPoolsPatchCall) Header() http.Header {
 
 func (c *ProjectsAgentPoolsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.agentpool)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.agentpool)
 	if err != nil {
 		return nil, err
 	}
@@ -2618,6 +2636,7 @@ func (c *ProjectsAgentPoolsPatchCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2652,9 +2671,11 @@ func (c *ProjectsAgentPoolsPatchCall) Do(opts ...googleapi.CallOption) (*AgentPo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.projects.agentPools.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2698,8 +2719,7 @@ func (c *TransferJobsCreateCall) Header() http.Header {
 
 func (c *TransferJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.transferjob)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.transferjob)
 	if err != nil {
 		return nil, err
 	}
@@ -2712,6 +2732,7 @@ func (c *TransferJobsCreateCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.create", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2746,9 +2767,11 @@ func (c *TransferJobsCreateCall) Do(opts ...googleapi.CallOption) (*TransferJob,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.create", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2797,12 +2820,11 @@ func (c *TransferJobsDeleteCall) Header() http.Header {
 
 func (c *TransferJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+jobName}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2810,6 +2832,7 @@ func (c *TransferJobsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"jobName": c.jobName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2844,9 +2867,11 @@ func (c *TransferJobsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2906,12 +2931,11 @@ func (c *TransferJobsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+jobName}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2919,6 +2943,7 @@ func (c *TransferJobsGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"jobName": c.jobName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2953,9 +2978,11 @@ func (c *TransferJobsGetCall) Do(opts ...googleapi.CallOption) (*TransferJob, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2970,12 +2997,19 @@ type TransferJobsListCall struct {
 // List: Lists transfer jobs.
 //
 //   - filter: A list of query parameters specified as JSON text in the form of:
-//     `{"projectId":"my_project_id", "jobNames":["jobid1","jobid2",...],
-//     "jobStatuses":["status1","status2",...]}` Since `jobNames` and
-//     `jobStatuses` support multiple values, their values must be specified with
-//     array notation. `projectId` is required. `jobNames` and `jobStatuses` are
-//     optional. The valid values for `jobStatuses` are case-insensitive:
-//     ENABLED, DISABLED, and DELETED.
+//     ``` { "projectId":"my_project_id", "jobNames":["jobid1","jobid2",...],
+//     "jobStatuses":["status1","status2",...],
+//     "dataBackend":"QUERY_REPLICATION_CONFIGS",
+//     "sourceBucket":"source-bucket-name", "sinkBucket":"sink-bucket-name", }
+//     ``` The JSON formatting in the example is for display only; provide the
+//     query parameters without spaces or line breaks. * `projectId` is required.
+//   - Since `jobNames` and `jobStatuses` support multiple values, their values
+//     must be specified with array notation. `jobNames` and `jobStatuses` are
+//     optional. Valid values are case-insensitive: * ENABLED * DISABLED *
+//     DELETED * Specify "dataBackend":"QUERY_REPLICATION_CONFIGS" to return a
+//     list of cross-bucket replication jobs. * Limit the results to jobs from a
+//     particular bucket with `sourceBucket` and/or to a particular bucket with
+//     `sinkBucket`.
 func (r *TransferJobsService) List(filter string) *TransferJobsListCall {
 	c := &TransferJobsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.urlParams_.Set("filter", filter)
@@ -3031,16 +3065,16 @@ func (c *TransferJobsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/transferJobs")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3076,9 +3110,11 @@ func (c *TransferJobsListCall) Do(opts ...googleapi.CallOption) (*ListTransferJo
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3150,8 +3186,7 @@ func (c *TransferJobsPatchCall) Header() http.Header {
 
 func (c *TransferJobsPatchCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.updatetransferjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.updatetransferjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3167,6 +3202,7 @@ func (c *TransferJobsPatchCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"jobName": c.jobName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.patch", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3201,9 +3237,11 @@ func (c *TransferJobsPatchCall) Do(opts ...googleapi.CallOption) (*TransferJob, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.patch", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3253,8 +3291,7 @@ func (c *TransferJobsRunCall) Header() http.Header {
 
 func (c *TransferJobsRunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runtransferjobrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runtransferjobrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3270,6 +3307,7 @@ func (c *TransferJobsRunCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"jobName": c.jobName,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.run", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3304,9 +3342,11 @@ func (c *TransferJobsRunCall) Do(opts ...googleapi.CallOption) (*Operation, erro
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferJobs.run", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3370,8 +3410,7 @@ func (c *TransferOperationsCancelCall) Header() http.Header {
 
 func (c *TransferOperationsCancelCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.canceloperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.canceloperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3387,6 +3426,7 @@ func (c *TransferOperationsCancelCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.cancel", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3421,9 +3461,11 @@ func (c *TransferOperationsCancelCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.cancel", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3483,12 +3525,11 @@ func (c *TransferOperationsGetCall) doRequest(alt string) (*http.Response, error
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3496,6 +3537,7 @@ func (c *TransferOperationsGetCall) doRequest(alt string) (*http.Response, error
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3530,9 +3572,11 @@ func (c *TransferOperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3621,12 +3665,11 @@ func (c *TransferOperationsListCall) doRequest(alt string) (*http.Response, erro
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+name}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3634,6 +3677,7 @@ func (c *TransferOperationsListCall) doRequest(alt string) (*http.Response, erro
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3669,9 +3713,11 @@ func (c *TransferOperationsListCall) Do(opts ...googleapi.CallOption) (*ListOper
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3740,8 +3786,7 @@ func (c *TransferOperationsPauseCall) Header() http.Header {
 
 func (c *TransferOperationsPauseCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.pausetransferoperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.pausetransferoperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3757,6 +3802,7 @@ func (c *TransferOperationsPauseCall) doRequest(alt string) (*http.Response, err
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.pause", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3791,9 +3837,11 @@ func (c *TransferOperationsPauseCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.pause", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -3841,8 +3889,7 @@ func (c *TransferOperationsResumeCall) Header() http.Header {
 
 func (c *TransferOperationsResumeCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.resumetransferoperationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.resumetransferoperationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -3858,6 +3905,7 @@ func (c *TransferOperationsResumeCall) doRequest(alt string) (*http.Response, er
 	googleapi.Expand(req.URL, map[string]string{
 		"name": c.name,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.resume", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -3892,8 +3940,10 @@ func (c *TransferOperationsResumeCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "storagetransfer.transferOperations.resume", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

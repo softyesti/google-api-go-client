@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -57,11 +57,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -85,6 +87,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "homegraph:v1"
 const apiName = "homegraph"
@@ -114,7 +117,9 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.AgentUsers = NewAgentUsersService(s)
+	s.Devices = NewDevicesService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +138,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.AgentUsers = NewAgentUsersService(s)
-	s.Devices = NewDevicesService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -191,9 +194,9 @@ type AgentDeviceId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentDeviceId) MarshalJSON() ([]byte, error) {
+func (s AgentDeviceId) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentDeviceId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AgentOtherDeviceId: Alternate third-party device ID.
@@ -215,9 +218,9 @@ type AgentOtherDeviceId struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AgentOtherDeviceId) MarshalJSON() ([]byte, error) {
+func (s AgentOtherDeviceId) MarshalJSON() ([]byte, error) {
 	type NoMethod AgentOtherDeviceId
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Device: Third-party device definition.
@@ -276,9 +279,9 @@ type Device struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Device) MarshalJSON() ([]byte, error) {
+func (s Device) MarshalJSON() ([]byte, error) {
 	type NoMethod Device
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceInfo: Device information.
@@ -304,9 +307,9 @@ type DeviceInfo struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceInfo) MarshalJSON() ([]byte, error) {
+func (s DeviceInfo) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceInfo
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DeviceNames: Identifiers used to describe the device.
@@ -331,9 +334,9 @@ type DeviceNames struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DeviceNames) MarshalJSON() ([]byte, error) {
+func (s DeviceNames) MarshalJSON() ([]byte, error) {
 	type NoMethod DeviceNames
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Empty: A generic empty message that you can re-use to avoid defining
@@ -368,9 +371,9 @@ type QueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryRequest) MarshalJSON() ([]byte, error) {
+func (s QueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryRequestInput: Device ID inputs to QueryRequest.
@@ -390,9 +393,9 @@ type QueryRequestInput struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryRequestInput) MarshalJSON() ([]byte, error) {
+func (s QueryRequestInput) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryRequestInput
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryRequestPayload: Payload containing device IDs.
@@ -412,9 +415,9 @@ type QueryRequestPayload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryRequestPayload) MarshalJSON() ([]byte, error) {
+func (s QueryRequestPayload) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryRequestPayload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryResponse: Response type for the `Query`
@@ -446,9 +449,9 @@ type QueryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryResponse) MarshalJSON() ([]byte, error) {
+func (s QueryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // QueryResponsePayload: Payload containing device states information.
@@ -469,9 +472,9 @@ type QueryResponsePayload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *QueryResponsePayload) MarshalJSON() ([]byte, error) {
+func (s QueryResponsePayload) MarshalJSON() ([]byte, error) {
 	type NoMethod QueryResponsePayload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportStateAndNotificationDevice: The states and notifications specific to a
@@ -498,9 +501,9 @@ type ReportStateAndNotificationDevice struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportStateAndNotificationDevice) MarshalJSON() ([]byte, error) {
+func (s ReportStateAndNotificationDevice) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportStateAndNotificationDevice
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportStateAndNotificationRequest: Request type for the
@@ -537,9 +540,9 @@ type ReportStateAndNotificationRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportStateAndNotificationRequest) MarshalJSON() ([]byte, error) {
+func (s ReportStateAndNotificationRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportStateAndNotificationRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ReportStateAndNotificationResponse: Response type for the
@@ -564,9 +567,9 @@ type ReportStateAndNotificationResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ReportStateAndNotificationResponse) MarshalJSON() ([]byte, error) {
+func (s ReportStateAndNotificationResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod ReportStateAndNotificationResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RequestSyncDevicesRequest: Request type for the `RequestSyncDevices`
@@ -591,9 +594,9 @@ type RequestSyncDevicesRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RequestSyncDevicesRequest) MarshalJSON() ([]byte, error) {
+func (s RequestSyncDevicesRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RequestSyncDevicesRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RequestSyncDevicesResponse: Response type for the `RequestSyncDevices`
@@ -623,9 +626,9 @@ type StateAndNotificationPayload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *StateAndNotificationPayload) MarshalJSON() ([]byte, error) {
+func (s StateAndNotificationPayload) MarshalJSON() ([]byte, error) {
 	type NoMethod StateAndNotificationPayload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SyncRequest: Request type for the `Sync`
@@ -648,9 +651,9 @@ type SyncRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SyncRequest) MarshalJSON() ([]byte, error) {
+func (s SyncRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SyncRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SyncResponse: Response type for the `Sync`
@@ -686,9 +689,9 @@ type SyncResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SyncResponse) MarshalJSON() ([]byte, error) {
+func (s SyncResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SyncResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SyncResponsePayload: Payload containing device information.
@@ -710,9 +713,9 @@ type SyncResponsePayload struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SyncResponsePayload) MarshalJSON() ([]byte, error) {
+func (s SyncResponsePayload) MarshalJSON() ([]byte, error) {
 	type NoMethod SyncResponsePayload
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type AgentUsersDeleteCall struct {
@@ -770,12 +773,11 @@ func (c *AgentUsersDeleteCall) Header() http.Header {
 
 func (c *AgentUsersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+agentUserId}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -783,6 +785,7 @@ func (c *AgentUsersDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"agentUserId": c.agentUserId,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "homegraph.agentUsers.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -817,9 +820,11 @@ func (c *AgentUsersDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "homegraph.agentUsers.delete", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -866,8 +871,7 @@ func (c *DevicesQueryCall) Header() http.Header {
 
 func (c *DevicesQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.queryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.queryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -880,6 +884,7 @@ func (c *DevicesQueryCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "homegraph.devices.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -914,9 +919,11 @@ func (c *DevicesQueryCall) Do(opts ...googleapi.CallOption) (*QueryResponse, err
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "homegraph.devices.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -972,8 +979,7 @@ func (c *DevicesReportStateAndNotificationCall) Header() http.Header {
 
 func (c *DevicesReportStateAndNotificationCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.reportstateandnotificationrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.reportstateandnotificationrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -986,6 +992,7 @@ func (c *DevicesReportStateAndNotificationCall) doRequest(alt string) (*http.Res
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "homegraph.devices.reportStateAndNotification", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1021,9 +1028,11 @@ func (c *DevicesReportStateAndNotificationCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "homegraph.devices.reportStateAndNotification", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1072,8 +1081,7 @@ func (c *DevicesRequestSyncCall) Header() http.Header {
 
 func (c *DevicesRequestSyncCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.requestsyncdevicesrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.requestsyncdevicesrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1086,6 +1094,7 @@ func (c *DevicesRequestSyncCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "homegraph.devices.requestSync", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1121,9 +1130,11 @@ func (c *DevicesRequestSyncCall) Do(opts ...googleapi.CallOption) (*RequestSyncD
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "homegraph.devices.requestSync", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1170,8 +1181,7 @@ func (c *DevicesSyncCall) Header() http.Header {
 
 func (c *DevicesSyncCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.syncrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.syncrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1184,6 +1194,7 @@ func (c *DevicesSyncCall) doRequest(alt string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "homegraph.devices.sync", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1218,8 +1229,10 @@ func (c *DevicesSyncCall) Do(opts ...googleapi.CallOption) (*SyncResponse, error
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "homegraph.devices.sync", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }

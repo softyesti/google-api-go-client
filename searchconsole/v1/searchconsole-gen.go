@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC.
+// Copyright 2025 Google LLC.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,7 +6,7 @@
 
 // Package searchconsole provides access to the Google Search Console API.
 //
-// For product documentation, see: https://developers.google.com/webmaster-tools/search-console-api/
+// For product documentation, see: https://developers.google.com/webmaster-tools/about
 //
 // # Library status
 //
@@ -62,11 +62,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/googleapis/gax-go/v2/internallog"
 	googleapi "google.golang.org/api/googleapi"
 	internal "google.golang.org/api/internal"
 	gensupport "google.golang.org/api/internal/gensupport"
@@ -90,6 +92,7 @@ var _ = strings.Replace
 var _ = context.Canceled
 var _ = internaloption.WithDefaultEndpoint
 var _ = internal.Version
+var _ = internallog.New
 
 const apiId = "searchconsole:v1"
 const apiName = "searchconsole"
@@ -123,7 +126,12 @@ func NewService(ctx context.Context, opts ...option.ClientOption) (*Service, err
 	if err != nil {
 		return nil, err
 	}
-	s, err := New(client)
+	s := &Service{client: client, BasePath: basePath, logger: internaloption.GetLogger(opts)}
+	s.Searchanalytics = NewSearchanalyticsService(s)
+	s.Sitemaps = NewSitemapsService(s)
+	s.Sites = NewSitesService(s)
+	s.UrlInspection = NewUrlInspectionService(s)
+	s.UrlTestingTools = NewUrlTestingToolsService(s)
 	if err != nil {
 		return nil, err
 	}
@@ -142,17 +150,12 @@ func New(client *http.Client) (*Service, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
-	s := &Service{client: client, BasePath: basePath}
-	s.Searchanalytics = NewSearchanalyticsService(s)
-	s.Sitemaps = NewSitemapsService(s)
-	s.Sites = NewSitesService(s)
-	s.UrlInspection = NewUrlInspectionService(s)
-	s.UrlTestingTools = NewUrlTestingToolsService(s)
-	return s, nil
+	return NewService(context.TODO(), option.WithHTTPClient(client))
 }
 
 type Service struct {
 	client    *http.Client
+	logger    *slog.Logger
 	BasePath  string // API endpoint base URL
 	UserAgent string // optional additional User-Agent fragment
 
@@ -328,9 +331,9 @@ type AmpInspectionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AmpInspectionResult) MarshalJSON() ([]byte, error) {
+func (s AmpInspectionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod AmpInspectionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // AmpIssue: AMP issue.
@@ -357,9 +360,9 @@ type AmpIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *AmpIssue) MarshalJSON() ([]byte, error) {
+func (s AmpIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod AmpIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type ApiDataRow struct {
@@ -381,9 +384,9 @@ type ApiDataRow struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApiDataRow) MarshalJSON() ([]byte, error) {
+func (s ApiDataRow) MarshalJSON() ([]byte, error) {
 	type NoMethod ApiDataRow
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 func (s *ApiDataRow) UnmarshalJSON(data []byte) error {
@@ -442,9 +445,9 @@ type ApiDimensionFilter struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApiDimensionFilter) MarshalJSON() ([]byte, error) {
+func (s ApiDimensionFilter) MarshalJSON() ([]byte, error) {
 	type NoMethod ApiDimensionFilter
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ApiDimensionFilterGroup: A set of dimension value filters to test against
@@ -469,9 +472,9 @@ type ApiDimensionFilterGroup struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ApiDimensionFilterGroup) MarshalJSON() ([]byte, error) {
+func (s ApiDimensionFilterGroup) MarshalJSON() ([]byte, error) {
 	type NoMethod ApiDimensionFilterGroup
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // BlockedResource: Blocked resource.
@@ -491,9 +494,9 @@ type BlockedResource struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *BlockedResource) MarshalJSON() ([]byte, error) {
+func (s BlockedResource) MarshalJSON() ([]byte, error) {
 	type NoMethod BlockedResource
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // DetectedItems: Rich Results items grouped by type.
@@ -515,9 +518,9 @@ type DetectedItems struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *DetectedItems) MarshalJSON() ([]byte, error) {
+func (s DetectedItems) MarshalJSON() ([]byte, error) {
 	type NoMethod DetectedItems
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Image: Describe image data.
@@ -540,9 +543,9 @@ type Image struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Image) MarshalJSON() ([]byte, error) {
+func (s Image) MarshalJSON() ([]byte, error) {
 	type NoMethod Image
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // IndexStatusInspectionResult: Results of index status inspection for either
@@ -645,9 +648,9 @@ type IndexStatusInspectionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *IndexStatusInspectionResult) MarshalJSON() ([]byte, error) {
+func (s IndexStatusInspectionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod IndexStatusInspectionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InspectUrlIndexRequest: Index inspection request.
@@ -677,9 +680,9 @@ type InspectUrlIndexRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InspectUrlIndexRequest) MarshalJSON() ([]byte, error) {
+func (s InspectUrlIndexRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InspectUrlIndexRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // InspectUrlIndexResponse: Index-Status inspection response.
@@ -702,9 +705,9 @@ type InspectUrlIndexResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *InspectUrlIndexResponse) MarshalJSON() ([]byte, error) {
+func (s InspectUrlIndexResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod InspectUrlIndexResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // Item: A specific rich result found on the page.
@@ -726,9 +729,9 @@ type Item struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *Item) MarshalJSON() ([]byte, error) {
+func (s Item) MarshalJSON() ([]byte, error) {
 	type NoMethod Item
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MobileFriendlyIssue: Mobile-friendly issue.
@@ -768,9 +771,9 @@ type MobileFriendlyIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MobileFriendlyIssue) MarshalJSON() ([]byte, error) {
+func (s MobileFriendlyIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod MobileFriendlyIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MobileUsabilityInspectionResult: Mobile-usability inspection results.
@@ -802,9 +805,9 @@ type MobileUsabilityInspectionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MobileUsabilityInspectionResult) MarshalJSON() ([]byte, error) {
+func (s MobileUsabilityInspectionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod MobileUsabilityInspectionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // MobileUsabilityIssue: Mobile-usability issue.
@@ -853,9 +856,9 @@ type MobileUsabilityIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *MobileUsabilityIssue) MarshalJSON() ([]byte, error) {
+func (s MobileUsabilityIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod MobileUsabilityIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // ResourceIssue: Information about a resource with issue.
@@ -875,9 +878,9 @@ type ResourceIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *ResourceIssue) MarshalJSON() ([]byte, error) {
+func (s ResourceIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod ResourceIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RichResultsInspectionResult: Rich-Results inspection result, including any
@@ -911,9 +914,9 @@ type RichResultsInspectionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RichResultsInspectionResult) MarshalJSON() ([]byte, error) {
+func (s RichResultsInspectionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod RichResultsInspectionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RichResultsIssue: Severity and status of a single issue affecting a single
@@ -943,9 +946,9 @@ type RichResultsIssue struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RichResultsIssue) MarshalJSON() ([]byte, error) {
+func (s RichResultsIssue) MarshalJSON() ([]byte, error) {
 	type NoMethod RichResultsIssue
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunMobileFriendlyTestRequest: Mobile-friendly test request.
@@ -967,9 +970,9 @@ type RunMobileFriendlyTestRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunMobileFriendlyTestRequest) MarshalJSON() ([]byte, error) {
+func (s RunMobileFriendlyTestRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod RunMobileFriendlyTestRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // RunMobileFriendlyTestResponse: Mobile-friendly test response, including
@@ -1008,9 +1011,9 @@ type RunMobileFriendlyTestResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *RunMobileFriendlyTestResponse) MarshalJSON() ([]byte, error) {
+func (s RunMobileFriendlyTestResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod RunMobileFriendlyTestResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SearchAnalyticsQueryRequest struct {
@@ -1106,9 +1109,9 @@ type SearchAnalyticsQueryRequest struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchAnalyticsQueryRequest) MarshalJSON() ([]byte, error) {
+func (s SearchAnalyticsQueryRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchAnalyticsQueryRequest
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SearchAnalyticsQueryResponse: A list of rows, one per result, grouped by
@@ -1142,9 +1145,9 @@ type SearchAnalyticsQueryResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SearchAnalyticsQueryResponse) MarshalJSON() ([]byte, error) {
+func (s SearchAnalyticsQueryResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SearchAnalyticsQueryResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SitemapsListResponse: List of sitemaps.
@@ -1168,9 +1171,9 @@ type SitemapsListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SitemapsListResponse) MarshalJSON() ([]byte, error) {
+func (s SitemapsListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SitemapsListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // SitesListResponse: List of sites with access level information.
@@ -1195,9 +1198,9 @@ type SitesListResponse struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *SitesListResponse) MarshalJSON() ([]byte, error) {
+func (s SitesListResponse) MarshalJSON() ([]byte, error) {
 	type NoMethod SitesListResponse
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // TestStatus: Final state of the test, including error details if necessary.
@@ -1230,9 +1233,9 @@ type TestStatus struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *TestStatus) MarshalJSON() ([]byte, error) {
+func (s TestStatus) MarshalJSON() ([]byte, error) {
 	type NoMethod TestStatus
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // UrlInspectionResult: URL inspection result, including all inspection
@@ -1263,9 +1266,9 @@ type UrlInspectionResult struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *UrlInspectionResult) MarshalJSON() ([]byte, error) {
+func (s UrlInspectionResult) MarshalJSON() ([]byte, error) {
 	type NoMethod UrlInspectionResult
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WmxSite: Contains permission level information about a Search Console site.
@@ -1301,9 +1304,9 @@ type WmxSite struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WmxSite) MarshalJSON() ([]byte, error) {
+func (s WmxSite) MarshalJSON() ([]byte, error) {
 	type NoMethod WmxSite
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WmxSitemap: Contains detailed information about a specific URL submitted as
@@ -1356,9 +1359,9 @@ type WmxSitemap struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WmxSitemap) MarshalJSON() ([]byte, error) {
+func (s WmxSitemap) MarshalJSON() ([]byte, error) {
 	type NoMethod WmxSitemap
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 // WmxSitemapContent: Information about the various content types in the
@@ -1394,9 +1397,9 @@ type WmxSitemapContent struct {
 	NullFields []string `json:"-"`
 }
 
-func (s *WmxSitemapContent) MarshalJSON() ([]byte, error) {
+func (s WmxSitemapContent) MarshalJSON() ([]byte, error) {
 	type NoMethod WmxSitemapContent
-	return gensupport.MarshalJSON(NoMethod(*s), s.ForceSendFields, s.NullFields)
+	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
 type SearchanalyticsQueryCall struct {
@@ -1449,8 +1452,7 @@ func (c *SearchanalyticsQueryCall) Header() http.Header {
 
 func (c *SearchanalyticsQueryCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.searchanalyticsqueryrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.searchanalyticsqueryrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -1466,6 +1468,7 @@ func (c *SearchanalyticsQueryCall) doRequest(alt string) (*http.Response, error)
 	googleapi.Expand(req.URL, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.searchanalytics.query", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1501,9 +1504,11 @@ func (c *SearchanalyticsQueryCall) Do(opts ...googleapi.CallOption) (*SearchAnal
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.searchanalytics.query", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1556,12 +1561,11 @@ func (c *SitemapsDeleteCall) Header() http.Header {
 
 func (c *SitemapsDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webmasters/v3/sites/{siteUrl}/sitemaps/{feedpath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1570,6 +1574,7 @@ func (c *SitemapsDeleteCall) doRequest(alt string) (*http.Response, error) {
 		"siteUrl":  c.siteUrl,
 		"feedpath": c.feedpath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.sitemaps.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1584,6 +1589,7 @@ func (c *SitemapsDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.sitemaps.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -1646,12 +1652,11 @@ func (c *SitemapsGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webmasters/v3/sites/{siteUrl}/sitemaps/{feedpath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1660,6 +1665,7 @@ func (c *SitemapsGetCall) doRequest(alt string) (*http.Response, error) {
 		"siteUrl":  c.siteUrl,
 		"feedpath": c.feedpath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.sitemaps.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1694,9 +1700,11 @@ func (c *SitemapsGetCall) Do(opts ...googleapi.CallOption) (*WmxSitemap, error) 
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.sitemaps.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1764,12 +1772,11 @@ func (c *SitemapsListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webmasters/v3/sites/{siteUrl}/sitemaps")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1777,6 +1784,7 @@ func (c *SitemapsListCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.sitemaps.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1812,9 +1820,11 @@ func (c *SitemapsListCall) Do(opts ...googleapi.CallOption) (*SitemapsListRespon
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.sitemaps.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -1865,12 +1875,11 @@ func (c *SitemapsSubmitCall) Header() http.Header {
 
 func (c *SitemapsSubmitCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webmasters/v3/sites/{siteUrl}/sitemaps/{feedpath}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("PUT", urls, body)
+	req, err := http.NewRequest("PUT", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1879,6 +1888,7 @@ func (c *SitemapsSubmitCall) doRequest(alt string) (*http.Response, error) {
 		"siteUrl":  c.siteUrl,
 		"feedpath": c.feedpath,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.sitemaps.submit", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1893,6 +1903,7 @@ func (c *SitemapsSubmitCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.sitemaps.submit", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -1938,12 +1949,11 @@ func (c *SitesAddCall) Header() http.Header {
 
 func (c *SitesAddCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webmasters/v3/sites/{siteUrl}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("PUT", urls, body)
+	req, err := http.NewRequest("PUT", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1951,6 +1961,7 @@ func (c *SitesAddCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.sites.add", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -1965,6 +1976,7 @@ func (c *SitesAddCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.sites.add", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -2011,12 +2023,11 @@ func (c *SitesDeleteCall) Header() http.Header {
 
 func (c *SitesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webmasters/v3/sites/{siteUrl}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("DELETE", urls, body)
+	req, err := http.NewRequest("DELETE", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2024,6 +2035,7 @@ func (c *SitesDeleteCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.sites.delete", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2038,6 +2050,7 @@ func (c *SitesDeleteCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return gensupport.WrapError(err)
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.sites.delete", "response", internallog.HTTPResponse(res, nil))
 	return nil
 }
 
@@ -2096,12 +2109,11 @@ func (c *SitesGetCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webmasters/v3/sites/{siteUrl}")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2109,6 +2121,7 @@ func (c *SitesGetCall) doRequest(alt string) (*http.Response, error) {
 	googleapi.Expand(req.URL, map[string]string{
 		"siteUrl": c.siteUrl,
 	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.sites.get", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2143,9 +2156,11 @@ func (c *SitesGetCall) Do(opts ...googleapi.CallOption) (*WmxSite, error) {
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.sites.get", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2199,16 +2214,16 @@ func (c *SitesListCall) doRequest(alt string) (*http.Response, error) {
 	if c.ifNoneMatch_ != "" {
 		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
 	}
-	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	c.urlParams_.Set("prettyPrint", "false")
 	urls := googleapi.ResolveRelative(c.s.BasePath, "webmasters/v3/sites")
 	urls += "?" + c.urlParams_.Encode()
-	req, err := http.NewRequest("GET", urls, body)
+	req, err := http.NewRequest("GET", urls, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "webmasters.sites.list", "request", internallog.HTTPRequest(req, nil))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2244,9 +2259,11 @@ func (c *SitesListCall) Do(opts ...googleapi.CallOption) (*SitesListResponse, er
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "webmasters.sites.list", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2290,8 +2307,7 @@ func (c *UrlInspectionIndexInspectCall) Header() http.Header {
 
 func (c *UrlInspectionIndexInspectCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.inspecturlindexrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.inspecturlindexrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2304,6 +2320,7 @@ func (c *UrlInspectionIndexInspectCall) doRequest(alt string) (*http.Response, e
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "searchconsole.urlInspection.index.inspect", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2339,9 +2356,11 @@ func (c *UrlInspectionIndexInspectCall) Do(opts ...googleapi.CallOption) (*Inspe
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "searchconsole.urlInspection.index.inspect", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -2385,8 +2404,7 @@ func (c *UrlTestingToolsMobileFriendlyTestRunCall) Header() http.Header {
 
 func (c *UrlTestingToolsMobileFriendlyTestRunCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "application/json", c.header_)
-	var body io.Reader = nil
-	body, err := googleapi.WithoutDataWrapper.JSONReader(c.runmobilefriendlytestrequest)
+	body, err := googleapi.WithoutDataWrapper.JSONBuffer(c.runmobilefriendlytestrequest)
 	if err != nil {
 		return nil, err
 	}
@@ -2399,6 +2417,7 @@ func (c *UrlTestingToolsMobileFriendlyTestRunCall) doRequest(alt string) (*http.
 		return nil, err
 	}
 	req.Header = reqHeaders
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "searchconsole.urlTestingTools.mobileFriendlyTest.run", "request", internallog.HTTPRequest(req, body.Bytes()))
 	return gensupport.SendRequest(c.ctx_, c.s.client, req)
 }
 
@@ -2434,8 +2453,10 @@ func (c *UrlTestingToolsMobileFriendlyTestRunCall) Do(opts ...googleapi.CallOpti
 		},
 	}
 	target := &ret
-	if err := gensupport.DecodeResponse(target, res); err != nil {
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
 		return nil, err
 	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "searchconsole.urlTestingTools.mobileFriendlyTest.run", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
